@@ -1,8 +1,9 @@
 # 📓 atrium-llm-enrich — agent_dev_logs/DEVLOG.md (timeline index)
 > _LLM-driven enrichment of archaeological documents (local multi-GPU + remote-as-a-service). 6 open
-> issues (#10, #11, #13, #18, #24, #25); #8 closed. `test` = `main` = `c3575f5` (2026-09-25) · **v0.7.0**
-> (2026-09-16, `f7b0ecf`). Everything since — the 2026-09-24 round-4 fixes and the 2026-09-25 #18 converter — is on
-> `test`, not yet released._
+> issues (#10, #11, #13, #18, #24, #25); #8 closed. AMČR baseline (atrium-project#67, 2026-09-26): #10 finish ·
+> #13, #18 close · #11 defer · #24, #25 stop. `test` = `79b857d` (2026-09-26) · **v0.7.0**
+> (2026-09-16, `f7b0ecf`). Everything since — the 2026-09-24 round-4 fixes, the 2026-09-25 #18 converter and the
+> 2026-09-26 freeze files — is on `test`, not yet released._
 > _Per-issue detail: `digests/{id}.digest.md` · `plans/{id}.plan.md` · `issues/` exports
 > (source of truth). Cross-repo/hub history (DU benchmark hub#22, this repo's spin-out from
 > hub#24) lives in `ufal/atrium-project/agent_dev_logs/DEVLOG.md` (deduplicated out of this file).
@@ -349,7 +350,37 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 * `pytest -m "not slow"`: 1016 passed, 19 environment-only skips (+3: the new licence cases); `ruff` clean; fixtures
   `--verify` clean. **Not pushed: files delivered in chat.**
 
+## 2026-09-26: AMČR baseline (atrium-project#67) — every digest+plan pair refreshed
+
+* **What arrived (motyc, 2026-09-26):** [atrium-project#67](https://github.com/ufal/atrium-project/issues/67), AMČR's
+  bucket for every open issue, and five comments here: #10 16:11 (the born-digital path for the pilot), #24 16:13 and
+  #25 16:14 (stop: OCR stays outside the tool repositories), #13 16:18 (close as completed), #18 16:19 (close with the
+  release that carries `c3575f5`). **Adopted by ÚFAL as binding.**
+* **Earlier the same day (K4TEL):** #10 05:30 (steps 1–2 of the 09-24 plan done), #18 05:29 (all four tasks done) and
+  16:03 (the freeze made traceable in every repository; MANIFEST 17 → 19). `test` = `79b857d`: the freeze files
+  (`atrium_document.schema.doc-schema-v1.json`, `tests/test_schema_freeze.py`), README and `CITATION.cff` naming
+  `doc-schema-v1`, and the re-vendored freeze test (blob `7c35fbf1`) that turned para-drift green again.
+* **Dev logs:**
+  * `10.*` ✅ **finish** — plan §12: `api-digital` (W1), every AMČR born-digital type incl. DOC/XLS via LibreOffice
+    (W2), one reader and one quality model with alto-postprocess (W3; needs one additive origin-check rule so
+    alto-postprocess may score born-digital lines), the OCR hand-off into the same record (W4; the page-subset merge
+    is missing), TEITOK from `lines[].bbox` + `pages[].canvas` for nlp-enrich (W5), keep refusing OCR-layer PDFs (W6),
+    Docling/MinerU here as Phase 6 (W7). The OCR-engine choice and flexiconv for the long tail are struck.
+  * `13.*` 🔒 **close-out** — leftovers: one LLM input/client → #67 R7; token-cost bake-off → hub #22; `--detail`,
+    reserved cues, JSON→TEITOK back-projection, `entities[].translation_en` → a new "Deferred record extensions" issue
+    (body in chat).
+  * `18.*` 🔒 **close-out** — close with the release carrying `c3575f5` (proposed v0.8.0); plan §0g.
+  * `11.*` ⏸️ **defer** — with hub #22; K4TEL's 09-25 status added.
+  * `24.*`, `25.*` ⛔ **stop** — close as not planned; olmOCR → AMČR's backup-OCR evaluation; the Jan Švec contact kept
+    for shared evaluation data.
+* **Found:** `llm_client_shared.py:1248,1319` returns the path named after the filename-derived id while `finalize()`
+  writes under the seed's id, so the API (`service/api.py:351-398`) returns an AMČR seed unenriched when the two ids
+  differ; `/extract_keywords_text` hardcodes `doc_id="inline_text"` (`service/api.py:516`). Read, not reproduced —
+  hub #67 plan §B.
+
+  **Not pushed: files delivered in chat.**
+
 ---
-_Timeline index refreshed 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
+_Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
 derived reading aid in `agent_dev_logs/`._
