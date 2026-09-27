@@ -196,6 +196,32 @@ def test_document_json_single_file_pair_round_trips_the_baseline(
         assert block in record, f"upstream {block!r} block was discarded"
 
 
+def test_document_json_single_file_pair_enriches_a_seed_keyed_unlike_the_input(
+    remote_client_env, seeded_baseline, stub_llm
+):
+    """(atrium-project#68) The same pair with a seed keyed by an AMČR file id, not by the
+    input's name. The record was written under the seed's id while `--document-json-out`
+    received the file named after the input: the untouched seed, without `enrichment`."""
+    from atrium_document import load_document
+
+    env = remote_client_env
+    stub_llm(openrouter_client)
+    seed_id = "C-202000543A-DT-27"
+    seed = json.loads(seeded_baseline.read_text(encoding="utf-8"))
+    seed["doc_id"] = seed_id
+    seed_path = env.root / "amcr-seed.document.json"
+    seed_path.write_text(json.dumps(seed, ensure_ascii=False), encoding="utf-8")
+    out_path = env.root / "5_llm.json"
+
+    _run_main(env, ["--document-json", str(seed_path), "--document-json-out", str(out_path)])
+
+    record = load_document(str(out_path))
+    assert record["doc_id"] == seed_id
+    for block in ("pages", "lines", "entities"):
+        assert block in record, f"upstream {block!r} block was discarded"
+    assert record["enrichment"]["items"][0]["extracted_keywords_en"] == ["church"]
+
+
 # ── the three zero-record outcomes are three different artifacts ─────────────
 #
 # atrium-project#49. `--document-json` seeds a scratch dir with the CALLER'S baseline and

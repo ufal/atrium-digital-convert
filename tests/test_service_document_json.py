@@ -69,16 +69,17 @@ def csv_input(tmp_path):
     return path
 
 
-def _baseline(record_dir, **blocks):
-    """A caller-uploaded baseline, written the way the endpoint writes it."""
+def _baseline(record_dir, doc_id=DOC, stem=DOC, **blocks):
+    """A caller-uploaded baseline, written the way the endpoint writes it: under the name
+    derived from the upload (`stem`), whatever id the record itself carries (`doc_id`)."""
     record_dir.mkdir(parents=True, exist_ok=True)
-    path = record_dir / f"{DOC}{FILE_SUFFIX}"
+    path = record_dir / f"{stem}{FILE_SUFFIX}"
     path.write_text(
         json.dumps(
             {
                 "schema_version": "1.0",
                 "record_type": "atrium-document",
-                "doc_id": DOC,
+                "doc_id": doc_id,
                 **blocks,
             },
             ensure_ascii=False,
@@ -175,3 +176,98 @@ def test_no_record_is_written_when_the_run_produced_nothing(tmp_path, engine):
     assert result["results"] == []
     assert "document_json" not in result
     assert not (record_dir / f"{DOC}{FILE_SUFFIX}").exists()
+
+
+# ── (atrium-project#68) a seed keyed unlike the upload ──────────────────────────────────────
+#
+# An AMČR seed carries the AMČR file id as its doc_id, and the upload has another name.
+# DocumentRecord keeps the seed's id, but finalize() wrote `<seed id>.document.json` while
+# write_document_record() returned the name it derived from the upload — the untouched seed.
+# The response was a valid record with no `enrichment` in it.
+
+SEED = "C-202000543A-DT-27"
+
+
+def test_a_seed_keyed_unlike_the_upload_comes_back_enriched(tmp_path, engine):
+    upload = tmp_path / "upload.csv"
+    upload.write_text(_CSV, encoding="utf-8")
+    record_dir = tmp_path / "records"
+    _baseline(record_dir, doc_id=SEED, stem="upload", pages=[{"page": "1", "page_index": 1}])
+
+    result = _run_extraction(str(upload), upload.name, engine, "upload", record_dir)
+
+    record = result["document_json"]
+    assert record["doc_id"] == SEED
+    assert record["pages"] == [{"page": "1", "page_index": 1}]
+    item = record["enrichment"]["items"][0]
+    assert item["extracted_keywords_en"] == ["church"]
+    # The citation names the record's document, not the upload's filename.
+    assert item["citation"] == f"[Source: {SEED}, Page 1]"
+    # Written back where it was read, not to a second, seed-named file.
+    assert sorted(p.name for p in record_dir.glob(f"*{FILE_SUFFIX}")) == [f"upload{FILE_SUFFIX}"]
+
+
+def test_extract_keywords_text_is_keyed_by_the_seed_it_is_sent(tmp_path, monkeypatch):
+    """`/extract_keywords_text` has no filename to derive an id from, and keyed every call
+    `inline_text`; a record sent with it came back as the untouched seed."""
+    from fastapi.testclient import TestClient
+
+    from llm_client_shared import build_document_schema
+    from service import api
+
+    def _doc_chat_fn(_messages):
+        return json.dumps(
+            {
+                "items": [
+                    {
+                        "locator": "gotického kostela",
+                        "page": "1",
+                        "extracted_keywords_cs": ["kostel"],
+                        "extracted_keywords_en": ["church"],
+                        "teater_category": "kostel",
+                        "confidence_score": 0.9,
+                    }
+                ]
+            }
+        )
+
+    engine = {
+        "backend": "openrouter",
+        "model": "test/model",
+        "doc_prompt": "system prompt",
+        "doc_model": build_document_schema(["kostel"]),
+        "doc_chat_fn": _doc_chat_fn,
+    }
+    monkeypatch.setattr(api, "_require_engine", lambda: engine)
+    monkeypatch.chdir(tmp_path)
+    seed = {
+        "schema_version": "1.0",
+        "record_type": "atrium-document",
+        "doc_id": SEED,
+        "pages": [{"page": "1", "page_index": 1}],
+    }
+
+    response = TestClient(api.app).post(
+        "/extract_keywords_text",
+        json={"text": "Výzkum odhalil základy gotického kostela.", "document_json": seed},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["doc_id"] == SEED
+    record = body["document_json"]
+    assert record["doc_id"] == SEED
+    assert record["pages"] == seed["pages"]
+    assert record["enrichment"]["items"][0]["extracted_keywords_en"] == ["church"]
+
+
+@pytest.mark.parametrize(
+    "doc_id", ["../escape", "a/b", "a\\b", "nul\x00", "\ud800", "..", "", "x" * 201, 7]
+)
+def test_extract_keywords_text_never_builds_a_path_from_an_unsafe_seed_id(doc_id):
+    """The seed's id names a file in the request's temp dir, so only a plain name is used."""
+    from service.api import _inline_doc_id
+
+    assert _inline_doc_id({"doc_id": doc_id}) == "inline_text"
+    assert _inline_doc_id(None) == "inline_text"
+    assert _inline_doc_id({"doc_id": SEED}) == SEED

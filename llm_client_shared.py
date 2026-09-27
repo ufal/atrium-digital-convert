@@ -1222,6 +1222,14 @@ def write_document_record(
     Returns the record path, or None when the optional ``atrium_document`` module is
     unavailable.
 
+    The returned path is the one ``finalize()`` wrote, and it is the baseline's own path
+    (atrium-project#68). The record keeps the BASELINE's ``doc_id`` when it differs from
+    ``doc_id`` here (an AMČR seed carries the AMČR file id, and the upload has another name),
+    and ``finalize()``'s default file name follows the record's id. Left to that default, the
+    record was written to ``<seed id>.document.json`` while this function returned the
+    ``<doc_id>`` path, i.e. the untouched seed, which the service and ``--document-json-out``
+    then handed back without ``enrichment``.
+
     This is also the repo's **single Layer D chokepoint** (atrium-project#10, D4). Every
     write path — both batch clients and ``service/api.py`` — comes through here, so the
     schema gate is applied once, not once per caller. The ecosystem-wide policy is:
@@ -1270,7 +1278,9 @@ def write_document_record(
         paradata_ref=paradata_ref,
         out_dir=str(record_dir),
     ) as doc:
-        doc.set_block("enrichment", enrichment_block(doc_id, results))
+        # doc.doc_id, not doc_id: the citations name the record's document, which is the
+        # baseline's id whenever it differs from the one derived from the input (#68).
+        doc.set_block("enrichment", enrichment_block(doc.doc_id, results))
 
         # llm-enrich's one field in a block it does not own. merge_block, not set_block:
         # `entities` is nlp-enrich's, and a wholesale write would erase the morphology and
@@ -1316,7 +1326,11 @@ def write_document_record(
                     f"{SCHEMA_FILENAME}: {own_error} - refusing to emit it (Layer D)"
                 )
 
-    return baseline
+        # Back to the file it was read from, explicitly (#68, see the docstring).
+        # __exit__ then has nothing left to do.
+        record_path = Path(doc.finalize(str(baseline)))
+
+    return record_path
 
 
 # ---------------------------------------------------------------------------

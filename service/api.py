@@ -400,6 +400,29 @@ def _run_extraction(
     return result
 
 
+def _inline_doc_id(document_json: Optional[Dict[str, Any]]) -> str:
+    """The key for an ``/extract_keywords_text`` call: the sent record's ``doc_id``.
+
+    Inline text has no filename to derive an id from, so without a record the call is keyed
+    ``inline_text``. With one, the record's own id is the key (atrium-project#68): the
+    response then names the document it enriched. The id also names the baseline's file in
+    the request's temp dir, so only a plain file name short enough to be one (255 bytes, less
+    the suffix) is taken; anything else falls back to ``inline_text``. The record itself keeps
+    its id either way (DocumentRecord inherits it).
+    """
+    doc_id = (document_json or {}).get("doc_id")
+    if (
+        not isinstance(doc_id, str)
+        or doc_id in ("", ".", "..")
+        or not doc_id.isprintable()  # control characters, NUL, lone surrogates
+        or "/" in doc_id
+        or "\\" in doc_id
+        or len(doc_id.encode("utf-8")) > 200
+    ):
+        return "inline_text"
+    return doc_id
+
+
 def _envelope(engine: Dict[str, Any], doc_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "service": "atrium-llm-enrich",
@@ -512,8 +535,7 @@ async def extract_keywords_text(
     """Extract archaeological keywords from inline text (§4.2)."""
     engine = _require_engine()
 
-    # Assign a dummy doc_id for inline text (or generate a UUID if preferred)
-    doc_id = "inline_text"
+    doc_id = _inline_doc_id(document_json)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         work_dir = Path(tmp_dir)
