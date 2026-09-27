@@ -149,6 +149,14 @@ Every knob on the remote/lightweight-local clients can also be passed as a CLI f
 precedence over `llm_config.txt` (see `--help` on either script for the full list — e.g.
 `--provider-data-collection`, `--attach-as-file`, `--context-window`, `--max-retries`).
 
+The reply cap (`LLM_MAX_NEW_TOKENS`, 2048) and the consecutive-error stop
+(`LLM_MAX_CONSECUTIVE_ERRORS`, 10) are environment settings for both clients and the service
+(atrium-project#53, `tool_limits.py`); `--context-window` defaults to 128000 for OpenRouter and
+32000 for Ollama, the same defaults the service uses, and Ollama now receives it as `num_ctx`
+together with the cap as `num_predict`. A reply cut at the cap is never used, and only a timeout,
+a connection error, HTTP 429 or 5xx is retried. Every limit of the service is listed in
+[service/README.md § Limits](service/README.md#limits).
+
 ## Vocabulary Harvesting (`vocab_build.py`)
 
 The vocabulary is built in two stages, and only the first needs the internet:

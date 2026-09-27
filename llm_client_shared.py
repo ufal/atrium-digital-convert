@@ -107,6 +107,35 @@ def approx_token_count(text: str) -> int:
 ChatFn = Callable[[List[Dict[str, str]]], str]
 
 
+class ReplyTruncated(RuntimeError):
+    """The provider cut the reply at the output-token cap (``LLM_MAX_NEW_TOKENS``):
+    OpenRouter ``finish_reason``, Ollama ``done_reason`` == ``"length"``.
+
+    Such a reply is never used: its JSON is incomplete, and a repaired prefix would be a
+    silent truncation of the result (atrium-project#53). Not retried — at temperature 0
+    the same request is cut at the same place. ``max_new_tokens`` is the cap it hit.
+    """
+
+    def __init__(self, message: str, max_new_tokens: int) -> None:
+        super().__init__(message)
+        self.max_new_tokens = max_new_tokens
+
+
+class RequestRefused(RuntimeError):
+    """The provider answered a client error (HTTP 4xx other than 429). Not retried —
+    the same request would be refused again — and the provider's reply is kept in the
+    message, so the caller sees why (atrium-project#53)."""
+
+
+def http_error_detail(resp: Any, limit: int = 500) -> str:
+    """``HTTP <code>: <start of the body>`` for an error reply."""
+    try:
+        body = (resp.text or "")[:limit]
+    except Exception:  # noqa: BLE001 - a body that cannot be read is still an error
+        body = ""
+    return f"HTTP {resp.status_code}: {body}".rstrip(": ")
+
+
 # ---------------------------------------------------------------------------
 # 3. Line-quality filter — duplicated from llm_utils._should_process_line
 # ---------------------------------------------------------------------------
@@ -509,6 +538,13 @@ def _collect_vocab_terms(
                     sub = pair.get("sub", "") if isinstance(pair, dict) else ""
                     raw_terms.append({"theme": theme, "sub": sub, "cs": cs_key, "en": en})
     return raw_terms
+
+
+def count_vocab_terms(vocab_data: dict, excluded_themes: Optional[Set[str]] = None) -> int:
+    """How many terms the prompt builders would inject before any truncation — what a
+    caller compares their surviving term list against to say how many were left out
+    (atrium-project#53)."""
+    return len(_collect_vocab_terms(vocab_data, excluded_themes))
 
 
 def _render_vocab_prompt(header: str, term_list: List[dict], footer: str = "") -> str:
@@ -1525,6 +1561,7 @@ def run_document_level(
     system_prompt: str,
     DocumentEnrichmentModel: type,
     user_content_builder: Optional[Callable[[str], Any]] = None,
+    strict: bool = False,
 ) -> Tuple[List[dict], Dict[str, int]]:
     """
     Run whole-document enrichment over a single Markdown/plain-text file
@@ -1537,6 +1574,12 @@ def run_document_level(
     --attach-as-file actually reaches the wire. When omitted, the document
     text is inlined as plain message text (``DOCUMENT:\n<text>``), matching
     every caller's original behaviour.
+
+    ``strict=True`` (the service, atrium-project#53) lets a failed call raise instead of
+    returning no records with ``aborted`` set: a reply cut at the token cap
+    (:class:`ReplyTruncated`) and a call whose retries ran out (``RuntimeError``) then
+    reach the caller, which answers 422 or 502 rather than 200 with empty results. A
+    reply that does not validate is still repaired, as before.
     """
     file_id = Path(input_path).stem
     stats: Dict[str, int] = {
@@ -1580,9 +1623,13 @@ def run_document_level(
             stats["repaired"] = 1
             stats["dropped_items"] = len(dropped)
     except Exception as exc:
+        if strict and isinstance(exc, RuntimeError):
+            raise
         print(f"  [{file_id}] Document-level inference/validation error: {exc}")
         stats["skipped_error"] += 1
         stats["aborted"] = 1
+        if isinstance(exc, ReplyTruncated):
+            stats["truncated"] = 1
         return [], stats
 
     enriched: List[dict] = []
@@ -1641,6 +1688,11 @@ def run_line_level(
 
     ``chat_fn`` does the actual HTTP call; everything else — filtering,
     context-window building, schema validation — is shared here.
+
+    The limits that shaped the result are counted in ``stats`` (atrium-project#53):
+    ``truncated`` — lines whose reply was cut at the token cap and therefore got no
+    result; ``aborted`` with ``unprocessed`` — the document was given up after
+    ``max_consecutive_errors`` failed lines, and how many qualifying lines were left.
     """
     file_id = doc_id_from_path(input_path)
     enriched_lines: List[dict] = []
@@ -1654,6 +1706,7 @@ def run_line_level(
         # should_process_line() never consulted it, and must not be reported as an
         # enrichment that found nothing.
         "attempted": 0,
+        "truncated": 0,
     }
     consecutive_errors = 0
     page_num = line_num = 0
@@ -1718,9 +1771,12 @@ def run_line_level(
         except Exception as exc:
             print(f"  [{file_id}] Inference error P{page_num} L{line_num}: {exc}")
             stats["skipped_error"] += 1
+            if isinstance(exc, ReplyTruncated):
+                stats["truncated"] += 1
             consecutive_errors += 1
             if consecutive_errors >= max_consecutive_errors:
                 stats["aborted"] = 1
+                stats["unprocessed"] = len(rows) - i - 1
                 print(f"  [{file_id}] Aborting after {consecutive_errors} consecutive errors.")
                 break
 

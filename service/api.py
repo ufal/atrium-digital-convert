@@ -22,35 +22,48 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
 
+import tool_limits
 from atrium_document import FILE_SUFFIX, canonical_doc_id
+from atrium_limits import LimitExceeded, LimitNotes
 from atrium_paradata import ParadataLogger
+from tool_limits import (
+    LIMITS,
+    LLM_CONTEXT_WINDOW,
+    LLM_MAX_CONSECUTIVE_ERRORS,
+    LLM_MAX_NEW_TOKENS,
+    LLM_MAX_RETRIES,
+    LLM_TIMEOUT,
+    MAX_UPLOAD,
+)
 
 # Shared ATRIUM meta-contract helpers (§4). Byte-identical across every service,
 # enforced by para-drift.reusable.yml.
 from .atrium_service import (
     ServiceState,
     add_cors,
+    attach_error_handlers,
     attach_health,
     attach_inflight_middleware,
     build_info,
+    check_body_size,
     read_tool_version,
-    resolve_max_upload_mb,
+    read_upload_bounded,
     serve_lifecycle,
 )
 
 logger = logging.getLogger(__name__)
 
-# Canonical upload limit (§4.5).
-MAX_UPLOAD_MB = resolve_max_upload_mb(10)
+# Every limit of this service is declared in tool_limits.py (atrium-project#53, factor III)
+# and read per request; /info reports them all. The upload limit's import-time value
+# stays here for the callers and tests that read it. The context window and the reply cap
+# used to be read here, AFTER a backend-independent default had already been picked
+# (32000 for either backend), and the reserve for the reply was a second hand-kept copy
+# of the clients' MAX_NEW_TOKENS.
+MAX_UPLOAD_MB = MAX_UPLOAD.get()
 MAX_UPLOAD_BYTES = int(MAX_UPLOAD_MB * 1024 * 1024)
-
-# Reserved output-token budget subtracted from the context window when truncating the
-# vocabulary prompt. Mirrors {openrouter,ollama}_client: MAX_NEW_TOKENS (2048) + 512,
-# which those modules keep in sync with llm_utils by hand.
-_CONTEXT_RESERVED = 2048 + 512
 
 _LINE_SUFFIXES = (".csv", ".teitok.xml")
 _DOC_SUFFIXES = (".md", ".txt")
@@ -72,10 +85,12 @@ def _load_engine() -> Dict[str, Any]:
     import requests
 
     from llm_client_shared import (
+        approx_token_count,
         build_document_schema,
         build_document_system_prompt,
         build_schema,
         build_system_prompt,
+        count_vocab_terms,
         excluded_prompt_themes,
         load_config,
     )
@@ -88,10 +103,11 @@ def _load_engine() -> Dict[str, Any]:
     vocab_path = os.getenv("VOCAB_PATH") or config.get(
         "VOCAB_PATH", "data_samples/vocab/union_nested.json"
     )
-    context_window = int(os.getenv("LLM_CONTEXT_WINDOW", config.get("CONTEXT_WINDOW", "32000")))
-    max_retries = int(os.getenv("LLM_MAX_RETRIES", "3"))
-    timeout = int(os.getenv("LLM_TIMEOUT", "300"))
-    max_input_tokens = context_window - _CONTEXT_RESERVED
+    # The limits (tool_limits.py): the window defaults per backend, as in each client's CLI.
+    context_window = tool_limits.context_window()
+    max_retries = LLM_MAX_RETRIES.get()
+    timeout = LLM_TIMEOUT.get()
+    max_input_tokens = tool_limits.vocab_prompt_budget_tokens()
 
     filter_params = {
         "include_non_text": config.get("INCLUDE_NON_TEXT", "true").lower() == "true",
@@ -123,6 +139,41 @@ def _load_engine() -> Dict[str, Any]:
     doc_model = build_document_schema(doc_terms)
     session = requests.Session()
 
+    # The vocabulary cut (atrium-project#53): terms that do not fit the prompt budget are
+    # left out of the prompt -- and so out of reach of the model. It used to be a stdout
+    # line; it is now a warning, /info `vocabulary`, and a standing `limits_applied` note.
+    total_terms = count_vocab_terms(vocab_data, excluded_themes)
+    vocab_notes = {}
+    for mode, terms in (("line", line_terms), ("document", doc_terms)):
+        cut = total_terms - len(terms)
+        notes = LimitNotes()
+        if cut > 0:
+            logger.warning(
+                "%s prompt: %d of %d vocabulary terms left out -- they do not fit the %d-token "
+                "prompt budget (LLM_CONTEXT_WINDOW %d - LLM_MAX_NEW_TOKENS - 512).",
+                mode,
+                cut,
+                total_terms,
+                max_input_tokens,
+                context_window,
+            )
+            notes.note(
+                "vocab_prompt_budget_tokens",
+                "trimmed",
+                cut,
+                f"{cut} of {total_terms} vocabulary terms were left out of the {mode} prompt: they "
+                f"do not fit its {max_input_tokens}-token budget; raise LLM_CONTEXT_WINDOW to include them",
+                value=max_input_tokens,
+            )
+        vocab_notes[mode] = notes
+    doc_prompt_tokens = approx_token_count(doc_prompt)
+    tool_limits.set_prompt_facts(document_prompt_tokens=doc_prompt_tokens)
+    vocabulary = {
+        "terms": total_terms,
+        "line_prompt_terms": len(line_terms),
+        "document_prompt_terms": len(doc_terms),
+    }
+
     if backend == "openrouter":
         from openrouter_client import _build_headers, make_chat_fn
 
@@ -152,10 +203,22 @@ def _load_engine() -> Dict[str, Any]:
         if not model:
             raise RuntimeError("OLLAMA_MODEL is not set")
         line_chat_fn = make_chat_fn(
-            session, host, model, line_model.model_json_schema(), max_retries, timeout
+            session,
+            host,
+            model,
+            line_model.model_json_schema(),
+            max_retries,
+            timeout,
+            num_ctx=context_window,
         )
         doc_chat_fn = make_chat_fn(
-            session, host, model, doc_model.model_json_schema(), max_retries, timeout
+            session,
+            host,
+            model,
+            doc_model.model_json_schema(),
+            max_retries,
+            timeout,
+            num_ctx=context_window,
         )
         model_id = f"{model}@{host}"
     else:
@@ -171,6 +234,9 @@ def _load_engine() -> Dict[str, Any]:
         "doc_model": doc_model,
         "doc_chat_fn": doc_chat_fn,
         "filter_params": filter_params,
+        "vocab_notes": vocab_notes,
+        "vocabulary": vocabulary,
+        "doc_prompt_tokens": doc_prompt_tokens,
         # Where the flat vocabulary artifacts sit, for entities[].pid resolution in
         # write_document_record(). Derived from the same VOCAB_PATH the prompt vocabulary
         # was loaded from, so the two can never point at different harvests.
@@ -223,6 +289,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 attach_inflight_middleware(app, _state)
+# §4.4 error body {status, reason, detail} for every error (atrium-project#32 item 2, #53).
+attach_error_handlers(app)
 
 # CORS — standard §4.5 configuration (ALLOWED_ORIGINS CSV, default "*").
 add_cors(app, methods=["GET", "POST"])
@@ -312,6 +380,7 @@ def _run_extraction(
     What this function adds is the gate on the record it hands BACK: see below.
     """
     from llm_client_shared import (
+        ReplyTruncated,
         contributes_document_record,
         run_document_level,
         run_line_level,
@@ -321,22 +390,44 @@ def _run_extraction(
 
     name = filename.lower()
     path = Path(tmp_path)
+    notes = LimitNotes()
     if name.endswith(_LINE_SUFFIXES):
+        mode = "line"
         records, stats = run_line_level(
             path,
             engine["line_chat_fn"],
             engine["line_prompt"],
             engine["line_model"],
             **engine["filter_params"],
+            max_consecutive_errors=LLM_MAX_CONSECUTIVE_ERRORS.get(),
         )
-        mode = "line"
+        _note_line_limits(stats, notes)
     else:  # validated to be a _DOC_SUFFIXES file by the caller
-        records, stats = run_document_level(
-            path, engine["doc_chat_fn"], engine["doc_prompt"], engine["doc_model"]
-        )
         mode = "document"
+        _check_document_fits(path, engine)
+        try:
+            records, stats = run_document_level(
+                path, engine["doc_chat_fn"], engine["doc_prompt"], engine["doc_model"], strict=True
+            )
+        except ReplyTruncated as exc:
+            raise LLM_MAX_NEW_TOKENS.exceeded(
+                None,
+                value=exc.max_new_tokens,
+                detail=(
+                    f"The model's reply was cut at {exc.max_new_tokens} tokens "
+                    "(LLM_MAX_NEW_TOKENS) and is not used: this document yields more than one reply "
+                    "can hold. Split it, send it as lines (.csv), or raise LLM_MAX_NEW_TOKENS."
+                ),
+            ) from exc
+    notes.extend((engine.get("vocab_notes") or {}).get(mode, ()))
 
-    result: Dict[str, Any] = {"mode": mode, "results": records, "stats": stats}
+    result: Dict[str, Any] = {
+        "mode": mode,
+        "results": records,
+        "stats": stats,
+        # Every limit that shaped this result without refusing it (atrium-project#53).
+        "limits_applied": notes.as_list(),
+    }
 
     if document_record_dir is not None and contributes_document_record(records, stats):
         from atrium_document import load_document
@@ -347,6 +438,7 @@ def _run_extraction(
             paradata_dir=str(Path(document_record_dir) / "paradata"),
             output_types=["json"],
         ) as para_logger:
+            para_logger.note_limits(notes)
             try:
                 record_path = write_document_record(
                     doc_id,
@@ -400,6 +492,55 @@ def _run_extraction(
     return result
 
 
+def _check_document_fits(path: Path, engine: Dict[str, Any]) -> None:
+    """Refuse a document that cannot fit one call, before the call (atrium-project#53).
+
+    The document prompt (with the vocabulary), the document and the reply
+    (``LLM_MAX_NEW_TOKENS``) must fit ``LLM_CONTEXT_WINDOW``, estimated at 4 characters per
+    token. A document over it used to be sent anyway and come back as 200 with no results.
+    """
+    from llm_client_shared import approx_token_count
+
+    window = tool_limits.context_window()
+    reply = LLM_MAX_NEW_TOKENS.get()
+    prompt = engine.get("doc_prompt_tokens")
+    if prompt is None:
+        prompt = approx_token_count(engine.get("doc_prompt", ""))
+    document = approx_token_count("DOCUMENT:\n" + path.read_text(encoding="utf-8"))
+    needed = prompt + document + reply
+    if needed > window:
+        raise LLM_CONTEXT_WINDOW.exceeded(
+            needed,
+            value=window,
+            detail=(
+                f"Document too long for one call: about {document} tokens, with the "
+                f"{prompt}-token prompt and {reply} tokens kept for the reply, is over the "
+                f"{window}-token context window (LLM_CONTEXT_WINDOW; /info "
+                "limits.document_input_budget_tokens says how much a document may have). "
+                "Split it, or send it as lines (.csv)."
+            ),
+        )
+
+
+def _note_line_limits(stats: Dict[str, int], notes: LimitNotes) -> None:
+    """The line-mode limits that shaped a result, from ``run_line_level``'s counts."""
+    if stats.get("truncated"):
+        notes.note(
+            LLM_MAX_NEW_TOKENS,
+            "skipped",
+            stats["truncated"],
+            "line(s) whose reply was cut at LLM_MAX_NEW_TOKENS got no result",
+        )
+    if stats.get("aborted"):
+        notes.note(
+            LLM_MAX_CONSECUTIVE_ERRORS,
+            "stopped",
+            1,
+            f"the document was given up after LLM_MAX_CONSECUTIVE_ERRORS failed lines in a row; "
+            f"{stats.get('unprocessed', 0)} line(s) after them were not sent",
+        )
+
+
 def _inline_doc_id(document_json: Optional[Dict[str, Any]]) -> str:
     """The key for an ``/extract_keywords_text`` call: the sent record's ``doc_id``.
 
@@ -445,10 +586,13 @@ async def _extract_from_path(
         return await loop.run_in_executor(
             None, _run_extraction, tmp_path, filename, engine, doc_id, document_record_dir
         )
+    except LimitExceeded:  # not a ValueError, so the 422 below cannot swallow it
+        raise
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     except RuntimeError as exc:
-        # chat_fn exhausted its retries against the upstream LLM — retryable (§4.4).
+        # chat_fn exhausted its retries against the upstream LLM, or the provider refused
+        # the request (its reply is in the message) — the backend's error (§4.4).
         raise HTTPException(502, f"LLM backend error: {exc}") from exc
 
 
@@ -458,10 +602,13 @@ async def info() -> Dict[str, Any]:
     return build_info(
         app,
         service="atrium-llm-enrich",
-        limits={"max_upload_mb": MAX_UPLOAD_MB},
+        limits=LIMITS,
         backend=_engine.get("backend"),
         model=_engine.get("model"),
         ready=_engine_is_serviceable(),
+        # How much of the vocabulary reaches the model (atrium-project#53): `terms`, and how
+        # many of them fit each prompt; null until the engine is warm.
+        vocabulary=_engine.get("vocabulary"),
         supported_inputs=[*_LINE_SUFFIXES, *_DOC_SUFFIXES],
         languages=["cs", "en"],
     )
@@ -497,9 +644,8 @@ async def extract_keywords(
             422, f"Unsupported file type. Accepted: {', '.join(_LINE_SUFFIXES + _DOC_SUFFIXES)}."
         ) from None
 
-    data = await file.read()
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(413, f"File too large. Maximum size is {MAX_UPLOAD_MB} MB.") from None
+    upload_mb = MAX_UPLOAD.get()
+    data = await read_upload_bounded(file, upload_mb, "File")
 
     doc_id = _doc_id(file.filename)
     suffix = ".teitok.xml" if name.endswith(".teitok.xml") else Path(name).suffix
@@ -511,7 +657,8 @@ async def extract_keywords(
 
         document_record_dir: Optional[Path] = None
         if document_json is not None:
-            baseline_bytes = await document_json.read()
+            # Bounded like the file (atrium-project#53): it used to be read whole, unbounded.
+            baseline_bytes = await read_upload_bounded(document_json, upload_mb, "document_json")
             (work_dir / f"{doc_id}{FILE_SUFFIX}").write_bytes(baseline_bytes)
             document_record_dir = work_dir
 
@@ -524,6 +671,7 @@ async def extract_keywords(
 
 @app.post("/extract_keywords_text")
 async def extract_keywords_text(
+    request: Request,
     text: str = Body(
         ..., description="Raw text for document-level archaeological keyword extraction."
     ),
@@ -533,6 +681,8 @@ async def extract_keywords_text(
     ),
 ):
     """Extract archaeological keywords from inline text (§4.2)."""
+    # The body is bounded like an upload (atrium-project#53): it had no size limit at all.
+    await check_body_size(request, MAX_UPLOAD.get(), "Request body")
     engine = _require_engine()
 
     doc_id = _inline_doc_id(document_json)

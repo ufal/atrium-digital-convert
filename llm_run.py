@@ -502,6 +502,17 @@ def main(config_path: str = "llm_config.txt") -> None:
                 total_input_tokens += doc_stats.get("total_input_tokens", 0)
                 total_output_tokens += doc_stats.get("total_output_tokens", 0)
                 total_inference_seconds += doc_stats.get("total_inference_seconds", 0.0)
+                if doc_stats.get("truncated_inputs"):
+                    # (atrium-project#53) llm_utils.process_document cut these prompts to the
+                    # model's input budget; the paradata says so.
+                    logger.note_limit(
+                        "llm_context_window",
+                        spec["context_window"],
+                        "trimmed",
+                        doc_stats["truncated_inputs"],
+                        "prompt(s) longer than the model's input budget (context window - "
+                        "CONTEXT_RESERVED) were cut at the end before inference",
+                    )
 
                 print(
                     f"  processed={doc_stats['processed']}, "

@@ -37,11 +37,14 @@ from typing import Any, Callable, Dict, List, Optional
 import requests
 from tqdm import tqdm
 
+import tool_limits
 from atrium_document import canonical_doc_id
 from atrium_paradata import ParadataLogger
 from llm_client_shared import (
     OUTCOME_EMPTY,
     OUTCOME_FAILED,
+    ReplyTruncated,
+    RequestRefused,
     build_document_schema,
     build_document_system_prompt,
     build_schema,
@@ -50,6 +53,7 @@ from llm_client_shared import (
     contributes_document_record,
     excluded_prompt_themes,
     has_reader,
+    http_error_detail,
     is_convertible_input,
     load_config,
     prepare_document_input,
@@ -61,10 +65,14 @@ from vocab_manager import VocabularyManager
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Mirrors llm_utils.MAX_NEW_TOKENS / CONTEXT_RESERVED — kept as separate
-# constants here rather than imported, see llm_client_shared.py docstring.
-MAX_NEW_TOKENS = 2048
-CONTEXT_RESERVED = MAX_NEW_TOKENS + 512
+# The reply cap and the tokens kept free for it are limits since atrium-project#53
+# (tool_limits.py: LLM_MAX_NEW_TOKENS, read on every call). These names are their values
+# at import, kept for the callers that read them; llm_utils.py (the torch path) keeps its
+# own copy of the default, 2048.
+MAX_NEW_TOKENS = tool_limits.LLM_MAX_NEW_TOKENS.get()
+CONTEXT_RESERVED = tool_limits.reserved_tokens()
+#: --context-window default: the window the service also assumes for this backend.
+DEFAULT_CONTEXT_WINDOW = tool_limits.BACKEND_CONTEXT_WINDOW["openrouter"]
 _DOC_INPUT_EXTENSIONS = {".md", ".txt"}
 
 
@@ -128,15 +136,23 @@ def make_chat_fn(
     max_retries: int,
     timeout: int,
     provider_block: Optional[Dict[str, Any]],
+    max_new_tokens: Optional[int] = None,
 ):
-    """Returns a llm_client_shared.ChatFn bound to this OpenRouter model/session."""
+    """Returns a llm_client_shared.ChatFn bound to this OpenRouter model/session.
+
+    Only a timeout, a connection error, HTTP 429 or 5xx is retried (atrium-project#53):
+    another 4xx is refused at once as :class:`RequestRefused`, with the provider's reply.
+    A reply cut at ``max_new_tokens`` (``finish_reason == "length"``, default
+    ``LLM_MAX_NEW_TOKENS``) raises :class:`ReplyTruncated` and is never used.
+    """
 
     def chat_fn(messages: List[Dict[str, str]]) -> str:
+        cap = max_new_tokens if max_new_tokens is not None else tool_limits.LLM_MAX_NEW_TOKENS.get()
         body: Dict[str, Any] = {
             "model": model,
             "messages": messages,
             "temperature": 0.0,
-            "max_tokens": MAX_NEW_TOKENS,
+            "max_tokens": cap,
             "response_format": (
                 {"type": "json_schema", "json_schema": {"name": "enrichment", "schema": schema}}
                 if schema is not None
@@ -151,10 +167,20 @@ def make_chat_fn(
             try:
                 resp = session.post(OPENROUTER_API_URL, headers=headers, json=body, timeout=timeout)
                 if resp.status_code == 429 or resp.status_code >= 500:
-                    raise requests.HTTPError(f"HTTP {resp.status_code}: {resp.text[:200]}")
-                resp.raise_for_status()
+                    raise requests.HTTPError(http_error_detail(resp, 200))
+                if resp.status_code >= 400:
+                    raise RequestRefused(
+                        f"OpenRouter refused the request: {http_error_detail(resp)}"
+                    )
                 data = resp.json()
-                return data["choices"][0]["message"]["content"]
+                choice = data["choices"][0]
+                if choice.get("finish_reason") == "length":
+                    raise ReplyTruncated(
+                        f"OpenRouter cut the reply at {cap} tokens (LLM_MAX_NEW_TOKENS); "
+                        "it is not used.",
+                        cap,
+                    )
+                return choice["message"]["content"]
             except (requests.RequestException, KeyError, IndexError, ValueError) as exc:
                 last_exc = exc
                 if attempt < max_retries:
@@ -229,7 +255,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--context-window",
         type=int,
-        default=128_000,
+        default=DEFAULT_CONTEXT_WINDOW,
         help="Model context window, for vocab-truncation budget.",
     )
     parser.add_argument("--max-retries", type=int, default=3)
@@ -450,6 +476,7 @@ def main(argv: Optional[List[str]] = None) -> None:
                         min_char_count=min_char_count,
                         min_char_non_text=min_char_non_text,
                         min_alpha_ratio_non_text=min_alpha_ratio_non_text,
+                        max_consecutive_errors=tool_limits.LLM_MAX_CONSECUTIVE_ERRORS.get(),
                     )
 
                 total_processed += stats["processed"]

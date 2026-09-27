@@ -26,13 +26,13 @@ report `ready: false`, while the extraction endpoints return `503` until configu
 
 ## Endpoints
 
-| Method | Path                     | Purpose                                                                                                                                                                         |
-|--------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| GET    | `/info`                  | service identity + capabilities: `service`, `version`, `endpoints`, `limits`, `backend`, `model`, `ready`, `supported_inputs`, `languages`                                      |
-| GET    | `/health`                | liveness probe — 200 always, even mid-shutdown. `?deep=true` additionally checks the backend is configured (503 on fail or while draining)                                      |
-| GET    | `/ready`                 | readiness probe (issue #55) — 503 until the backend is serviceable, 200 while serving, 503 the instant `SIGTERM` arrives. The Kubernetes `readinessProbe`/`startupProbe` target |
-| POST   | `/extract_keywords`      | extract keywords from an uploaded document                                                                                                                                      |
-| POST   | `/extract_keywords_text` | extract keywords from an inline JSON `{"lines": [...]}` body                                                                                                                    |
+| Method | Path                     | Purpose                                                                                                                                                                                                                                                                            |
+|--------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| GET    | `/info`                  | service identity + capabilities: `service`, `version`, `endpoints`, `limits` (every [limit](#limits), current value), `limits_meta` (the variable behind each), `vocabulary` (terms, and how many reach each prompt), `backend`, `model`, `ready`, `supported_inputs`, `languages` |
+| GET    | `/health`                | liveness probe — 200 always, even mid-shutdown. `?deep=true` additionally checks the backend is configured (503 on fail or while draining)                                                                                                                                         |
+| GET    | `/ready`                 | readiness probe (issue #55) — 503 until the backend is serviceable, 200 while serving, 503 the instant `SIGTERM` arrives. The Kubernetes `readinessProbe`/`startupProbe` target                                                                                                    |
+| POST   | `/extract_keywords`      | extract keywords from an uploaded document                                                                                                                                                                                                                                         |
+| POST   | `/extract_keywords_text` | extract keywords from an inline JSON `{"lines": [...]}` body                                                                                                                                                                                                                       |
 
 ### `POST /extract_keywords` (multipart form)
 
@@ -72,24 +72,36 @@ curl -s http://localhost:8000/info
 }
 ```
 
-| Field     | Type   | Description                                                    |
-|-----------|--------|----------------------------------------------------------------|
-| `service` | str    | canonical tool id (`atrium-llm-enrich`)                        |
-| `doc_id`  | str    | document id derived from the upload filename                   |
-| `backend` | str    | active LLM backend (`openrouter` / `ollama`)                   |
-| `mode`    | str    | `line` (CSV/TEITOK) or `document` (MD/TXT)                     |
-| `results` | list   | per-line/per-document records; `enrichment` holds the keywords |
-| `stats`   | object | processed / filtered / errored counts (+ `aborted` on abort)   |
+| Field     | Type   | Description                                                                                                       |
+|-----------|--------|-------------------------------------------------------------------------------------------------------------------|
+| `service` | str    | canonical tool id (`atrium-llm-enrich`)                                                                           |
+| `doc_id`  | str    | document id derived from the upload filename                                                                      |
+| `backend` | str    | active LLM backend (`openrouter` / `ollama`)                                                                      |
+| `mode`    | str    | `line` (CSV/TEITOK) or `document` (MD/TXT)                                                                        |
+| `results` | list   | per-line/per-document records; `enrichment` holds the keywords                                                    |
+| `stats`   | object | processed / filtered / errored counts (+ `aborted` on abort, `truncated` for replies cut at `LLM_MAX_NEW_TOKENS`) |
+
+`limits_applied` (a list) names every [limit](#limits) that shaped the result without
+refusing it (atrium-project#53): the vocabulary terms left out of the prompt
+(`vocab_prompt_budget_tokens`, `trimmed` — present on every response while the vocabulary does
+not fit), lines whose reply was cut (`llm_max_new_tokens`, `skipped`), a document given up after
+too many failed lines (`llm_max_consecutive_errors`, `stopped`). `[]` when no limit applied.
 
 ## Errors
 
-| Code        | Meaning                                                        |
-|-------------|----------------------------------------------------------------|
-| 413         | payload too large (`MAX_UPLOAD_MB`)                            |
-| 422         | unusable input (missing filename, unsupported type, no lines)  |
-| 500         | processing failure                                             |
-| 502         | upstream LLM backend error (client retries)                    |
-| 503         | backend not configured / not ready (client retries)            |
+Every error has one JSON body (hub `docs/agent_skill_strategy.md` §4.4, atrium-project#32
+item 2): `{"status": <int>, "reason": <code or null>, "detail": "<text>"}`. `detail` is always
+a string. A limit refusal adds `limit` (`{key, env, value, observed, unit}`); a request
+validation error adds FastAPI's list of problems as `errors`.
+
+| Code | `reason`         | Meaning                                                                                                                  |
+|------|------------------|--------------------------------------------------------------------------------------------------------------------------|
+| 413  | `limit_exceeded` | over `MAX_UPLOAD_MB`, or (document mode) a document that does not fit `LLM_CONTEXT_WINDOW` with the prompt and the reply |
+| 422  | `limit_exceeded` | document mode: the model's reply was cut at `LLM_MAX_NEW_TOKENS` — split the document, or send it as lines               |
+| 422  | `null`           | unusable input (missing filename, unsupported type, no lines), or request validation                                     |
+| 500  | `null`           | processing failure                                                                                                       |
+| 502  | `null`           | upstream LLM backend error: retries exhausted, or the provider refused the request (its reply is in `detail`)            |
+| 503  | `null`           | backend not configured / not ready, or the replica is shutting down (client retries)                                     |
 
 ## Configuration (environment)
 
@@ -101,14 +113,14 @@ curl -s http://localhost:8000/info
 | `RELOAD`              | `false`                  | filesystem auto-reload — development only                                                 |
 | `LOG_LEVEL`           | `INFO`                   | root logger level for the `python -m service.api` start path (issue #61)                  |
 | `ALLOWED_ORIGINS`     | `*`                      | CSV of CORS origins                                                                       |
-| `MAX_UPLOAD_MB`       | `10`                     | canonical upload limit — no shared default across the five services                       |
 | `LLM_BACKEND`         | `openrouter`             | `openrouter` or `ollama`                                                                  |
 | `OPENROUTER_API_KEY`  | —                        | **required, secret** — key for the OpenRouter backend                                     |
 | `OPENROUTER_MODEL`    | —                        | **required** — OpenRouter model id                                                        |
 | `OLLAMA_HOST`         | `http://localhost:11434` | Ollama server URL                                                                         |
 | `OLLAMA_MODEL`        | —                        | **required** for the ollama backend — Ollama model tag                                    |
-| `LLM_TIMEOUT`         | `300`                    | per-call read timeout (s)                                                                 |
-| `LLM_MAX_RETRIES`     | `3`                      | retries on a failed call                                                                  |
+
+Every limit — `MAX_UPLOAD_MB`, `LLM_TIMEOUT`, `LLM_MAX_RETRIES`, `LLM_CONTEXT_WINDOW` and the
+rest — is listed under [Limits](#limits).
 
 `PORT` and `HOST` are read by `service/api.py`'s `__main__` block, which is what the `api`
 image's `ENTRYPOINT` (`python -m service.api`) runs. Before issue #58 the entrypoint baked
@@ -120,6 +132,32 @@ and not the listener, and the container reported unhealthy forever.
 > `service/healthcheck.py` always probes loopback by design and never reads `HOST`, so a
 > loopback bind passes every probe while being unreachable from outside the container.
 
+
+## Limits
+
+Every limit is an environment setting (atrium-project#53, factor III), declared in
+`tool_limits.py` and reported with its current value by `GET /info` (`limits`; `limits_meta`
+says which variable sets it and whether the value came from the environment, `llm_config.txt`
+or the default). A malformed value stops the service at startup, naming the variable. An input
+over a limit is refused with the [harmonised error](#errors); a limit that shapes a result
+without refusing it is named in `limits_applied`. `tests/test_limits_contract.py` checks this
+table against `tool_limits.py` and `.env.example`.
+
+| Key (`/info`)                  | Variable                                                        | Default | Unit     | Over the limit                                                                                                                                                                                                                                                                                                                                                                          |
+|--------------------------------|-----------------------------------------------------------------|---------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `max_upload_mb`                | `MAX_UPLOAD_MB`                                                 | 10      | MB       | 413 `limit_exceeded` — per part (the file, `document_json`) and for the whole `/extract_keywords_text` body                                                                                                                                                                                                                                                                             |
+| `llm_context_window`           | `LLM_CONTEXT_WINDOW`                                            | 128000  | tokens   | sizes the vocabulary prompt (terms that do not fit are left out — standing `trimmed` note) and, in document mode, the document: one that does not fit with the prompt and the reply → 413 `limit_exceeded`. The default depends on the backend — 128000 `openrouter`, 32000 `ollama`, as in each client's CLI — after `CONTEXT_WINDOW` in `llm_config.txt`; sent to Ollama as `num_ctx` |
+| `llm_max_new_tokens`           | `LLM_MAX_NEW_TOKENS`                                            | 2048    | tokens   | a reply cut at it is never used: document mode → 422 `limit_exceeded`; line mode → the line gets no result, `skipped` note. OpenRouter `max_tokens`, Ollama `num_predict`                                                                                                                                                                                                               |
+| `llm_timeout`                  | `LLM_TIMEOUT`                                                   | 300     | s        | the call is retried (`LLM_MAX_RETRIES`)                                                                                                                                                                                                                                                                                                                                                 |
+| `llm_max_retries`              | `LLM_MAX_RETRIES`                                               | 3       | attempts | only a timeout, a connection error, HTTP 429 or 5xx is retried; once they run out: document mode → 502, line mode → that line is an error                                                                                                                                                                                                                                               |
+| `llm_max_consecutive_errors`   | `LLM_MAX_CONSECUTIVE_ERRORS`                                    | 10      | errors   | line mode: the document is given up, `stopped` note (the lines before keep their results)                                                                                                                                                                                                                                                                                               |
+| `vocab_prompt_budget_tokens`   | — (derived: `LLM_CONTEXT_WINDOW` − `LLM_MAX_NEW_TOKENS` − 512)  | —       | tokens   | vocabulary terms past it are left out of the prompt — standing `trimmed` note, and a warning at startup                                                                                                                                                                                                                                                                                 |
+| `document_input_budget_tokens` | — (derived: the window, less the reply and the document prompt) | —       | tokens   | document mode: a longer document → 413 `limit_exceeded`; `null` until the engine is warm                                                                                                                                                                                                                                                                                                |
+
+Token counts here are estimates at 4 characters per token (`llm_client_shared.approx_token_count`),
+the same estimate that sizes the vocabulary prompt. The vocabulary shares the window with the
+document: with a window too small for both, `document_input_budget_tokens` is small, and a
+document over it is refused rather than sent and answered with no results.
 
 ## How it works
 

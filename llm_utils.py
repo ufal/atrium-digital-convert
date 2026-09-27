@@ -2113,12 +2113,24 @@ def process_document(
 
             else:
                 prompt = _format_chat_prompt(messages, tokenizer, model_key)
-                inputs = tokenizer(
-                    prompt,
-                    return_tensors="pt",
-                    truncation=True,
-                    max_length=max_input_tokens,
-                ).to(model.device)
+                # (atrium-project#53) Tokenised whole, then cut to the input budget HERE,
+                # where it is counted: `truncation=True, max_length=` used to cut the end of
+                # the prompt -- the target line and the task -- without a word. The cut is
+                # the same (right side); what is new is the warning and the count, which
+                # llm_run.py records in the paradata as a `trimmed` note.
+                inputs = tokenizer(prompt, return_tensors="pt")
+                if inputs["input_ids"].shape[1] > max_input_tokens:
+                    stats["truncated_inputs"] = stats.get("truncated_inputs", 0) + 1
+                    print(
+                        f"  [WARN] {file_id} P{page_num} L{line_num}: prompt of "
+                        f"{inputs['input_ids'].shape[1]} tokens cut to {max_input_tokens} "
+                        "(context window - CONTEXT_RESERVED); its end, with the target "
+                        "line, is lost."
+                    )
+                    for key in ("input_ids", "attention_mask", "token_type_ids"):
+                        if key in inputs:
+                            inputs[key] = inputs[key][:, :max_input_tokens]
+                inputs = inputs.to(model.device)
 
                 _t0 = time.monotonic()
                 with torch.no_grad():

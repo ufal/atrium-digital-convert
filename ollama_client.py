@@ -36,11 +36,14 @@ from typing import Any, Dict, List, Optional
 import requests
 from tqdm import tqdm
 
+import tool_limits
 from atrium_document import canonical_doc_id
 from atrium_paradata import ParadataLogger
 from llm_client_shared import (
     OUTCOME_EMPTY,
     OUTCOME_FAILED,
+    ReplyTruncated,
+    RequestRefused,
     build_document_schema,
     build_document_system_prompt,
     build_schema,
@@ -49,6 +52,7 @@ from llm_client_shared import (
     contributes_document_record,
     excluded_prompt_themes,
     has_reader,
+    http_error_detail,
     is_convertible_input,
     load_config,
     prepare_document_input,
@@ -59,8 +63,15 @@ from llm_client_shared import (
 from vocab_manager import VocabularyManager
 
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
-MAX_NEW_TOKENS = 2048  # mirrors llm_utils.MAX_NEW_TOKENS
-CONTEXT_RESERVED = MAX_NEW_TOKENS + 512
+# The reply cap and the tokens kept free for it are limits since atrium-project#53
+# (tool_limits.py: LLM_MAX_NEW_TOKENS, read on every call); these names are their values
+# at import. Ollama now receives the cap (num_predict) and the window (num_ctx): it used
+# to get neither, so it generated without a cap in its own default context -- 2048 or
+# 4096 tokens on most models -- and cut the vocabulary prompt silently.
+MAX_NEW_TOKENS = tool_limits.LLM_MAX_NEW_TOKENS.get()
+CONTEXT_RESERVED = tool_limits.reserved_tokens()
+#: --context-window default: the window the service also assumes for this backend.
+DEFAULT_CONTEXT_WINDOW = tool_limits.BACKEND_CONTEXT_WINDOW["ollama"]
 _DOC_INPUT_EXTENSIONS = {".md", ".txt"}
 
 
@@ -107,26 +118,44 @@ def make_chat_fn(
     schema: dict,
     max_retries: int,
     timeout: int,
+    num_ctx: Optional[int] = None,
+    max_new_tokens: Optional[int] = None,
 ):
-    """Returns a llm_client_shared.ChatFn bound to this Ollama model/session."""
+    """Returns a llm_client_shared.ChatFn bound to this Ollama model/session.
+
+    ``num_ctx`` is the context window Ollama loads the model with (default
+    ``LLM_CONTEXT_WINDOW``), ``max_new_tokens`` the reply cap sent as ``num_predict``
+    (default ``LLM_MAX_NEW_TOKENS``). Only a timeout, a connection error, HTTP 429 or 5xx
+    is retried; another 4xx is :class:`RequestRefused`, with Ollama's reply. A reply cut
+    at the cap (``done_reason == "length"``) raises :class:`ReplyTruncated`
+    (atrium-project#53).
+    """
 
     def chat_fn(messages: List[Dict[str, str]]) -> str:
+        cap = max_new_tokens if max_new_tokens is not None else tool_limits.LLM_MAX_NEW_TOKENS.get()
+        window = num_ctx if num_ctx is not None else tool_limits.context_window()
         body: Dict[str, Any] = {
             "model": model,
             "messages": messages,
             "stream": False,
             "format": schema,
-            "options": {"temperature": 0.0},
+            "options": {"temperature": 0.0, "num_ctx": window, "num_predict": cap},
         }
 
         last_exc: Optional[Exception] = None
         for attempt in range(1, max_retries + 1):
             try:
                 resp = session.post(f"{host}/api/chat", json=body, timeout=timeout)
-                if resp.status_code >= 500:
-                    raise requests.HTTPError(f"HTTP {resp.status_code}: {resp.text[:200]}")
-                resp.raise_for_status()
+                if resp.status_code == 429 or resp.status_code >= 500:
+                    raise requests.HTTPError(http_error_detail(resp, 200))
+                if resp.status_code >= 400:
+                    raise RequestRefused(f"Ollama refused the request: {http_error_detail(resp)}")
                 data = resp.json()
+                if data.get("done_reason") == "length":
+                    raise ReplyTruncated(
+                        f"Ollama cut the reply at {cap} tokens (LLM_MAX_NEW_TOKENS); it is not used.",
+                        cap,
+                    )
                 return data["message"]["content"]
             except (requests.RequestException, KeyError, ValueError) as exc:
                 last_exc = exc
@@ -151,8 +180,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--context-window",
         type=int,
-        default=32_000,
-        help="Model context window, for vocab-truncation budget.",
+        default=DEFAULT_CONTEXT_WINDOW,
+        help="Model context window, for vocab-truncation budget; also sent to Ollama as num_ctx.",
     )
     parser.add_argument(
         "--skip-pull-check", action="store_true", help="Skip the /api/tags + auto-pull step."
@@ -280,10 +309,22 @@ def main(argv: Optional[List[str]] = None) -> None:
         DocModel = build_document_schema(doc_terms)
 
         line_chat_fn = make_chat_fn(
-            session, host, model, LineModel.model_json_schema(), args.max_retries, args.timeout
+            session,
+            host,
+            model,
+            LineModel.model_json_schema(),
+            args.max_retries,
+            args.timeout,
+            num_ctx=args.context_window,
         )
         doc_chat_fn = make_chat_fn(
-            session, host, model, DocModel.model_json_schema(), args.max_retries, args.timeout
+            session,
+            host,
+            model,
+            DocModel.model_json_schema(),
+            args.max_retries,
+            args.timeout,
+            num_ctx=args.context_window,
         )
 
         if input_path.is_file():
@@ -387,6 +428,7 @@ def main(argv: Optional[List[str]] = None) -> None:
                         min_char_count=min_char_count,
                         min_char_non_text=min_char_non_text,
                         min_alpha_ratio_non_text=min_alpha_ratio_non_text,
+                        max_consecutive_errors=tool_limits.LLM_MAX_CONSECUTIVE_ERRORS.get(),
                     )
 
                 total_processed += stats["processed"]
