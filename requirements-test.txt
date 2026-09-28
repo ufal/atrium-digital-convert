@@ -8,11 +8,13 @@ requests
 jsonschema
 # Fast-lane runtime deps (clean-venv collection breaks without these):
 pandas
-pydantic
+# pinned exactly, with fastapi below: see service/requirements.txt (atrium-project#32)
+pydantic==2.13.5
 tqdm
 # API meta-contract test deps (issue #32) — the service imports torch-free, so
-# its contract test runs in the fast lane.
-fastapi
+# its contract test runs in the fast lane. fastapi is pinned exactly: the committed
+# service/openapi.json depends on it (atrium-project#32; see service/requirements.txt).
+fastapi==0.141.1
 httpx2
 python-multipart
 openapi-spec-validator

@@ -174,3 +174,180 @@ def test_deep_health_reports_draining_with_operator_fields():
         assert "in_flight" in body
     finally:
         _state.warm, _state.draining = was_warm, was_draining
+
+
+# --- the typed contract (atrium-project#32 round 2) --------------------------------------------
+# tests/test_openapi_contract.py (canonical, vendored) checks the committed spec itself. What
+# these add is the part only this repo can do: drive the real endpoints (with the engine
+# replaced by a canned one, as tests/test_limits.py does) and hold every response — 200s and
+# refusals alike — to the schema the PUBLISHED spec declares for it.
+
+import json  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+import atrium_openapi  # noqa: E402
+
+_SPEC = atrium_openapi.load(Path(__file__).resolve().parent.parent / "service" / "openapi.json")
+
+_LINE_REPLY = json.dumps(
+    {
+        "extracted_keywords_cs": ["kostel"],
+        "extracted_keywords_en": ["church"],
+        "teater_category": "kostel",
+        "confidence_score": 0.9,
+    }
+)
+_DOC_REPLY = json.dumps(
+    {
+        "items": [
+            {
+                "locator": "gotického kostela",
+                "page": "1",
+                "extracted_keywords_cs": ["kostel"],
+                "extracted_keywords_en": ["church"],
+                "teater_category": "kostel",
+                "confidence_score": 0.9,
+            }
+        ]
+    }
+)
+_CSV = "text,page_num,line_num,categ,quality_score\nVýzkum odhalil základy gotického kostela.,1,1,Clear,0.9\n"
+_SEED = {
+    "schema_version": "1.0",
+    "record_type": "atrium-document",
+    "doc_id": "C-202000543A-DT-27",
+    "pages": [{"page": "1", "page_index": 1}],
+}
+
+
+@pytest.fixture
+def engine(monkeypatch):
+    from llm_client_shared import build_document_schema, build_schema
+    from service import api
+
+    calls = []
+    eng = {
+        "backend": "openrouter",
+        "model": "test/model",
+        "line_prompt": "p",
+        "line_model": build_schema(["kostel"]),
+        "line_chat_fn": lambda m: calls.append(m) or _LINE_REPLY,
+        "doc_prompt": "p",
+        "doc_prompt_tokens": 100,
+        "doc_model": build_document_schema(["kostel"]),
+        "doc_chat_fn": lambda m: calls.append(m) or _DOC_REPLY,
+        "filter_params": {},
+        "calls": calls,
+    }
+    monkeypatch.setattr(api, "_require_engine", lambda: eng)
+    return eng
+
+
+def _conforms(path, status, response):
+    pytest.importorskip("jsonschema")
+    assert response.status_code == status, response.text
+    atrium_openapi.validate_response(_SPEC, path, "post", status, response.json())
+    return response.json()
+
+
+def test_line_mode_response_conforms_to_the_published_schema(engine):
+    response = client.post(
+        "/extract_keywords", files={"file": ("d.csv", _CSV.encode(), "text/csv")}
+    )
+    body = _conforms("/extract_keywords", 200, response)
+    assert body["mode"] == "line" and body["results"][0]["page"] == 1
+
+
+def test_document_mode_with_a_seed_conforms_including_the_record(engine, tmp_path, monkeypatch):
+    """The returned record is held to the vendored record schema, through the spec's
+    AtriumDocument component — the type AMČR's generated client deserialises it into."""
+    monkeypatch.chdir(tmp_path)
+    response = client.post(
+        "/extract_keywords_text",
+        json={"text": "Výzkum odhalil základy gotického kostela.", "document_json": _SEED},
+    )
+    body = _conforms("/extract_keywords_text", 200, response)
+    assert body["doc_id"] == _SEED["doc_id"] and body["document_json"]["doc_id"] == _SEED["doc_id"]
+    assert "document_json_schema_error" not in body
+
+
+def test_a_wrong_file_type_is_415_unsupported_media_type(engine):
+    response = client.post(
+        "/extract_keywords", files={"file": ("d.pdf", b"%PDF-1.7", "application/pdf")}
+    )
+    body = _conforms("/extract_keywords", 415, response)
+    assert body["reason"] == "unsupported_media_type"
+    assert body["accepted"] == [".csv", ".teitok.xml", ".md", ".txt"]
+    assert body["detail"] == "Unsupported file type. Accepted: .csv, .teitok.xml, .md, .txt."
+
+
+@pytest.mark.parametrize(
+    "part", [b"[1, 2]", b"{not json", b'{"schema_version": "9.0", "doc_id": "x"}']
+)
+def test_a_record_that_cannot_be_opened_is_422_invalid_record_before_any_call(engine, part):
+    files = {
+        "file": ("d.csv", _CSV.encode(), "text/csv"),
+        "document_json": ("d.document.json", part, "application/json"),
+    }
+    body = _conforms("/extract_keywords", 422, client.post("/extract_keywords", files=files))
+    assert body["reason"] == "invalid_record" and engine["calls"] == []
+
+
+def test_an_inline_record_that_cannot_be_opened_is_422_invalid_record(engine):
+    response = client.post(
+        "/extract_keywords_text",
+        json={"text": "kostel", "document_json": {"schema_version": "7.0"}},
+    )
+    body = _conforms("/extract_keywords_text", 422, response)
+    assert body["reason"] == "invalid_record" and engine["calls"] == []
+
+
+def test_an_empty_record_part_counts_as_none(engine):
+    files = {
+        "file": ("d.csv", _CSV.encode(), "text/csv"),
+        "document_json": ("d.document.json", b"", "application/json"),
+    }
+    body = _conforms("/extract_keywords", 200, client.post("/extract_keywords", files=files))
+    assert "document_json" not in body
+
+
+def test_malformed_teitok_is_422_not_500(engine):
+    files = {"file": ("d.teitok.xml", b"<TEI><text><unclosed", "application/xml")}
+    body = _conforms("/extract_keywords", 422, client.post("/extract_keywords", files=files))
+    assert body["detail"].startswith("The upload could not be read:")
+
+
+def test_an_unready_backend_is_503_with_the_error_body():
+    from service import api
+
+    api._engine.clear()
+    body = _conforms(
+        "/extract_keywords_text", 503, client.post("/extract_keywords_text", json={"text": "x"})
+    )
+    assert body["reason"] is None
+
+
+def test_ocr_text_layer_is_the_registered_code_of_the_converters_refusal(tmp_path):
+    """atrium-llm-enrich#10 W6: AMČR's route step sends a document refused with the 422
+    `ocr_text_layer` to OCR, and relies on that code staying stable. The converter raises it
+    (api_util/digital_to_json.py); api-digital (W1) will answer it; the registry fixes it —
+    so a rename on either side fails here. The PDF is the pinned fixture that
+    tests/test_digital_to_json.py builds the same way."""
+    pytest.importorskip("pdfplumber")
+    import importlib.util
+
+    from api_util import digital_to_json as d2j
+    from service.atrium_service import REASON_CODES, REASON_STATUSES
+
+    maker = Path(__file__).resolve().parent / "fixtures" / "digital" / "make_fixtures.py"
+    spec = importlib.util.spec_from_file_location("make_fixtures", maker)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    pdf = tmp_path / "ocr_layer.pdf"
+    pdf.write_bytes(module.build_all()["ocr_layer.pdf"])
+
+    with pytest.raises(d2j.DigitalInputError) as info:
+        d2j.extract(str(pdf))
+    assert info.value.reason == "ocr_text_layer"
+    assert info.value.reason in REASON_CODES and REASON_STATUSES[info.value.reason] == (422,)
+    assert info.value.reason in _SPEC["x-atrium-reason-codes"]

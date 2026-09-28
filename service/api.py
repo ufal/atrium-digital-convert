@@ -9,21 +9,35 @@ Backend is selected with ``LLM_BACKEND`` (``openrouter`` default, or ``ollama``)
 engine is warmed once on startup. A misconfigured backend (missing API key / model) does
 **not** crash the app: ``/info`` and ``/health`` stay up and report ``ready: false`` while
 the extraction endpoints answer 503 until configured.
+
+The typed contract (atrium-project#32 round 2). Every route declares its response model
+and its error statuses, so the committed ``service/openapi.json`` — attached to every
+release, and what the AMČR pipeline generates its clients from — types every field. The
+models below DOCUMENT the responses (``response_model=None``): the bytes sent are what the
+handlers build, and ``tests/test_api_contract.py`` validates real responses against the
+published schema. Refusals carry registered reasons: a wrong file type is 415
+``unsupported_media_type``, a record that cannot be opened is 422 ``invalid_record``.
+Regenerate the spec after an API change::
+
+    python atrium_openapi.py export --app service.api:app --out service/openapi.json
 """
 
 from __future__ import annotations
 
 import asyncio
+import csv
 import json
 import logging
 import os
 import tempfile
+import xml.etree.ElementTree as ET
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, ConfigDict, Field
 
 import tool_limits
 from atrium_document import FILE_SUFFIX, canonical_doc_id
@@ -42,19 +56,31 @@ from tool_limits import (
 # Shared ATRIUM meta-contract helpers (§4). Byte-identical across every service,
 # enforced by para-drift.reusable.yml.
 from .atrium_service import (
+    AtriumDocument,
+    AtriumHTTPError,
+    CreateAction,
+    InfoBase,
+    LimitNote,
     ServiceState,
     add_cors,
     attach_error_handlers,
     attach_health,
     attach_inflight_middleware,
+    attach_openapi_contract,
     build_info,
     check_body_size,
+    error_responses,
+    operation_id,
+    parse_record_part,
     read_tool_version,
     read_upload_bounded,
     serve_lifecycle,
 )
 
 logger = logging.getLogger(__name__)
+
+#: The tool id (/info `service`, the spec's `x-atrium-service`): the repository name.
+SERVICE = "atrium-llm-enrich"
 
 # Every limit of this service is declared in tool_limits.py (atrium-project#53, factor III)
 # and read per request; /info reports them all. The upload limit's import-time value
@@ -67,6 +93,169 @@ MAX_UPLOAD_BYTES = int(MAX_UPLOAD_MB * 1024 * 1024)
 
 _LINE_SUFFIXES = (".csv", ".teitok.xml")
 _DOC_SUFFIXES = (".md", ".txt")
+
+
+# ── the typed contract (atrium-project#32 round 2) ──────────────────────────────────────────
+# These models document the responses the handlers build; they do not filter them. A field
+# the handlers always send has no default (required); one they send only sometimes defaults
+# to None. Descriptions are published in service/openapi.json, so they are written for the
+# client.
+
+
+class Enrichment(BaseModel):
+    """What the model found for one line (line mode) or one passage (document mode)."""
+
+    model_config = ConfigDict(extra="allow")
+
+    extracted_keywords_cs: List[str] = Field(
+        description="Czech archaeological keywords found in the text."
+    )
+    extracted_keywords_en: List[str] = Field(
+        description="Their English translations, in the same order."
+    )
+    teater_category: str = Field(
+        description="The TEATER thesaurus category the model chose, by its label."
+    )
+    confidence_score: float = Field(
+        description="The model's confidence in `teater_category`, from 0 to 1."
+    )
+
+
+class KeywordResult(BaseModel):
+    """One result: a qualifying line (line mode) or a passage the model located (document mode)."""
+
+    model_config = ConfigDict(extra="allow")
+
+    file_id: str = Field(description="The input's name as the engine saw it.")
+    enrichment: Enrichment
+    page: Union[int, str, None] = Field(
+        None,
+        description="The page: a number in line mode; the page label the model cited in document mode.",
+    )
+    line: Optional[int] = Field(None, description="Line mode: the line number within the page.")
+    locator: Optional[str] = Field(
+        None, description="Document mode: the passage the keywords come from."
+    )
+    categ: Optional[str] = Field(
+        None, description="Line mode: the line's quality category from alto-postprocess."
+    )
+    quality_score: Optional[float] = Field(
+        None, description="Line mode: the line's quality score, when given."
+    )
+    original_text: Optional[str] = Field(None, description="Line mode: the line's text.")
+
+
+class ExtractStats(BaseModel):
+    """What the run did: how many lines or passages were processed, skipped and attempted."""
+
+    model_config = ConfigDict(extra="allow")
+
+    processed: int = Field(
+        description="Lines (line mode) or passages (document mode) with a result."
+    )
+    skipped_filter: int = Field(description="Lines the quality filter left out.")
+    skipped_error: int = Field(description="Lines or calls that failed.")
+    aborted: int = Field(
+        description="1 when the document was given up (LLM_MAX_CONSECUTIVE_ERRORS), else 0."
+    )
+    attempted: int = Field(description="Model calls made: 0 means the model was never asked.")
+    truncated: Optional[int] = Field(
+        None, description="Line mode: replies cut at LLM_MAX_NEW_TOKENS."
+    )
+    unprocessed: Optional[int] = Field(
+        None, description="Line mode, after an abort: the lines not sent."
+    )
+    repaired: Optional[int] = Field(None, description="Document mode: replies repaired before use.")
+    dropped_items: Optional[int] = Field(
+        None, description="Document mode: items dropped while repairing."
+    )
+
+
+class ExtractResponse(BaseModel):
+    """The keywords of one document, and its record when one was sent."""
+
+    model_config = ConfigDict(extra="allow")
+
+    service: str = Field(description="`atrium-llm-enrich`.")
+    doc_id: str = Field(
+        description="The document's id: from the upload's name, or the sent record's `doc_id`."
+    )
+    backend: str = Field(description="The LLM backend: `openrouter` or `ollama`.")
+    model: str = Field(description="The model id (`<model>@<host>` for Ollama).")
+    mode: str = Field(
+        description="`line` (.csv, .teitok.xml) or `document` (.md, .txt, inline text)."
+    )
+    results: List[KeywordResult] = Field(description="One entry per line or passage with a result.")
+    stats: ExtractStats
+    limits_applied: List[LimitNote] = Field(
+        description="Every limit that shaped the result without refusing it."
+    )
+    document_json: Optional[AtriumDocument] = Field(
+        None,
+        description=(
+            "Only when a record was sent and the run contributed: the record, with llm-enrich's `enrichment` "
+            "block updated and every other block as sent."
+        ),
+    )
+    document_json_schema_error: Optional[str] = Field(
+        None,
+        description="Only when the returned record does not validate: the schema error (the sent record's).",
+    )
+    paradata: Optional[CreateAction] = Field(
+        None,
+        description="The run's provenance (atrium-project#67 R2). Not returned yet: always absent.",
+    )
+
+
+class VocabularyInfo(BaseModel):
+    """How much of the vocabulary reaches the model."""
+
+    model_config = ConfigDict(extra="allow")
+
+    terms: int = Field(description="Terms in the vocabulary (the excluded themes left out).")
+    line_prompt_terms: int = Field(description="Terms that fit the line prompt.")
+    document_prompt_terms: int = Field(description="Terms that fit the document prompt.")
+
+
+class LlmInfo(InfoBase):
+    """`/info` of atrium-llm-enrich."""
+
+    backend: Optional[str] = Field(
+        description="The configured backend; null until the engine is warm."
+    )
+    model: Optional[str] = Field(description="The model id; null until the engine is warm.")
+    ready: bool = Field(
+        description="Whether the extraction endpoints can answer (else they answer 503)."
+    )
+    vocabulary: Optional[VocabularyInfo] = Field(description="Null until the engine is warm.")
+    supported_inputs: List[str] = Field(description="The file suffixes `/extract_keywords` reads.")
+    languages: List[str] = Field(description="The keyword languages.")
+
+
+class ExtractTextRequest(BaseModel):
+    """The body of `/extract_keywords_text`."""
+
+    text: str = Field(description="Raw text for document-level archaeological keyword extraction.")
+    document_json: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "Optional baseline ATRIUM Document JSON: a record, or an AMČR seed (`doc_id`, `source`). When given, "
+            "the response's `document_json` carries the record back with only llm-enrich's `enrichment` block "
+            "updated. A record that does not validate is still accepted, and the response then also carries "
+            "`document_json_schema_error`; one that cannot be opened is refused (422 `invalid_record`)."
+        ),
+    )
+
+
+#: Where the record parts' description says what they are, for both endpoints.
+_RECORD_PART_HELP = (
+    "Optional baseline ATRIUM Document JSON (accretion model, docs/document_schema.md / issue #13), or an AMČR "
+    "seed (`doc_id`, `source`). When given, the response's `document_json` carries the record back with only "
+    "llm-enrich's `enrichment` block updated — every other tool's block (pages, lines, entities, translations, "
+    "...) passes through untouched. A baseline that does not validate against atrium_document.schema.json is "
+    "still accepted (rule 6), but the response then also carries `document_json_schema_error`; one that is not "
+    "a JSON object is refused (422 `invalid_record`)."
+)
 
 # Warmed engine state (or an "error" key when the backend is unavailable).
 _engine: Dict[str, Any] = {}
@@ -287,10 +476,18 @@ app = FastAPI(
     version=read_tool_version(Path(__file__).resolve().parent),
     description="LLM-based archaeological keyword extraction over text lines / documents.",
     lifespan=lifespan,
+    # The typed contract (atrium-project#32 round 2): every route documents the §4.4 error
+    # body for 422 and 500 (and FastAPI's own 422 body, which is not what is sent, goes);
+    # operationIds are the handler names; the spec never depends on a root_path.
+    responses=error_responses(422, 500),
+    generate_unique_id_function=operation_id,
+    root_path_in_servers=False,
 )
 attach_inflight_middleware(app, _state)
 # §4.4 error body {status, reason, detail} for every error (atrium-project#32 item 2, #53).
 attach_error_handlers(app)
+# The published spec: reason registry, record schema, service id (atrium-project#32 item 3).
+attach_openapi_contract(app, SERVICE)
 
 # CORS — standard §4.5 configuration (ALLOWED_ORIGINS CSV, default "*").
 add_cors(app, methods=["GET", "POST"])
@@ -566,7 +763,7 @@ def _inline_doc_id(document_json: Optional[Dict[str, Any]]) -> str:
 
 def _envelope(engine: Dict[str, Any], doc_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        "service": "atrium-llm-enrich",
+        "service": SERVICE,
         "doc_id": doc_id,
         "backend": engine["backend"],
         "model": engine["model"],
@@ -590,18 +787,27 @@ async def _extract_from_path(
         raise
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    except (csv.Error, ET.ParseError) as exc:
+        # A malformed CSV or TEITOK upload is the caller's input, not our failure: it used to
+        # fall through to the blanket 500 (atrium-project#32 round 2). ET.ParseError is a
+        # SyntaxError, and csv.Error an Exception, so neither is caught as a ValueError above.
+        raise HTTPException(422, f"The upload could not be read: {exc}") from exc
     except RuntimeError as exc:
         # chat_fn exhausted its retries against the upstream LLM, or the provider refused
         # the request (its reply is in the message) — the backend's error (§4.4).
         raise HTTPException(502, f"LLM backend error: {exc}") from exc
 
 
-@app.get("/info")
+@app.get(
+    "/info",
+    response_model=None,
+    responses={200: {"model": LlmInfo, "description": "Identity, limits, capabilities."}},
+)
 async def info() -> Dict[str, Any]:
     """Service identity and capabilities (§4.1)."""
     return build_info(
         app,
-        service="atrium-llm-enrich",
+        service=SERVICE,
         limits=LIMITS,
         backend=_engine.get("backend"),
         model=_engine.get("model"),
@@ -614,19 +820,26 @@ async def info() -> Dict[str, Any]:
     )
 
 
-@app.post("/extract_keywords")
+@app.post(
+    "/extract_keywords",
+    response_model=None,
+    responses={
+        200: {
+            "model": ExtractResponse,
+            "description": "The keywords, and the record when one was sent.",
+        },
+        **error_responses(413, 415, 502, 503),
+    },
+)
 async def extract_keywords(
-    file: UploadFile = File(...),  # noqa: B008
+    file: UploadFile = File(  # noqa: B008
+        ...,
+        description="The document: .csv or .teitok.xml (line mode), .md or .txt (document mode).",
+    ),
     document_json: UploadFile = File(  # noqa: B008
         None,
-        description=(
-            "Optional baseline ATRIUM Document JSON (accretion model, docs/document_schema.md "
-            "/ issue #13). When given, the response's `document_json` carries the record back "
-            "with only llm-enrich's `enrichment` block updated — every other tool's block "
-            "(pages, lines, entities, translations, ...) passes through untouched. A baseline "
-            "that does not validate against atrium_document.schema.json is still accepted "
-            "(rule 6), but the response then also carries `document_json_schema_error`."
-        ),
+        description=_RECORD_PART_HELP,
+        json_schema_extra={"contentMediaType": "application/json"},
     ),
 ):
     """Extract archaeological keywords from an uploaded document (§4.2).
@@ -640,8 +853,13 @@ async def extract_keywords(
         raise HTTPException(422, "Filename is missing from the upload.") from None
     name = file.filename.lower()
     if not name.endswith(_LINE_SUFFIXES + _DOC_SUFFIXES):
-        raise HTTPException(
-            422, f"Unsupported file type. Accepted: {', '.join(_LINE_SUFFIXES + _DOC_SUFFIXES)}."
+        # §4.4: a type this endpoint does not read is 415 `unsupported_media_type` (it was a
+        # bare 422 before atrium-project#32 round 2), with the accepted suffixes in the body.
+        raise AtriumHTTPError(
+            415,
+            f"Unsupported file type. Accepted: {', '.join(_LINE_SUFFIXES + _DOC_SUFFIXES)}.",
+            reason="unsupported_media_type",
+            accepted=[*_LINE_SUFFIXES, *_DOC_SUFFIXES],
         ) from None
 
     upload_mb = MAX_UPLOAD.get()
@@ -659,8 +877,11 @@ async def extract_keywords(
         if document_json is not None:
             # Bounded like the file (atrium-project#53): it used to be read whole, unbounded.
             baseline_bytes = await read_upload_bounded(document_json, upload_mb, "document_json")
-            (work_dir / f"{doc_id}{FILE_SUFFIX}").write_bytes(baseline_bytes)
-            document_record_dir = work_dir
+            # A record that cannot be opened is refused before any model call (422
+            # `invalid_record`); an empty part counts as none. The bytes are written as sent.
+            if parse_record_part(baseline_bytes, "document_json") is not None:
+                (work_dir / f"{doc_id}{FILE_SUFFIX}").write_bytes(baseline_bytes)
+                document_record_dir = work_dir
 
         result = await _extract_from_path(
             str(tmp_path), file.filename, engine, doc_id, document_record_dir
@@ -669,22 +890,30 @@ async def extract_keywords(
     return _envelope(engine, doc_id, result)
 
 
-@app.post("/extract_keywords_text")
-async def extract_keywords_text(
-    request: Request,
-    text: str = Body(
-        ..., description="Raw text for document-level archaeological keyword extraction."
-    ),
-    document_json: dict = Body(
-        None,
-        description="Optional baseline ATRIUM Document JSON. When given, the response's `document_json` carries the record back with only llm-enrich's `enrichment` block updated. An invalid baseline is still accepted, and the response then also carries `document_json_schema_error`.",
-    ),
-):
-    """Extract archaeological keywords from inline text (§4.2)."""
+@app.post(
+    "/extract_keywords_text",
+    response_model=None,
+    responses={
+        200: {
+            "model": ExtractResponse,
+            "description": "The keywords, and the record when one was sent.",
+        },
+        **error_responses(413, 502, 503),
+    },
+)
+async def extract_keywords_text(request: Request, payload: ExtractTextRequest):
+    """Extract archaeological keywords from inline text (§4.2).
+
+    The body is ``{"text": ..., "document_json": ...}``, as before atrium-project#32 round 2:
+    the two embedded ``Body`` parameters became one named request model, so a generated client
+    gets a type for it; the wire shape did not change.
+    """
     # The body is bounded like an upload (atrium-project#53): it had no size limit at all.
     await check_body_size(request, MAX_UPLOAD.get(), "Request body")
     engine = _require_engine()
 
+    text = payload.text
+    document_json = parse_record_part(payload.document_json, "document_json")
     doc_id = _inline_doc_id(document_json)
 
     with tempfile.TemporaryDirectory() as tmp_dir:

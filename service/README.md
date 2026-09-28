@@ -32,18 +32,19 @@ report `ready: false`, while the extraction endpoints return `503` until configu
 | GET    | `/health`                | liveness probe — 200 always, even mid-shutdown. `?deep=true` additionally checks the backend is configured (503 on fail or while draining)                                                                                                                                         |
 | GET    | `/ready`                 | readiness probe (issue #55) — 503 until the backend is serviceable, 200 while serving, 503 the instant `SIGTERM` arrives. The Kubernetes `readinessProbe`/`startupProbe` target                                                                                                    |
 | POST   | `/extract_keywords`      | extract keywords from an uploaded document                                                                                                                                                                                                                                         |
-| POST   | `/extract_keywords_text` | extract keywords from an inline JSON `{"lines": [...]}` body                                                                                                                                                                                                                       |
+| POST   | `/extract_keywords_text` | extract keywords from an inline JSON `{"text": "...", "document_json": {...}}` body (document mode)                                                                                                                                                                                |
 
 ### `POST /extract_keywords` (multipart form)
 
-| Field  | Default    | Notes                                                                          |
-|--------|------------|--------------------------------------------------------------------------------|
-| `file` | *required* | `.csv` / `*.teitok.xml` → line-level; `.md` / `.txt` → document-level          |
+| Field           | Default    | Notes                                                                                                                                                                                                          |
+|-----------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `file`          | *required* | `.csv` / `*.teitok.xml` → line-level; `.md` / `.txt` → document-level. Any other suffix → 415 `unsupported_media_type`                                                                                         |
+| `document_json` | —          | optional record or AMČR seed (JSON); comes back as `document_json` with only the `enrichment` block updated. Not a JSON object → 422 `invalid_record`; schema-invalid → accepted, `document_json_schema_error` |
 
 ```bash
 curl -X POST "http://localhost:8000/extract_keywords" -F "file=@sample.csv"
 curl -X POST "http://localhost:8000/extract_keywords_text" \
-     -H "Content-Type: application/json" -d '{"lines": ["Výzkum odhalil základy gotického kostela."]}'
+     -H "Content-Type: application/json" -d '{"text": "Výzkum odhalil základy gotického kostela."}'
 curl -s http://localhost:8000/info
 ```
 
@@ -58,28 +59,41 @@ curl -s http://localhost:8000/info
   "mode": "line",
   "results": [
     {
-      "file_id": "sample",
-      "page": "1",
-      "line": "1",
+      "file_id": "input",
+      "page": 1,
+      "line": 1,
+      "categ": "Clear",
+      "quality_score": 0.9,
       "original_text": "Výzkum odhalil základy gotického kostela.",
       "enrichment": {
         "extracted_keywords_cs": ["základy", "gotický kostel"],
-        "extracted_keywords_en": ["foundations", "Gothic church"]
+        "extracted_keywords_en": ["foundations", "Gothic church"],
+        "teater_category": "kostel",
+        "confidence_score": 0.9
       }
     }
   ],
-  "stats": {"processed": 1, "skipped_filter": 0, "skipped_error": 0}
+  "stats": {"processed": 1, "skipped_filter": 0, "skipped_error": 0, "aborted": 0, "attempted": 1, "truncated": 0},
+  "limits_applied": []
 }
 ```
 
-| Field     | Type   | Description                                                                                                       |
-|-----------|--------|-------------------------------------------------------------------------------------------------------------------|
-| `service` | str    | canonical tool id (`atrium-llm-enrich`)                                                                           |
-| `doc_id`  | str    | document id derived from the upload filename                                                                      |
-| `backend` | str    | active LLM backend (`openrouter` / `ollama`)                                                                      |
-| `mode`    | str    | `line` (CSV/TEITOK) or `document` (MD/TXT)                                                                        |
-| `results` | list   | per-line/per-document records; `enrichment` holds the keywords                                                    |
-| `stats`   | object | processed / filtered / errored counts (+ `aborted` on abort, `truncated` for replies cut at `LLM_MAX_NEW_TOKENS`) |
+| Field                        | Type           | Description                                                                                                                                                                              |
+|------------------------------|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `service`                    | str            | canonical tool id (`atrium-llm-enrich`)                                                                                                                                                  |
+| `doc_id`                     | str            | document id: from the upload filename, or the sent record's `doc_id` (`/extract_keywords_text`)                                                                                          |
+| `backend`                    | str            | active LLM backend (`openrouter` / `ollama`)                                                                                                                                             |
+| `model`                      | str            | model id (`<model>@<host>` for Ollama)                                                                                                                                                   |
+| `mode`                       | str            | `line` (CSV/TEITOK) or `document` (MD/TXT, inline text)                                                                                                                                  |
+| `results`                    | list           | line mode: `file_id`, `page` (int), `line` (int), `categ`, `quality_score`, `original_text`, `enrichment`; document mode: `file_id`, `locator`, `page` (label or null), `enrichment`     |
+| `stats`                      | object         | `processed`, `skipped_filter`, `skipped_error`, `aborted`, `attempted`; line mode adds `truncated` (and `unprocessed` after an abort); document mode may add `repaired`, `dropped_items` |
+| `limits_applied`             | list           | every [limit](#limits) that shaped the result (below)                                                                                                                                    |
+| `document_json`              | object         | only when a record was sent and the run contributed: the record, with the `enrichment` block updated                                                                                     |
+| `document_json_schema_error` | str            | only when the returned record does not validate (the sent record's problem)                                                                                                              |
+| `paradata`                   | object or null | reserved for the run's `CreateAction` (atrium-project#67 R2); not returned yet                                                                                                           |
+
+The exact types — every field above, the `enrichment` object and the record — are in
+[`openapi.json`](openapi.json) ([OpenAPI](#openapi-the-typed-contract)).
 
 `limits_applied` (a list) names every [limit](#limits) that shaped the result without
 refusing it (atrium-project#53): the vocabulary terms left out of the prompt
@@ -94,14 +108,16 @@ item 2): `{"status": <int>, "reason": <code or null>, "detail": "<text>"}`. `det
 a string. A limit refusal adds `limit` (`{key, env, value, observed, unit}`); a request
 validation error adds FastAPI's list of problems as `errors`.
 
-| Code | `reason`         | Meaning                                                                                                                  |
-|------|------------------|--------------------------------------------------------------------------------------------------------------------------|
-| 413  | `limit_exceeded` | over `MAX_UPLOAD_MB`, or (document mode) a document that does not fit `LLM_CONTEXT_WINDOW` with the prompt and the reply |
-| 422  | `limit_exceeded` | document mode: the model's reply was cut at `LLM_MAX_NEW_TOKENS` — split the document, or send it as lines               |
-| 422  | `null`           | unusable input (missing filename, unsupported type, no lines), or request validation                                     |
-| 500  | `null`           | processing failure                                                                                                       |
-| 502  | `null`           | upstream LLM backend error: retries exhausted, or the provider refused the request (its reply is in `detail`)            |
-| 503  | `null`           | backend not configured / not ready, or the replica is shutting down (client retries)                                     |
+| Code | `reason`                 | Meaning                                                                                                                                    |
+|------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| 413  | `limit_exceeded`         | over `MAX_UPLOAD_MB`, or (document mode) a document that does not fit `LLM_CONTEXT_WINDOW` with the prompt and the reply                   |
+| 415  | `unsupported_media_type` | the file is not `.csv`, `.teitok.xml`, `.md` or `.txt`; `accepted` lists the suffixes (it was a bare 422 before atrium-project#32 round 2) |
+| 422  | `invalid_record`         | the `document_json` sent is not UTF-8 JSON, not an object, or has a newer `schema_version` major — refused before any model call           |
+| 422  | `limit_exceeded`         | document mode: the model's reply was cut at `LLM_MAX_NEW_TOKENS` — split the document, or send it as lines                                 |
+| 422  | `null`                   | unusable input (missing filename, malformed CSV or TEITOK — a 500 before round 2 — no lines), or request validation (`errors`)             |
+| 500  | `null`                   | processing failure                                                                                                                         |
+| 502  | `null`                   | upstream LLM backend error: retries exhausted, or the provider refused the request (its reply is in `detail`)                              |
+| 503  | `null`                   | backend not configured / not ready, or the replica is shutting down (client retries)                                                       |
 
 ## Configuration (environment)
 
@@ -190,7 +206,30 @@ workload — see `docs/k8s_deployment.md` ("Known limits") in the hub.
 A clean shutdown exits **143** (128 + SIGTERM), not 0: uvicorn re-raises the captured
 signal on purpose so a supervisor sees the real cause. That is a normal stop, not a crash.
 
+## OpenAPI (the typed contract)
+
+The service's OpenAPI document is committed as [`service/openapi.json`](openapi.json) and
+attached to every release as `openapi.json` with its `openapi.json.sha256` (atrium-project#32
+round 2). It is what a client is generated from: every request and response field is typed,
+every error response is the `ErrorBody` above, the registered `reason` codes are listed in
+`x-atrium-reason-codes`, and a returned record is typed by the vendored record schema
+(`AtriumDocument`). `GET /info` reports `openapi_sha256`, the digest of the spec the running
+image serves — equal to the release's `openapi.json.sha256` for an image built from that tag.
+
+- **After an API change**, regenerate and commit it:
+  `python atrium_openapi.py export --app service.api:app --out service/openapi.json`.
+  `tests/test_openapi_contract.py` fails while it is stale.
+- **Compatibility.** Each release compares its spec with the previous release's
+  (`release.yml`, `atrium_openapi.py compare` with oasdiff): a breaking change fails the
+  release unless the major version went up (for 0.x, that means 1.0), and a removed reason
+  code always fails. New fields, endpoints and reason codes are additive.
+- **fastapi and pydantic are pinned** exactly (`service/requirements.txt`,
+  `requirements-test.txt`): the spec is generated by them. Bump both by hand and regenerate.
+
 ## Tests
 
 `tests/test_api_contract.py` (hermetic, `importorskip("fastapi")`) asserts the §4 meta-contract
-against the in-process `app.openapi()`. Run: `pytest -m "not slow" tests/test_api_contract.py`.
+against the in-process app, and drives both endpoints with a canned engine to hold every
+response — 200s and refusals — to the published schema. `tests/test_openapi_contract.py`
+(vendored from the hub) checks the committed spec itself. Run:
+`pytest -m "not slow" tests/test_api_contract.py tests/test_openapi_contract.py`.
