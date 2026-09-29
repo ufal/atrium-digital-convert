@@ -27,6 +27,11 @@ env/
 data_samples/
 !data_samples/taxonomy_config.json
 !data_samples/vocab/union_nested.json
+# Not runtime (atrium-project#69, roadmap H5): the test suite runs on the CI runner (the
+# digital smoke generates its fixtures from a checkout, not from an image), and the dev
+# logs are documentation.
+tests/
+agent_dev_logs/
 TEMP/
 *.log
 *.png

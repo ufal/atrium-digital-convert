@@ -1,16 +1,28 @@
+# Image names are the published ones (atrium-project#69, roadmap B2): the target is part
+# of the image NAME, as docker-tool.reusable.yml publishes it -- `atrium-llm-enrich-remote:
+# <version>`, never `atrium-llm-enrich:<version>-remote` -- so `docker compose --profile
+# <p> pull` fetches the released image. `digital-docling` is built locally, never pulled.
+#
+# Every service runs as the host uid, group 0 (atrium-project#69, roadmap B6). ./data is
+# in the clone (data/.gitkeep), owned by whoever cloned it, while the images run as uid
+# 10001 by default -- so without `user:` every write to /data fails with EACCES. Every
+# path the images write is group-0 writable, so any uid with group 0 works. On Linux set
+# ATRIUM_UID in .env (`echo "ATRIUM_UID=$(id -u)" >> .env`); Docker Desktop needs
+# nothing. Unset, this is the images' own uid 10001.
 services:
   llm-enrich-remote:
     profiles: [remote]
-    image: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-remote
+    image: ghcr.io/ufal/atrium-llm-enrich-remote:${ATRIUM_VERSION:-dev}
+    user: "${ATRIUM_UID:-10001}:0"
     build:
       context: .
       target: remote
       args:
-        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-remote
+        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich-remote:${ATRIUM_VERSION:-dev}
         ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
         ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
     environment:
-      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-remote
+      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich-remote:${ATRIUM_VERSION:-dev}
       ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
       ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
@@ -29,16 +41,17 @@ services:
   # the start of the born-digital branch, not a stage in the scanned chain.
   llm-enrich-digital:
     profiles: [digital]
-    image: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-digital
+    image: ghcr.io/ufal/atrium-llm-enrich-digital:${ATRIUM_VERSION:-dev}
+    user: "${ATRIUM_UID:-10001}:0"
     build:
       context: .
       target: digital
       args:
-        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-digital
+        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich-digital:${ATRIUM_VERSION:-dev}
         ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
         ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
     environment:
-      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-digital
+      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich-digital:${ATRIUM_VERSION:-dev}
       ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
       ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
     volumes:
@@ -55,6 +68,9 @@ services:
   llm-enrich-digital-docling:
     profiles: [digital-docling]
     image: atrium-llm-enrich-digital-docling:local
+    # `docker compose pull` must not ask a registry for a name nothing publishes.
+    pull_policy: build
+    user: "${ATRIUM_UID:-10001}:0"
     build:
       context: .
       target: digital-docling
@@ -71,16 +87,17 @@ services:
 
   llm-enrich-llm:
     profiles: [llm]
-    image: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-llm
+    image: ghcr.io/ufal/atrium-llm-enrich-llm:${ATRIUM_VERSION:-dev}
+    user: "${ATRIUM_UID:-10001}:0"
     build:
       context: .
       target: llm
       args:
-        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-llm
+        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich-llm:${ATRIUM_VERSION:-dev}
         ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
         ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
     environment:
-      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-llm
+      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich-llm:${ATRIUM_VERSION:-dev}
       ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
       ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
       HF_HOME: /cache/huggingface
@@ -95,7 +112,8 @@ services:
   # extraction; /info and /health stay up (ready:false) until then.
   llm-enrich-api:
     profiles: [api]
-    image: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-api
+    image: ghcr.io/ufal/atrium-llm-enrich-api:${ATRIUM_VERSION:-dev}
+    user: "${ATRIUM_UID:-10001}:0"
     build:
       context: .
       target: api

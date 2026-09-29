@@ -76,9 +76,18 @@ RUN test -f data_samples/vocab/union_nested.json \
     && test -f data_samples/taxonomy_config.json \
     || (echo "ERROR: runtime vocabulary missing from the image - check .dockerignore" >&2; exit 1)
 
+# Non-root runtime user. Owned atrium:0 and group-writable (`g=u`): the arbitrary-UID
+# convention (OpenShift's), atrium-project#69 / roadmap B6. docker-compose.yaml runs these
+# images as `user: "${ATRIUM_UID:-10001}:0"`, so on Linux the container can run as the uid
+# that owns the ./data bind mount, and a uid with no passwd entry still reaches /app,
+# /cache, /data and $HOME through group 0. HOME is explicit because without a passwd entry
+# it would be `/`. The default runtime -- uid 10001 as the owner -- is unchanged. Every
+# stage below re-applies the same ownership to what it adds.
 RUN useradd --create-home --uid 10001 atrium \
     && mkdir -p /cache/huggingface /data \
-    && chown -R atrium:atrium /app /cache /data
+    && chown -R atrium:0 /app /cache /data /home/atrium \
+    && chmod -R g=u /app /cache /data /home/atrium
+ENV HOME=/home/atrium
 
 USER atrium
 
@@ -94,7 +103,8 @@ FROM base AS remote
 USER root
 COPY requirements_remote.txt ./
 RUN pip install -r requirements_remote.txt
-RUN chown -R atrium:atrium /app
+RUN chown -R atrium:0 /app /home/atrium \
+    && chmod -R g=u /app /home/atrium
 USER atrium
 
 ENTRYPOINT ["python"]
@@ -125,7 +135,8 @@ FROM base AS digital
 USER root
 COPY requirements_digital.txt ./
 RUN pip install -r requirements_digital.txt
-RUN chown -R atrium:atrium /app
+RUN chown -R atrium:0 /app /home/atrium \
+    && chmod -R g=u /app /home/atrium
 USER atrium
 
 ENTRYPOINT ["python", "api_util/digital_to_json.py"]
@@ -158,7 +169,8 @@ USER root
 COPY requirements_digital_docling.txt ./
 RUN pip install -r requirements_digital_docling.txt \
     && docling-tools models download layout tableformer -o /opt/docling-models \
-    && chown -R atrium:atrium /opt/docling-models
+    && chown -R atrium:0 /opt/docling-models /home/atrium \
+    && chmod -R g=u /opt/docling-models /home/atrium
 ENV DOCLING_ARTIFACTS_PATH=/opt/docling-models
 USER atrium
 
@@ -177,7 +189,8 @@ RUN pip install \
         --extra-index-url https://download.pytorch.org/whl/cpu \
         -r requirements_llm.txt
 
-RUN chown -R atrium:atrium /app
+RUN chown -R atrium:0 /app /home/atrium \
+    && chmod -R g=u /app /home/atrium
 USER atrium
 
 ENTRYPOINT ["python", "llm_run.py"]
@@ -194,7 +207,8 @@ FROM remote AS api
 USER root
 COPY service/requirements.txt ./service/requirements.txt
 RUN pip install -r service/requirements.txt
-RUN chown -R atrium:atrium /app
+RUN chown -R atrium:0 /app /home/atrium \
+    && chmod -R g=u /app /home/atrium
 USER atrium
 
 # EXPOSE tracks the DEFAULT port: it is image metadata and cannot read $PORT at

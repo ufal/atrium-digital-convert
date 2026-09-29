@@ -673,6 +673,17 @@ docker build --target digital-docling -t atrium-llm-enrich:digital-docling .   #
 docker run --rm -v "$PWD:/data" atrium-llm-enrich:digital-docling /data/report.pdf --engine docling --document-json-out /data/report.document.json
 ```
 
+The published images are `ghcr.io/ufal/atrium-llm-enrich-<target>:<version>` for `remote`, `llm`,
+`digital` and `api`, where `<version>` is the release **without** its leading `v` (`0.8.0` for `v0.8.0`)
+— the target is part of the image name, not the tag. `docker-compose.yaml` uses exactly these names.
+
+> [!NOTE]
+> **Docker on Linux: run as yourself.** `./data` is part of the clone and belongs to you, while the
+> images run as uid 10001 by default. `docker-compose.yaml` runs every service as
+> `user: "${ATRIUM_UID:-10001}:0"`, so put your uid in `.env` once — `echo "ATRIUM_UID=$(id -u)" >> .env`
+> — and the container writes `./data` as you. With `docker run -v "$PWD:/data"`, pass
+> `--user "$(id -u):0"`. Docker Desktop (macOS, Windows) needs neither. (atrium-project#69)
+
 > [!NOTE]
 > `docker-compose.gpu.yaml` now exists in this repo (GPU reservations for the `llm-enrich-llm`
 > service, matching `atrium-nlp-enrich`'s pattern):
