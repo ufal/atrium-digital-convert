@@ -403,3 +403,64 @@ def test_page_labels_head_the_page_sections(tmp_path):
     rows, pages = _read_teitok_layout(doc)
     md = rows_to_layout_markdown(rows, pages)
     assert "## Page I" in md and "## Page II" in md
+
+
+# ── Detail profiles (atrium-project#70 item 1) ───────────────────────────────
+
+
+def _text_lines(md):
+    return [ln for ln in md.splitlines() if ln.strip() and not ln.startswith("<!--")]
+
+
+def test_detail_profiles_on_the_teitok_writer_sample():
+    """Same text in every profile. The writer's rows carry no group_id, so `standard` has no
+    block to box and keeps DOC_META only; `minimal` drops that too. `full` is what the
+    renderer produced before profiles existed — no LAYOUT_MARGIN on the XML route."""
+    rows, pages = _read_teitok_layout(WRITER_SAMPLE)
+    full = rows_to_layout_markdown(rows, pages, "CTX000000002")
+    assert rows_to_layout_markdown(rows, pages, "CTX000000002", detail="full") == full
+    standard = rows_to_layout_markdown(rows, pages, "CTX000000002", detail="standard")
+    minimal = rows_to_layout_markdown(rows, pages, "CTX000000002", detail="minimal")
+
+    assert _text_lines(full) == _text_lines(standard) == _text_lines(minimal)
+    assert "BBOX" in full and "LAYOUT_MARGIN" not in full
+    assert "BBOX" not in standard and "DOC_META" in standard
+    assert "BBOX" not in minimal and "DOC_META" not in minimal
+    assert minimal.count("PAGE_BREAK") == full.count("PAGE_BREAK") == 3
+    assert len(minimal) < len(standard) < len(full)
+
+
+def test_standard_boxes_each_block_once():
+    rows = [
+        {"page_num": 1, "line_num": 1, "text": "a", "bbox": [10, 10, 50, 20], "group_id": "b1"},
+        {"page_num": 1, "line_num": 2, "text": "b", "bbox": [10, 22, 60, 30], "group_id": "b1"},
+        {"page_num": 1, "line_num": 3, "text": "c", "bbox": [10, 40, 40, 50], "group_id": "b2"},
+        {"page_num": 1, "line_num": 4, "text": "d", "bbox": [10, 60, 40, 70]},
+        {"page_num": 2, "line_num": 1, "text": "e", "bbox": [5, 5, 9, 9], "group_id": "b2"},
+    ]
+    md = rows_to_layout_markdown(rows, {}, detail="standard")
+    assert md.count("BBOX") == 3
+    assert "<!-- BBOX: [10, 10, 60, 30] -->\na\nb" in md
+    assert "<!-- BBOX: [10, 40, 40, 50] -->\nc" in md
+    assert "\nd\n" in md  # no group, no box
+    assert "<!-- BBOX: [5, 5, 9, 9] -->\ne" in md  # a group id does not span pages
+    assert rows_to_layout_markdown(rows, {}, detail="full").count("BBOX") == 5
+
+
+def test_figures_keep_their_box_unless_minimal():
+    rows = [{"page_num": 1, "line_num": 1, "text": "x", "bbox": [1, 1, 2, 2]}]
+    pages = {1: {"width": 10, "height": 10, "figures": [{"bbox": [3, 3, 8, 8], "type": "Fig"}]}}
+    assert "![Fig]() <!-- BBOX: [3, 3, 8, 8] -->" in rows_to_layout_markdown(
+        rows, pages, detail="standard"
+    )
+    minimal = rows_to_layout_markdown(rows, pages, detail="minimal")
+    assert "![Fig]()" in minimal and "BBOX" not in minimal
+
+
+def test_unknown_detail_is_refused():
+    import pytest
+
+    with pytest.raises(ValueError, match="compact"):
+        rows_to_layout_markdown([], {}, detail="compact")
+    with pytest.raises(ValueError):
+        convert(WRITER_SAMPLE, fmt="layout", detail="compact")

@@ -190,6 +190,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--ocr", action="store_true", help="OCR text-less pages when auto-converting .pdf inputs."
     )
     parser.add_argument(
+        "--detail",
+        choices=["full", "standard", "minimal"],
+        default="full",
+        help=(
+            "Cue profile of the Markdown rendered from .pdf/.docx/*.document.json inputs "
+            "(api_util/layout_md.py; atrium-project#70), and the profile the record's "
+            "regenerable.markdown recipe names. full keeps every layout cue."
+        ),
+    )
+    parser.add_argument(
         "--document-json-dir",
         type=Path,
         default=None,
@@ -408,7 +418,7 @@ def main(argv: Optional[List[str]] = None) -> None:
             # .pdf/.docx → visually-rich .md (document-level) before dispatch.
             source_file = f
             try:
-                f = prepare_document_input(f, ocr=args.ocr)
+                f = prepare_document_input(f, ocr=args.ocr, detail=args.detail)
             except Exception as exc:
                 tqdm.write(f"  [skip] {f.name}: conversion failed ({exc})")
                 logger.log_skip(f.name, f"conversion_failed: {exc}")
@@ -483,6 +493,7 @@ def main(argv: Optional[List[str]] = None) -> None:
                         # Only a real conversion leaves a regenerable derivation.
                         markdown_from=source_file if f != source_file else None,
                         used_markdown_input=is_document_level,
+                        detail=args.detail,
                         license_detail=logger.get_license_block(),
                         # Same directory the prompt vocabulary was loaded from, so
                         # entities[].pid resolves against the artifacts this run actually

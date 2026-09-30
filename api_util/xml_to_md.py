@@ -359,7 +359,32 @@ def read_document_layout(path: str | Path) -> tuple:
     return _read_teitok_layout(path)
 
 
-def rows_to_layout_markdown(rows: List[dict], pages: dict, title: str = "") -> str:
+def _block_boxes(rows: List[dict]) -> dict:
+    """``{index of a block's first row: union box}`` for the ``standard`` profile.
+
+    A block is a run of consecutive rows on one page sharing a non-None ``group_id`` —
+    the same unit whose boundary renders as a blank line. Rows with no group (the whole
+    ALTO path) belong to no block and get no box.
+    """
+    boxes: dict = {}
+    start = None
+    for i, row in enumerate(rows + [None]):
+        key = None if row is None else (row.get("page_num"), row.get("group_id"))
+        if start is not None:
+            prev = rows[start]
+            if key != (prev.get("page_num"), prev.get("group_id")):
+                box = _union([r.get("bbox") for r in rows[start:i]])
+                if box:
+                    boxes[start] = box
+                start = None
+        if row is not None and start is None and row.get("group_id") is not None:
+            start = i
+    return boxes
+
+
+def rows_to_layout_markdown(
+    rows: List[dict], pages: dict, title: str = "", detail: str = L.DEFAULT_DETAIL
+) -> str:
     """Renders coordinate-bearing rows as visually-rich, page-sectioned Markdown.
 
     Emits the same layout_md cue vocabulary as the PDF/DOCX converters —
@@ -388,7 +413,16 @@ def rows_to_layout_markdown(rows: List[dict], pages: dict, title: str = "") -> s
 
     Rows without either key render exactly as before, so the ALTO/TEITOK path is
     byte-for-byte unchanged.
+
+    ``detail`` picks the cue profile (``layout_md.DETAIL_LEVELS``, atrium-project#70): the
+    text lines are the same in every profile, ``standard`` keeps one BBOX per block and
+    ``minimal`` drops geometry, DOC_META and OCR provenance. A page meta dict may carry
+    ``margin`` (``{"top", "bottom", "left", "right", "unit"}``), which ``full`` renders as
+    LAYOUT_MARGIN; only json_to_md.py sets it. An unknown ``detail`` raises ``ValueError``.
     """
+    L.check_detail(detail)
+    scope = L.BBOX_SCOPE[detail]
+    block_boxes = _block_boxes(rows) if scope == "block" else {}
     pages = pages or {}
     parts: List[str] = [f"# {title}"] if title else []
     current_page = None
@@ -397,7 +431,7 @@ def rows_to_layout_markdown(rows: List[dict], pages: dict, title: str = "") -> s
     no_group = object()
     current_group: object = no_group
 
-    for row in rows:
+    for index, row in enumerate(rows):
         page = row.get("page_num")
         label = row.get("page_label", page)
         if page != current_page:
@@ -407,12 +441,26 @@ def rows_to_layout_markdown(rows: List[dict], pages: dict, title: str = "") -> s
             meta = pages.get(page, {})
             w, h = meta.get("width"), meta.get("height")
             origin = {"origin": meta["origin"]} if meta.get("origin") else {}
-            if w and h:
-                parts.append(L.doc_meta(size=f"{w}x{h}{meta.get('unit', 'px')}", **origin))
-            elif origin:
-                parts.append(L.doc_meta(**origin))
+            if L.emits(detail, "DOC_META"):
+                if w and h:
+                    parts.append(L.doc_meta(size=f"{w}x{h}{meta.get('unit', 'px')}", **origin))
+                elif origin:
+                    parts.append(L.doc_meta(**origin))
+            margin = meta.get("margin")
+            if margin and L.emits(detail, "LAYOUT_MARGIN"):
+                unit = margin.get("unit", "px")
+                parts.append(
+                    L.layout_margin(
+                        **{
+                            side: f"{round(margin[side])}{unit}"
+                            for side in ("top", "bottom", "left", "right")
+                        }
+                    )
+                )
             for fig in meta.get("figures", []):
-                parts.append(L.image(fig.get("type", "figure"), "", fig.get("bbox")))
+                parts.append(
+                    L.image(fig.get("type", "figure"), "", fig.get("bbox") if scope else None)
+                )
             if meta.get("needs_ocr"):
                 parts.append(
                     L.needs_ocr(
@@ -420,7 +468,7 @@ def rows_to_layout_markdown(rows: List[dict], pages: dict, title: str = "") -> s
                     )
                 )
             ocr_meta = meta.get("ocr")
-            if ocr_meta:
+            if ocr_meta and L.emits(detail, "OCR"):
                 parts.append(
                     L.ocr_meta(engine=ocr_meta.get("engine", "unknown"), lang=ocr_meta.get("lang"))
                 )
@@ -434,7 +482,12 @@ def rows_to_layout_markdown(rows: List[dict], pages: dict, title: str = "") -> s
         if current_group is not no_group and group != current_group:
             parts.append("")
         current_group = group
-        box = row.get("bbox")
+        if scope == "line":
+            box = row.get("bbox")
+        elif scope == "block":
+            box = block_boxes.get(index)
+        else:
+            box = None
         parts.append(f"{L.bbox(box)}\n{text}" if box else text)
 
     return "\n".join(parts).strip() + "\n"
@@ -474,17 +527,19 @@ def rows_to_plain_text(rows: List[dict]) -> str:
     return "\n".join(parts).strip() + "\n"
 
 
-def convert(path: str | Path, fmt: str = "markdown") -> str:
+def convert(path: str | Path, fmt: str = "markdown", detail: str = L.DEFAULT_DETAIL) -> str:
     """Convert a TEITOK/ALTO XML document to 'markdown', 'text', or 'layout'.
 
     'layout' emits visually-rich Markdown carrying the layout_md cue vocabulary
     (page dimensions, bounding boxes, page breaks, figures) — the same schema as
-    the PDF/DOCX converters.
+    the PDF/DOCX converters — at the cue profile ``detail`` (full, standard or
+    minimal). The other two formats carry no cues, so ``detail`` does not apply to them.
     """
     path = Path(path)
+    L.check_detail(detail)
     if fmt == "layout":
         rows, pages = read_document_layout(path)
-        return rows_to_layout_markdown(rows, pages, title=doc_id_from_path(path))
+        return rows_to_layout_markdown(rows, pages, title=doc_id_from_path(path), detail=detail)
     rows = read_document_rows(path)
     if fmt == "text":
         return rows_to_plain_text(rows)
@@ -496,6 +551,12 @@ if __name__ == "__main__":
     parser.add_argument("input_file", type=Path)
     parser.add_argument("--format", choices=["markdown", "text", "layout"], default="markdown")
     parser.add_argument(
+        "--detail",
+        choices=list(L.DETAIL_LEVELS),
+        default=L.DEFAULT_DETAIL,
+        help="Cue profile of --format layout (see api_util/layout_md.py).",
+    )
+    parser.add_argument(
         "--output", type=Path, default=None, help="Write to file instead of stdout."
     )
     args = parser.parse_args()
@@ -504,7 +565,7 @@ if __name__ == "__main__":
         print(f"Input file not found: {args.input_file}", file=sys.stderr)
         sys.exit(1)
 
-    rendered = convert(args.input_file, fmt=args.format)
+    rendered = convert(args.input_file, fmt=args.format, detail=args.detail)
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")
         print(f"-> {args.output}")

@@ -304,7 +304,8 @@ TEITOK/ALTO coordinates — the same annotated-Markdown schema the PDF/DOCX conv
 sentence that runs over a page break is rendered as two lines, one under each page, each with its
 own page's box; a page labelled `n="I"` is headed `## Page I`; and when nlp-enrich wrote its boxes
 relative to the ALTO PrintSpace (`BBOX_ORIGIN=printspace`), the page's `DOC_META` cue says
-`origin=printspace`, so the model is not told they are page coordinates.
+`origin=printspace`, so the model is not told they are page coordinates. `--detail
+standard|minimal` renders a lighter [cue profile](#detail-profiles---detail).
 
 ## Visually-Rich Document Input (`api_util/doc_to_visual_md.py`)
 
@@ -371,6 +372,50 @@ Zprava o vyzkumu Horni Mez
   read from the nearest `<!-- PAGE_BREAK: pg_N -->` / `## Page N` marker — enabling
   `[Source: <doc_id>, Page N]`-style provenance. PDF page labels (`i`, `ii`, `A-1`) are the page
   names.
+
+### Detail profiles (`--detail`)
+
+Three cue profiles, the values of the record's `regenerable.markdown.detail`
+(hub [#70](https://github.com/ufal/atrium-project/issues/70), item 1). The **text lines are the same
+in all three**; a lighter profile only drops cues, and the cue sets nest (minimal ⊂ standard ⊂ full).
+`full` is the default everywhere.
+
+| Cue | `full` | `standard` | `minimal` |
+|---|---|---|---|
+| `# doc`, `## Page`, `PAGE_BREAK`, `NEEDS_OCR`, headings, footnotes, GFM tables, `HEADER_*`/`FOOTER_*`, figure placeholders | ✓ | ✓ | ✓ |
+| `OCR` provenance, `DOC_META`, whole-line `**bold**`/`*italic*` | ✓ | ✓ | – |
+| `BBOX` | per line | one per block (a `group_id` run; a table keeps its own; ungrouped lines none) | – |
+| `LAYOUT_MARGIN` (canvas minus the body-line union; record route, pages with a canvas and boxes) | ✓ | – | – |
+
+```bash
+python3 api_util/doc_to_visual_md.py report.pdf --detail minimal --output INPUT_DIR/report.md
+python3 api_util/json_to_md.py CTX000000001.document.json --detail standard
+python3 api_util/xml_to_md.py CTX000000001.teitok.xml --format layout --detail minimal
+python3 openrouter_client.py --input INPUT_DIR --detail standard   # auto-convert + recipe
+```
+
+The clients' `--detail` sets the profile of what they auto-convert (the cache is keyed on it) and
+the profile the record's `regenerable.markdown` recipe names (`json_to_md@1.1`). That recipe is
+written only when the record can actually be rendered — a plain-text upload with no baseline gets
+none. The deprecated `--legacy`/`--ocr` converters render `full` only and refuse a lighter profile.
+Cues in the catalogue that no profile emits (`INDENT`, `LAYOUT_COLUMN`, `FONT`, `STYLE`,
+`WATERMARK`, strike, underline, alignment) are listed with the reason in
+[`layout_md.RESERVED`](api_util/layout_md.py) 📎.
+
+What each profile costs, from `python3 scripts/detail_budget.py` (characters; ≈tokens = chars / 4):
+
+| Input | full | standard | minimal |
+|---|---|---|---|
+| hub E2E scan `CTX192100040.alto.xml` (xml_to_md layout) | 32 234 (≈8 058) | 21 102 (−35 %) | 15 535 (−52 %) |
+| hub E2E scan `CTX192601143.alto.xml` (xml_to_md layout) | 26 614 (≈6 653) | 12 555 (−53 %) | 9 536 (−64 %) |
+| `CTX000000002.teitok.xml` writer sample (xml_to_md layout) | 785 | 529 (−33 %) | 385 (−51 %) |
+| `two_column.pdf` fixture (JSON route) | 1 293 | 907 (−30 %) | 625 (−52 %) |
+| `enrichable.pdf` fixture (JSON route) | 596 | 354 (−41 %) | 282 (−53 %) |
+| `rich.docx` fixture (JSON route; DOCX has no boxes) | 632 | 632 (0 %) | 628 (−1 %) |
+
+On the pilot's ALTO-derived records (no `bbox`, no `canvas`) only the `OCR` cue is left to drop, so
+`minimal` saves little there. Whether a lighter default is safe for the model is the hub #22
+bake-off's call, not this table's.
 
 ## Born-Digital PDF/DOCX → JSON (`api_util/digital_to_json.py`)
 

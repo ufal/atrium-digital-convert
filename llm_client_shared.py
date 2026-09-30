@@ -873,14 +873,18 @@ def _markdown_cache_stem(path: Path) -> str:
     return path.stem
 
 
-def prepare_document_input(path: Path, cache_dir: Optional[Path] = None, ocr: bool = False) -> Path:
+def prepare_document_input(
+    path: Path, cache_dir: Optional[Path] = None, ocr: bool = False, detail: str = "full"
+) -> Path:
     """Resolve an input file to something the pipeline can read.
 
     ``.pdf`` / ``.docx`` / ``*.document.json`` are converted to visually-rich
-    Markdown (via ``api_util.doc_to_visual_md``) and cached as ``<stem>.md`` under a
+    Markdown (via ``api_util.doc_to_visual_md``) at the cue profile ``detail``
+    (full, standard or minimal; atrium-project#70) and cached as ``<stem>.md`` under a
     ``_visual_md_cache`` sibling dir (not re-scanned by the top-level input
     enumeration); the cached path is returned. The conversion is idempotent —
-    skipped when the cached ``.md`` is newer than the source. Any other file
+    skipped when the cached ``.md`` was rendered by the same converter, route and
+    profile from the same source (``_visual_md_stamp``). Any other file
     type is returned unchanged. The heavy converter deps are imported lazily so
     remote/lightweight clients don't pull them unless one is actually fed.
     """
@@ -912,7 +916,7 @@ def prepare_document_input(path: Path, cache_dir: Optional[Path] = None, ocr: bo
         ) from exc
 
     engine = os.environ.get("DIGITAL_ENGINE", "light").strip().lower() or "light"
-    stamp = _visual_md_stamp(path, ocr=ocr, engine=engine)
+    stamp = _visual_md_stamp(path, ocr=ocr, engine=engine, detail=detail)
     cache = Path(cache_dir) if cache_dir else path.parent / "_visual_md_cache"
     cache.mkdir(parents=True, exist_ok=True)
     out = cache / f"{_markdown_cache_stem(path)}.md"
@@ -920,28 +924,30 @@ def prepare_document_input(path: Path, cache_dir: Optional[Path] = None, ocr: bo
     if out.exists() and _read_stamp(meta) == stamp:
         return out
     if path.name.lower().endswith(DOCUMENT_JSON_SUFFIX):
-        rendered = convert_to_visual_md(path, ocr=ocr)
+        rendered = convert_to_visual_md(path, ocr=ocr, detail=detail)
     else:
-        rendered = convert_to_visual_md(path, ocr=ocr, engine=engine)
+        rendered = convert_to_visual_md(path, ocr=ocr, engine=engine, detail=detail)
     out.write_text(rendered, encoding="utf-8")
     meta.write_text(json.dumps(stamp, sort_keys=True), encoding="utf-8")
     return out
 
 
-def _visual_md_stamp(path: Path, ocr: bool, engine: str) -> Dict[str, Any]:
+def _visual_md_stamp(path: Path, ocr: bool, engine: str, detail: str = "full") -> Dict[str, Any]:
     """What a cached rendering depends on (#10 G8).
 
     The cache used to be valid whenever the ``.md`` was newer than the source, so a
     converter change, a switch of route or engine, or asking for ``--ocr`` after a plain run
-    all served the old Markdown. The converter's version is read from the module rather
-    than duplicated here; without the module (the skill branch) the caller has already
-    failed above.
+    all served the old Markdown. ``detail`` is part of it for the same reason: a cached
+    ``full`` rendering is not what a ``minimal`` run asked for (atrium-project#70). The
+    converter's version is read from the module rather than duplicated here; without the
+    module (the skill branch) the caller has already failed above.
     """
     from api_util import doc_to_visual_md  # noqa: PLC0415  (lazy, like the converter)
 
     stat = path.stat()
     return {
         "converter": getattr(doc_to_visual_md, "CONVERTER_VERSION", "unknown"),
+        "detail": detail,
         "engine": engine,
         "ocr": bool(ocr),
         "source_size": stat.st_size,
@@ -1160,6 +1166,31 @@ def entity_pid_rows(
 
 #: One-shot latch so a DISABLED gate is announced once per process, not once per document.
 #: See schema_gate().
+#: The recipe id ``regenerable.markdown`` names for ``api_util/json_to_md.py``. Its own
+#: ``CONVERTER_ID`` must agree (tests/test_json_to_md.py); the copy is here because the skill
+#: branch writes records without carrying that module.
+JSON_TO_MD_CONVERTER = "json_to_md@1.1"
+
+
+def renders_from_record(record: Dict[str, Any]) -> bool:
+    """Whether ``json_to_md`` can render this record: a line it would keep, or ``content.text``.
+
+    A ``json_to_md`` recipe on a record with neither is a promise the converter refuses
+    (``ValueError: nothing to render``) — which is what every plain-text upload to the
+    service and every standalone run over a ``.md`` used to record.
+    """
+    try:
+        from atrium_vocab import UNTRUSTWORTHY_LINE_CATEGORIES as dropped
+    except ImportError:
+        dropped = ()
+    for line in record.get("lines") or []:
+        if not isinstance(line, dict) or line.get("categ") in dropped:
+            continue
+        if str(line.get("text") or "").strip() and line.get("page") is not None:
+            return True
+    return bool(str((record.get("content") or {}).get("text") or "").strip())
+
+
 _schema_gate_disabled_warned = False
 
 
@@ -1241,17 +1272,20 @@ def write_document_record(
     default, and a directory without them simply yields no pids.
 
     The ``regenerable.markdown`` recipe records how to rebuild the Markdown this run
-    actually fed the LLM (rule: never reference a transient artifact by a stored path).
-    Two cases, in priority order:
+    actually fed the LLM (rule: never reference a transient artifact by a stored path),
+    at the cue profile ``detail`` it was rendered at (atrium-project#70). Two cases, in
+    priority order:
 
     * ``used_markdown_input=True`` (a real ``run_document_level`` call, i.e. the input
       was ``.md``/``.txt`` — whether from a pre-converted PDF/DOCX or an upstream
-      ``xml_to_md.py --format layout`` pass over TEITOK) — the recipe points at THIS
-      SAME document JSON via ``json_to_md``, since it is self-sufficient: a consumer
-      holding only the JSON can regenerate equivalent Markdown without also having to
-      retain the original PDF/DOCX/TEITOK file (issue #13 §5).
-    * Otherwise, if ``markdown_from`` is given (the legacy PDF/DOCX-source path,
-      pre-``json_to_md``), fall back to the original ``doc_to_visual_md`` recipe.
+      ``xml_to_md.py --format layout`` pass over TEITOK) AND the record written here can
+      be rendered (``renders_from_record``) — the recipe points at THIS SAME document JSON
+      via ``json_to_md``, since it is self-sufficient: a consumer holding only the JSON can
+      regenerate equivalent Markdown without also having to retain the original
+      PDF/DOCX/TEITOK file (issue #13 §5). A record with no lines and no text cannot, so
+      it gets no such recipe (2026-09-30; before, every plain-text upload recorded one).
+    * Otherwise, if ``markdown_from`` is given (the PDF/DOCX source the client converted),
+      the ``doc_to_visual_md`` recipe from that source.
 
     Neither is written for a line-level run (CSV/TEITOK row-by-row) — no Markdown was
     ever fed to the LLM in that case, so no recipe should claim one can be regenerated.
@@ -1329,10 +1363,16 @@ def write_document_record(
 
         if enriched_path is not None:
             doc.add_derived_from("enriched", str(enriched_path))
-        if used_markdown_input:
+        # The record's own file name follows doc.doc_id, the baseline's id (#68), so the
+        # recipe names that file and not one derived from the upload.
+        if used_markdown_input and renders_from_record(doc.to_dict()):
             doc.add_regenerable(
                 "markdown",
-                {"from": f"{doc_id}{FILE_SUFFIX}", "converter": "json_to_md@1.0", "detail": detail},
+                {
+                    "from": f"{doc.doc_id}{FILE_SUFFIX}",
+                    "converter": JSON_TO_MD_CONVERTER,
+                    "detail": detail,
+                },
             )
         elif markdown_from is not None:
             doc.add_regenerable(

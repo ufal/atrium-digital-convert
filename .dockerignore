@@ -32,6 +32,8 @@ data_samples/
 # logs are documentation.
 tests/
 agent_dev_logs/
+# Developer measurement (atrium-project#70): it renders test fixtures, which are not in the image.
+scripts/detail_budget.py
 TEMP/
 *.log
 *.png

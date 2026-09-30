@@ -41,6 +41,10 @@ The older converters stay reachable, deprecated:
 
 ``engine`` picks the JSON route's PDF engine: ``light`` (pdfplumber, the default) or
 ``docling`` (requirements_digital_docling.txt).
+
+``detail`` picks the cue profile of the JSON route (``full``, ``standard``, ``minimal``;
+``layout_md.py``, atrium-project#70). The deprecated converters have no profiles, so a
+lighter profile together with ``ocr``/``legacy`` is refused rather than ignored.
 """
 
 from __future__ import annotations
@@ -54,13 +58,14 @@ if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
 from api_util import docx_to_md, json_to_md, pdf_to_md  # noqa: E402
+from api_util import layout_md as L  # noqa: E402
 from api_util.digital_ir import DigitalInputError  # noqa: E402
 
 SUPPORTED_EXTENSIONS = frozenset({".docx", ".pdf"})
 
 #: Bumped whenever the Markdown a given input renders to changes, so a cached rendering from
 #: an older converter is not served as current (`llm_client_shared.prepare_document_input`).
-CONVERTER_VERSION = "2026-09-25.json-route"
+CONVERTER_VERSION = "2026-09-30.detail-profiles"
 
 #: Not a simple extension — checked separately (see is_supported/convert_to_visual_md).
 _DOCUMENT_JSON_SUFFIX = ".document.json"
@@ -79,18 +84,22 @@ def convert_to_visual_md(
     min_quality: float = 0.0,
     engine: str = "light",
     legacy: bool = False,
+    detail: str = L.DEFAULT_DETAIL,
 ) -> str:
     """Convert a DOCX, PDF, or AtriumDocument JSON to visually-rich Markdown.
 
     ``.pdf``/``.docx`` take the JSON route (see the module docstring); ``ocr`` (PDF only)
     and ``legacy`` select the deprecated direct converters instead. ``min_quality`` drops
-    lines below that ``quality_score`` before rendering (JSON route and records). Raises
-    ``ValueError`` for an unsupported input or an unrenderable record (``DigitalInputError``
-    is one), ``RuntimeError`` with install advice when a backing library is missing.
+    lines below that ``quality_score`` before rendering (JSON route and records), and
+    ``detail`` is the cue profile. Raises ``ValueError`` for an unsupported input, an
+    unknown ``detail`` or one the chosen converter cannot honour, or an unrenderable record
+    (``DigitalInputError`` is one), ``RuntimeError`` with install advice when a backing
+    library is missing.
     """
+    L.check_detail(detail)
     name = str(path).lower()
     if name.endswith(_DOCUMENT_JSON_SUFFIX):
-        return json_to_md.convert(path, min_quality=min_quality)
+        return json_to_md.convert(path, detail=detail, min_quality=min_quality)
     ext = Path(path).suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         raise ValueError(
@@ -98,12 +107,19 @@ def convert_to_visual_md(
             f"Supported: {', '.join(sorted(SUPPORTED_EXTENSIONS))}, {_DOCUMENT_JSON_SUFFIX}."
         )
     if legacy or (ocr and ext == ".pdf"):
+        if detail != L.DEFAULT_DETAIL:
+            raise ValueError(
+                f"detail={detail!r} needs the JSON route; the deprecated "
+                f"{'--ocr' if ocr and not legacy else '--legacy'} converter renders full only."
+            )
         return docx_to_md.convert(path) if ext == ".docx" else pdf_to_md.convert(path, ocr=ocr)
 
     from api_util import digital_to_json  # noqa: PLC0415  (keeps this module's import light)
 
     record = digital_to_json.build_record(str(path), engine=engine)
-    return json_to_md.render_record(record, title=Path(path).stem, min_quality=min_quality)
+    return json_to_md.render_record(
+        record, title=Path(path).stem, detail=detail, min_quality=min_quality
+    )
 
 
 if __name__ == "__main__":
@@ -134,6 +150,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Deprecated direct converters (docx_to_md / pdf_to_md) instead of the JSON route.",
     )
+    parser.add_argument(
+        "--detail",
+        choices=list(L.DETAIL_LEVELS),
+        default=L.DEFAULT_DETAIL,
+        help="Cue profile of the JSON route: full (default), standard or minimal.",
+    )
     args = parser.parse_args()
 
     if not args.input_file.exists():
@@ -147,11 +169,12 @@ if __name__ == "__main__":
             min_quality=args.min_quality,
             engine=args.engine,
             legacy=args.legacy,
+            detail=args.detail,
         )
     except DigitalInputError as exc:
         print(f"{exc.reason}: {exc}", file=sys.stderr)
         sys.exit(2)
-    except (ValueError, NotImplementedError) as exc:
+    except ValueError as exc:
         print(exc, file=sys.stderr)
         sys.exit(2)
     except (docx_to_md.DocxNotInstalled, pdf_to_md.PdfPlumberNotInstalled, RuntimeError) as exc:

@@ -3,7 +3,7 @@ api_util/json_to_md.py — AtriumDocument JSON → visually-rich Markdown.
 
 Closes the loop `regenerable.markdown` currently leaves open: llm-enrich already
 records the annotated Markdown as a *recipe* rather than a stored path — e.g.
-``{"from": "<doc_id>.document.json", "converter": "json_to_md@1.0", "detail":
+``{"from": "<doc_id>.document.json", "converter": "json_to_md@1.1", "detail":
 "full"}`` — but until now nothing could actually execute that recipe from just
 the JSON. A consumer holding only the AtriumDocument record (the FAIR search
 artifact issue #13 settled on) had a dangling pointer, not a regenerable one.
@@ -17,6 +17,10 @@ data for them:
   * emit ``NEEDS_OCR``/``OCR`` cues straight from ``pages[].needs_ocr``/``pages[].ocr``;
   * drop heuristically-bad lines via ``lines[].categ``/``quality_score`` before
     they ever reach the model, via ``--min-quality``.
+
+``--detail`` picks the cue profile — ``full`` (the default), ``standard`` or ``minimal``,
+defined in ``layout_md.py`` (atrium-project#70 item 1). The text lines are the same in all
+three; only layout cues are dropped.
 
 Two hard constraints, both load-bearing:
 
@@ -60,11 +64,17 @@ from atrium_vocab import UNTRUSTWORTHY_LINE_CATEGORIES  # noqa: E402
 #: `Trash` changes what the model is shown on every OCR document — the point of the fix.
 DROP_CATEGORIES = frozenset(UNTRUSTWORTHY_LINE_CATEGORIES)
 
-#: The only implemented profile today. "standard"/"minimal" are the down-profiles
-#: from issue #13 §B, still deferred across the whole MD front-end — accepted
-#: here for CLI/API parity with the schema's regenerable.detail enum, but not
-#: silently downgraded to "full" if requested.
-IMPLEMENTED_DETAIL_LEVELS = frozenset({"full"})
+#: The recipe id a record's ``regenerable.markdown`` names for this converter. 1.1 added the
+#: ``standard``/``minimal`` profiles and LAYOUT_MARGIN; a 1.0 recipe renders as 1.1 ``full``
+#: minus LAYOUT_MARGIN. ``llm_client_shared.JSON_TO_MD_CONVERTER`` must say the same
+#: (tests/test_json_to_md.py) — it keeps its own copy so the skill branch, which does not
+#: carry this module, can still write the recipe.
+CONVERTER_ID = "json_to_md@1.1"
+
+#: Every profile of the schema's ``regenerable.detail`` enum is implemented (atrium-project#70
+#: item 1, 2026-09-30); the table is ``layout_md.PROFILE_CUES``. An unknown value is refused,
+#: never downgraded to ``full``.
+IMPLEMENTED_DETAIL_LEVELS = frozenset(L.DETAIL_LEVELS)
 
 #: `lines[].style.region` values (written by `api_util/digital_to_json.py`; see
 #: `api_util/digital_ir.py`) and where each renders on its page: running header first,
@@ -191,18 +201,21 @@ def _row_order(row: dict) -> Tuple[int, int, int]:
     return (row["page_num"], REGION_RANK[_region(row)], row.get("line_num", 0))
 
 
-def _decorate(row: dict) -> str:
+def _decorate(row: dict, detail: str = L.DEFAULT_DETAIL) -> str:
     """A body line's Markdown: heading marks, or whole-line emphasis.
 
     Only for body lines — page furniture and footnotes get their own cues, and a heading
     style on them would be noise. Emphasis is whole-line because `style` is per line; a
-    line that is only partly bold carries no `bold` flag and renders plain.
+    line that is only partly bold carries no `bold` flag and renders plain. The ``minimal``
+    profile keeps the heading marks (structure) and drops the emphasis.
     """
     style = row.get("style") or {}
     text = row["text"]
     level = style.get("heading_level")
     if isinstance(level, int) and not isinstance(level, bool) and level >= 1:
         return "#" * min(level + HEADING_OFFSET, 6) + " " + text
+    if not L.emits(detail, "bold"):
+        return text
     if "*" in text:  # emphasis marks around text that has its own would garble it
         return text
     if style.get("bold") and style.get("italic"):
@@ -224,7 +237,7 @@ def _note_id(group_id: object, fallback: int) -> str:
     return str(fallback)
 
 
-def _assemble_regions(rows: List[dict]) -> List[dict]:
+def _assemble_regions(rows: List[dict], detail: str = L.DEFAULT_DETAIL) -> List[dict]:
     """Per page: headers inside HEADER cues, decorated body, footnotes as `[^n]:`
     definitions, footers inside FOOTER cues. Rows without `style` pass through unchanged."""
     out: List[dict] = []
@@ -242,7 +255,7 @@ def _assemble_regions(rows: List[dict]) -> List[dict]:
             if region is None:
                 for row in members:
                     if "style" in row:
-                        row = dict(row, text=_decorate(row))
+                        row = dict(row, text=_decorate(row, detail))
                     out.append(row)
                 continue
             first = dict(members[0])
@@ -381,8 +394,36 @@ def _pages_meta(pages: List[dict], ordinals: Optional[Dict[str, int]] = None) ->
     return meta
 
 
+def _page_margins(rows: List[dict], pages: Dict[int, dict]) -> None:
+    """Add ``margin`` to each page meta that has a canvas and at least one boxed row.
+
+    The margin is the canvas minus the union of the boxes that reach the renderer: body
+    lines and tables. Running headers, footers and footnotes have lost their boxes in
+    ``_assemble_regions`` by then, so on a digital-born page the margin is the type area's
+    distance from the page edge. Nothing is added on a PrintSpace-relative page (the boxes
+    are not measured from the edge there) or where no box exists (the pilot's ALTO records).
+    """
+    boxes: Dict[int, List[list]] = {}
+    for row in rows:
+        box = row.get("bbox")
+        if box and len(box) == 4:
+            boxes.setdefault(row["page_num"], []).append(box)
+    for page_num, meta in pages.items():
+        w, h = meta.get("width"), meta.get("height")
+        page_boxes = boxes.get(page_num)
+        if not (w and h and page_boxes) or meta.get("origin") == "printspace":
+            continue
+        meta["margin"] = {
+            "top": max(0, min(b[1] for b in page_boxes)),
+            "bottom": max(0, h - max(b[3] for b in page_boxes)),
+            "left": max(0, min(b[0] for b in page_boxes)),
+            "right": max(0, w - max(b[2] for b in page_boxes)),
+            "unit": meta.get("unit", "px"),
+        }
+
+
 def rows_from_record(
-    record: Dict[str, Any], min_quality: float = 0.0
+    record: Dict[str, Any], min_quality: float = 0.0, detail: str = L.DEFAULT_DETAIL
 ) -> Tuple[List[dict], Dict[int, dict], Optional[str]]:
     """``(rows, pages, fallback_text)`` for an AtriumDocument record already in memory —
     ``pages``/``lines``/``tables``/``content`` only, never ``enrichment``.
@@ -396,7 +437,9 @@ def rows_from_record(
       and its ``NEEDS_OCR`` cue (G1): an empty-text row is what makes the renderer open the
       section, and it prints nothing else for it.
 
-    ``fallback_text`` is set only when ``lines[]`` yielded nothing usable.
+    ``fallback_text`` is set only when ``lines[]`` yielded nothing usable. ``detail`` only
+    decides whether body lines keep their whole-line emphasis (not in ``minimal``); the
+    other profile differences are the renderer's.
     """
     lines = record.get("lines") or []
     page_block = record.get("pages") or []
@@ -408,7 +451,7 @@ def rows_from_record(
     real = bool(rows)
     if rows:
         rows = _assemble_tables(rows, record.get("tables") or [])
-        rows = _assemble_regions(rows)
+        rows = _assemble_regions(rows, detail)
     with_rows = {r["page_num"] for r in rows}
     for p in page_block:
         label = _label(p.get("page")) if isinstance(p, dict) else None
@@ -442,21 +485,20 @@ def read_document_rows(
 
 
 def render_record(
-    record: Dict[str, Any], title: str, detail: str = "full", min_quality: float = 0.0
+    record: Dict[str, Any], title: str, detail: str = L.DEFAULT_DETAIL, min_quality: float = 0.0
 ) -> str:
     """Render a record already in memory — what ``convert()`` does after loading the file.
 
     ``api_util/doc_to_visual_md.py`` renders PDF/DOCX through this, straight from
     ``digital_to_json.build_record()``, so the Markdown the model reads and the record that
-    is stored come from one conversion (#10 G8).
+    is stored come from one conversion (#10 G8). Raises ``ValueError`` for an unknown
+    ``detail``.
     """
-    if detail not in IMPLEMENTED_DETAIL_LEVELS:
-        raise NotImplementedError(
-            f"detail={detail!r} is not implemented yet (only {sorted(IMPLEMENTED_DETAIL_LEVELS)} — "
-            f"the standard/minimal down-profiles are a deferred issue #13 item)."
-        )
+    L.check_detail(detail)
 
-    rows, pages, fallback_text = rows_from_record(record, min_quality=min_quality)
+    rows, pages, fallback_text = rows_from_record(record, min_quality=min_quality, detail=detail)
+    if L.emits(detail, "LAYOUT_MARGIN"):
+        _page_margins(rows, pages)
     doc_id = title
 
     if fallback_text and fallback_text.strip():
@@ -469,7 +511,7 @@ def render_record(
         return f"# {doc_id}\n\n{fallback_text.strip()}\n"
 
     if rows:
-        return xml_to_md.rows_to_layout_markdown(rows, pages, title=doc_id)
+        return xml_to_md.rows_to_layout_markdown(rows, pages, title=doc_id, detail=detail)
 
     raise ValueError(
         f"{doc_id}: record has neither a usable lines[] nor content.text — nothing to "
@@ -477,20 +519,17 @@ def render_record(
     )
 
 
-def convert(doc_json_path: str | Path, detail: str = "full", min_quality: float = 0.0) -> str:
+def convert(
+    doc_json_path: str | Path, detail: str = L.DEFAULT_DETAIL, min_quality: float = 0.0
+) -> str:
     """
     Convert an AtriumDocument JSON (``<doc_id>.document.json``) to page-sectioned,
-    cue-annotated Markdown.
+    cue-annotated Markdown at the cue profile ``detail``.
 
-    Raises ``NotImplementedError`` for a ``detail`` profile that isn't built yet
-    (only ``"full"`` is), and ``ValueError`` when the record has neither
+    Raises ``ValueError`` for an unknown ``detail``, and when the record has neither
     ``lines[]`` nor ``content.text`` to render — never a silent empty/garbled dump.
     """
-    if detail not in IMPLEMENTED_DETAIL_LEVELS:
-        raise NotImplementedError(
-            f"detail={detail!r} is not implemented yet (only {sorted(IMPLEMENTED_DETAIL_LEVELS)} — "
-            f"the standard/minimal down-profiles are a deferred issue #13 item)."
-        )
+    L.check_detail(detail)
 
     record_path = Path(doc_json_path)
     doc_id = record_path.name
@@ -510,7 +549,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output", type=Path, default=None, help="Write to file instead of stdout."
     )
-    parser.add_argument("--detail", choices=["full", "standard", "minimal"], default="full")
+    parser.add_argument(
+        "--detail",
+        choices=list(L.DETAIL_LEVELS),
+        default=L.DEFAULT_DETAIL,
+        help="Cue profile: full (default), standard or minimal (see api_util/layout_md.py).",
+    )
     parser.add_argument(
         "--min-quality", type=float, default=0.0, help="Drop lines below this quality_score."
     )
@@ -522,7 +566,7 @@ if __name__ == "__main__":
 
     try:
         rendered = convert(args.document_json, detail=args.detail, min_quality=args.min_quality)
-    except (ValueError, NotImplementedError) as exc:
+    except ValueError as exc:
         print(exc, file=sys.stderr)
         sys.exit(2)
 

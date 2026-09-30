@@ -40,7 +40,7 @@ jobs:
       # requirements-test.txt is listed because THIS job is the one that runs
       # `pytest -m "not slow" --cov` (docker-tool.reusable.yml). It was omitted, so the
       # file named "test requirements" was never installed in the job that runs the
-      # tests — the reusable's own `pip install pytest pytest-cov ruff` was the only
+      # tests — the reusable's own `pip install pytest pytest-cov` was the only
       # reason pytest worked at all. Two consequences, both real:
       #   * every runtime dep a test needs had to be duplicated into requirements.txt
       #     (pandas, pydantic, tqdm are there for exactly this reason);

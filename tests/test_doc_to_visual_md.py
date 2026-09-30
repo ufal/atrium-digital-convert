@@ -122,13 +122,29 @@ def test_is_supported_by_document_json_suffix():
 def test_convert_routes_document_json(monkeypatch, tmp_path):
     called = {}
 
-    def fake_json_to_md(path, min_quality=0.0):
+    def fake_json_to_md(path, detail="full", min_quality=0.0):
         called["path"] = str(path)
+        called["detail"] = detail
         called["min_quality"] = min_quality
         return "# json md\n"
 
     monkeypatch.setattr(doc_to_visual_md.json_to_md, "convert", fake_json_to_md)
-    out = doc_to_visual_md.convert_to_visual_md(tmp_path / "CTX01.document.json", min_quality=0.5)
+    out = doc_to_visual_md.convert_to_visual_md(
+        tmp_path / "CTX01.document.json", min_quality=0.5, detail="minimal"
+    )
     assert out == "# json md\n"
     assert called["path"].endswith("CTX01.document.json")
     assert called["min_quality"] == 0.5
+    assert called["detail"] == "minimal"
+
+
+@pytest.mark.parametrize("kwargs", [{"legacy": True}, {"ocr": True}])
+def test_a_lighter_profile_is_refused_on_the_deprecated_converters(tmp_path, kwargs):
+    """They render full only; answering `minimal` with full Markdown would be a silent lie."""
+    with pytest.raises(ValueError, match="JSON route"):
+        doc_to_visual_md.convert_to_visual_md(tmp_path / "a.pdf", detail="minimal", **kwargs)
+
+
+def test_unknown_detail_is_refused_before_any_conversion(tmp_path):
+    with pytest.raises(ValueError, match="compact"):
+        doc_to_visual_md.convert_to_visual_md(tmp_path / "a.pdf", detail="compact")

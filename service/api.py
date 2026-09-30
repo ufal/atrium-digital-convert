@@ -646,6 +646,9 @@ def _run_extraction(
                         para_logger.paradata_dir,
                         f"{para_logger.run_id}_{para_logger.program}.json",
                     ),
+                    # The service never renders a record: the recipe is written only when the
+                    # record can be rendered (a .txt upload with no baseline gets none), and
+                    # its detail is `full`, what a caller's json_to_md render defaults to.
                     used_markdown_input=(mode == "document"),
                     license_detail=para_logger.get_license_block(),
                     # `.get`, not `[...]`: the contract tests build engine dicts by hand,
