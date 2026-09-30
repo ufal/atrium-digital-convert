@@ -380,6 +380,28 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   **Not pushed: files delivered in chat.**
 
+## 2026-09-30 (after the meeting): this repository becomes the born-digital converter (#29); `api-digital` (#28)
+
+* **What arrived:** the meeting with AMČR renamed this tool's service `/reformat` (the report's §2.2 row) and gave its
+  keyword code to a new repository (nlp-enrich#40, 13:50); K4TEL opened #29 at 13:53: *turn this repo into
+  atrium-digital-born-convertor*.
+* **Dev logs:**
+  * `29.*` 🆕 — the design options: rename in place (recommended; the open issues and the last two releases are the
+    converter's), one service `api-digital` with `/reformat`, no service-to-service calls (Temporal chains the page
+    classification and the scoring), the record as the "per-page blocks", LibreOffice for DOC/XLS inside the image,
+    names (spelling to confirm before the first GHCR package), what stays and what leaves, and the renderer both need
+    (vendored with pins).
+  * `28.*` ✍️ **rewritten** in the house format (the draft of `c83f6e2` had no evidence or status): W1–W7 under the
+    post-meeting names; the service built now, beside the LLM service, with its final service id and its own spec
+    asset, so the rename never trips the release gate; `source.sha512` checked against the bytes.
+  * `10.*` 🔄 §13: the steps are unchanged except for the names; #10 closes with #28.
+  * `11.*` 🧭 banner: follows the LLM engine to keyword-extractor (transfer once it exists).
+* **Found:** the base stage copies the whole repository (`Dockerfile:66`, `COPY . .`), so the LLM images carry the
+  converter and research scripts and the `digital` image the LLM code; the hub's release gate would reject a changed
+  service id under the old spec asset.
+
+  **Not pushed: files delivered in chat.**
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
