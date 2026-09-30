@@ -172,19 +172,50 @@ def test_no_markdown_recipe_when_input_needed_no_conversion(tmp_path):
     assert "regenerable" not in load_document(str(path))
 
 
+def _seed_lines(tmp_path, doc_id=DOC):
+    """A baseline with text in it, as alto-postprocess leaves one: what json_to_md renders."""
+    with DocumentRecord(doc_id, "alto-postprocess", run_id="R0", out_dir=str(tmp_path)) as up:
+        up.set_source(sha256="a" * 64, filename=f"{doc_id}.alto.xml", origin="ABBYY-ALTO")
+        up.set_block("lines", [{"page": "1", "line": 1, "text": "Výzkum odhalil základy."}])
+
+
 def test_used_markdown_input_writes_self_referential_json_to_md_recipe(tmp_path):
     """A document-level run (real Markdown fed to the LLM, whether from a pre-converted
     PDF/DOCX or an upstream xml_to_md.py TEITOK pass) gets a recipe pointing at THIS
     SAME document JSON via json_to_md — self-sufficient, no external file required."""
-    path = write_document_record(DOC, DOC_LEVEL, tmp_path, run_id="R1", used_markdown_input=True)
+    _seed_lines(tmp_path)
+    path = write_document_record(
+        DOC, DOC_LEVEL, tmp_path, run_id="R1", used_markdown_input=True, detail="minimal"
+    )
     recipe = load_document(str(path))["regenerable"]["markdown"]
 
     assert recipe["from"] == f"{DOC}{FILE_SUFFIX}"
-    assert recipe["converter"] == "json_to_md@1.0"
-    assert recipe["detail"] == "full"
+    assert recipe["converter"] == llm_client_shared.JSON_TO_MD_CONVERTER == "json_to_md@1.1"
+    assert recipe["detail"] == "minimal"
+
+
+def test_no_json_to_md_recipe_for_a_record_it_cannot_render(tmp_path):
+    """A plain-text upload with no baseline leaves a record with no lines and no text:
+    json_to_md refuses that record, so no recipe may promise it (the service wrote one for
+    every .txt/.md upload until 2026-09-30)."""
+    path = write_document_record(DOC, DOC_LEVEL, tmp_path, run_id="R1", used_markdown_input=True)
+    assert "regenerable" not in load_document(str(path))
+
+
+def test_json_to_md_recipe_names_the_record_file_when_the_seed_id_differs(tmp_path):
+    """#68: the record keeps the seed's doc_id and is written under it, so the recipe's
+    `from` must name that file, not one derived from the upload's name."""
+    _seed_lines(tmp_path, doc_id="C-202400123A")
+    seed = tmp_path / f"C-202400123A{FILE_SUFFIX}"
+    seed.rename(tmp_path / f"{DOC}{FILE_SUFFIX}")
+    path = write_document_record(DOC, DOC_LEVEL, tmp_path, run_id="R1", used_markdown_input=True)
+    record = load_document(str(path))
+    assert record["doc_id"] == "C-202400123A"
+    assert record["regenerable"]["markdown"]["from"] == f"C-202400123A{FILE_SUFFIX}"
 
 
 def test_used_markdown_input_takes_priority_over_markdown_from(tmp_path):
+    _seed_lines(tmp_path)
     path = write_document_record(
         DOC,
         DOC_LEVEL,
@@ -194,7 +225,24 @@ def test_used_markdown_input_takes_priority_over_markdown_from(tmp_path):
         used_markdown_input=True,
     )
     recipe = load_document(str(path))["regenerable"]["markdown"]
-    assert recipe["converter"] == "json_to_md@1.0"
+    assert recipe["converter"] == "json_to_md@1.1"
+
+
+def test_unrenderable_record_falls_back_to_the_converted_source(tmp_path):
+    """A PDF converted in memory leaves no lines in the record this tool writes, so the
+    recipe that can actually rebuild the Markdown is the one from the PDF."""
+    path = write_document_record(
+        DOC,
+        DOC_LEVEL,
+        tmp_path,
+        run_id="R1",
+        markdown_from=tmp_path / f"{DOC}.pdf",
+        used_markdown_input=True,
+        detail="standard",
+    )
+    recipe = load_document(str(path))["regenerable"]["markdown"]
+    assert recipe["converter"] == "doc_to_visual_md"
+    assert recipe["detail"] == "standard"
 
 
 def test_no_markdown_recipe_for_line_level_run(tmp_path):

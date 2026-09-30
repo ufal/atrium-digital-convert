@@ -142,10 +142,14 @@ def test_convert_never_reads_enrichment_block(tmp_path):
     assert "bogus" not in md
 
 
-def test_convert_rejects_unimplemented_detail_profile(tmp_path):
+def test_convert_refuses_an_unknown_detail_profile(tmp_path):
+    """Every profile of the schema enum renders (atrium-project#70); anything else is refused,
+    never quietly rendered as `full`."""
     path = _write_record(tmp_path, lines=[{"page": "1", "line": 1, "text": "x"}])
-    with pytest.raises(NotImplementedError, match="standard"):
-        json_to_md.convert(path, detail="standard")
+    with pytest.raises(ValueError, match="compact"):
+        json_to_md.convert(path, detail="compact")
+    for detail in ("full", "standard", "minimal"):
+        assert "x" in json_to_md.convert(path, detail=detail)
 
 
 def test_read_document_rows_shape(tmp_path):
@@ -537,3 +541,164 @@ def test_render_record_matches_convert(tmp_path):
     path = tmp_path / "CTX01.document.json"
     path.write_text(json.dumps(record), encoding="utf-8")
     assert json_to_md.render_record(record, title="CTX01") == json_to_md.convert(path)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Detail profiles (atrium-project#70 item 1)
+# ──────────────────────────────────────────────────────────────────────────────
+
+PROFILE_RECORD = {
+    "schema_version": "1.0",
+    "doc_id": "CTX01",
+    "pages": [
+        {
+            "page": "1",
+            "canvas": {"width": 600, "height": 800, "unit": "pt"},
+            "ocr": {"engine": "tesseract", "lang": "ces"},
+        },
+        {"page": "2", "needs_ocr": True, "needs_ocr_reason": "garbled text layer"},
+    ],
+    "lines": [
+        {
+            "page": "1",
+            "line": 1,
+            "text": "Running head",
+            "bbox": [70, 20, 300, 30],
+            "style": {"region": "page_header"},
+        },
+        {
+            "page": "1",
+            "line": 2,
+            "text": "Report",
+            "bbox": [72, 80, 200, 100],
+            "group_id": "p1",
+            "style": {"heading_level": 1},
+        },
+        {
+            "page": "1",
+            "line": 3,
+            "text": "First line.",
+            "bbox": [72, 110, 500, 122],
+            "group_id": "p2",
+            "style": {"bold": True},
+        },
+        {
+            "page": "1",
+            "line": 4,
+            "text": "Second line.",
+            "bbox": [72, 124, 480, 136],
+            "group_id": "p2",
+        },
+        {
+            "page": "1",
+            "line": 5,
+            "text": "Page 1",
+            "bbox": [290, 770, 310, 780],
+            "style": {"region": "page_footer"},
+        },
+    ],
+}
+
+
+def _render(detail):
+    return json_to_md.render_record(json.loads(json.dumps(PROFILE_RECORD)), "CTX01", detail=detail)
+
+
+def _plain(md):
+    """Text lines with cues and whole-line emphasis removed: identical in every profile."""
+    return [ln.strip("*") for ln in md.splitlines() if ln.strip() and not ln.startswith("<!--")]
+
+
+def test_detail_profiles_keep_the_text_and_nest_the_cues():
+    full, standard, minimal = (_render(d) for d in ("full", "standard", "minimal"))
+    assert _plain(full) == _plain(standard) == _plain(minimal)
+    assert len(minimal) < len(standard) < len(full)
+    for md in (full, standard, minimal):
+        # the skeleton and the structure survive every profile
+        for cue in (
+            "## Page 1",
+            "PAGE_BREAK: pg_2",
+            "NEEDS_OCR: pg_2",
+            "HEADER_START",
+            "FOOTER_START",
+            "### Report",
+        ):
+            assert cue in md, (cue, md)
+
+
+def test_full_boxes_every_line_and_states_the_margin():
+    full = _render("full")
+    assert full.count("BBOX") == 3  # header and footer are regions, not boxed lines
+    assert "**First line.**" in full
+    assert "OCR: engine=tesseract, lang=ces" in full
+    assert "DOC_META: size=600x800pt" in full
+    # body union [72, 80, 500, 136] on a 600x800pt page; the running head and foot excluded
+    assert "LAYOUT_MARGIN: top=80pt, bottom=664pt, left=72pt, right=100pt" in full
+
+
+def test_standard_boxes_each_block_and_drops_the_margin():
+    standard = _render("standard")
+    assert "LAYOUT_MARGIN" not in standard
+    assert standard.count("BBOX") == 2
+    assert "<!-- BBOX: [72, 110, 500, 136] -->\n**First line.**\nSecond line." in standard
+    assert "DOC_META" in standard and "OCR: engine" in standard
+
+
+def test_minimal_is_skeleton_and_structure_only():
+    minimal = _render("minimal")
+    for cue in ("BBOX", "DOC_META", "OCR: engine", "LAYOUT_MARGIN", "**"):
+        assert cue not in minimal, cue
+    assert "\nFirst line.\n" in minimal
+
+
+def test_no_margin_without_a_canvas_or_without_boxes():
+    record = json.loads(json.dumps(PROFILE_RECORD))
+    record["pages"][0].pop("canvas")
+    assert "LAYOUT_MARGIN" not in json_to_md.render_record(record, "CTX01")
+    record = json.loads(json.dumps(PROFILE_RECORD))
+    for line in record["lines"]:
+        line.pop("bbox")
+    assert "LAYOUT_MARGIN" not in json_to_md.render_record(record, "CTX01")
+
+
+def test_the_recipe_names_this_converter():
+    """llm_client_shared writes the recipe without importing this module (the skill branch
+    does not carry it), so the two ids are pinned together here."""
+    import llm_client_shared
+
+    assert json_to_md.CONVERTER_ID == llm_client_shared.JSON_TO_MD_CONVERTER
+
+
+@pytest.mark.parametrize("name", ["minimal.pdf", "table.pdf", "two_column.pdf", "rich.docx"])
+def test_detail_profiles_on_the_digital_fixtures(name):
+    """The committed digital fixtures, through the one route the clients use."""
+    pytest.importorskip("pdfplumber")
+    pytest.importorskip("docx")
+    import importlib.util
+    from pathlib import Path
+
+    from api_util import digital_to_json
+
+    maker = Path(__file__).resolve().parent / "fixtures" / "digital" / "make_fixtures.py"
+    spec = importlib.util.spec_from_file_location("make_fixtures", maker)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    blob = module.BUILDERS[name]()
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / name
+        path.write_bytes(blob)
+        record = digital_to_json.build_record(str(path))
+    rendered = {
+        d: json_to_md.render_record(json.loads(json.dumps(record)), name, detail=d)
+        for d in ("full", "standard", "minimal")
+    }
+    assert _plain(rendered["full"]) == _plain(rendered["standard"]) == _plain(rendered["minimal"])
+    assert len(rendered["minimal"]) <= len(rendered["standard"]) <= len(rendered["full"])
+    assert "BBOX" not in rendered["minimal"]
+    if name.endswith(".pdf"):
+        assert "LAYOUT_MARGIN" in rendered["full"]
+        assert rendered["standard"].count("BBOX") <= rendered["full"].count("BBOX")
+    if name == "minimal.pdf":  # block one has two lines: one box instead of two
+        assert rendered["standard"].count("BBOX") == rendered["full"].count("BBOX") - 1
