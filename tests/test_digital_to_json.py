@@ -884,6 +884,40 @@ def test_paradata_dir_writes_the_paradata_half_of_the_pair(digital_fixtures, tmp
     assert {c["name"] for c in para["license_detail"]["components"]} >= {"pdfplumber", "jsonschema"}
 
 
+def test_a_strict_run_accepts_an_amcr_seed_and_stamps_the_run(digital_fixtures, tmp_path, capsys):
+    """atrium-project#71: the converter reads the original, so on a seed it is the stage that
+    adds the origin. Strict as in the pipeline, it keeps the seed's doc_id, digest, file name and
+    media type (a different file name is a NOTE, no longer a refusal), adds no sha256 beside the
+    archive's sha512, and stamps the paradata logger's run_uuid."""
+    pytest.importorskip("pdfplumber")
+    pytest.importorskip("jsonschema")
+    seed = {
+        "doc_id": "AMCR-F-minimal",
+        "source": {"sha512": "c" * 128, "filename": "zprava.pdf", "media_type": "application/pdf"},
+    }
+    baseline = tmp_path / "seed.document.json"
+    baseline.write_text(json.dumps(seed), encoding="utf-8")
+    out = tmp_path / "m.document.json"
+    d2j.convert(
+        str(digital_fixtures / "minimal.pdf"),
+        out_path=str(out),
+        baseline=str(baseline),
+        strict=True,
+        paradata_dir=str(tmp_path / "para"),
+    )
+    record = json.loads(out.read_text(encoding="utf-8"))
+    [paradata] = list((tmp_path / "para").glob("*_digital-convert.json"))
+    run_uuid = json.loads(paradata.read_text(encoding="utf-8"))["run_uuid"]
+    assert record["doc_id"] == seed["doc_id"]
+    assert {k: v for k, v in record["source"].items() if k != "page_count"} == {
+        **seed["source"],
+        "origin": d2j.ORIGIN_PDF,
+    }
+    assert {stamp["run_uuid"] for stamp in record["assembled"]["blocks"].values()} == {run_uuid}
+    assert record["provenance"]["contributors"][-1]["run_uuid"] == run_uuid
+    assert "WARNING" not in capsys.readouterr().err
+
+
 def test_docx_table_without_a_grid_and_a_bad_outline_level_survive(tmp_path):
     """python-docx's `Table.columns` raises without `w:tblGrid`; the old walk crashed there
     and a guarded one would have dropped the table's text. A malformed `w:outlineLvl` is

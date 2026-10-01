@@ -3,7 +3,7 @@
   "info": {
     "title": "ATRIUM llm-enrich API",
     "description": "LLM-based archaeological keyword extraction over text lines / documents.",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "x-atrium-service": "atrium-llm-enrich"
   },
   "paths": {
@@ -1766,7 +1766,7 @@
                 "type": "null"
               }
             ],
-            "description": "The run's provenance (atrium-project#67 R2). Not returned yet: always absent."
+            "description": "The call's provenance: its Process Run Crate `CreateAction` (atrium-project#71), whose `@id` is the `run_uuid` stamped into `document_json`."
           }
         },
         "additionalProperties": true,
@@ -1779,7 +1779,8 @@
           "mode",
           "results",
           "stats",
-          "limits_applied"
+          "limits_applied",
+          "paradata"
         ],
         "title": "ExtractResponse",
         "description": "The keywords of one document, and its record when one was sent."

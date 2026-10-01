@@ -485,9 +485,8 @@ def main(argv: Optional[List[str]] = None) -> None:
                         results,
                         args.document_json_dir,
                         run_id=logger.run_id,
-                        paradata_ref=os.path.join(
-                            logger.paradata_dir, f"{logger.run_id}_{logger.program}.json"
-                        ),
+                        run_uuid=logger.run_uuid,
+                        paradata_ref=logger.paradata_ref,
                         # Nothing enriched means no `*_enriched.json` on disk to link to.
                         enriched_path=out_file if results else None,
                         # Only a real conversion leaves a regenerable derivation.

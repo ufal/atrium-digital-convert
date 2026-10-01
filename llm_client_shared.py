@@ -1194,8 +1194,13 @@ def renders_from_record(record: Dict[str, Any]) -> bool:
 _schema_gate_disabled_warned = False
 
 
-def schema_gate(record: Dict[str, Any], what: str) -> Optional[str]:
+def schema_gate(record: Dict[str, Any], what: str, *, baseline: bool = False) -> Optional[str]:
     """Validate one record against ``atrium_document.schema.json``.
+
+    ``baseline=True`` judges a record this tool was HANDED: an AMČR seed (``doc_id`` and
+    ``source`` only, atrium-project#71) is then checked against the seed profile
+    (``validate_baseline``), not the full schema it could never pass, so a seed no longer
+    counts as an invalid baseline and no longer demotes the gate on this tool's own output.
 
     Returns None when it validates, or a one-line description of the schema error when it
     does not. This is plan §2's **Layer D** — "no doc.json is emitted if validation fails" —
@@ -1219,12 +1224,12 @@ def schema_gate(record: Dict[str, Any], what: str) -> Optional[str]:
     """
     global _schema_gate_disabled_warned
     try:
-        from atrium_document import validate_document
+        from atrium_document import validate_baseline, validate_document
     except ImportError:
         return None
 
     try:
-        validate_document(record)
+        (validate_baseline if baseline else validate_document)(record)
     except (RuntimeError, FileNotFoundError, json.JSONDecodeError) as exc:
         if not _schema_gate_disabled_warned:
             print(
@@ -1255,6 +1260,7 @@ def write_document_record(
     license_detail: Optional[dict] = None,
     used_markdown_input: bool = False,
     vocab_dir: Optional[str] = None,
+    run_uuid: Optional[str] = None,
 ) -> Optional[Path]:
     """Write/update this document's paired record, contributing llm-enrich's block only.
 
@@ -1291,6 +1297,9 @@ def write_document_record(
     ever fed to the LLM in that case, so no recipe should claim one can be regenerated.
     Returns the record path, or None when the optional ``atrium_document`` module is
     unavailable.
+
+    ``run_uuid`` is the run's ``ParadataLogger.run_uuid`` (atrium-project#71): stamped with
+    every block and the contributor entry, and the ``@id`` of the run's CreateAction.
 
     The returned path is the one ``finalize()`` wrote, and it is the baseline's own path
     (atrium-project#68). The record keeps the BASELINE's ``doc_id`` when it differs from
@@ -1330,7 +1339,9 @@ def write_document_record(
     # severity of the second half — a schema error we inherited is not ours to fail on.
     baseline_was_invalid = False
     if baseline.exists():
-        baseline_error = schema_gate(load_document(str(baseline)), f"baseline {baseline.name}")
+        baseline_error = schema_gate(
+            load_document(str(baseline)), f"baseline {baseline.name}", baseline=True
+        )
         if baseline_error:
             baseline_was_invalid = True
             print(
@@ -1345,6 +1356,7 @@ def write_document_record(
         "llm-enrich",
         baseline=str(baseline) if baseline.exists() else None,
         run_id=run_id,
+        run_uuid=run_uuid,
         paradata_ref=paradata_ref,
         out_dir=str(record_dir),
     ) as doc:

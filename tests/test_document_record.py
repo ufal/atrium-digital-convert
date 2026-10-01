@@ -347,6 +347,33 @@ def test_invalid_inherited_baseline_warns_and_still_writes(tmp_path, capsys):
     assert record["pages"] == "not-an-array"  # …and theirs passed through untouched
 
 
+def test_an_amcr_seed_is_a_valid_baseline_and_keeps_its_identity(tmp_path, capsys):
+    """atrium-project#71: a seed (a foreign doc_id and the archive's view of the original) is
+    checked against the seed profile, so it is no "invalid baseline", and the gate on this
+    tool's own output keeps raising. Its identity survives, and the run's run_uuid is stamped."""
+    run_uuid = "urn:uuid:5d1c7f0e-3b9a-4c2e-8f61-0a7d2b4e9c13"
+    seed = {
+        "doc_id": "AMCR-F-0001",
+        "source": {"sha512": "c" * 128, "filename": "zprava.pdf", "media_type": "application/pdf"},
+    }
+    (tmp_path / f"{DOC}{FILE_SUFFIX}").write_text(json.dumps(seed), encoding="utf-8")
+
+    path = write_document_record(DOC, DOC_LEVEL, tmp_path, run_id="R1", run_uuid=run_uuid)
+
+    assert "inherited baseline" not in capsys.readouterr().err
+    record = load_document(str(path))
+    assert record["doc_id"] == seed["doc_id"] and record["source"] == seed["source"]
+    assert record["assembled"]["blocks"]["enrichment"]["run_uuid"] == run_uuid
+    assert record["provenance"]["contributors"][-1]["run_uuid"] == run_uuid
+    atrium_document.validate_document(record)
+    # The own-output gate was not demoted: a bad contribution onto a seed is still refused.
+    again = tmp_path / "again"
+    again.mkdir()
+    (again / f"{DOC}{FILE_SUFFIX}").write_text(json.dumps(seed), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="refusing to emit"):
+        write_document_record(DOC, INVALID_RESULTS, again, run_id="R2")
+
+
 def test_inherited_invalidity_demotes_our_own_check_to_a_warning(tmp_path, capsys):
     """With the baseline already broken, refusing to emit would punish this tool for
     somebody else's output — and lose our block as well as theirs."""

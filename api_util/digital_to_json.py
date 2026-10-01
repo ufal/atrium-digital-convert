@@ -788,6 +788,7 @@ def to_record(
     out_dir: str = ".",
     strict: bool = False,
     license_detail: Optional[Dict[str, Any]] = None,
+    run_uuid: Optional[str] = None,
 ) -> Tuple[DocumentRecord, List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Build the record. Returns it with the page and line rows, for Layer D to re-check.
 
@@ -807,12 +808,16 @@ def to_record(
     `license_detail` is this run's component licence union (rule 5). Without it the record
     reports the conservative CC BY-NC 4.0 default, which is what every digital-born record
     said until 2026-09-25: nothing here ever contributed the MIT/Apache stack it runs on.
+
+    `run_uuid` is the run's `ParadataLogger.run_uuid` (atrium-project#71), stamped with every
+    block and the contributor entry beside `run_id`.
     """
     record = DocumentRecord.open(
         doc.doc_id,
         PROGRAM,
         baseline=baseline,
         run_id=run_id,
+        run_uuid=run_uuid,
         paradata_ref=paradata_ref,
         out_dir=out_dir,
         strict=strict,
@@ -891,6 +896,7 @@ def prepare(
     engine: str = "light",
     docx_page_breaks: str = "auto",
     logger: Optional[Any] = None,
+    run_uuid: Optional[str] = None,
 ) -> Tuple[DigitalDocument, DocumentRecord, List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Layers A–C for one file: the normalised document, the record and its rows."""
     document = normalize(
@@ -905,6 +911,7 @@ def prepare(
         out_dir=out_dir,
         strict=strict,
         license_detail=license_detail_for(document.components, logger),
+        run_uuid=run_uuid,
     )
     return document, record, page_rows, line_rows
 
@@ -985,6 +992,7 @@ def convert(
     engine: str = "light",
     docx_page_breaks: str = "auto",
     paradata_dir: Optional[str] = None,
+    run_uuid: Optional[str] = None,
 ) -> str:
     """A → B → C → D for one file. Returns the written record's path.
 
@@ -1003,6 +1011,10 @@ def convert(
             },
         )
         if logger is not None:
+            # The logger's run_uuid goes with its run_id: blocks a caller stamps with its own
+            # run_id belong to the caller's run, not to this logger's.
+            if not run_id:
+                run_uuid = run_uuid or logger.run_uuid
             run_id = run_id or logger.run_id
             paradata_ref = paradata_ref or f"{logger.run_id}_{PROGRAM}.json"
     try:
@@ -1017,6 +1029,7 @@ def convert(
             engine=engine,
             docx_page_breaks=docx_page_breaks,
             logger=logger,
+            run_uuid=run_uuid,
         )
         written = emit(record, page_rows, line_rows, out_path=out_path)
     except Exception as exc:

@@ -535,9 +535,8 @@ def main(argv: Optional[List[str]] = None) -> None:
                         results,
                         args.document_json_dir,
                         run_id=logger.run_id,
-                        paradata_ref=os.path.join(
-                            logger.paradata_dir, f"{logger.run_id}_{logger.program}.json"
-                        ),
+                        run_uuid=logger.run_uuid,
+                        paradata_ref=logger.paradata_ref,
                         # No records means no `*_enriched.json` was written, so there is
                         # nothing to point `derived_from` at. Claiming a file that is not
                         # on disk would be a worse record than omitting the link.

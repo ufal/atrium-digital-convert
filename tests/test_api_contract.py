@@ -186,6 +186,7 @@ import json  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 import atrium_openapi  # noqa: E402
+import atrium_rocrate  # noqa: E402
 
 _SPEC = atrium_openapi.load(Path(__file__).resolve().parent.parent / "service" / "openapi.json")
 
@@ -256,6 +257,11 @@ def test_line_mode_response_conforms_to_the_published_schema(engine):
     )
     body = _conforms("/extract_keywords", 200, response)
     assert body["mode"] == "line" and body["results"][0]["page"] == 1
+    # The run comes back as its CreateAction (atrium-project#71): the upload in, the results out.
+    action = body["paradata"]
+    assert atrium_rocrate.action_problems(action) == []
+    assert [(e["name"], e["encodingFormat"]) for e in action["object"]] == [("d.csv", "text/csv")]
+    assert [e["name"] for e in action["result"]] == ["results.json"]
 
 
 def test_document_mode_with_a_seed_conforms_including_the_record(engine, tmp_path, monkeypatch):
@@ -269,6 +275,44 @@ def test_document_mode_with_a_seed_conforms_including_the_record(engine, tmp_pat
     body = _conforms("/extract_keywords_text", 200, response)
     assert body["doc_id"] == _SEED["doc_id"] and body["document_json"]["doc_id"] == _SEED["doc_id"]
     assert "document_json_schema_error" not in body
+
+
+#: An AMČR seed (atrium-project#71): the file id and the archive's own view of the original.
+_AMCR_SEED = {
+    "doc_id": "C-202000543A-DT-27",
+    "source": {"sha512": "c" * 128, "filename": "zprava.pdf", "media_type": "application/pdf"},
+}
+
+
+def test_an_amcr_seed_keeps_its_identity_and_the_run_is_returned(engine, tmp_path, monkeypatch):
+    """atrium-project#71 through /extract_keywords: the seed's id and source come back
+    unchanged (llm-enrich reads no source), the `enrichment` block carries the run_uuid that is
+    the returned CreateAction's @id, and nothing is written to the working directory."""
+    monkeypatch.chdir(tmp_path)
+    files = {
+        "file": (
+            "zprava.md",
+            "Výzkum odhalil základy gotického kostela.".encode(),
+            "text/markdown",
+        ),
+        "document_json": (
+            "seed.document.json",
+            json.dumps(_AMCR_SEED).encode(),
+            "application/json",
+        ),
+    }
+    body = _conforms("/extract_keywords", 200, client.post("/extract_keywords", files=files))
+    record = body["document_json"]
+    assert record["doc_id"] == _AMCR_SEED["doc_id"] and record["source"] == _AMCR_SEED["source"]
+    assert "document_json_schema_error" not in body
+
+    action = body["paradata"]
+    assert atrium_rocrate.action_problems(action) == []
+    assert record["assembled"]["blocks"]["enrichment"]["run_uuid"] == action["@id"]
+    assert record["provenance"]["contributors"][-1]["paradata_ref"] == action["@id"]
+    assert "#record" in {e["@id"] for e in action["object"]}
+    assert "#block-enrichment" in {e["@id"] for e in action["result"]}
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_a_wrong_file_type_is_415_unsupported_media_type(engine):

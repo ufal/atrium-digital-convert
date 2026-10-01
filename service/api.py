@@ -16,7 +16,9 @@ release, and what the AMČR pipeline generates its clients from — types every 
 models below DOCUMENT the responses (``response_model=None``): the bytes sent are what the
 handlers build, and ``tests/test_api_contract.py`` validates real responses against the
 published schema. Refusals carry registered reasons: a wrong file type is 415
-``unsupported_media_type``, a record that cannot be opened is 422 ``invalid_record``.
+``unsupported_media_type``, a record that cannot be opened is 422 ``invalid_record``. Every
+success carries the call's Process Run Crate ``CreateAction`` as ``paradata``
+(atrium-project#71); the service writes no paradata file.
 Regenerate the spec after an API change::
 
     python atrium_openapi.py export --app service.api:app --out service/openapi.json
@@ -39,6 +41,7 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
+import atrium_rocrate
 import tool_limits
 from atrium_document import FILE_SUFFIX, canonical_doc_id
 from atrium_limits import LimitExceeded, LimitNotes
@@ -93,6 +96,16 @@ MAX_UPLOAD_BYTES = int(MAX_UPLOAD_MB * 1024 * 1024)
 
 _LINE_SUFFIXES = (".csv", ".teitok.xml")
 _DOC_SUFFIXES = (".md", ".txt")
+#: The media type of each accepted upload, by its last suffix: the CreateAction's `object`.
+_MEDIA_TYPES = {
+    ".csv": "text/csv",
+    ".xml": "application/xml",
+    ".md": "text/markdown",
+    ".txt": "text/plain",
+}
+
+#: Where para_config.txt (the tool version and licences the paradata records) lives: the repo root.
+_PARA_CONFIG_DIR = str(Path(__file__).resolve().parents[1])
 
 
 # ── the typed contract (atrium-project#32 round 2) ──────────────────────────────────────────
@@ -202,8 +215,10 @@ class ExtractResponse(BaseModel):
         description="Only when the returned record does not validate: the schema error (the sent record's).",
     )
     paradata: Optional[CreateAction] = Field(
-        None,
-        description="The run's provenance (atrium-project#67 R2). Not returned yet: always absent.",
+        description=(
+            "The call's provenance: its Process Run Crate `CreateAction` (atrium-project#71), whose `@id` is the "
+            "`run_uuid` stamped into `document_json`."
+        ),
     )
 
 
@@ -575,6 +590,11 @@ def _run_extraction(
     The Layer D schema gate (atrium-project#10, D4) lives in ``write_document_record()`` —
     the repo's single write chokepoint — so an invalid record is never written here either.
     What this function adds is the gate on the record it hands BACK: see below.
+
+    Every call has its paradata (atrium-project#71), with or without a record: a logger that
+    writes no file, whose ``run_id`` / ``run_uuid`` stamp the record and whose run comes back
+    as the result's ``paradata``, a ``CreateAction``. It used to exist only when a record was
+    written, and wrote a file into the request's temporary directory that nobody read.
     """
     from llm_client_shared import (
         ReplyTruncated,
@@ -587,9 +607,16 @@ def _run_extraction(
 
     name = filename.lower()
     path = Path(tmp_path)
+    mode = "line" if name.endswith(_LINE_SUFFIXES) else "document"
+    para_logger = ParadataLogger(
+        program="llm-enrich-api",
+        config={"mode": mode, "backend": engine["backend"], "model": engine["model"]},
+        paradata_dir=None,
+        output_types=["json"],
+        config_dir=_PARA_CONFIG_DIR,
+    )
     notes = LimitNotes()
-    if name.endswith(_LINE_SUFFIXES):
-        mode = "line"
+    if mode == "line":
         records, stats = run_line_level(
             path,
             engine["line_chat_fn"],
@@ -600,7 +627,6 @@ def _run_extraction(
         )
         _note_line_limits(stats, notes)
     else:  # validated to be a _DOC_SUFFIXES file by the caller
-        mode = "document"
         _check_document_fits(path, engine)
         try:
             records, stats = run_document_level(
@@ -626,48 +652,37 @@ def _run_extraction(
         "limits_applied": notes.as_list(),
     }
 
+    para_logger.note_limits(notes)
     if document_record_dir is not None and contributes_document_record(records, stats):
         from atrium_document import load_document
 
-        with ParadataLogger(
-            program="llm-enrich-api",
-            config={"mode": mode, "backend": engine["backend"], "model": engine["model"]},
-            paradata_dir=str(Path(document_record_dir) / "paradata"),
-            output_types=["json"],
-        ) as para_logger:
-            para_logger.note_limits(notes)
-            try:
-                record_path = write_document_record(
-                    doc_id,
-                    records,
-                    document_record_dir,
-                    run_id=para_logger.run_id,
-                    paradata_ref=os.path.join(
-                        para_logger.paradata_dir,
-                        f"{para_logger.run_id}_{para_logger.program}.json",
-                    ),
-                    # The service never renders a record: the recipe is written only when the
-                    # record can be rendered (a .txt upload with no baseline gets none), and
-                    # its detail is `full`, what a caller's json_to_md render defaults to.
-                    used_markdown_input=(mode == "document"),
-                    license_detail=para_logger.get_license_block(),
-                    # `.get`, not `[...]`: the contract tests build engine dicts by hand,
-                    # and an absent key must fall back to resolve_pid's default rather
-                    # than KeyError inside the record write.
-                    vocab_dir=engine.get("vocab_dir"),
-                )
-            except RuntimeError as exc:
-                # The Layer D refusal (D4). Translated here rather than left to
-                # _extract_from_path's blanket `RuntimeError -> 502 LLM backend error`,
-                # which would blame the upstream provider for a record WE built wrong —
-                # and 502 invites a retry that would fail identically. A record llm-enrich
-                # cannot emit is a defect on this side, so it is a 500, named as such.
-                raise HTTPException(
-                    500, f"Document record rejected by its own schema: {exc}"
-                ) from exc
-            if record_path is not None:
-                para_logger.log_success("json")
-                para_logger.log_document_success()
+        try:
+            record_path = write_document_record(
+                doc_id,
+                records,
+                document_record_dir,
+                run_id=para_logger.run_id,
+                run_uuid=para_logger.run_uuid,
+                paradata_ref=para_logger.paradata_ref,  # the run_uuid: the service writes no file
+                # The service never renders a record: the recipe is written only when the
+                # record can be rendered (a .txt upload with no baseline gets none), and
+                # its detail is `full`, what a caller's json_to_md render defaults to.
+                used_markdown_input=(mode == "document"),
+                license_detail=para_logger.get_license_block(),
+                # `.get`, not `[...]`: the contract tests build engine dicts by hand,
+                # and an absent key must fall back to resolve_pid's default rather
+                # than KeyError inside the record write.
+                vocab_dir=engine.get("vocab_dir"),
+            )
+        except RuntimeError as exc:
+            # The Layer D refusal (D4). Translated here rather than left to
+            # _extract_from_path's blanket `RuntimeError -> 502 LLM backend error`,
+            # which would blame the upstream provider for a record WE built wrong —
+            # and 502 invites a retry that would fail identically. A record llm-enrich
+            # cannot emit is a defect on this side, so it is a 500, named as such.
+            raise HTTPException(500, f"Document record rejected by its own schema: {exc}") from exc
+        if record_path is not None:
+            para_logger.log_success("json")
 
         if record_path is not None:
             record = load_document(str(record_path))
@@ -689,7 +704,42 @@ def _run_extraction(
                 result["document_json_schema_error"] = schema_error
             result["document_json"] = record
 
+    para_logger.log_document_success()
+    para_logger.finalize()
+    result["paradata"] = _run_action(
+        para_logger, path, filename, result, document_record_dir is not None, doc_id
+    )
     return result
+
+
+def _run_action(
+    run: ParadataLogger,
+    upload_path: Path,
+    upload_name: str,
+    result: Dict[str, Any],
+    baseline_sent: bool,
+    doc_id: str,
+) -> Dict[str, Any]:
+    """The call's CreateAction (atrium-project#71): what it read and what it wrote.
+
+    `object` is the upload and, when one was sent, the record; `result` is the record's blocks
+    this call stamped and the keyword results it answers with.
+    """
+    record = result.get("document_json")
+    upload = atrium_rocrate.file_entity(
+        upload_name,
+        upload_path.read_bytes(),
+        media_type=_MEDIA_TYPES.get(Path(upload_name.lower()).suffix),
+    )
+    inputs = [upload]
+    if baseline_sent:
+        inputs.append(atrium_rocrate.record_entity(str((record or {}).get("doc_id") or doc_id)))
+    outputs = atrium_rocrate.block_entities(atrium_rocrate.blocks_written(record, run.run_uuid))
+    answer = json.dumps(result["results"], ensure_ascii=False, sort_keys=True).encode("utf-8")
+    outputs.append(
+        atrium_rocrate.file_entity("results.json", answer, media_type="application/json")
+    )
+    return atrium_rocrate.create_action(run.record, inputs=inputs, outputs=outputs)
 
 
 def _check_document_fits(path: Path, engine: Dict[str, Any]) -> None:

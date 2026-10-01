@@ -74,7 +74,8 @@ curl -s http://localhost:8000/info
     }
   ],
   "stats": {"processed": 1, "skipped_filter": 0, "skipped_error": 0, "aborted": 0, "attempted": 1, "truncated": 0},
-  "limits_applied": []
+  "limits_applied": [],
+  "paradata": {"@id": "urn:uuid:…", "@type": "CreateAction", "…": "…"}
 }
 ```
 
@@ -90,10 +91,19 @@ curl -s http://localhost:8000/info
 | `limits_applied`             | list           | every [limit](#limits) that shaped the result (below)                                                                                                                                    |
 | `document_json`              | object         | only when a record was sent and the run contributed: the record, with the `enrichment` block updated                                                                                     |
 | `document_json_schema_error` | str            | only when the returned record does not validate (the sent record's problem)                                                                                                              |
-| `paradata`                   | object or null | reserved for the run's `CreateAction` (atrium-project#67 R2); not returned yet                                                                                                           |
+| `paradata`                   | object         | the call's provenance, a Process Run Crate `CreateAction` (below)                                                                                                                        |
 
 The exact types — every field above, the `enrichment` object and the record — are in
 [`openapi.json`](openapi.json) ([OpenAPI](#openapi-the-typed-contract)).
+
+**`paradata`** is the call's provenance (atrium-project#71): one Process Run Crate `CreateAction`,
+built by `atrium_rocrate.create_action()`. Its `@id` is the call's `run_uuid`, which also stamps
+every block the call wrote into `document_json`; `object` is the upload (by content hash) and the
+record sent, `result` the blocks written and the keyword results (`results.json`); `agent` is
+`ATRIUM_RUN_AGENT` when set. The service writes no paradata file. An error response carries no
+action. Hub
+[`docs/rocrate_export.md`](https://github.com/ufal/atrium-project/blob/main/docs/rocrate_export.md) §5
+describes it.
 
 `limits_applied` (a list) names every [limit](#limits) that shaped the result without
 refusing it (atrium-project#53): the vocabulary terms left out of the prompt
