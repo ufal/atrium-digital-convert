@@ -654,19 +654,24 @@
           "doc_id": {
             "type": "string",
             "minLength": 1,
-            "description": "Stable document identifier, carried unchanged by every tool.",
+            "description": "Stable document identifier, carried unchanged by every tool. In the AMČR pilot it is the AMČR file id, written by the seed before the first stage (atrium-project#71); a tool keeps the baseline's value and never re-derives it from a file name.",
             "examples": [
               "CTX000000001"
             ]
           },
           "source": {
             "type": "object",
-            "description": "The ORIGINAL input. First writer wins; later tools must not overwrite it. The durable key is doc_id + sha256 — originals are archive-managed, not pipeline-local, so no path is required.",
+            "description": "The ORIGINAL input. First writer wins; later tools must not overwrite it. The durable key is doc_id + sha256 (or sha512) — originals are archive-managed, not pipeline-local, so no path is required. In the AMČR pilot the seed writes it first: sha512, filename and media_type come from the archive and are never changed; the tool that reads the source adds origin, and no sha256 joins the archive's sha512 (atrium-project#71, docs/document_schema.md, The AMČR seed).",
             "additionalProperties": true,
             "properties": {
               "sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
+              },
+              "sha512": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{128}$",
+                "description": "SHA-512 of the original's bytes as the archive computed it (AMČR: the Fedora digest), lower-case hex. Written by the seed and carried unchanged by every tool (atrium-project#71)."
               },
               "filename": {
                 "type": "string"
@@ -780,6 +785,11 @@
                     "run_id": {
                       "type": "string"
                     },
+                    "run_uuid": {
+                      "type": "string",
+                      "pattern": "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                      "description": "The run's stable identifier (atrium_paradata run_uuid): the @id of its RO-Crate CreateAction. Absent on records written before atrium-project#71."
+                    },
                     "paradata_ref": {
                       "type": "string"
                     },
@@ -813,6 +823,11 @@
                     },
                     "run_id": {
                       "type": "string"
+                    },
+                    "run_uuid": {
+                      "type": "string",
+                      "pattern": "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+                      "description": "The writing run's stable identifier, as in provenance.contributors[].run_uuid."
                     },
                     "paradata_ref": {
                       "type": "string"
@@ -848,7 +863,7 @@
             ]
           },
           "pages": {
-            "description": "Originator: alto-postprocess (OCR/ALTO path) or digital-convert (digital-born PDF/DOCX path), selected per document by source.origin — never both. page-classification may write category fields; nlp-enrich may write teitok_surface. Field-level ownership — never co-mutated.",
+            "description": "Originator: ocr-postprocess (named alto-postprocess before 2026-10-01) (OCR/ALTO path) or digital-convert (digital-born PDF/DOCX path), selected per document by source.origin — never both. page-classification may write category fields; nlp-enrich may write teitok_surface. Field-level ownership — never co-mutated.",
             "type": "array",
             "items": {
               "type": "object",
@@ -946,7 +961,7 @@
             }
           },
           "content": {
-            "description": "Originator: alto-postprocess or digital-convert, selected per document by source.origin (Issue #18) — never both. Reading-order text for search, or null when externalised by reference.",
+            "description": "Originator: ocr-postprocess (named alto-postprocess before 2026-10-01) or digital-convert, selected per document by source.origin (Issue #18) — never both. Reading-order text for search, or null when externalised by reference.",
             "type": "object",
             "additionalProperties": true,
             "properties": {
@@ -965,7 +980,7 @@
             }
           },
           "lines": {
-            "description": "Originator: alto-postprocess (categ/quality/lang/text) or digital-convert (text/bbox/group_id/lang/quality_score/categ), selected per document by source.origin (Issue #18) — never both. nlp-enrich writes morphology and teitok_ref. Field-level ownership. NOTE for validators: only page+line are required, so a row stripped of its text by a field-ownership filter still validates here — the round-trip assertion belongs in the writing tool, not in this schema.",
+            "description": "Originator: ocr-postprocess (named alto-postprocess before 2026-10-01) (categ/quality/lang/text) or digital-convert (text/bbox/group_id/lang/quality_score/categ), selected per document by source.origin (Issue #18) — never both. nlp-enrich writes morphology and teitok_ref. Field-level ownership. NOTE for validators: only page+line are required, so a row stripped of its text by a field-ownership filter still validates here — the round-trip assertion belongs in the writing tool, not in this schema.",
             "type": "array",
             "items": {
               "type": "object",
@@ -988,7 +1003,7 @@
                 },
                 "categ": {
                   "type": "string",
-                  "description": "Line category. Open string with TWO authorised originators emitting DISJOINT label sets: alto-postprocess emits Clear/Empty/Noisy/Non-text/Trash, digital-convert emits Garbage/Inverted. Both sets are declared in the hub-canonical atrium_vocab.py as the `line-category` scheme; `atrium_vocab.LINE_CATEGORY_ORIGINATORS` says which tool emits which. 'Garbage', 'Inverted' and 'Trash' are load-bearing for api_util/json_to_md.py's DROP_CATEGORIES, which filters on atrium_vocab.UNTRUSTWORTHY_LINE_CATEGORIES (defect V-1 in docs/skos_strategy.md 6, fixed 2026-09-25: it covered only the first two, so a Trash line reached the model exactly like a Clear one). A re-spelled category passes that filter unnoticed, so do not re-spell one on the way out. A re-spelling would not fail validation either -- it would only put a tool out of step with the registry, in silence.",
+                  "description": "Line category. Open string with TWO authorised originators emitting DISJOINT label sets: ocr-postprocess (formerly alto-postprocess) emits Clear/Empty/Noisy/Non-text/Trash, digital-convert emits Garbage/Inverted. Both sets are declared in the hub-canonical atrium_vocab.py as the `line-category` scheme; `atrium_vocab.LINE_CATEGORY_ORIGINATORS` says which tool emits which. 'Garbage', 'Inverted' and 'Trash' are load-bearing for api_util/json_to_md.py's DROP_CATEGORIES, which filters on atrium_vocab.UNTRUSTWORTHY_LINE_CATEGORIES (defect V-1 in docs/skos_strategy.md 6, fixed 2026-09-25: it covered only the first two, so a Trash line reached the model exactly like a Clear one). A re-spelled category passes that filter unnoticed, so do not re-spell one on the way out. A re-spelling would not fail validation either -- it would only put a tool out of step with the registry, in silence.",
                   "x-atrium-scheme": "line-category",
                   "examples": [
                     "Clear",
@@ -1067,7 +1082,7 @@
             }
           },
           "tables": {
-            "description": "Originator: alto-postprocess (ALTO spatial-block tables) or digital-convert (DOCX/PDF structural extraction), selected per document by source.origin (Issue #18, resolved) — never both. Grid SHAPE only: cell text is never duplicated here, it lives once in lines[] and is linked back via group_id, so this stays the lossless structured twin of the disposable Markdown table in 'regenerable'.",
+            "description": "Originator: ocr-postprocess (named alto-postprocess before 2026-10-01) (ALTO spatial-block tables) or digital-convert (DOCX/PDF structural extraction), selected per document by source.origin (Issue #18, resolved) — never both. Grid SHAPE only: cell text is never duplicated here, it lives once in lines[] and is linked back via group_id, so this stays the lossless structured twin of the disposable Markdown table in 'regenerable'.",
             "type": "array",
             "items": {
               "type": "object",
@@ -1154,7 +1169,7 @@
             }
           },
           "entities": {
-            "description": "Owner: nlp-enrich; llm-enrich writes pid. `translation_en` is RESERVED: declared for the translator, written by no tool (atrium-project#70). Carries all three tagsets so no mapping is lost.",
+            "description": "Owner: nlp-enrich; keyword-extract (llm-enrich before 2026-10-01) writes pid. `translation_en` is RESERVED: declared for the translator, written by no tool (atrium-project#70). Carries all three tagsets so no mapping is lost.",
             "type": "array",
             "items": {
               "type": "object",
@@ -1259,7 +1274,7 @@
             }
           },
           "enrichment": {
-            "description": "Owner: llm-enrich. Superset of the LLM document schema, plus the explicit page citation.",
+            "description": "Owner: keyword-extract (llm-enrich before 2026-10-01). Superset of the LLM document schema, plus the explicit page citation.",
             "type": "object",
             "additionalProperties": true,
             "properties": {
@@ -1325,7 +1340,7 @@
             }
           },
           "forms": {
-            "description": "Owner: llm-enrich. VLM/LLM-driven labeled fixed-field extraction (e.g. archival intake sheets: name/date/plot-number/signature). No deterministic ALTO/DOCX structural signal marks a region as a form field the way it does for tables, so this carries a confidence score per field and is always single-owner regardless of document origin.",
+            "description": "Owner: keyword-extract (llm-enrich before 2026-10-01). VLM/LLM-driven labeled fixed-field extraction (e.g. archival intake sheets: name/date/plot-number/signature). No deterministic ALTO/DOCX structural signal marks a region as a form field the way it does for tables, so this carries a confidence score per field and is always single-owner regardless of document origin.",
             "type": "array",
             "items": {
               "type": "object",
@@ -1414,6 +1429,16 @@
       },
       "CreateAction": {
         "properties": {
+          "@context": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "@Context",
+            "description": "The JSON-LD context: RO-Crate 1.2, plus the terms ATRIUM adds."
+          },
           "@id": {
             "anyOf": [
               {
@@ -1424,7 +1449,7 @@
               }
             ],
             "title": "@Id",
-            "description": "The action's identifier (`#run-...` / `urn:uuid:...`)."
+            "description": "The run's `urn:uuid:...`, equal to `run_uuid` in the blocks the call stamped into the record."
           },
           "@type": {
             "anyOf": [
@@ -1450,6 +1475,18 @@
             "title": "Name",
             "description": "A human-readable name of the run."
           },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "What the action describes."
+          },
           "instrument": {
             "anyOf": [
               {
@@ -1461,7 +1498,20 @@
               }
             ],
             "title": "Instrument",
-            "description": "The tool: a `SoftwareApplication` with `version`, and the container image it ran as."
+            "description": "The tool: a `SoftwareApplication` with `version`, its release page as `@id`, its repository as `url` and its authors as `creator`."
+          },
+          "containerImage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Containerimage",
+            "description": "The image the service ran as (`ATRIUM_RUNNER_IMAGE`): `registry`, `name`, `tag`."
           },
           "object": {
             "anyOf": [
@@ -1477,7 +1527,7 @@
               }
             ],
             "title": "Object",
-            "description": "The inputs: the uploaded file(s) and the record sent with them."
+            "description": "The inputs: the uploaded file (`@id` `ni:///sha-256;...`, with `sha256` and `contentSize`) and `#record`, the record sent with it."
           },
           "result": {
             "anyOf": [
@@ -1493,7 +1543,7 @@
               }
             ],
             "title": "Result",
-            "description": "The outputs: the output file(s) and the record."
+            "description": "The outputs: the record blocks the call wrote (`#block-<name>`) and any output file."
           },
           "agent": {
             "anyOf": [
@@ -1506,7 +1556,7 @@
               }
             ],
             "title": "Agent",
-            "description": "Who ran it (`ATRIUM_RUN_AGENT`)."
+            "description": "The organisation operating the service (`ATRIUM_RUN_AGENT`); absent when it is not set."
           },
           "startTime": {
             "anyOf": [
@@ -1518,7 +1568,7 @@
               }
             ],
             "title": "Starttime",
-            "description": "When the run started (ISO 8601)."
+            "description": "When the run started: `YYYY-MM-DDTHH:MM:SS+00:00`."
           },
           "endTime": {
             "anyOf": [
@@ -1530,7 +1580,7 @@
               }
             ],
             "title": "Endtime",
-            "description": "When the run ended (ISO 8601)."
+            "description": "When the run ended: `YYYY-MM-DDTHH:MM:SS+00:00`."
           },
           "actionStatus": {
             "anyOf": [
@@ -1542,7 +1592,7 @@
               }
             ],
             "title": "Actionstatus",
-            "description": "`CompletedActionStatus` or `FailedActionStatus`."
+            "description": "`http://schema.org/CompletedActionStatus` or `http://schema.org/FailedActionStatus`."
           },
           "error": {
             "anyOf": [
@@ -1555,12 +1605,25 @@
             ],
             "title": "Error",
             "description": "Why the run failed, with `FailedActionStatus`."
+          },
+          "paradataRecord": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paradatarecord",
+            "description": "The run's atrium_paradata record (schema 2.0), as the tool wrote it."
           }
         },
         "additionalProperties": true,
         "type": "object",
         "title": "CreateAction",
-        "description": "The RO-Crate `CreateAction` of this call: its provenance (atrium-project#67 R2).\n\nIt names the tool as its `instrument` (with `version` and the container image), the inputs as\n`object`, the outputs as `result`, the `agent`, `startTime`/`endTime` and `actionStatus`; the paradata\nfields of the run are properties of the action. Null until a service returns it. nlp-enrich returns\nits pipeline-run paradata record here today, which carries those properties without the action's\nown members."
+        "description": "The RO-Crate `CreateAction` of this call: its provenance (atrium-project#71 R2).\n\nOne Process Run Crate 0.5 action per call, as nested JSON-LD, built by\n`atrium_rocrate.create_action()`; the same document an archive stores as the run's paradata\nfile. It names the tool as its `instrument` (with `version`, its release page as `@id` and its\nauthors as `creator`), the image as `containerImage`, the inputs as `object`, what the call\nwrote as `result`, the `agent`, `startTime`/`endTime` and `actionStatus`, and the run's whole\nparadata record as `paradataRecord`. Every service returns it with a successful response; its\n`@id` is the `run_uuid` the call stamped into the record it returned."
       },
       "Enrichment": {
         "properties": {
@@ -2496,6 +2559,6 @@
   },
   "x-atrium-record-schema": {
     "schema_version": "1.0",
-    "sha256": "08d45f422dd82a9ada180631c71dcb60fad72b812f5b98081c45728c830947cf"
+    "sha256": "2a968799a5c50386abe8a65da9678f97f442ea7d691bf2f97d8f232b7ca3481e"
   }
 }
