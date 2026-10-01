@@ -3,7 +3,7 @@
   "info": {
     "title": "ATRIUM llm-enrich API",
     "description": "LLM-based archaeological keyword extraction over text lines / documents.",
-    "version": "0.9.0",
+    "version": "1.0.0-beta",
     "x-atrium-service": "atrium-llm-enrich"
   },
   "paths": {
