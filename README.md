@@ -380,12 +380,12 @@ Three cue profiles, the values of the record's `regenerable.markdown.detail`
 in all three**; a lighter profile only drops cues, and the cue sets nest (minimal ⊂ standard ⊂ full).
 `full` is the default everywhere.
 
-| Cue | `full` | `standard` | `minimal` |
-|---|---|---|---|
-| `# doc`, `## Page`, `PAGE_BREAK`, `NEEDS_OCR`, headings, footnotes, GFM tables, `HEADER_*`/`FOOTER_*`, figure placeholders | ✓ | ✓ | ✓ |
-| `OCR` provenance, `DOC_META`, whole-line `**bold**`/`*italic*` | ✓ | ✓ | – |
-| `BBOX` | per line | one per block (a `group_id` run; a table keeps its own; ungrouped lines none) | – |
-| `LAYOUT_MARGIN` (canvas minus the body-line union; record route, pages with a canvas and boxes) | ✓ | – | – |
+| Cue                                                                                                                        | `full`   | `standard`                                                                    | `minimal` |
+|----------------------------------------------------------------------------------------------------------------------------|----------|-------------------------------------------------------------------------------|-----------|
+| `# doc`, `## Page`, `PAGE_BREAK`, `NEEDS_OCR`, headings, footnotes, GFM tables, `HEADER_*`/`FOOTER_*`, figure placeholders | ✓        | ✓                                                                             | ✓         |
+| `OCR` provenance, `DOC_META`, whole-line `**bold**`/`*italic*`                                                             | ✓        | ✓                                                                             | –         |
+| `BBOX`                                                                                                                     | per line | one per block (a `group_id` run; a table keeps its own; ungrouped lines none) | –         |
+| `LAYOUT_MARGIN` (canvas minus the body-line union; record route, pages with a canvas and boxes)                            | ✓        | –                                                                             | –         |
 
 ```bash
 python3 api_util/doc_to_visual_md.py report.pdf --detail minimal --output INPUT_DIR/report.md
@@ -625,7 +625,9 @@ has no offload path; for over-VRAM models the supported answer is `BACKEND=vllm`
 The head-to-head evaluation harness decided in hub issue
 [#22](https://github.com/ufal/atrium-project/issues/22): out-of-the-box VLM/OCR models vs. the
 legacy ABBYY/ALTO pipeline, scored per quality tier on an in-domain gold set. Three pieces, all
-torch-free (`eval_metrics.py` is pure stdlib):
+torch-free (`eval_metrics.py` is pure stdlib). They are research tools, run from a checkout: like
+`corpus_review.py` and `vocab_review.py`, they are left out of every published image
+(`.dockerignore`, [atrium-project#72](https://github.com/ufal/atrium-project/issues/72)).
 
 **1. Sample pages, stratified by OCR quality** — consumes the per-page stats produced by
 `atrium-alto-postprocess` (`samples_page_stats.csv`, or a `DOC_LINE_CATEG/` directory aggregated

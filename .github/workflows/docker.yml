@@ -75,3 +75,8 @@ jobs:
       # docker run -> wait for HEALTHCHECK healthy -> GET /health and /ready -> docker
       # stop with a clean-exit assertion. The other three targets are batch CLIs.
       probe-targets: '["api"]'
+      # atrium-project#72: `api` is today's production image (the keyword stage's LLM half), its
+      # first-party files declared in .github/production-image.json and checked by workflow-lint;
+      # it leaves for atrium-keyword-extractor (atrium-nlp-enrich#40, #29) and `digital` becomes
+      # this repository's production image as `-api-digital` (#28). `remote`, `llm` and `digital`
+      # are batch CLIs today: published, never pinned.

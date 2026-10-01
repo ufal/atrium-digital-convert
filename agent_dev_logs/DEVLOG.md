@@ -402,6 +402,16 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   **Not pushed: files delivered in chat.**
 
+## 2026-09-30 — atrium-project#72 round 1: the production image declared; review tools off the images
+* `.github/production-image.json` (today's `api` target; the converter's files and the renderer listed as core, the
+  TEITOK reader and `bbox_scale.py` as nlp-enrich's pinned copies), checked by the hub's `tools/ci/image_closure.py`.
+* `.dockerignore` keeps `bench_compare.py`, `eval_metrics.py`, `sample_stratify.py`, `corpus_review.py` and
+  `vocab_review.py` out of every image — no published entrypoint reaches them (checked with the hub's closure walker);
+  README notes they run from a checkout.
+* `.github/workflows/para-drift.yml`: `vendored-from: atrium-nlp-enrich` — the pin tests now also compare the copies
+  with nlp-enrich's `test` in CI. `docker.yml` names today's production target and what replaces it (#28, #29).
+* Revendored the three declared-rename files. Tag draft: `v0.9.0`. **Not pushed: files delivered in chat.**
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

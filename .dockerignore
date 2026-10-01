@@ -34,6 +34,17 @@ tests/
 agent_dev_logs/
 # Developer measurement (atrium-project#70): it renders test fixtures, which are not in the image.
 scripts/detail_budget.py
+# Research and review tools, run from a checkout (README: the document-understanding benchmark
+# and the vocabulary review sheets), never from an image: no published target's entrypoint
+# reaches them (atrium-project#72, "research off the release line"; checked with the hub's
+# tools/skill_drift_check.closure_from over openrouter_client.py, ollama_client.py,
+# llm_run.py, api_util/digital_to_json.py and service/api.py). vocab_build.py and
+# vocab_sources.py stay: they build the shipped vocabulary, an admin process of the image.
+bench_compare.py
+eval_metrics.py
+sample_stratify.py
+corpus_review.py
+vocab_review.py
 TEMP/
 *.log
 *.png

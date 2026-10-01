@@ -1,0 +1,48 @@
+{
+  "_comment": [
+    "The production image of this repository and what it is made of (atrium-project#72 A.3).",
+    "Checked on every push by the hub's workflow-lint.reusable.yml (tools/ci/image_closure.py):",
+    "every first-party file the entrypoint can execute must be listed here or be a hub-canonical",
+    "shared component (docs/templates/shared/MANIFEST.json); a listed file it no longer reaches",
+    "fails too. Run it locally with: python ../atrium-project/tools/ci/image_closure.py",
+    "--repo-root . --worktree",
+    "Today's `-api` is the keyword stage's controlled half (the LLM over the AMCR and TEATER",
+    "vocabularies). The whole target leaves with its code for atrium-keyword-extractor",
+    "(atrium-nlp-enrich#40, atrium-llm-enrich#29); this repository's production image becomes",
+    "the born-digital converter's `-api-digital` (#28). `remote`, `llm` are batch/research",
+    "targets of the keyword stage and `digital` the converter's CLI: published, never pinned.",
+    "The api_util/*_md.py, doc_to_visual_md.py and digital_*.py files are the record -> Markdown",
+    "renderer and the converter it reads PDFs and DOCX with: the converter owns them, and",
+    "keyword-extractor will vendor the renderer with SHA pins (#72 B). teitok_read.py and",
+    "bbox_scale.py are nlp-enrich's, pinned by tests/test_vendored_teitok_parity.py."
+  ],
+  "image": "ghcr.io/ufal/atrium-llm-enrich-api",
+  "target": "api",
+  "entrypoint": "service/api.py",
+  "stage": "keywords, controlled vocabulary (LLM): POST /extract_keywords, POST /extract_keywords_text",
+  "core": [
+    "service/__init__.py",
+    "service/api.py",
+    "llm_client_shared.py",
+    "ollama_client.py",
+    "openrouter_client.py",
+    "vocab_manager.py",
+    "tool_limits.py",
+    "api_util/doc_to_visual_md.py",
+    "api_util/json_to_md.py",
+    "api_util/layout_md.py",
+    "api_util/xml_to_md.py",
+    "api_util/pdf_to_md.py",
+    "api_util/docx_to_md.py",
+    "api_util/digital_to_json.py",
+    "api_util/digital_pdf.py",
+    "api_util/digital_docx.py",
+    "api_util/digital_ir.py",
+    "api_util/digital_docling.py"
+  ],
+  "vendored": {
+    "api_util/teitok_read.py": "atrium-nlp-enrich",
+    "api_util/bbox_scale.py": "atrium-nlp-enrich"
+  },
+  "moving": {}
+}
