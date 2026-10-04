@@ -34,49 +34,27 @@ jobs:
       # needs only this one (#18). inherit handed it every repo secret.
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
-      image-name: ufal/atrium-llm-enrich
+      # The images publish under THIS repository's name since v1.1.0-beta (#1): v1.0.0-beta
+      # still pushed to ghcr.io/ufal/atrium-llm-enrich-*, a package this repository cannot
+      # write (atrium-project#71, status of 2026-10-01, point 3). The new packages are private
+      # on creation: grant ufal/atrium-project read access for the hub's digital E2E.
+      image-name: ufal/atrium-digital-convert
       apt-packages: ""
       pre-install-torch: ""
       # requirements-test.txt is listed because THIS job is the one that runs
-      # `pytest -m "not slow" --cov` (docker-tool.reusable.yml). It was omitted, so the
-      # file named "test requirements" was never installed in the job that runs the
-      # tests — the reusable's own `pip install pytest pytest-cov` was the only
-      # reason pytest worked at all. Two consequences, both real:
-      #   * every runtime dep a test needs had to be duplicated into requirements.txt
-      #     (pandas, pydantic, tqdm are there for exactly this reason);
-      #   * anything declared only in requirements-test.txt silently did not exist, so
-      #     tests/test_api_contract.py module-skipped on missing fastapi and the schema
-      #     validation tests failed on missing jsonschema.
-      # Adding it installs fastapi/httpx/python-multipart/openapi-spec-validator and
-      # jsonschema, which un-skips 5 previously-skipped tests (all passing).
-      requirements: "requirements.txt requirements_remote.txt requirements-test.txt"
+      # `pytest -m "not slow" --cov` (docker-tool.reusable.yml), and requirements_digital.txt
+      # because the converter's readers are what most tests exercise. The DOC/XLS tests run
+      # against a fake `soffice`, so the job needs no LibreOffice; the images carry the real one.
+      requirements: "requirements.txt requirements_digital.txt requirements-test.txt"
       hf-model-cache: false
-      # NOTE: "base" is deliberately NOT listed. The Dockerfile stage order is
-      # base -> remote -> llm; the reusable workflow maps target="base" to an
-      # *empty* --target, which Docker resolves to the LAST declared stage
-      # (llm), not the base layer. Including "base" here would publish the
-      # llm image a second time under the unsuffixed tag instead of a real
-      # lean base image. base has no ENTRYPOINT and is not meant to be run
-      # standalone — remote, llm, digital and api are all publishable targets now,
-      # not just remote and llm as when this note was first written. (Targets now
-      # pass through verbatim, so listing "base" would build the real base
-      # stage — still pointless here, so it stays excluded.)
-      # W8: "digital" added. api_util/digital_to_json.py (808 lines, PROGRAM =
-      # "digital-convert") has existed and been tested for a while, but no Dockerfile
-      # stage built it and no target published it — so
-      # ghcr.io/ufal/atrium-llm-enrich-digital did not exist at ANY tag, and the
-      # two-originator path (scan vs born-digital) was reachable only through unit
-      # tests inside this repo. That is the "needs a published image" blocker on the
-      # sixth E2E stage.
-      build-targets: '["remote", "llm", "digital", "api"]'
-      # issue #55: `api` was declared in the Dockerfile but never built or published
-      # (roadmap B5), so ghcr.io/ufal/atrium-llm-enrich-api did not exist at any tag and
-      # there was nothing for ARÚP/ARÚB to deploy. Now published, and container-smoked:
-      # docker run -> wait for HEALTHCHECK healthy -> GET /health and /ready -> docker
-      # stop with a clean-exit assertion. The other three targets are batch CLIs.
+      # "base" is deliberately NOT listed: it has no ENTRYPOINT and is not meant to be run
+      # standalone. `digital-docling` is a local, opt-in build (a torch image of several GB).
+      #   digital — the converter CLI (api_util/digital_to_json.py): published, never pinned;
+      #             the hub's e2e-digital-smoke.yml runs it.
+      #   api     — THE production image (atrium-project#72): POST /reformat, POST /describe.
+      build-targets: '["digital", "api"]'
+      # issue #55: the api image is container-smoked: docker run -> wait for HEALTHCHECK
+      # healthy -> GET /health and /ready -> docker stop with a clean-exit assertion.
       probe-targets: '["api"]'
-      # atrium-project#72: `api` is today's production image (the keyword stage's LLM half), its
-      # first-party files declared in .github/production-image.json and checked by workflow-lint;
-      # it leaves for atrium-keyword-extractor (atrium-nlp-enrich#40, #29) and `digital` becomes
-      # this repository's production image as `-api-digital` (#28). `remote`, `llm` and `digital`
-      # are batch CLIs today: published, never pinned.
+      # atrium-project#72: `api` is this repository's production image, its first-party files
+      # declared in .github/production-image.json and checked by workflow-lint.

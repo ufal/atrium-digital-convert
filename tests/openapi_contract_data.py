@@ -5,8 +5,9 @@ canonical test that reads it, this file's content is per repo by design: which s
 repo runs, where their committed specs live, which settings could reach a spec, and which
 requirement files pin fastapi and pydantic. See the canonical test's docstring.
 
-When the `api-digital` service lands (atrium-llm-enrich#10 W1), it is one more entry in
-SERVICES, with its own committed spec (`service/openapi-digital.json`) and release asset.
+Since v1.1.0-beta the one service is the born-digital converter (atrium-digital-convert#2):
+`/reformat` and `/describe`, published as `atrium-digital-convert` with the rename from
+`atrium-llm-enrich` declared in the spec (`x-atrium-service-previous`).
 """
 
 from __future__ import annotations
@@ -15,19 +16,22 @@ from __future__ import annotations
 #: must be a named model (strategy §4.2).
 SERVICES = [
     {
-        "service": "atrium-llm-enrich",
+        "service": "atrium-digital-convert",
+        "service_previous": "atrium-llm-enrich",
         "app": "service.api:app",
         "spec": "service/openapi.json",
-        "primary": ["/extract_keywords", "/extract_keywords_text"],
+        "primary": ["/reformat", "/describe"],
     },
 ]
 
 #: Settings besides every [limit] variable (which the test perturbs from tool_limits.LIMITS)
 #: that a deployment changes and that must not change the spec.
 ENV_PERTURB = {
-    "LLM_BACKEND": "ollama",
-    "OPENROUTER_MODEL": "perturbed/model",
-    "OLLAMA_MODEL": "perturbed-model",
+    "PAGE_CLASSIFICATION_URL": "http://page-classification.example:8000",
+    "OCR_POSTPROCESS_URL": "http://ocr-postprocess.example:8000",
+    "PAGE_CLASSIFICATION_VERSION": "v4.3",
+    "PAGE_CLASSIFICATION_TOPN": "5",
+    "LIBREOFFICE_BIN": "/usr/bin/soffice",
     "ALLOWED_ORIGINS": "https://example.org",
 }
 

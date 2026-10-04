@@ -1,10 +1,11 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "ATRIUM llm-enrich API",
-    "description": "LLM-based archaeological keyword extraction over text lines / documents.",
-    "version": "1.0.0-beta",
-    "x-atrium-service": "atrium-llm-enrich"
+    "title": "ATRIUM digital-convert API",
+    "description": "Born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, DOC, XLS) into the ATRIUM document record, and a per-page assessment of whether each page's text can be used as it is.",
+    "version": "1.1.0-beta",
+    "x-atrium-service": "atrium-digital-convert",
+    "x-atrium-service-previous": "atrium-llm-enrich"
   },
   "paths": {
     "/health": {
@@ -116,7 +117,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LlmInfo"
+                  "$ref": "#/components/schemas/DigitalInfo"
                 }
               }
             }
@@ -134,16 +135,16 @@
         }
       }
     },
-    "/extract_keywords": {
+    "/reformat": {
       "post": {
-        "summary": "Extract Keywords",
-        "description": "Extract archaeological keywords from an uploaded document (§4.2).\n\n``.csv`` / ``*.teitok.xml`` → line-level (one record per qualifying line);\n``.md`` / ``.txt`` → document-level (one record set per document). Each record's\n``enrichment`` carries ``extracted_keywords_cs`` / ``extracted_keywords_en``.",
-        "operationId": "extract_keywords",
+        "summary": "Reformat",
+        "description": "Convert a born-digital document into its ATRIUM document record (§4.2).\n\nCalls no other service. Pages whose text layer does not decode, or that have none, carry\n`needs_ocr` with a reason; a PDF whose text layer is an earlier OCR run is refused (422\n`ocr_text_layer`) so the route can send it to OCR.",
+        "operationId": "reformat",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_extract_keywords"
+                "$ref": "#/components/schemas/Body_reformat"
               }
             }
           },
@@ -151,11 +152,11 @@
         },
         "responses": {
           "200": {
-            "description": "The keywords, and the record when one was sent.",
+            "description": "The record, and its Markdown when asked for.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExtractResponse"
+                  "$ref": "#/components/schemas/ReformatResponse"
                 }
               }
             }
@@ -200,8 +201,26 @@
               }
             }
           },
-          "502": {
-            "description": "An upstream service failed. Retry three times with backoff.",
+          "429": {
+            "description": "Busy (`reason: busy`): every processing slot or queue place is taken. Retry after `Retry-After` seconds.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "This deployment cannot read the input: a reader's optional dependency is not installed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -223,16 +242,16 @@
         }
       }
     },
-    "/extract_keywords_text": {
+    "/describe": {
       "post": {
-        "summary": "Extract Keywords Text",
-        "description": "Extract archaeological keywords from inline text (§4.2).\n\nThe body is ``{\"text\": ..., \"document_json\": ...}``, as before atrium-project#32 round 2:\nthe two embedded ``Body`` parameters became one named request model, so a generated client\ngets a type for it; the wire shape did not change.",
-        "operationId": "extract_keywords_text",
+        "summary": "Describe",
+        "description": "Convert a born-digital document and assess every page (§4.2).\n\nFor each page: whether its text layer can be used, what kind of page it is\n(page-classification), whether its text reads (ocr-postprocess), and where it should go\nnext (`nlp`, `ocr`, `htr`, `none`). A stage that is not configured, not running or answers\nbadly is reported in `stages[]`; the request still succeeds.",
+        "operationId": "describe",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/ExtractTextRequest"
+                "$ref": "#/components/schemas/Body_describe"
               }
             }
           },
@@ -240,11 +259,11 @@
         },
         "responses": {
           "200": {
-            "description": "The keywords, and the record when one was sent.",
+            "description": "The record, the per-page assessment, and what each adjacent stage did.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ExtractResponse"
+                  "$ref": "#/components/schemas/DescribeResponse"
                 }
               }
             }
@@ -279,8 +298,36 @@
               }
             }
           },
-          "502": {
-            "description": "An upstream service failed. Retry three times with backoff.",
+          "415": {
+            "description": "Unsupported media type (`reason: unsupported_media_type`, with `accepted`). Do not retry unchanged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Busy (`reason: busy`): every processing slot or queue place is taken. Retry after `Retry-After` seconds.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "This deployment cannot read the input: a reader's optional dependency is not installed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1406,26 +1453,103 @@
           }
         }
       },
-      "Body_extract_keywords": {
+      "Body_describe": {
         "properties": {
           "file": {
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File",
-            "description": "The document: .csv or .teitok.xml (line mode), .md or .txt (document mode)."
+            "description": "The born-digital document: PDF, DOCX, ODT, ODS, XLSX, RTF, or legacy DOC/XLS (decided by content)."
           },
           "document_json": {
             "type": "string",
             "contentMediaType": "application/json",
             "title": "Document Json",
-            "description": "Optional baseline ATRIUM Document JSON (accretion model, docs/document_schema.md / issue #13), or an AMČR seed (`doc_id`, `source`). When given, the response's `document_json` carries the record back with only llm-enrich's `enrichment` block updated — every other tool's block (pages, lines, entities, translations, ...) passes through untouched. A baseline that does not validate against atrium_document.schema.json is still accepted (rule 6), but the response then also carries `document_json_schema_error`; one that is not a JSON object is refused (422 `invalid_record`)."
+            "description": "Optional ATRIUM document record: the AMČR seed (`doc_id`, `source` with `sha512`, `filename`, `media_type`) or an earlier record of the same document. The seed's identity is kept; its `sha512` must be the uploaded file's (else 422 `source_digest_mismatch`). Every other tool's block passes through. A record that cannot be opened is refused (422 `invalid_record`); an empty part counts as none."
+          },
+          "stages": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stages",
+            "description": "Which adjacent stages to call: a comma-separated subset of `page-classification`, `ocr-postprocess`; empty for every configured one; `none` for none (the assessment then rests on the converter alone)."
+          },
+          "classify_pages": {
+            "type": "string",
+            "enum": [
+              "needs_ocr",
+              "all"
+            ],
+            "title": "Classify Pages",
+            "description": "Pages page-classification is asked about: those without a usable text layer (default), or all.",
+            "default": "needs_ocr"
+          },
+          "include_text": {
+            "type": "boolean",
+            "title": "Include Text",
+            "description": "Include each page's text in `pages[].text`.",
+            "default": true
+          },
+          "docx_page_breaks": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "explicit",
+              "none"
+            ],
+            "title": "Docx Page Breaks",
+            "description": "DOCX pages: `auto` (explicit + Word's rendered breaks), `explicit`, or `none` (one page).",
+            "default": "auto"
           }
         },
         "type": "object",
         "required": [
           "file"
         ],
-        "title": "Body_extract_keywords"
+        "title": "Body_describe"
+      },
+      "Body_reformat": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "The born-digital document: PDF, DOCX, ODT, ODS, XLSX, RTF, or legacy DOC/XLS (decided by content)."
+          },
+          "document_json": {
+            "type": "string",
+            "contentMediaType": "application/json",
+            "title": "Document Json",
+            "description": "Optional ATRIUM document record: the AMČR seed (`doc_id`, `source` with `sha512`, `filename`, `media_type`) or an earlier record of the same document. The seed's identity is kept; its `sha512` must be the uploaded file's (else 422 `source_digest_mismatch`). Every other tool's block passes through. A record that cannot be opened is refused (422 `invalid_record`); an empty part counts as none."
+          },
+          "markdown": {
+            "type": "boolean",
+            "title": "Markdown",
+            "description": "Also return the record rendered as annotated Markdown.",
+            "default": false
+          },
+          "docx_page_breaks": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "explicit",
+              "none"
+            ],
+            "title": "Docx Page Breaks",
+            "description": "DOCX pages: `auto` (explicit + Word's rendered breaks), `explicit`, or `none` (one page).",
+            "default": "auto"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_reformat"
       },
       "CreateAction": {
         "properties": {
@@ -1625,45 +1749,252 @@
         "title": "CreateAction",
         "description": "The RO-Crate `CreateAction` of this call: its provenance (atrium-project#71 R2).\n\nOne Process Run Crate 0.5 action per call, as nested JSON-LD, built by\n`atrium_rocrate.create_action()`; the same document an archive stores as the run's paradata\nfile. It names the tool as its `instrument` (with `version`, its release page as `@id` and its\nauthors as `creator`), the image as `containerImage`, the inputs as `object`, what the call\nwrote as `result`, the `agent`, `startTime`/`endTime` and `actionStatus`, and the run's whole\nparadata record as `paradataRecord`. Every service returns it with a successful response; its\n`@id` is the `run_uuid` the call stamped into the record it returned."
       },
-      "Enrichment": {
+      "DescribeResponse": {
         "properties": {
-          "extracted_keywords_cs": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Extracted Keywords Cs",
-            "description": "Czech archaeological keywords found in the text."
-          },
-          "extracted_keywords_en": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Extracted Keywords En",
-            "description": "Their English translations, in the same order."
-          },
-          "teater_category": {
+          "service": {
             "type": "string",
-            "title": "Teater Category",
-            "description": "The TEATER thesaurus category the model chose, by its label."
+            "title": "Service",
+            "description": "`atrium-digital-convert`."
           },
-          "confidence_score": {
-            "type": "number",
-            "title": "Confidence Score",
-            "description": "The model's confidence in `teater_category`, from 0 to 1."
+          "doc_id": {
+            "type": "string",
+            "title": "Doc Id",
+            "description": "The record's `doc_id`: the seed's when one was sent, else derived from the file name."
+          },
+          "document_json": {
+            "$ref": "#/components/schemas/AtriumDocument",
+            "description": "The ATRIUM document record: digital-convert's `source`, `pages`, `content`, `lines` and `tables` written, every other block of a sent record passed through."
+          },
+          "reader": {
+            "$ref": "#/components/schemas/ReaderInfo"
+          },
+          "markdown": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown",
+            "description": "Only with `markdown=true`: the record rendered as annotated Markdown (json_to_md)."
+          },
+          "document_json_schema_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Json Schema Error",
+            "description": "Only when the sent record did not validate and the result inherits that: the schema error."
+          },
+          "limits_applied": {
+            "items": {
+              "$ref": "#/components/schemas/LimitNote"
+            },
+            "type": "array",
+            "title": "Limits Applied",
+            "description": "Every limit that shaped the result without refusing it."
+          },
+          "paradata": {
+            "$ref": "#/components/schemas/CreateAction",
+            "description": "The call's provenance: its Process Run Crate `CreateAction` (atrium-project#71), whose `@id` is the `run_uuid` stamped into `document_json`."
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/PageReport"
+            },
+            "type": "array",
+            "title": "Pages",
+            "description": "One entry per page, in page order."
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DescribeSummary"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageOutcomeModel"
+            },
+            "type": "array",
+            "title": "Stages",
+            "description": "One entry per stage, in the order they run."
           }
         },
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "extracted_keywords_cs",
-          "extracted_keywords_en",
-          "teater_category",
-          "confidence_score"
+          "service",
+          "doc_id",
+          "document_json",
+          "reader",
+          "limits_applied",
+          "paradata",
+          "pages",
+          "summary",
+          "stages"
         ],
-        "title": "Enrichment",
-        "description": "What the model found for one line (line mode) or one passage (document mode)."
+        "title": "DescribeResponse",
+        "description": "`/describe`: the record, plus the per-page assessment and what each stage did."
+      },
+      "DescribeSummary": {
+        "properties": {
+          "pages": {
+            "type": "integer",
+            "title": "Pages"
+          },
+          "routes": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Routes",
+            "description": "Pages per route: `nlp`, `ocr`, `htr`, `none`."
+          },
+          "needs_ocr_pages": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Needs Ocr Pages",
+            "description": "`page_index` of the pages flagged `needs_ocr`."
+          },
+          "reacquire_pages": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Reacquire Pages",
+            "description": "`page_index` of the pages routed to `ocr` or `htr`."
+          },
+          "document_route": {
+            "type": "string",
+            "title": "Document Route",
+            "description": "`nlp`, `ocr`, `htr`, `none`, or `mixed`."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "pages",
+          "routes",
+          "needs_ocr_pages",
+          "reacquire_pages",
+          "document_route"
+        ],
+        "title": "DescribeSummary",
+        "description": "The document at a glance."
+      },
+      "DigitalInfo": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "The tool id, which is the repository name."
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "The tool version (`para_config.txt`), as in the release tag without the `v`."
+          },
+          "endpoints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Endpoints",
+            "description": "The callable API paths."
+          },
+          "limits": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Limits",
+            "description": "Every limit of the service: `{key: effective value}`."
+          },
+          "limits_meta": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/LimitMeta"
+            },
+            "type": "object",
+            "title": "Limits Meta",
+            "description": "For each limit: the variable that sets it, its unit, default, source."
+          },
+          "openapi_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Openapi Sha256",
+            "description": "sha256 of this process's OpenAPI document in canonical form, equal to the `openapi.json.sha256` asset of the release the image was built from."
+          },
+          "program": {
+            "type": "string",
+            "title": "Program",
+            "description": "The program id the record and paradata carry: `digital-convert`."
+          },
+          "supported_inputs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Inputs",
+            "description": "The file suffixes the converter reads (by content, not by name)."
+          },
+          "media_types": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Media Types",
+            "description": "The media type of each input kind."
+          },
+          "libreoffice": {
+            "type": "boolean",
+            "title": "Libreoffice",
+            "description": "Whether DOC/XLS can be converted in this deployment."
+          },
+          "stages": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Stages",
+            "description": "Which adjacent stages `/describe` can call (their URLs are configured)."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "service",
+          "version",
+          "endpoints",
+          "limits",
+          "limits_meta",
+          "openapi_sha256",
+          "program",
+          "supported_inputs",
+          "media_types",
+          "libreoffice",
+          "stages"
+        ],
+        "title": "DigitalInfo",
+        "description": "`/info` of atrium-digital-convert."
       },
       "ErrorBody": {
         "properties": {
@@ -1751,219 +2082,6 @@
         "title": "ErrorBody",
         "description": "The body of every error a service returns (§4.4)."
       },
-      "ExtractResponse": {
-        "properties": {
-          "service": {
-            "type": "string",
-            "title": "Service",
-            "description": "`atrium-llm-enrich`."
-          },
-          "doc_id": {
-            "type": "string",
-            "title": "Doc Id",
-            "description": "The document's id: from the upload's name, or the sent record's `doc_id`."
-          },
-          "backend": {
-            "type": "string",
-            "title": "Backend",
-            "description": "The LLM backend: `openrouter` or `ollama`."
-          },
-          "model": {
-            "type": "string",
-            "title": "Model",
-            "description": "The model id (`<model>@<host>` for Ollama)."
-          },
-          "mode": {
-            "type": "string",
-            "title": "Mode",
-            "description": "`line` (.csv, .teitok.xml) or `document` (.md, .txt, inline text)."
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/KeywordResult"
-            },
-            "type": "array",
-            "title": "Results",
-            "description": "One entry per line or passage with a result."
-          },
-          "stats": {
-            "$ref": "#/components/schemas/ExtractStats"
-          },
-          "limits_applied": {
-            "items": {
-              "$ref": "#/components/schemas/LimitNote"
-            },
-            "type": "array",
-            "title": "Limits Applied",
-            "description": "Every limit that shaped the result without refusing it."
-          },
-          "document_json": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AtriumDocument"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Only when a record was sent and the run contributed: the record, with llm-enrich's `enrichment` block updated and every other block as sent."
-          },
-          "document_json_schema_error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Document Json Schema Error",
-            "description": "Only when the returned record does not validate: the schema error (the sent record's)."
-          },
-          "paradata": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CreateAction"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The call's provenance: its Process Run Crate `CreateAction` (atrium-project#71), whose `@id` is the `run_uuid` stamped into `document_json`."
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "service",
-          "doc_id",
-          "backend",
-          "model",
-          "mode",
-          "results",
-          "stats",
-          "limits_applied",
-          "paradata"
-        ],
-        "title": "ExtractResponse",
-        "description": "The keywords of one document, and its record when one was sent."
-      },
-      "ExtractStats": {
-        "properties": {
-          "processed": {
-            "type": "integer",
-            "title": "Processed",
-            "description": "Lines (line mode) or passages (document mode) with a result."
-          },
-          "skipped_filter": {
-            "type": "integer",
-            "title": "Skipped Filter",
-            "description": "Lines the quality filter left out."
-          },
-          "skipped_error": {
-            "type": "integer",
-            "title": "Skipped Error",
-            "description": "Lines or calls that failed."
-          },
-          "aborted": {
-            "type": "integer",
-            "title": "Aborted",
-            "description": "1 when the document was given up (LLM_MAX_CONSECUTIVE_ERRORS), else 0."
-          },
-          "attempted": {
-            "type": "integer",
-            "title": "Attempted",
-            "description": "Model calls made: 0 means the model was never asked."
-          },
-          "truncated": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Truncated",
-            "description": "Line mode: replies cut at LLM_MAX_NEW_TOKENS."
-          },
-          "unprocessed": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unprocessed",
-            "description": "Line mode, after an abort: the lines not sent."
-          },
-          "repaired": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Repaired",
-            "description": "Document mode: replies repaired before use."
-          },
-          "dropped_items": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Dropped Items",
-            "description": "Document mode: items dropped while repairing."
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "processed",
-          "skipped_filter",
-          "skipped_error",
-          "aborted",
-          "attempted"
-        ],
-        "title": "ExtractStats",
-        "description": "What the run did: how many lines or passages were processed, skipped and attempted."
-      },
-      "ExtractTextRequest": {
-        "properties": {
-          "text": {
-            "type": "string",
-            "title": "Text",
-            "description": "Raw text for document-level archaeological keyword extraction."
-          },
-          "document_json": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Document Json",
-            "description": "Optional baseline ATRIUM Document JSON: a record, or an AMČR seed (`doc_id`, `source`). When given, the response's `document_json` carries the record back with only llm-enrich's `enrichment` block updated. A record that does not validate is still accepted, and the response then also carries `document_json_schema_error`; one that cannot be opened is refused (422 `invalid_record`)."
-          }
-        },
-        "type": "object",
-        "required": [
-          "text"
-        ],
-        "title": "ExtractTextRequest",
-        "description": "The body of `/extract_keywords_text`."
-      },
       "HealthBody": {
         "properties": {
           "status": {
@@ -2015,101 +2133,6 @@
         ],
         "title": "HealthBody",
         "description": "`GET /health`: liveness, and with `?deep=true` a check of the backends."
-      },
-      "KeywordResult": {
-        "properties": {
-          "file_id": {
-            "type": "string",
-            "title": "File Id",
-            "description": "The input's name as the engine saw it."
-          },
-          "enrichment": {
-            "$ref": "#/components/schemas/Enrichment"
-          },
-          "page": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Page",
-            "description": "The page: a number in line mode; the page label the model cited in document mode."
-          },
-          "line": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Line",
-            "description": "Line mode: the line number within the page."
-          },
-          "locator": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Locator",
-            "description": "Document mode: the passage the keywords come from."
-          },
-          "categ": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Categ",
-            "description": "Line mode: the line's quality category from alto-postprocess."
-          },
-          "quality_score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Quality Score",
-            "description": "Line mode: the line's quality score, when given."
-          },
-          "original_text": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Original Text",
-            "description": "Line mode: the line's text."
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "file_id",
-          "enrichment"
-        ],
-        "title": "KeywordResult",
-        "description": "One result: a qualifying line (line mode) or a passage the model located (document mode)."
       },
       "LimitMeta": {
         "properties": {
@@ -2292,136 +2315,358 @@
         "title": "LimitRef",
         "description": "Which limit a `limit_exceeded` refusal is about, and by how much."
       },
-      "LlmInfo": {
+      "PageCategory": {
         "properties": {
-          "service": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label",
+            "description": "The top category (`TEXT_P`, `TEXT_HW`, `DRAW`, ...; page-category scheme)."
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence",
+            "description": "Its score, from 0 to 1."
+          },
+          "top": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Top",
+            "description": "The `topn` categories with scores, best first."
+          },
+          "source": {
             "type": "string",
-            "title": "Service",
-            "description": "The tool id, which is the repository name."
-          },
-          "version": {
-            "type": "string",
-            "title": "Version",
-            "description": "The tool version (`para_config.txt`), as in the release tag without the `v`."
-          },
-          "endpoints": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Endpoints",
-            "description": "The callable API paths."
-          },
-          "limits": {
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "type": "object",
-            "title": "Limits",
-            "description": "Every limit of the service: `{key: effective value}`."
-          },
-          "limits_meta": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/LimitMeta"
-            },
-            "type": "object",
-            "title": "Limits Meta",
-            "description": "For each limit: the variable that sets it, its unit, default, source."
-          },
-          "openapi_sha256": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Openapi Sha256",
-            "description": "sha256 of this process's OpenAPI document in canonical form, equal to the `openapi.json.sha256` asset of the release the image was built from."
-          },
-          "backend": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Backend",
-            "description": "The configured backend; null until the engine is warm."
-          },
-          "model": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model",
-            "description": "The model id; null until the engine is warm."
-          },
-          "ready": {
-            "type": "boolean",
-            "title": "Ready",
-            "description": "Whether the extraction endpoints can answer (else they answer 503)."
-          },
-          "vocabulary": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/VocabularyInfo"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Null until the engine is warm."
-          },
-          "supported_inputs": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Supported Inputs",
-            "description": "The file suffixes `/extract_keywords` reads."
-          },
-          "languages": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Languages",
-            "description": "The keyword languages."
+            "title": "Source",
+            "description": "`page-classification`."
           }
         },
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "service",
-          "version",
-          "endpoints",
-          "limits",
-          "limits_meta",
-          "openapi_sha256",
-          "backend",
-          "model",
-          "ready",
-          "vocabulary",
-          "supported_inputs",
-          "languages"
+          "label",
+          "confidence",
+          "top",
+          "source"
         ],
-        "title": "LlmInfo",
-        "description": "`/info` of atrium-llm-enrich."
+        "title": "PageCategory",
+        "description": "page-classification's answer for one page."
+      },
+      "PageLayout": {
+        "properties": {
+          "canvas": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canvas",
+            "description": "`width`, `height`, `unit` (PDF only); null without geometry."
+          },
+          "lines": {
+            "type": "integer",
+            "title": "Lines"
+          },
+          "blocks": {
+            "type": "integer",
+            "title": "Blocks",
+            "description": "Distinct `group_id`s: paragraphs, table cells, a sheet."
+          },
+          "tables": {
+            "type": "integer",
+            "title": "Tables"
+          },
+          "headings": {
+            "type": "integer",
+            "title": "Headings"
+          },
+          "regions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Regions",
+            "description": "Lines per region: `page_header`, `page_footer`, `footnote`."
+          },
+          "columns": {
+            "type": "integer",
+            "title": "Columns",
+            "description": "Reading-order columns of the body text (PDF)."
+          },
+          "images": {
+            "type": "integer",
+            "title": "Images",
+            "description": "Images the page draws (PDF)."
+          },
+          "vector_paths": {
+            "type": "integer",
+            "title": "Vector Paths",
+            "description": "Vector paths the page draws (PDF): rules, curves, text drawn as outlines."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "canvas",
+          "lines",
+          "blocks",
+          "tables",
+          "headings",
+          "regions",
+          "columns",
+          "images",
+          "vector_paths"
+        ],
+        "title": "PageLayout",
+        "description": "What the converter found on the page."
+      },
+      "PageQuality": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "`ocr-postprocess` (the common line-quality model) or `digital-convert` (the decode check only)."
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "From 0 to 1. ocr-postprocess: the mean line-quality score. digital-convert: the page's decode sanity (the record's `pages[].quality_score` before any scoring), a measure of how the characters decode, not of how the text reads."
+          },
+          "band": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Band",
+            "description": "`Clear`, `Noisy` or `Trash`; null when no line was judged. ocr-postprocess: the plurality of its line verdicts. digital-convert: the decode-sanity band, so a garbled page can read `Clear` here; `text_layer` and `lines_by_category.Garbage` say whether it decodes."
+          },
+          "lines_by_category": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Lines By Category",
+            "description": "Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty` (ocr-postprocess), or `Garbage`/`Inverted`/`decoded` (digital-convert)."
+          },
+          "lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lang",
+            "description": "The page's dominant language, when the model reports one."
+          },
+          "lines_scored": {
+            "type": "integer",
+            "title": "Lines Scored",
+            "description": "Lines the verdict is based on."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "source",
+          "score",
+          "band",
+          "lines_by_category",
+          "lang",
+          "lines_scored"
+        ],
+        "title": "PageQuality",
+        "description": "Whether a page's text reads: the common quality model, or the converter's decode check."
+      },
+      "PageReport": {
+        "properties": {
+          "page": {
+            "type": "string",
+            "title": "Page",
+            "description": "The page label (`pages[].page` in the record)."
+          },
+          "page_index": {
+            "type": "integer",
+            "title": "Page Index",
+            "description": "1-based physical position."
+          },
+          "text_layer": {
+            "type": "string",
+            "title": "Text Layer",
+            "description": "`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer), `blank` (an empty page without a page image)."
+          },
+          "needs_ocr": {
+            "type": "boolean",
+            "title": "Needs Ocr"
+          },
+          "needs_ocr_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Needs Ocr Reason"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageCategory"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when page-classification did not run for the page."
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageQuality"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null for a page without lines."
+          },
+          "route": {
+            "type": "string",
+            "title": "Route",
+            "description": "`nlp`, `ocr` (ATR), `htr` (handwriting) or `none` (nothing to read)."
+          },
+          "route_reason": {
+            "type": "string",
+            "title": "Route Reason"
+          },
+          "layout": {
+            "$ref": "#/components/schemas/PageLayout"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text",
+            "description": "The page's text in reading order (unless `include_text=false`)."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "page",
+          "page_index",
+          "text_layer",
+          "needs_ocr",
+          "needs_ocr_reason",
+          "category",
+          "quality",
+          "route",
+          "route_reason",
+          "layout"
+        ],
+        "title": "PageReport",
+        "description": "One page of `/describe`."
+      },
+      "ReaderInfo": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "The input kind, by content: `pdf`, `docx`, `odt`, `ods`, `xlsx`, `rtf`, `doc`, `xls`."
+          },
+          "media_type": {
+            "type": "string",
+            "title": "Media Type",
+            "description": "The original's media type (`source.media_type` unless a seed named one)."
+          },
+          "origin": {
+            "type": "string",
+            "title": "Origin",
+            "description": "`source.origin`: `digital-born-pdf`, `digital-born-docx`, `digital-born-odt`, ..."
+          },
+          "engine": {
+            "type": "string",
+            "title": "Engine",
+            "description": "The structural engine: `light` (the only one in the service image)."
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages",
+            "description": "Pages read."
+          },
+          "conversion": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversion",
+            "description": "DOC/XLS only: how LibreOffice converted the original (`tool`, `from`, `to`, `seconds`); else null."
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "description": "Reader notes worth knowing (e.g. a conversion); usually empty."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "kind",
+          "media_type",
+          "origin",
+          "engine",
+          "pages",
+          "conversion",
+          "notes"
+        ],
+        "title": "ReaderInfo",
+        "description": "How the file was read."
       },
       "ReadyBody": {
         "properties": {
@@ -2439,33 +2684,199 @@
         "title": "ReadyBody",
         "description": "`GET /ready`: readiness for new work."
       },
-      "VocabularyInfo": {
+      "ReformatResponse": {
         "properties": {
-          "terms": {
-            "type": "integer",
-            "title": "Terms",
-            "description": "Terms in the vocabulary (the excluded themes left out)."
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "description": "`atrium-digital-convert`."
           },
-          "line_prompt_terms": {
-            "type": "integer",
-            "title": "Line Prompt Terms",
-            "description": "Terms that fit the line prompt."
+          "doc_id": {
+            "type": "string",
+            "title": "Doc Id",
+            "description": "The record's `doc_id`: the seed's when one was sent, else derived from the file name."
           },
-          "document_prompt_terms": {
-            "type": "integer",
-            "title": "Document Prompt Terms",
-            "description": "Terms that fit the document prompt."
+          "document_json": {
+            "$ref": "#/components/schemas/AtriumDocument",
+            "description": "The ATRIUM document record: digital-convert's `source`, `pages`, `content`, `lines` and `tables` written, every other block of a sent record passed through."
+          },
+          "reader": {
+            "$ref": "#/components/schemas/ReaderInfo"
+          },
+          "markdown": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown",
+            "description": "Only with `markdown=true`: the record rendered as annotated Markdown (json_to_md)."
+          },
+          "document_json_schema_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Json Schema Error",
+            "description": "Only when the sent record did not validate and the result inherits that: the schema error."
+          },
+          "limits_applied": {
+            "items": {
+              "$ref": "#/components/schemas/LimitNote"
+            },
+            "type": "array",
+            "title": "Limits Applied",
+            "description": "Every limit that shaped the result without refusing it."
+          },
+          "paradata": {
+            "$ref": "#/components/schemas/CreateAction",
+            "description": "The call's provenance: its Process Run Crate `CreateAction` (atrium-project#71), whose `@id` is the `run_uuid` stamped into `document_json`."
           }
         },
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "terms",
-          "line_prompt_terms",
-          "document_prompt_terms"
+          "service",
+          "doc_id",
+          "document_json",
+          "reader",
+          "limits_applied",
+          "paradata"
         ],
-        "title": "VocabularyInfo",
-        "description": "How much of the vocabulary reaches the model."
+        "title": "ReformatResponse",
+        "description": "`/reformat`: the document's record, and its Markdown when asked for."
+      },
+      "StageOutcomeModel": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage",
+            "description": "`page-classification` or `ocr-postprocess`."
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "`ok`, `partial`, `not_configured`, `not_requested`, `skipped`, `unavailable`, `error` or `rejected`."
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "The stage's base URL; null when not configured."
+          },
+          "http_status": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Http Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "The stage's reason code, or the guard's (`page_key_mismatch`, ...)."
+          },
+          "elapsed_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed S"
+          },
+          "service_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Version"
+          },
+          "pages": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pages",
+            "description": "`page_index` of the pages sent."
+          },
+          "record_adopted": {
+            "type": "boolean",
+            "title": "Record Adopted",
+            "description": "Whether the stage's record write was taken into `document_json`."
+          },
+          "paradata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paradata",
+            "description": "The stage's own `CreateAction`, when it returned one."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "stage",
+          "status",
+          "detail",
+          "url",
+          "http_status",
+          "reason",
+          "elapsed_s",
+          "service_version",
+          "pages",
+          "record_adopted",
+          "paradata"
+        ],
+        "title": "StageOutcomeModel",
+        "description": "What one adjacent stage did."
       },
       "AtriumDocument_bbox": {
         "type": "array",
@@ -2552,6 +2963,12 @@
     },
     "ocr_text_layer": {
       "description": "The PDF's text layer is an earlier OCR run's invisible text over page images, so the document is not born-digital (HTTP 422). Route it to OCR: that text layer is not trusted.",
+      "statuses": [
+        422
+      ]
+    },
+    "source_digest_mismatch": {
+      "description": "The record sent with the request names the original by its `source.sha512`, and the uploaded file is not that file (HTTP 422): the record would describe one file under another file's identity. Send the original the seed was made for, or a seed made for this file; do not retry unchanged.",
       "statuses": [
         422
       ]

@@ -72,4 +72,7 @@ exclude = [
     "tests/test_limits_contract.py",
     "atrium_openapi.py",
     "tests/test_openapi_contract.py",
+    # Vendored from atrium-ocr-postprocess (the shared reader, atrium-project#72), held
+    # byte-identical by tests/test_vendored_reader_parity.py: never reformatted here.
+    "text_formats.py",
 ]

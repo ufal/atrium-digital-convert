@@ -35,6 +35,12 @@ openapi-spec-validator
 # RUNTIME install; this file defines the test lane, which is where tests must actually run.
 pdfplumber
 python-docx
+# The converter's PDF census and page counts, and the shared reader (text_formats.py).
+pypdfium2
+lxml
+# tests/test_describe.py serves tools/stage_stub.py (the stand-in for page-classification and
+# ocr-postprocess) on a local port, so /describe is exercised over real HTTP.
+uvicorn
 # Optional heavy deps only if the suite truly needs them:
 # torch
 # transformers

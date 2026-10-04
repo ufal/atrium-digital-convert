@@ -1,6 +1,0 @@
-# requirements_remote.txt — light client deps for BACKEND=openrouter / BACKEND=ollama.
-# Deliberately excludes torch/transformers/vllm/bitsandbytes (see requirements_llm.txt) —
-# remote-only and lightweight-local users should not need the GPU stack.
-pydantic
-requests
-tqdm

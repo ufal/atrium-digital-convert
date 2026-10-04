@@ -13,14 +13,10 @@ updates:
         patterns:
           - "*"
     ignore:
-      # Pinned in requirements_llm.txt for tested compatibility with the
-      # vLLM/transformers guided-decoding stack — bump these by hand after
-      # verifying against the model registry, not via automated PRs.
-      - dependency-name: "torch"
-      - dependency-name: "vllm"
-      - dependency-name: "bitsandbytes"
-      - dependency-name: "transformers"
-        versions: [">=5.0.0"]
+      # The torch/vLLM/transformers pins left with the LLM stack for atrium-keyword-extract
+      # (atrium-digital-convert#1). Docling (requirements_digital_docling.txt) is pinned exactly
+      # and bumped by hand: its model weights and API move together.
+      - dependency-name: "docling-slim"
       # Pinned exactly in service/requirements.txt and requirements-test.txt: the committed
       # service/openapi.json is a function of both (atrium-project#32 round 2). Bump them
       # together by hand and regenerate the spec in the same commit

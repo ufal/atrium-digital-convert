@@ -1,165 +1,85 @@
-"""tool_limits.py — every limit atrium-llm-enrich has (atrium-project#53, factor III).
+"""tool_limits.py — every limit and setting atrium-digital-convert has (atrium-project#53, factor III).
 
-One declaration, read by the service (``service/api.py``) and by the lightweight clients it
-drives (``openrouter_client.py``, ``ollama_client.py``, ``llm_client_shared.py``), and
-reported by ``GET /info`` (``limits`` and ``limits_meta``). Each limit is an environment
-setting; a malformed value stops the process at startup, naming the variable
-(``atrium_limits.LimitConfigError``). ``.env.example`` and ``service/README.md``'s
-``## Limits`` table list the same set; ``tests/test_limits_contract.py`` checks that they
-agree.
+One declaration, read by the service (``service/api.py``), the converter
+(``api_util/digital_to_json.py`` and its adapters) and the vendored reader
+(``text_formats.py``, which imports ``ODF_REPEAT_CAP`` and ``PDF_OBJECT_CAP`` from here exactly as
+it does in atrium-ocr-postprocess), and reported by ``GET /info`` (``limits`` and
+``limits_meta``). Each one is an environment setting; a malformed value stops the process at
+startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.example`` and
+``service/README.md``'s ``## Limits`` table list the same set; ``tests/test_limits_contract.py``
+checks that they agree.
 
-**The context window's default depends on the backend** (atrium-project#53, D3): 128000
-for ``openrouter``, 32000 for ``ollama`` — the same default each client's CLI uses
-(:data:`BACKEND_CONTEXT_WINDOW`). The environment wins, then ``CONTEXT_WINDOW`` in the
-config file ``LLM_CONFIG`` names (llm_config.txt), then that default. It is read when this
-module is imported, so a malformed value fails the start instead of being recorded as a
-warm-up failure the service keeps running with.
+What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
+beside it. Two entries are POLICY thresholds rather than size caps (``OCR_LAYER_DOCUMENT_SHARE``,
+``ROUTE_TRASH_SHARE``): they are declared here all the same, because a value a deployment may
+change and a client must be able to read back is exactly what ``/info`` ``limits`` is for.
 
-What happens over each limit — refused (with the HTTP status), or processed in full with a
-``limits_applied`` note (with the effect) — is said beside it.
-
-Standard library only (``atrium_limits`` is the hub's canonical module at the repo root):
-the CLI clients import this too.
+Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
+CLI converter imports this too.
 """
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-from typing import Any, Dict, Optional
+from atrium_limits import LimitSet, limit, upload_limit
 
-from atrium_limits import LimitConfigError, LimitSet, limit, upload_limit
+#: §4.5 upload limit, per uploaded part (the file, `document_json`). Over it → 413
+#: ``limit_exceeded``. Born-digital PDFs with embedded images run larger than OCR text.
+MAX_UPLOAD = upload_limit(50)
 
-_REPO_ROOT = Path(__file__).resolve().parent
+#: Pages one document may have. Counted before the text is read (a PDF's page tree; a DOCX,
+#: ODT or spreadsheet after reading). Over it → 422 ``limit_exceeded``: split the document.
+MAX_PAGES = limit("MAX_PAGES", 2000, unit="pages", minimum=1, status=422)
 
-#: The context window each backend's client assumes (its CLI's ``--context-window``
-#: default, and the service's default for ``LLM_CONTEXT_WINDOW``).
-BACKEND_CONTEXT_WINDOW: Dict[str, int] = {"openrouter": 128000, "ollama": 32000}
-#: Tokens reserved for formatting on top of the reply (``LLM_MAX_NEW_TOKENS``) when the
-#: prompt budget is computed. Not a setting: it is the prompt template's own overhead.
-PROMPT_OVERHEAD_TOKENS = 512
+#: Conversions the service runs at once. A request over it → 429 ``busy`` with ``Retry-After``
+#: (the conversion is CPU-bound and runs in a worker thread; queuing it would only move the wait).
+MAX_CONCURRENT_JOBS = limit("MAX_CONCURRENT_JOBS", 2, unit="jobs", minimum=1)
 
-
-def llm_backend() -> str:
-    """The backend ``LLM_BACKEND`` selects (``openrouter`` by default)."""
-    return (os.environ.get("LLM_BACKEND") or "openrouter").strip().lower()
-
-
-#: §4.5 upload limit, per uploaded part (the file, `document_json`) and for the whole
-#: `/extract_keywords_text` body. Over it → 413 ``limit_exceeded``.
-MAX_UPLOAD = upload_limit(10)
-#: The model's context window, in tokens. It sizes the vocabulary prompt (more terms than
-#: fit are left out → standing ``trimmed`` note) and, in document mode, the document: one
-#: that would not fit with the prompt and the reply → 413 ``limit_exceeded``. Sent to
-#: Ollama as ``num_ctx``.
-LLM_CONTEXT_WINDOW = limit(
-    "LLM_CONTEXT_WINDOW",
-    BACKEND_CONTEXT_WINDOW.get(llm_backend(), 32000),
-    unit="tokens",
-    minimum=1024,
+#: Seconds headless LibreOffice may take to convert one legacy DOC or XLS file. Over it → 422
+#: ``limit_exceeded`` (a per-input processing budget, not an upstream service).
+LIBREOFFICE_TIMEOUT_S = limit(
+    "LIBREOFFICE_TIMEOUT_S", 120, unit="s", kind=float, minimum=1, status=422
 )
-#: Most tokens one reply may have (OpenRouter ``max_tokens``, Ollama ``num_predict``). A
-#: reply cut at it is never used: document mode → 422 ``limit_exceeded``; line mode → the
-#: line gets no result → ``skipped`` note.
-LLM_MAX_NEW_TOKENS = limit("LLM_MAX_NEW_TOKENS", 2048, unit="tokens", minimum=16, status=422)
-#: Per-request timeout of one LLM call, in seconds; a timeout is retried.
-LLM_TIMEOUT = limit("LLM_TIMEOUT", 300, unit="s", minimum=1)
-#: Attempts of one LLM call; only a timeout, a connection error, HTTP 429 or 5xx is
-#: retried. Once they run out: document mode → 502; line mode → the line is an error.
-LLM_MAX_RETRIES = limit("LLM_MAX_RETRIES", 3, unit="attempts", minimum=1)
-#: Line mode: consecutive failed lines after which the document is given up → ``stopped``
-#: note (the lines before it keep their results).
-LLM_MAX_CONSECUTIVE_ERRORS = limit("LLM_MAX_CONSECUTIVE_ERRORS", 10, unit="errors", minimum=1)
 
+#: Seconds `/describe` waits for one call to an adjacent stage (page-classification,
+#: ocr-postprocess). Over it the stage is reported ``unavailable``; the request still succeeds.
+STAGE_TIMEOUT_S = limit("STAGE_TIMEOUT_S", 120, unit="s", kind=float, minimum=1)
 
-def config_path() -> Path:
-    """The config file the service reads (``LLM_CONFIG``, default llm_config.txt)."""
-    path = Path(os.environ.get("LLM_CONFIG") or "llm_config.txt")
-    return path if path.is_absolute() or path.exists() else _REPO_ROOT / path
+#: POLICY. Share of a PDF's text-bearing pages whose text layer is a prior OCR run's invisible
+#: text at or above which the whole document is refused, 422 ``ocr_text_layer`` (the AMČR route
+#: then sends it to OCR). Below it the document is converted and those pages carry
+#: ``needs_ocr`` with a prior-OCR reason. Mirrors atrium-ocr-postprocess
+#: ``default_source_origin``'s rule; 0.5 since llm-enrich 0.8.0.
+OCR_LAYER_DOCUMENT_SHARE = limit(
+    "OCR_LAYER_DOCUMENT_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1, status=422
+)
 
+#: POLICY (`/describe` only). A page whose text layer decodes is routed to NLP — unless the
+#: common quality model (ocr-postprocess) calls more than this share of its scored lines
+#: ``Trash``; then the page is routed to OCR instead. Lines without a verdict do not count.
+ROUTE_TRASH_SHARE = limit("ROUTE_TRASH_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1)
 
-def config_values() -> Dict[str, str]:
-    """``{LLM_CONTEXT_WINDOW: raw}`` when the config file sets ``CONTEXT_WINDOW``.
-
-    Same KEY=VALUE reading as ``llm_client_shared.load_config`` (blank lines and ``#``
-    comments skipped, one matched pair of quotes removed), without its dependencies.
-    """
-    try:
-        lines = config_path().read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return {}
-    for raw in lines:
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        if key.strip() == "CONTEXT_WINDOW":
-            value = value.strip()
-            for quote in ('"', "'"):
-                if len(value) >= 2 and value[0] == value[-1] == quote:
-                    value = value[1:-1]
-            return {LLM_CONTEXT_WINDOW.env: value} if value else {}
-    return {}
-
-
-def context_window() -> int:
-    """The effective context window: environment, config file, backend default."""
-    return LIMITS.get(LLM_CONTEXT_WINDOW.key)
-
-
-def reserved_tokens() -> int:
-    """Tokens kept free for the reply and the prompt's formatting."""
-    return LLM_MAX_NEW_TOKENS.get() + PROMPT_OVERHEAD_TOKENS
-
-
-def vocab_prompt_budget_tokens() -> int:
-    """Tokens the vocabulary prompt may take (estimated at 4 characters per token)."""
-    return context_window() - reserved_tokens()
-
-
-#: What the service measured once its prompts were built (``set_prompt_facts``).
-_PROMPT_FACTS: Dict[str, Any] = {}
-
-
-def set_prompt_facts(**facts: Any) -> None:
-    _PROMPT_FACTS.clear()
-    _PROMPT_FACTS.update(facts)
-
-
-def document_input_budget_tokens() -> Optional[int]:
-    """Tokens a document may have in document mode: the window, less the reply and the
-    document prompt (the vocabulary). ``None`` until the service has built its prompts."""
-    prompt = _PROMPT_FACTS.get("document_prompt_tokens")
-    if prompt is None:
-        return None
-    return max(0, context_window() - LLM_MAX_NEW_TOKENS.get() - prompt)
-
+# ── the vendored reader's own caps (text_formats.py, from atrium-ocr-postprocess) ────────────
+#: Same variable names, units and defaults as atrium-ocr-postprocess's tool_limits.py: the reader
+#: module is byte-identical there and here (tests/test_vendored_reader_parity.py), and imports
+#: these two names from whichever ``tool_limits`` sits beside it.
+#: Most a repeated ODF cell/row (`table:number-columns-repeated`) is expanded → ``trimmed`` note.
+ODF_REPEAT_CAP = limit(
+    "ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP", 100, unit="repeats", key="odf_repeat_cap", minimum=1
+)
+#: Most objects of one PDF page scanned to judge its text layer (the text itself is always
+#: read in full); a page with more is judged on the first N → ``sampled`` note.
+PDF_OBJECT_CAP = limit(
+    "ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP", 20000, unit="objects", key="pdf_object_cap", minimum=1
+)
 
 LIMITS = LimitSet(
     MAX_UPLOAD,
-    LLM_CONTEXT_WINDOW,
-    LLM_MAX_NEW_TOKENS,
-    LLM_TIMEOUT,
-    LLM_MAX_RETRIES,
-    LLM_MAX_CONSECUTIVE_ERRORS,
-    config=config_values,
+    MAX_PAGES,
+    MAX_CONCURRENT_JOBS,
+    LIBREOFFICE_TIMEOUT_S,
+    STAGE_TIMEOUT_S,
+    OCR_LAYER_DOCUMENT_SHARE,
+    ROUTE_TRASH_SHARE,
+    ODF_REPEAT_CAP,
+    PDF_OBJECT_CAP,
 )
-LIMITS.derived(
-    "vocab_prompt_budget_tokens",
-    vocab_prompt_budget_tokens,
-    unit="tokens",
-    derived_from=["LLM_CONTEXT_WINDOW", "LLM_MAX_NEW_TOKENS"],
-)
-LIMITS.derived(
-    "document_input_budget_tokens",
-    document_input_budget_tokens,
-    unit="tokens",
-    derived_from=["LLM_CONTEXT_WINDOW", "LLM_MAX_NEW_TOKENS", "VOCAB_PATH"],
-)
-
-if vocab_prompt_budget_tokens() <= 0:
-    raise LimitConfigError(
-        f"LLM_CONTEXT_WINDOW is {context_window()} tokens, which leaves no room for the prompt "
-        f"after LLM_MAX_NEW_TOKENS ({LLM_MAX_NEW_TOKENS.get()}) and {PROMPT_OVERHEAD_TOKENS} tokens "
-        "of formatting; raise the first or lower the second."
-    )

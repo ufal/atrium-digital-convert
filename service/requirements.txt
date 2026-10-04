@@ -1,8 +1,8 @@
-# service/requirements.txt — atrium-llm-enrich API service (strategy §4).
-# The API reuses the torch-free enrichment engine (llm_client_shared + the
-# openrouter/ollama clients), so it needs only the light remote stack plus the
-# web server — never torch/transformers/vllm.
--r ../requirements_remote.txt
+# service/requirements.txt — atrium-digital-convert API service (atrium-digital-convert#2).
+# The converter's own light stack (no model, no network) plus the web server. The `api`
+# image builds FROM the `digital` stage, which has already installed both files below.
+-r ../requirements.txt
+-r ../requirements_digital.txt
 # fastapi and pydantic are pinned EXACTLY (atrium-project#32 round 2): the committed
 # service/openapi.json -- attached to every release, and what the AMČR pipeline generates its
 # clients from -- is a function of the code AND of these two versions, and the image is built

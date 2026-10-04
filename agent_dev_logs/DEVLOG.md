@@ -1,4 +1,14 @@
-# 📓 atrium-llm-enrich — agent_dev_logs/DEVLOG.md (timeline index)
+# 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
+> _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
+> record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
+> moved to atrium-keyword-extract (#1). Open issues: **#1** (was llm-enrich#29, the repository's new role), **#2**
+> (was llm-enrich#28, `api-digital`), **#3** (was llm-enrich#11, DU inputs), **#4** (was llm-enrich#10, PDF/DOCX
+> inputs). Entries up to 2026-09-30 use the old numbers. Releases: **v1.0.0-beta** (2026-10-01, the transitional
+> snapshot of llm-enrich 0.9.0) · **v1.1.0-beta** prepared 2026-10-04 (working tree, not tagged)._
+>
+> _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
+
+## (historical header)
 > _LLM-driven enrichment of archaeological documents (local multi-GPU + remote-as-a-service). 6 open
 > issues (#10, #11, #13, #18, #24, #25); #8 closed. AMČR baseline (atrium-project#67, 2026-09-26): #10 finish ·
 > #13, #18 close · #11 defer · #24, #25 stop. `test` = `79b857d` (2026-09-26) · **v0.7.0**
@@ -411,6 +421,75 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 * `.github/workflows/para-drift.yml`: `vendored-from: atrium-nlp-enrich` — the pin tests now also compare the copies
   with nlp-enrich's `test` in CI. `docker.yml` names today's production target and what replaces it (#28, #29).
 * Revendored the three declared-rename files. Tag draft: `v0.9.0`. **Not pushed: files delivered in chat.**
+
+## 2026-10-04 — v1.1.0-beta prepared: `/reformat` + `/describe` (#2), the LLM code out (#1), the format matrix (#4 W2)
+
+* **What arrived:** motyc's 2 Oct questions on #2 (the identity; whether `ocr_text_layer` refuses a whole document or
+  flags pages; how the re-OCR'd pages are merged). The maintainer's decisions (4 Oct):
+  * a **separate `/describe`** endpoint, so that `/reformat` stays a pure converter (the 30 Sep agreement);
+  * the record plus a per-page report;
+  * full scope: the API, the LLM removal and DOC/XLS/ODT/ODS/XLSX/RTF;
+  * the release number **v1.1.0-beta**;
+  * the page-classification and ocr-postprocess changes `/describe` needs are in scope too.
+* **Code (working tree):**
+  * `service/api.py` is rewritten as `atrium-digital-convert` (`previous=atrium-llm-enrich`).
+  * `POST /reformat`: the record, Markdown on request, `paradata`; no calls.
+  * `POST /describe`: the record plus `pages[]` (`text_layer`, `category`, `quality`, `route` nlp/ocr/htr/none,
+    `layout`, `text`), `summary` and `stages[]`.
+  * The stage clients (`service/stages.py`) never raise. Each returned record is adopted only past a guard (same
+    document, the converter's fields intact). A stage that is not configured or not running is reported; the
+    request still succeeds.
+  * `tools/stage_stub.py` stands in for both stages (tests, compose profile `stub`).
+  * The seed's `source.sha512` is checked before parsing (`source_digest_mismatch`, 422 / exit 3, registered at
+    runtime until the hub's registry carries it).
+  * `OCR_LAYER_DOCUMENT_SHARE` and `MAX_PAGES` became settings.
+  * ODT/ODS/XLSX/RTF are read through ocr-postprocess's `text_formats.py` (vendored, SHA-pinned, in para-drift).
+  * DOC/XLS go through headless LibreOffice (private profile, timeout). It is declared in `para_config.txt` and
+    never logged, so a record's licence stays MIT.
+* **Removed (#1):**
+  * the LLM clients and engine, prompts, vocabulary tooling and data, `requirements_llm/remote`;
+  * the GPU compose file, the `gpu-inference`/`vocab-*` workflows and their tests;
+  * the `remote`/`llm` images.
+  The transfer manifest for keyword-extract is in `digests/1.digest.md`; the files are recoverable from
+  `v1.0.0-beta`.
+* **Identity:**
+  * images `ghcr.io/ufal/atrium-digital-convert-{api,digital}`;
+  * `para_config.txt` (`digital-convert`, v1.1.0-beta), CITATION, compose, `.env.example`;
+  * `.github/production-image.json` (closure check clean: 15 core, 8 shared, 3 vendored);
+  * docker/security/para-drift/dependabot updated;
+  * README, CONTRIBUTING and `service/README.md` rewritten.
+* **Adjacent stages (same round, their own working trees):**
+  * page-classification `v1.10.0-beta`: `pages` on `/predict_document`, categories under the record's own labels
+    (`page_index`), `page_label`;
+  * ocr-postprocess `v1.9.0-beta`: `POST /score_record` with `document_hook.write_scores()`;
+  * the hub: `SCORING_FIELDS` in the canonical `atrium_document.py` (a scoring merge is noted, adds no row, and is
+    stamped `contribution: "scoring"`; the fan-in and `e2e_assert.py` read it); re-vendored with
+    `revendor_shared.sh`, which gained a sibling-owned row for `text_formats.py`; `k8s_deployment.md`, the schema doc
+    and the docs site updated.
+  * Live smoke: the real page-classification and ocr-postprocess apps (stand-in models) plus `/describe` on a PDF
+    labelled `i, ii, 1, 2` routed `nlp / ocr / htr / none`; the categories landed on labels `1` and `2`.
+* **Dev logs:**
+  * `2.*` ✍️ rewritten for the two endpoints, the report, the route rules and the stage contract;
+  * `1.*` 🔄 executed, with the transfer manifest;
+  * `4.*` 🧭 banner: W1/W2/W6 land in v1.1.0-beta.
+* **Checks:**
+  * digital-convert 751 passed, 4 skipped (docling, flexiconv, Tesseract absent); ruff clean; spec current;
+    fixtures verified; closure clean;
+  * page-classification 710 passed; ocr-postprocess 2005 passed; hub 641 passed;
+  * the canonical originator test passes in all six repositories (73 each);
+  * a real LibreOffice DOC/XLS round trip.
+  * One hub test fails locally only: Table B against keyword-extract's ledger, until keyword-extract#2.
+* **Found:**
+  * **The release gate.** `v1.0.0-beta` is the repository's only release and a full one carrying the LLM spec, so
+    `openapi-compat` fails until it is marked a **pre-release** (the push-time job as well as the tag). Maintainer
+    step.
+  * **`blocks.lines.program`.** After ocr-postprocess scores a digital record, the merged block's `program` is
+    `ocr-postprocess` (rule 4), which the fan-in check would have read as a mixed plane. Hence the stamp's
+    `contribution: "scoring"`, honoured by `merge_document_records()` and `e2e_assert.py`.
+  * **The original program still stamped in some places.** `bench_compare.py` still writes paradata as program
+    `llm-enrich` (a research tool, #3, left as it is).
+
+  **Not pushed: files delivered in chat.**
 
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and

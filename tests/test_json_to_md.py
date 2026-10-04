@@ -662,11 +662,10 @@ def test_no_margin_without_a_canvas_or_without_boxes():
 
 
 def test_the_recipe_names_this_converter():
-    """llm_client_shared writes the recipe without importing this module (the skill branch
-    does not carry it), so the two ids are pinned together here."""
-    import llm_client_shared
-
-    assert json_to_md.CONVERTER_ID == llm_client_shared.JSON_TO_MD_CONVERTER
+    """The `regenerable.markdown` recipe a consumer stores names this id; the keyword stage
+    (atrium-keyword-extract, which took the LLM client from here in #1) carries the same
+    literal without importing this module. A change here is deliberate and goes there too."""
+    assert json_to_md.CONVERTER_ID == "json_to_md@1.1"
 
 
 @pytest.mark.parametrize("name", ["minimal.pdf", "table.pdf", "two_column.pdf", "rich.docx"])

@@ -1,10 +1,11 @@
-# requirements_digital.txt — the LIGHT stack of the digital-born PDF/DOCX -> atrium_document
-# JSON converter (Issue #18: api_util/digital_to_json.py, --engine light, the default).
+# requirements_digital.txt — the LIGHT stack of the born-digital -> atrium_document JSON
+# converter (api_util/digital_to_json.py, --engine light, the default): PDF and DOCX through
+# this repository's readers, ODT/ODS/XLSX/RTF through the vendored shared reader
+# (text_formats.py: stdlib + lxml), DOC/XLS through headless LibreOffice (a system package,
+# installed by the Dockerfile's `digital` stage, not by pip).
 #
-# Kept out of the base install, same rationale as requirements_docmd.txt: only
-# users converting digital-born PDF/DOCX to atrium_document JSON need these. This is
-# also exactly what the Dockerfile's `digital` stage (ghcr.io/ufal/atrium-llm-enrich-digital)
-# installs.
+# This is exactly what the Dockerfile's `digital` stage (ghcr.io/ufal/atrium-digital-convert-digital)
+# installs, and the `api` stage builds on it.
 #
 # The opt-in heavy engine (--engine docling: Docling's layout and table models, torch) is
 # requirements_digital_docling.txt, which includes this file.
@@ -73,3 +74,6 @@ python-docx   # MIT — the OPC package and table grids; the body is walked with
 # rather than passing silently, because a validation gate that quietly no-ops is
 # indistinguishable from a passing one in the output.
 jsonschema    # MIT — validates the record against atrium_document.schema.json
+
+# ── The shared reader (text_formats.py, vendored from atrium-ocr-postprocess) ────
+lxml          # BSD-3-Clause — ODT/ODS/XLSX parts (entities and network off), DOCX under python-docx

@@ -11,9 +11,9 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
 # --- per-service contract parameters -----------------------------------------------------------
-SERVICE = "atrium-llm-enrich"
+SERVICE = "atrium-digital-convert"
 APP_IMPORT = "service.api"
-PRIMARY_ENDPOINTS = ["/extract_keywords", "/extract_keywords_text"]
+PRIMARY_ENDPOINTS = ["/reformat", "/describe"]
 # -----------------------------------------------------------------------------------------------
 
 try:
@@ -178,220 +178,230 @@ def test_deep_health_reports_draining_with_operator_fields():
 
 # --- the typed contract (atrium-project#32 round 2) --------------------------------------------
 # tests/test_openapi_contract.py (canonical, vendored) checks the committed spec itself. What
-# these add is the part only this repo can do: drive the real endpoints (with the engine
-# replaced by a canned one, as tests/test_limits.py does) and hold every response — 200s and
-# refusals alike — to the schema the PUBLISHED spec declares for it.
+# these add is the part only this repo can do: drive the real endpoints on the generated digital
+# fixtures and hold every response — 200s and refusals alike — to the schema the PUBLISHED spec
+# declares for it. No stage is configured here (tests/test_describe.py drives the stages).
 
+import hashlib  # noqa: E402
 import json  # noqa: E402
+import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 import atrium_openapi  # noqa: E402
 import atrium_rocrate  # noqa: E402
 
 _SPEC = atrium_openapi.load(Path(__file__).resolve().parent.parent / "service" / "openapi.json")
+sys.path.insert(0, str(Path(__file__).resolve().parent / "fixtures" / "digital"))
+import make_fixtures  # noqa: E402
 
-_LINE_REPLY = json.dumps(
-    {
-        "extracted_keywords_cs": ["kostel"],
-        "extracted_keywords_en": ["church"],
-        "teater_category": "kostel",
-        "confidence_score": 0.9,
-    }
-)
-_DOC_REPLY = json.dumps(
-    {
-        "items": [
-            {
-                "locator": "gotického kostela",
-                "page": "1",
-                "extracted_keywords_cs": ["kostel"],
-                "extracted_keywords_en": ["church"],
-                "teater_category": "kostel",
-                "confidence_score": 0.9,
-            }
-        ]
-    }
-)
-_CSV = "text,page_num,line_num,categ,quality_score\nVýzkum odhalil základy gotického kostela.,1,1,Clear,0.9\n"
-_SEED = {
-    "schema_version": "1.0",
-    "record_type": "atrium-document",
-    "doc_id": "C-202000543A-DT-27",
-    "pages": [{"page": "1", "page_index": 1}],
-}
+pytestmark = [pytest.mark.filterwarnings("ignore::DeprecationWarning")]
 
 
-@pytest.fixture
-def engine(monkeypatch):
-    from llm_client_shared import build_document_schema, build_schema
-    from service import api
-
-    calls = []
-    eng = {
-        "backend": "openrouter",
-        "model": "test/model",
-        "line_prompt": "p",
-        "line_model": build_schema(["kostel"]),
-        "line_chat_fn": lambda m: calls.append(m) or _LINE_REPLY,
-        "doc_prompt": "p",
-        "doc_prompt_tokens": 100,
-        "doc_model": build_document_schema(["kostel"]),
-        "doc_chat_fn": lambda m: calls.append(m) or _DOC_REPLY,
-        "filter_params": {},
-        "calls": calls,
-    }
-    monkeypatch.setattr(api, "_require_engine", lambda: eng)
-    return eng
+@pytest.fixture(autouse=True)
+def _no_stages(monkeypatch):
+    for name in ("PAGE_CLASSIFICATION_URL", "OCR_POSTPROCESS_URL"):
+        monkeypatch.delenv(name, raising=False)
 
 
 def _conforms(path, status, response):
     pytest.importorskip("jsonschema")
+    pytest.importorskip("pdfplumber")
     assert response.status_code == status, response.text
     atrium_openapi.validate_response(_SPEC, path, "post", status, response.json())
     return response.json()
 
 
-def test_line_mode_response_conforms_to_the_published_schema(engine):
-    response = client.post(
-        "/extract_keywords", files={"file": ("d.csv", _CSV.encode(), "text/csv")}
-    )
-    body = _conforms("/extract_keywords", 200, response)
-    assert body["mode"] == "line" and body["results"][0]["page"] == 1
-    # The run comes back as its CreateAction (atrium-project#71): the upload in, the results out.
+def _pdf(name="minimal.pdf"):
+    return make_fixtures.build_all()[name]
+
+
+def test_reformat_returns_the_record_and_its_run():
+    response = client.post("/reformat", files={"file": ("zprava.pdf", _pdf(), "application/pdf")})
+    body = _conforms("/reformat", 200, response)
+    record = body["document_json"]
+    assert body["service"] == SERVICE and body["doc_id"] == "zprava" == record["doc_id"]
+    assert record["source"]["origin"] == "digital-born-pdf"
+    assert record["assembled"]["blocks"]["lines"]["program"] == "digital-convert"
+    assert "markdown" not in body, "Markdown only on request"
+    assert body["reader"]["kind"] == "pdf" and body["reader"]["pages"] == 2
     action = body["paradata"]
     assert atrium_rocrate.action_problems(action) == []
-    assert [(e["name"], e["encodingFormat"]) for e in action["object"]] == [("d.csv", "text/csv")]
-    assert [e["name"] for e in action["result"]] == ["results.json"]
+    assert record["assembled"]["blocks"]["lines"]["run_uuid"] == action["@id"]
+    assert [(e["name"], e["encodingFormat"]) for e in action["object"]] == [
+        ("zprava.pdf", "application/pdf")
+    ]
+    assert "#block-lines" in {e["@id"] for e in action["result"]}
 
 
-def test_document_mode_with_a_seed_conforms_including_the_record(engine, tmp_path, monkeypatch):
-    """The returned record is held to the vendored record schema, through the spec's
-    AtriumDocument component — the type AMČR's generated client deserialises it into."""
-    monkeypatch.chdir(tmp_path)
-    response = client.post(
-        "/extract_keywords_text",
-        json={"text": "Výzkum odhalil základy gotického kostela.", "document_json": _SEED},
+def test_reformat_renders_markdown_on_request():
+    files = {"file": ("zprava.pdf", _pdf(), "application/pdf")}
+    body = _conforms(
+        "/reformat", 200, client.post("/reformat", files=files, data={"markdown": "true"})
     )
-    body = _conforms("/extract_keywords_text", 200, response)
-    assert body["doc_id"] == _SEED["doc_id"] and body["document_json"]["doc_id"] == _SEED["doc_id"]
-    assert "document_json_schema_error" not in body
+    assert body["markdown"].startswith("# zprava")
+    assert "zprava.md" in {e["name"] for e in body["paradata"]["result"]}
 
 
 #: An AMČR seed (atrium-project#71): the file id and the archive's own view of the original.
-_AMCR_SEED = {
-    "doc_id": "C-202000543A-DT-27",
-    "source": {"sha512": "c" * 128, "filename": "zprava.pdf", "media_type": "application/pdf"},
-}
+def _seed(data: bytes, sha512=None):
+    return {
+        "doc_id": "C-202000543A-DT-27",
+        "source": {
+            "sha512": sha512 or hashlib.sha512(data).hexdigest(),
+            "filename": "zprava.pdf",
+            "media_type": "application/pdf",
+        },
+    }
 
 
-def test_an_amcr_seed_keeps_its_identity_and_the_run_is_returned(engine, tmp_path, monkeypatch):
-    """atrium-project#71 through /extract_keywords: the seed's id and source come back
-    unchanged (llm-enrich reads no source), the `enrichment` block carries the run_uuid that is
-    the returned CreateAction's @id, and nothing is written to the working directory."""
+def test_an_amcr_seed_keeps_its_identity_and_the_run_is_returned(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    data = _pdf()
+    seed = _seed(data)
     files = {
-        "file": (
-            "zprava.md",
-            "Výzkum odhalil základy gotického kostela.".encode(),
-            "text/markdown",
-        ),
+        "file": ("upload-1234.pdf", data, "application/pdf"),
+        "document_json": ("seed.document.json", json.dumps(seed).encode(), "application/json"),
+    }
+    body = _conforms("/reformat", 200, client.post("/reformat", files=files))
+    record = body["document_json"]
+    assert record["doc_id"] == seed["doc_id"] == body["doc_id"]
+    assert {k: v for k, v in record["source"].items() if k not in ("origin", "page_count")} == seed[
+        "source"
+    ]
+    assert "#record" in {e["@id"] for e in body["paradata"]["object"]}
+    assert "document_json_schema_error" not in body
+    assert list(tmp_path.iterdir()) == [], "nothing is written to the working directory"
+
+
+def test_a_seed_for_another_file_is_422_source_digest_mismatch():
+    files = {
+        "file": ("zprava.pdf", _pdf(), "application/pdf"),
         "document_json": (
-            "seed.document.json",
-            json.dumps(_AMCR_SEED).encode(),
+            "seed.json",
+            json.dumps(_seed(b"", "0" * 128)).encode(),
             "application/json",
         ),
     }
-    body = _conforms("/extract_keywords", 200, client.post("/extract_keywords", files=files))
-    record = body["document_json"]
-    assert record["doc_id"] == _AMCR_SEED["doc_id"] and record["source"] == _AMCR_SEED["source"]
-    assert "document_json_schema_error" not in body
-
-    action = body["paradata"]
-    assert atrium_rocrate.action_problems(action) == []
-    assert record["assembled"]["blocks"]["enrichment"]["run_uuid"] == action["@id"]
-    assert record["provenance"]["contributors"][-1]["paradata_ref"] == action["@id"]
-    assert "#record" in {e["@id"] for e in action["object"]}
-    assert "#block-enrichment" in {e["@id"] for e in action["result"]}
-    assert list(tmp_path.iterdir()) == []
+    body = _conforms("/reformat", 422, client.post("/reformat", files=files))
+    assert body["reason"] == "source_digest_mismatch"
+    assert "source_digest_mismatch" in _SPEC["x-atrium-reason-codes"]
 
 
-def test_a_wrong_file_type_is_415_unsupported_media_type(engine):
-    response = client.post(
-        "/extract_keywords", files={"file": ("d.pdf", b"%PDF-1.7", "application/pdf")}
-    )
-    body = _conforms("/extract_keywords", 415, response)
-    assert body["reason"] == "unsupported_media_type"
-    assert body["accepted"] == [".csv", ".teitok.xml", ".md", ".txt"]
-    assert body["detail"] == "Unsupported file type. Accepted: .csv, .teitok.xml, .md, .txt."
+def test_an_ocr_layer_pdf_is_422_ocr_text_layer():
+    files = {"file": ("scan.pdf", _pdf("ocr_layer.pdf"), "application/pdf")}
+    body = _conforms("/reformat", 422, client.post("/reformat", files=files))
+    assert body["reason"] == "ocr_text_layer"
+
+
+def test_a_garbled_page_is_flagged_not_refused():
+    files = {"file": ("g.pdf", _pdf("garbled.pdf"), "application/pdf")}
+    body = _conforms("/reformat", 200, client.post("/reformat", files=files))
+    page = body["document_json"]["pages"][0]
+    assert page["needs_ocr"] is True and page["needs_ocr_reason"]
+
+
+def test_a_type_the_converter_does_not_read_is_415():
+    files = {"file": ("notes.txt", b"hello", "text/plain")}
+    body = _conforms("/reformat", 415, client.post("/reformat", files=files))
+    assert body["reason"] == "unsupported_media_type" and body["cause"] == "unsupported"
+    assert ".pdf" in body["accepted"] and "application/pdf" in body["accepted"]
 
 
 @pytest.mark.parametrize(
     "part", [b"[1, 2]", b"{not json", b'{"schema_version": "9.0", "doc_id": "x"}']
 )
-def test_a_record_that_cannot_be_opened_is_422_invalid_record_before_any_call(engine, part):
+def test_a_record_that_cannot_be_opened_is_422_invalid_record(part):
     files = {
-        "file": ("d.csv", _CSV.encode(), "text/csv"),
+        "file": ("zprava.pdf", _pdf(), "application/pdf"),
         "document_json": ("d.document.json", part, "application/json"),
     }
-    body = _conforms("/extract_keywords", 422, client.post("/extract_keywords", files=files))
-    assert body["reason"] == "invalid_record" and engine["calls"] == []
+    body = _conforms("/reformat", 422, client.post("/reformat", files=files))
+    assert body["reason"] == "invalid_record"
 
 
-def test_an_inline_record_that_cannot_be_opened_is_422_invalid_record(engine):
-    response = client.post(
-        "/extract_keywords_text",
-        json={"text": "kostel", "document_json": {"schema_version": "7.0"}},
-    )
-    body = _conforms("/extract_keywords_text", 422, response)
-    assert body["reason"] == "invalid_record" and engine["calls"] == []
-
-
-def test_an_empty_record_part_counts_as_none(engine):
+def test_an_empty_record_part_counts_as_none():
     files = {
-        "file": ("d.csv", _CSV.encode(), "text/csv"),
+        "file": ("zprava.pdf", _pdf(), "application/pdf"),
         "document_json": ("d.document.json", b"", "application/json"),
     }
-    body = _conforms("/extract_keywords", 200, client.post("/extract_keywords", files=files))
-    assert "document_json" not in body
+    body = _conforms("/reformat", 200, client.post("/reformat", files=files))
+    assert "#record" not in {e["@id"] for e in body["paradata"]["object"]}
 
 
-def test_malformed_teitok_is_422_not_500(engine):
-    files = {"file": ("d.teitok.xml", b"<TEI><text><unclosed", "application/xml")}
-    body = _conforms("/extract_keywords", 422, client.post("/extract_keywords", files=files))
-    assert body["detail"].startswith("The upload could not be read:")
+def test_a_broken_file_is_422_with_its_cause():
+    files = {"file": ("broken.docx", b"PK\x03\x04 not a zip", "application/octet-stream")}
+    body = _conforms("/reformat", 422, client.post("/reformat", files=files))
+    assert body["reason"] is None and body["cause"] == "corrupt"
 
 
-def test_an_unready_backend_is_503_with_the_error_body():
+def test_a_document_over_max_pages_is_422_limit_exceeded(monkeypatch):
+    monkeypatch.setenv("MAX_PAGES", "1")
+    files = {"file": ("zprava.pdf", _pdf(), "application/pdf")}
+    body = _conforms("/reformat", 422, client.post("/reformat", files=files))
+    assert body["reason"] == "limit_exceeded" and body["limit"]["env"] == "MAX_PAGES"
+
+
+def test_every_slot_taken_is_429_busy(monkeypatch):
     from service import api
 
-    api._engine.clear()
-    body = _conforms(
-        "/extract_keywords_text", 503, client.post("/extract_keywords_text", json={"text": "x"})
+    monkeypatch.setattr(api._slots, "acquire", lambda: False)
+    files = {"file": ("zprava.pdf", _pdf(), "application/pdf")}
+    response = client.post("/reformat", files=files)
+    body = _conforms("/reformat", 429, response)
+    assert body["reason"] == "busy" and response.headers["Retry-After"]
+
+
+def test_a_draining_service_refuses_new_work_with_503():
+    assert _state is not None
+    was = _state.draining
+    try:
+        _state.draining = True
+        files = {"file": ("zprava.pdf", _pdf(), "application/pdf")}
+        body = _conforms("/reformat", 503, client.post("/reformat", files=files))
+        assert body["reason"] is None
+    finally:
+        _state.draining = was
+
+
+def test_describe_without_stages_conforms_and_routes_every_page():
+    files = {"file": ("img.pdf", _pdf("image_only.pdf"), "application/pdf")}
+    body = _conforms("/describe", 200, client.post("/describe", files=files))
+    assert [s["status"] for s in body["stages"]] == ["not_configured", "not_configured"]
+    routes = [(p["text_layer"], p["route"]) for p in body["pages"]]
+    assert routes[0] == ("digital", "nlp") and routes[1] == ("none", "ocr")
+    assert (
+        body["summary"]["pages"] == len(body["pages"])
+        and body["summary"]["document_route"] == "mixed"
     )
-    assert body["reason"] is None
+    assert atrium_rocrate.action_problems(body["paradata"]) == []
+
+
+def test_describe_refuses_an_unknown_stage_name():
+    files = {"file": ("zprava.pdf", _pdf(), "application/pdf")}
+    response = client.post("/describe", files=files, data={"stages": "ocr-postprocess,translator"})
+    body = _conforms("/describe", 422, response)
+    assert "translator" in body["detail"]
 
 
 def test_ocr_text_layer_is_the_registered_code_of_the_converters_refusal(tmp_path):
-    """atrium-llm-enrich#10 W6: AMČR's route step sends a document refused with the 422
-    `ocr_text_layer` to OCR, and relies on that code staying stable. The converter raises it
-    (api_util/digital_to_json.py); api-digital (W1) will answer it; the registry fixes it —
-    so a rename on either side fails here. The PDF is the pinned fixture that
-    tests/test_digital_to_json.py builds the same way."""
+    """atrium-digital-convert#4 W6: AMČR's route step sends a document refused with the 422
+    `ocr_text_layer` to OCR, and relies on that code staying stable. The converter raises it,
+    /reformat answers it, the registry fixes it — so a rename on either side fails here."""
     pytest.importorskip("pdfplumber")
-    import importlib.util
-
     from api_util import digital_to_json as d2j
     from service.atrium_service import REASON_CODES, REASON_STATUSES
 
-    maker = Path(__file__).resolve().parent / "fixtures" / "digital" / "make_fixtures.py"
-    spec = importlib.util.spec_from_file_location("make_fixtures", maker)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
     pdf = tmp_path / "ocr_layer.pdf"
-    pdf.write_bytes(module.build_all()["ocr_layer.pdf"])
-
+    pdf.write_bytes(_pdf("ocr_layer.pdf"))
     with pytest.raises(d2j.DigitalInputError) as info:
         d2j.extract(str(pdf))
     assert info.value.reason == "ocr_text_layer"
     assert info.value.reason in REASON_CODES and REASON_STATUSES[info.value.reason] == (422,)
     assert info.value.reason in _SPEC["x-atrium-reason-codes"]
+
+
+def test_the_rename_from_llm_enrich_is_declared_in_the_spec():
+    """The release gate accepts a changed service id only when the spec declares the old one
+    (atrium-project#72): v1.0.0-beta published `atrium-llm-enrich`."""
+    assert _SPEC["info"]["x-atrium-service"] == SERVICE
+    assert _SPEC["info"]["x-atrium-service-previous"] == "atrium-llm-enrich"

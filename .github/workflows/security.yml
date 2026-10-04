@@ -9,14 +9,12 @@
 #                    published GHCR image for CVEs.
 #   sbom           — generates a CycloneDX SBOM alongside trivy.
 #
-# image-ref points at the :llm variant (torch/transformers/vLLM/bitsandbytes —
-# the largest dependency surface and therefore the most CVE-relevant of the
-# two published images). The lighter :remote image is not separately scanned
-# here; add a second `security-remote` job with image-ref set to the
-# ...-remote tag if that surface needs independent coverage.
+# image-ref points at the :api image, the production image of this repository (the
+# converter stack, LibreOffice and the web server — the largest dependency surface of the
+# two published images). The :digital CLI image is the same stack without the web server.
 #
 # Prerequisites (infra, not code):
-#   • GHCR package ghcr.io/ufal/atrium-llm-enrich-llm must be published & public
+#   • GHCR package ghcr.io/ufal/atrium-digital-convert-api must be published & public
 #     (or auth available) before the weekly Trivy scan can pull :latest.
 #     PR runs are unaffected (image-scan is gated off PRs in the reusable).
 
@@ -54,4 +52,4 @@ jobs:
     # (Trivy/SBOM read a public GHCR image, version-check reads the tree).
     # It previously carried `secrets: inherit` for no reason (#18).
     with:
-      image-ref: ghcr.io/ufal/atrium-llm-enrich-llm:latest
+      image-ref: ghcr.io/ufal/atrium-digital-convert-api:latest

@@ -1,11 +1,11 @@
-# para_config.txt — atrium-llm-enrich
+# para_config.txt — atrium-digital-convert
 # Repository-specific paradata facts. Edit this file (not the Python) when
 # components or versions change.
 
 [tool]
-program = llm-enrich
-version = v1.0.0-beta
-repository_fallback = https://github.com/ufal/atrium-llm-enrich
+program = digital-convert
+version = v1.1.0-beta
+repository_fallback = https://github.com/ufal/atrium-digital-convert
 
 [components]
 # name = <license> ; <always|conditional> ; <role>
@@ -14,96 +14,60 @@ repository_fallback = https://github.com/ufal/atrium-llm-enrich
 #                  (or, via the CLI shim, when `--component NAME` is passed to
 #                  `start`/`success`).
 #
-# ── digital-born converter (Issue #18, program identity `digital-convert`) ────
-# The hub's docs/document_schema.md changelog records that `digital-convert` "is
-# also a ParadataLogger identity needing a para_config.txt component->licence
-# mapping, so it is a two-schema commitment". This is that commitment.
-#
-# It is not bookkeeping. Without these rows log_component("docling") stores
+# ── the born-digital converter (program `digital-convert`) ─────────────────────
+# It is not bookkeeping. Without these rows log_component("pdfplumber") stores
 # "UNKNOWN", and para_licenses.resolve_effective_license() treats UNKNOWN as
-# MAXIMALLY RESTRICTIVE, so a digital-born record came out with
+# MAXIMALLY RESTRICTIVE, so a born-digital record would come out with
 # `provenance.license = "UNKNOWN"` — worse than the conservative CC BY-NC 4.0
-# default, and the exact opposite of the permissive result that the whole
-# pdfplumber-over-PyMuPDF argument in requirements_digital.txt exists to secure.
-# The licence decision was inert until it was declared here.
+# default, and the opposite of the permissive result the pdfplumber-over-PyMuPDF
+# choice in requirements_digital.txt exists to secure.
 #
-# All "conditional": a run only touches the libraries the input format needs, and
-# none of them is loaded by the LLM enrichment path at all.
-#
-# 2026-09-25: api_util/digital_to_json.py now LOGS what it uses (license_detail_for()).
-# Until then nothing called log_component() on this path, so every digital-born record
-# carried the CC BY-NC 4.0 default whatever these rows said. The light engine's rows are
-# the libraries that parse the file (pdfminer.six under pdfplumber; pypdfium2 for page
-# labels and the OCR-layer census; lxml under python-docx) plus jsonschema, which gates
-# every record. docx2python is gone: nothing ever imported it.
-pdfplumber   = MIT          ; conditional ; digital-born PDF words, geometry, fonts, ruled tables
+# All "conditional": a run only touches the libraries the input format needs.
+# api_util/digital_to_json.py LOGS what it uses (license_detail_for()). The light
+# engine's rows are the libraries that parse the file (pdfminer.six under pdfplumber;
+# pypdfium2 for page labels and the OCR-layer census; lxml under python-docx and the
+# shared reader) plus jsonschema, which gates every record.
+pdfplumber   = MIT          ; conditional ; born-digital PDF words, geometry, fonts, ruled tables
 pdfminer.six = MIT          ; conditional ; PDF parser under pdfplumber
-pypdfium2    = Apache-2.0   ; conditional ; PDF page labels + text render mode (OCR-layer census)
+pypdfium2    = Apache-2.0   ; conditional ; PDF page labels + text render mode (OCR-layer census), page counts
 python-docx  = MIT          ; conditional ; DOCX package, table grids
-lxml         = BSD-3-Clause ; conditional ; DOCX WordprocessingML walk (under python-docx)
+lxml         = BSD-3-Clause ; conditional ; DOCX WordprocessingML walk; ODT/ODS/XLSX parts in the shared reader
 jsonschema   = MIT          ; conditional ; digital-convert's output gate (validate_document)
 #
-# Heavy engine (`--engine docling`, requirements_digital_docling.txt; PDF only). The two
-# model rows are the weights Docling downloads, and they are licensed separately from its
-# MIT code. TableFormer's weights are CDLA-Permissive-2.0, which para_licenses.py (vendored
-# from the hub, byte-identity enforced) ranks with MIT since 2026-09-25: it places no terms
-# on Results, the output of a computation over the data. So a docling run's record resolves
-# to MIT, and lists this row as it is. Recorded rather than rounded to Apache-2.0: the
-# licence field is only worth something if it is true.
+# The shared reader (atrium-digital-convert#2 W2): text_formats.py, vendored byte-identical
+# from atrium-ocr-postprocess (MIT, as this repository), reads ODT, ODS, XLSX and RTF.
+text_formats = MIT          ; conditional ; ODT/ODS/XLSX/RTF reader (vendored from atrium-ocr-postprocess)
+#
+# Legacy DOC and XLS (#2 W2; accepted by AMČR on #4, 2026-09-26). Headless LibreOffice
+# converts the file to DOCX/XLSX before the readers above read it. DECLARED HERE, NOT
+# LOGGED: AMČR's condition was that it "only converts the file, so it adds nothing to the
+# licence of the record" — it changes the container format of a text it does not author —
+# and log_component() would put MPL 2.0 (share-alike in para_licenses) into the record's
+# licence union. The conversion is reported beside the record instead (the service's
+# `reader.conversion`; DigitalDocument.conversion). Same treatment as flexiconv below.
+libreoffice  = MPL 2.0      ; conditional ; DOC -> DOCX and XLS -> XLSX conversion only (api_util/digital_legacy.py; never logged)
+#
+# Heavy engine (`--engine docling`, requirements_digital_docling.txt; PDF only; a local
+# build, never in the service image). The two model rows are the weights Docling downloads,
+# licensed separately from its MIT code. TableFormer's weights are CDLA-Permissive-2.0,
+# which para_licenses.py ranks with MIT: it places no terms on Results, the output of a
+# computation over the data. So a docling run's record resolves to MIT.
 docling              = MIT                 ; conditional ; heavy PDF engine: layout + table structure
 docling-parse        = MIT                 ; conditional ; Docling's PDF backend
 docling-layout-heron = Apache-2.0          ; conditional ; layout model weights (docling-project/docling-layout-heron)
 docling-tableformer  = CDLA-Permissive-2.0 ; conditional ; table-structure model weights (docling-project/docling-models)
 #
 # ── flexiconv (optional; api_util/flexiconv_convert.py, vendored from nlp-enrich) ─
-# Declares GPL-3.0-or-later in its pyproject.toml (checked at the pinned v0.3.10; the
-# repository has no LICENSE file); para_licenses folds "-or-later" into GPL-3.0. Same row
-# as atrium-nlp-enrich's para_config.txt. Conditional: it only constrains runs that
-# actually convert documents with it -- and no stage of this repo does (the adapter is
-# vendored for its tests and for direct use; nothing here calls log_component("flexiconv")),
-# so the row never enters a run's licence union here. Converting is nlp-enrich's
-# api_flexiconv.sh, which logs it.
+# Declares GPL-3.0-or-later in its pyproject.toml (checked at the pinned v0.3.10); para_licenses
+# folds "-or-later" into GPL-3.0. Conditional: it only constrains runs that actually convert
+# documents with it -- and no stage of this repo does (the adapter is vendored for its tests and
+# for direct use; nothing here calls log_component("flexiconv")), so the row never enters a
+# run's licence union here. Converting is nlp-enrich's api_flexiconv.sh, which logs it.
 flexiconv   = GPL-3.0 ; conditional ; flexiconv document -> TEITOK converter (api_util/flexiconv_convert.py)
 #
-# ── controlled vocabularies (issue nlp-enrich#6) ─────────────────────────────
-# The AMCR `heslo` vocabularies (https://api.aiscr.cz/2.2/oai) and the TEATER
-# thesaurus are CC0, as stated by their rights holder (AMCR, atrium-project#6,
-# comment 5867861653, 2026-09-28). They were labelled CC BY-NC 4.0 before, after
-# the OAI-PMH Identify response for the whole repository; paradata written before
-# that date says so. Names and licences match atrium-nlp-enrich's and
-# atrium-translator's para_config.txt so all three repos resolve the same
-# licence for the same data.
+# PyMuPDF is intentionally NOT listed. It is AGPL-3.0, and rule 5's most-restrictive union
+# would put AGPL-3.0 into provenance.license for every born-digital document. See
+# requirements_digital.txt before adding it.
 #
-# "conditional", not "always": the digital-born conversion path never loads a
-# vocabulary, so it is not a component of a digital-convert record. Every LLM
-# enrichment run does inject the vocabulary, so that path is where
-# log_component() belongs when the TODO below is worked through. (CC0 ranks
-# lowest, so naming it can never make a record more restrictive.)
-amcr_vocab  = CC0 ; conditional ; AMCR heslar controlled vocabulary (vocab_sources.harvest_amcr)
-teater_data = CC0 ; conditional ; TEATER thesaurus data (vocab_sources.harvest_teater)
-#
-# PyMuPDF is intentionally NOT listed. It is AGPL-3.0, and rule 5's
-# most-restrictive union would put AGPL-3.0 into provenance.license for every
-# digital-born document. See requirements_digital.txt before adding it.
-#
-# TODO(K4TEL/DanaKriv): this section was inherited from atrium-nlp-enrich and
-# stripped of the NameTag3/UDPipe/YAKE/KeyBERT rows, which don't apply here
-# (this repo never loads those). It needs a real pass:
-#   * BACKEND=transformers/vllm — the effective license depends on which
-#     MODEL_KEY is selected at runtime (MODEL_REGISTRY spans Qwen
-#     Apache-2.0/Qwen-license, Gemma's Gemma-license, Llama's Llama-license,
-#     etc.) — not a single fixed "always" component like nlp-enrich's NER
-#     models were. Likely needs a per-model_key -> license lookup rather than
-#     a flat row here.
-#   * BACKEND=openrouter — routes to third-party model providers under their
-#     own terms; no single license applies. `PROVIDER_DATA_COLLECTION=deny`
-#     (see llm_config.txt) restricts routing to providers that don't retain
-#     prompts/completions, but does not by itself resolve licensing.
-#   * BACKEND=ollama — locally-served model, same per-model variability as
-#     the transformers/vllm case above.
-#   * flexiconv — licence checked 2026-09-23 (GPL-3.0-or-later, row above). Whether a
-#     GPL-3.0 conditional component is acceptable for a shared/production run is a
-#     project-policy decision, not an unknown.
-# Until this is reviewed, ParadataLogger falls back to its conservative
-# default (CC BY-NC 4.0) whenever no components are logged — see
-# atrium_paradata.py:_license_block().
+# The LLM/vocabulary rows (amcr_vocab, teater_data and the model TODO) left with the keyword
+# code for atrium-keyword-extract (atrium-digital-convert#1).

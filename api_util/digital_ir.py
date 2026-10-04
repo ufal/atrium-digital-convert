@@ -56,14 +56,23 @@ class DigitalInputError(ValueError):
     overlap, so an operator sees one vocabulary across both tools.
     """
 
-    #: reason -> CLI exit code. 3 = not something this converter takes; 4 = broken file.
+    #: reason -> CLI exit code. 2 = a dependency is missing; 3 = not something this converter
+    #: takes (for this seed); 4 = broken file.
+    #:
+    #: `source_digest_mismatch` (atrium-digital-convert#2, accepted by AMČR 2026-09-30): the seed's
+    #: `source.sha512` is not the digest of the bytes handed over, so the record would describe
+    #: one file under another file's identity. `dependency_missing`: a reader this input needs
+    #: (LibreOffice for DOC/XLS) is not installed in this deployment.
     EXIT_CODES: Dict[str, int] = {
         "unsupported": 3,
         "legacy_office_unsupported": 3,
         "ocr_text_layer": 3,
+        "source_digest_mismatch": 3,
+        "dependency_missing": 2,
         "encrypted": 4,
         "corrupt": 4,
         "zip_limits_exceeded": 4,
+        "conversion_failed": 4,
     }
 
     def __init__(self, reason: str, message: str):
@@ -86,12 +95,21 @@ def missing_dependency(
     )
 
 
-def sha256_file(path: str) -> str:
-    digest = hashlib.sha256()
+def _digest_file(path: str, algorithm: str) -> str:
+    digest = hashlib.new(algorithm)
     with open(path, "rb") as handle:
         for chunk in iter(lambda: handle.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def sha256_file(path: str) -> str:
+    return _digest_file(path, "sha256")
+
+
+def sha512_file(path: str) -> str:
+    """The digest AMČR's archive keeps for an original (the Fedora digest, lower-case hex)."""
+    return _digest_file(path, "sha512")
 
 
 def font_flags(fontname: str) -> Tuple[bool, bool]:
@@ -192,6 +210,13 @@ class DigitalDocument:
     engine: str = "light"
     #: `para_config.txt` component names this run actually used — the licence union's input.
     components: List[str] = field(default_factory=list)
+    #: The input kind `sniff()` decided (`pdf`, `docx`, `odt`, `ods`, `xlsx`, `rtf`, `doc`, `xls`).
+    kind: str = ""
+    #: Reader notes worth reporting (the vendored reader's lossy/limit notes, a conversion).
+    notes: List[str] = field(default_factory=list)
+    #: For DOC/XLS: how the original was converted before reading (tool, target format,
+    #: seconds). The record keeps the ORIGINAL's identity; this goes to the paradata.
+    conversion: Optional[Dict[str, Any]] = None
 
     def all_lines(self) -> List[DigitalLine]:
         return [line for page in self.pages for line in page.lines]

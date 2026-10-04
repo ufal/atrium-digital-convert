@@ -2,7 +2,7 @@
 FROM python:3.11-slim AS base
 
 ARG ATRIUM_RUNNER_IMAGE=""
-ARG ATRIUM_RUNNER_REPO="https://github.com/ufal/atrium-llm-enrich"
+ARG ATRIUM_RUNNER_REPO="https://github.com/ufal/atrium-digital-convert"
 ARG ATRIUM_RUNNER_REF=""
 
 ENV ATRIUM_RUNNER_IMAGE=${ATRIUM_RUNNER_IMAGE} \
@@ -11,8 +11,7 @@ ENV ATRIUM_RUNNER_IMAGE=${ATRIUM_RUNNER_IMAGE} \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    HF_HOME=/cache/huggingface
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # ── Distro security patches, applied at build time ───────────────────────────
 # `python:3.11-slim` is a floating TAG, and nothing in this ecosystem bumps it:
@@ -57,86 +56,58 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# Backend-agnostic base deps only (pydantic/requests/tqdm) — see requirements.txt.
-# Heavy (requirements_llm.txt) and light-remote (requirements_remote.txt) deps are
-# layered on in the two stages below, so neither pulls in the other's footprint.
+# Base deps (pydantic/requests/jsonschema/lxml) — see requirements.txt. The converter's
+# readers come in the `digital` stage, the web server in `api`.
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
 COPY . .
 
-# Fail the BUILD, not the pipeline, if the vocabulary stops being packaged.
-# data_samples/ is excluded in .dockerignore with two `!` exceptions, so a later
-# edit to either file's path — a rebuilt vocabulary under a new name, a tightened
-# ignore rule — silently produces an image whose own llm_config.txt points at
-# nothing. That shipped once already and only surfaced as a cross-repo e2e failure
-# in another repository (atrium-project run 34032532443). Two stat calls here turn
-# a packaging regression back into a build error.
-RUN test -f data_samples/vocab/union_nested.json \
-    && test -f data_samples/taxonomy_config.json \
-    || (echo "ERROR: runtime vocabulary missing from the image - check .dockerignore" >&2; exit 1)
-
 # Non-root runtime user. Owned atrium:0 and group-writable (`g=u`): the arbitrary-UID
 # convention (OpenShift's), atrium-project#69 / roadmap B6. docker-compose.yaml runs these
 # images as `user: "${ATRIUM_UID:-10001}:0"`, so on Linux the container can run as the uid
 # that owns the ./data bind mount, and a uid with no passwd entry still reaches /app,
-# /cache, /data and $HOME through group 0. HOME is explicit because without a passwd entry
+# /data and $HOME through group 0. HOME is explicit because without a passwd entry
 # it would be `/`. The default runtime -- uid 10001 as the owner -- is unchanged. Every
 # stage below re-applies the same ownership to what it adds.
 RUN useradd --create-home --uid 10001 atrium \
-    && mkdir -p /cache/huggingface /data \
-    && chown -R atrium:0 /app /cache /data /home/atrium \
-    && chmod -R g=u /app /cache /data /home/atrium
+    && mkdir -p /data \
+    && chown -R atrium:0 /app /data /home/atrium \
+    && chmod -R g=u /app /data /home/atrium
 ENV HOME=/home/atrium
 
 USER atrium
 
 
 # ---------------------------------------------------------------------------
-# Remote / lightweight-local variant — published as :<version>-remote
-# For openrouter_client.py and ollama_client.py: no torch/transformers/vllm/
-# bitsandbytes (see requirements_remote.txt). No single default script — pass
-# one of the two client modules (+ its args) as the container command.
-# ---------------------------------------------------------------------------
-FROM base AS remote
-
-USER root
-COPY requirements_remote.txt ./
-RUN pip install -r requirements_remote.txt
-RUN chown -R atrium:0 /app /home/atrium \
-    && chmod -R g=u /app /home/atrium
-USER atrium
-
-ENTRYPOINT ["python"]
-CMD ["openrouter_client.py", "--help"]
-
-
-# ---------------------------------------------------------------------------
-# Digital-born converter — published as :<version>-digital  (W8)
+# Born-digital converter, command line — published as :<version>-digital
 #
-# api_util/digital_to_json.py turns a born-digital PDF/DOCX directly into an
-# atrium_document record. It is an ORIGINATOR, like page-classification's scan
-# path: it takes no --document-json baseline, it creates the record.
-#
-# Why a separate stage rather than folding it into `remote`: the two have disjoint
-# dependency sets and disjoint reasons to exist. `remote` talks to OpenRouter and
-# needs no document parsing; this needs pdfplumber/python-docx and no network at
-# all. Merging them would put a PDF parser in the image whose whole selling point
-# is being the torch-free API client.
+# api_util/digital_to_json.py turns a born-digital document directly into an
+# atrium_document record. It is the ORIGINATOR of a born-digital record's positional
+# plane: with an AMČR seed (--document-json) it keeps the seed's identity and checks its
+# source.sha512 against the file; without one it creates the record.
 #
 # The image carries the LIGHT engine only — requirements_digital.txt: pdfplumber,
-# pypdfium2, python-docx, jsonschema, all permissive, no models, no network. Until
-# 2026-09-25 it also installed `docling` and `docx2python`, which nothing shipped
-# imports; docling alone brings torch and the CUDA libraries, several GB, into an image
-# whose converter never loads them. The opt-in heavy engine is its own stage below.
+# pypdfium2, python-docx, jsonschema, lxml, all permissive, no models, no network — plus
+# headless LibreOffice for the legacy DOC/XLS (atrium-digital-convert#4, accepted by AMČR
+# 2026-09-26: MPL-2.0, a conditional component in para_config.txt, it only converts the
+# file). `-core` alone cannot load a document ("source file could not be loaded"): the
+# writer and calc filters are what convert DOC and XLS, so both are installed, in their
+# `-nogui` builds. The opt-in heavy engine is its own stage below.
 # ---------------------------------------------------------------------------
 FROM base AS digital
 
 USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libreoffice-writer-nogui \
+        libreoffice-calc-nogui \
+    && rm -rf /var/lib/apt/lists/*
 COPY requirements_digital.txt ./
 RUN pip install -r requirements_digital.txt
 RUN chown -R atrium:0 /app /home/atrium \
     && chmod -R g=u /app /home/atrium
+ENV LIBREOFFICE_BIN=soffice
 USER atrium
 
 ENTRYPOINT ["python", "api_util/digital_to_json.py"]
@@ -146,8 +117,8 @@ CMD ["--help"]
 # ---------------------------------------------------------------------------
 # Digital-born converter, heavy engine — built on demand, NOT published
 #
-#   docker build --target digital-docling -t atrium-llm-enrich-digital-docling .
-#   docker run --rm -v "$PWD:/data" atrium-llm-enrich-digital-docling \
+#   docker build --target digital-docling -t atrium-digital-convert-digital-docling .
+#   docker run --rm -v "$PWD:/data" atrium-digital-convert-digital-docling \
 #       /data/report.pdf --engine docling --document-json-out /data/report.document.json
 #
 # `--engine docling` (api_util/digital_docling.py): Docling's layout and table models
@@ -160,7 +131,7 @@ CMD ["--help"]
 # DOCLING_ARTIFACTS_PATH names. TableFormer's weights are CDLA-Permissive-2.0: see
 # requirements_digital_docling.txt for what that does to provenance.license.
 #
-# Declared before `llm` so that an untargeted `docker build` still builds the last
+# Declared before `api` so that an untargeted `docker build` still builds the last
 # stage, `api`.
 # ---------------------------------------------------------------------------
 FROM digital AS digital-docling
@@ -179,30 +150,13 @@ CMD ["--help"]
 
 
 # ---------------------------------------------------------------------------
-# Local multi-GPU variant — published as :<version>-llm
+# API service — published as :<version>-api, THE production image (atrium-project#72)
+# `api-digital` (atrium-digital-convert#2): POST /reformat (the AMČR route's endpoint;
+# calls no other service) and POST /describe (the per-page assessment; calls
+# page-classification and ocr-postprocess only when PAGE_CLASSIFICATION_URL /
+# OCR_POSTPROCESS_URL are set). The `digital` stack + the web server; no model, no GPU.
 # ---------------------------------------------------------------------------
-FROM base AS llm
-
-USER root
-COPY requirements_llm.txt ./
-RUN pip install \
-        --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r requirements_llm.txt
-
-RUN chown -R atrium:0 /app /home/atrium \
-    && chmod -R g=u /app /home/atrium
-USER atrium
-
-ENTRYPOINT ["python", "llm_run.py"]
-CMD ["llm_config.txt"]
-
-
-# ---------------------------------------------------------------------------
-# API service variant — published as :<version>-api
-# FastAPI meta-contract service (strategy §4) wrapping the torch-free remote /
-# lightweight-local enrichment engine. Built on the remote stack + web server.
-# ---------------------------------------------------------------------------
-FROM remote AS api
+FROM digital AS api
 
 USER root
 COPY service/requirements.txt ./service/requirements.txt
@@ -228,11 +182,10 @@ STOPSIGNAL SIGTERM
 # default ever drifts. (issue #58)
 #
 # GRACEFUL_SHUTDOWN_S carries the `--timeout-graceful-shutdown 20` that used to sit on
-# the ENTRYPOINT line. It bounds uvicorn's wait for in-flight HTTP
-# requests. Note llm-enrich's slow work happens INSIDE the request (one remote LLM call
-# per line, each up to LLM_TIMEOUT), so a large document can legitimately outlive this
-# budget and be cut short — raise this together with the deployment's grace period for
-# such a workload (docs/k8s_deployment.md, "Known limits").
+# the ENTRYPOINT line. It bounds uvicorn's wait for in-flight HTTP requests. A
+# conversion takes seconds; a /describe with stages configured waits for them (up to
+# STAGE_TIMEOUT_S per call), so raise this together with the deployment's grace period
+# when /describe is used (docs/k8s_deployment.md in the hub).
 ENV PORT=8000 GRACEFUL_SHUTDOWN_S=20
 
 # `python -m service.api`, NOT `python service/api.py`: a script launch puts
@@ -243,5 +196,5 @@ ENV PORT=8000 GRACEFUL_SHUTDOWN_S=20
 # resolves. (issue #58)
 ENTRYPOINT ["python", "-m", "service.api"]
 CMD []
-HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD ["python", "/app/service/healthcheck.py"]

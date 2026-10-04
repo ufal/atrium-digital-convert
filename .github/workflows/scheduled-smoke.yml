@@ -72,17 +72,17 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/pip
-          key: pip-smoke-${{ runner.os }}-${{ hashFiles('requirements.txt', 'requirements-test.txt') }}
+          key: pip-smoke-${{ runner.os }}-${{ hashFiles('requirements.txt', 'requirements_digital.txt', 'requirements-test.txt') }}
           restore-keys: |
             pip-smoke-${{ runner.os }}-
 
       - name: Install dependencies
-        # requirements-test.txt already carries pdfplumber + python-docx, so Layer A of
-        # the digital-convert converter runs here. flexiconv is added for the two tests
-        # that skip without its CLI; torch stays out, because gpu-inference.yml already
-        # covers the torch-gated tests on a runner that has a GPU.
+        # requirements-test.txt carries the converter's readers and the web stack, so the
+        # whole suite runs here — /describe over the stage stub included. flexiconv is added
+        # for the two tests that skip without its CLI. No LibreOffice: the DOC/XLS tests run
+        # against a fake `soffice`.
         run: |
-          pip install -r requirements.txt -r requirements-test.txt
+          pip install -r requirements.txt -r requirements_digital.txt -r requirements-test.txt
           pip install -r requirements_flexiconv.txt || echo "[smoke] flexiconv unavailable — its tests will report as skipped below"
 
       - name: Run the full suite

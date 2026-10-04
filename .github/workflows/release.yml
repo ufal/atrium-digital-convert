@@ -14,13 +14,13 @@
 # and the latest release, and nothing is published.
 #
 # Suggested tagging workflow:
-#   git tag -a v0.3.0 -m "v0.3.0 — DU code + to-MD convertors"
-#   git push origin v0.3.0
+#   git tag -a v1.1.0-beta -m "v1.1.0-beta — the born-digital service: /reformat + /describe"
+#   git push origin v1.1.0-beta
 #
 # After the tag push, workflows fire in sequence:
-#   1. docker.yml   — builds and pushes ghcr.io/ufal/atrium-llm-enrich-{remote,llm}:v0.3.0
+#   1. docker.yml   — builds and pushes ghcr.io/ufal/atrium-digital-convert-{digital,api}:v1.1.0-beta
 #   2. release.yml  — creates the GitHub Release (this file)
-#   3. security.yml — (scheduled/dispatch) Trivy-scans :latest after :v0.3.0 is live
+#   3. security.yml — (scheduled/dispatch) Trivy-scans :latest after :v1.1.0-beta is live
 
 name: Release
 

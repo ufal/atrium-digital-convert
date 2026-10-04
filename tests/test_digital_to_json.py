@@ -19,6 +19,7 @@ and skip cleanly where it is not — rather than being absent and untested every
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -891,9 +892,12 @@ def test_a_strict_run_accepts_an_amcr_seed_and_stamps_the_run(digital_fixtures, 
     archive's sha512, and stamps the paradata logger's run_uuid."""
     pytest.importorskip("pdfplumber")
     pytest.importorskip("jsonschema")
+    # The archive's digest of the very file sent: since atrium-digital-convert#2 a seed whose
+    # sha512 is not the file's own is refused (source_digest_mismatch; see the tests below).
+    digest = hashlib.sha512((digital_fixtures / "minimal.pdf").read_bytes()).hexdigest()
     seed = {
         "doc_id": "AMCR-F-minimal",
-        "source": {"sha512": "c" * 128, "filename": "zprava.pdf", "media_type": "application/pdf"},
+        "source": {"sha512": digest, "filename": "zprava.pdf", "media_type": "application/pdf"},
     }
     baseline = tmp_path / "seed.document.json"
     baseline.write_text(json.dumps(seed), encoding="utf-8")

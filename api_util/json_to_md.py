@@ -66,9 +66,9 @@ DROP_CATEGORIES = frozenset(UNTRUSTWORTHY_LINE_CATEGORIES)
 
 #: The recipe id a record's ``regenerable.markdown`` names for this converter. 1.1 added the
 #: ``standard``/``minimal`` profiles and LAYOUT_MARGIN; a 1.0 recipe renders as 1.1 ``full``
-#: minus LAYOUT_MARGIN. ``llm_client_shared.JSON_TO_MD_CONVERTER`` must say the same
-#: (tests/test_json_to_md.py) — it keeps its own copy so the skill branch, which does not
-#: carry this module, can still write the recipe.
+#: minus LAYOUT_MARGIN. The keyword stage (atrium-keyword-extract, where the LLM client moved
+#: in #1) writes the same literal without importing this module; tests/test_json_to_md.py pins
+#: it, so a change here is deliberate and goes there too.
 CONVERTER_ID = "json_to_md@1.1"
 
 #: Every profile of the schema's ``regenerable.detail`` enum is implemented (atrium-project#70

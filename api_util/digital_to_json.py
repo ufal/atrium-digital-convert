@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-api_util/digital_to_json.py — digital-born PDF/DOCX → `atrium_document` JSON.
+api_util/digital_to_json.py — born-digital documents → `atrium_document` JSON.
+
+Reads every born-digital type AMČR accepts (atrium-digital-convert#2): PDF and DOCX with this
+repository's structural readers (geometry, groups, styles, tables), ODT, ODS, XLSX and RTF with
+the shared reader atrium-ocr-postprocess owns (`text_formats.py`, vendored; see
+`api_util/digital_text.py`), and legacy DOC and XLS after a headless LibreOffice conversion
+(`api_util/digital_legacy.py`). An AMČR seed's `source.sha512` is checked against the bytes of
+the original before anything is read (`source_digest_mismatch`, see `verify_seed_digest()`).
 
 The `digital-convert` originator (hub issue #18 §1a, plan §2). `BLOCK_OWNERS` gives the
 positional plane — `pages`, `content`, `lines`, `tables` — two possible originators, and
@@ -96,9 +103,11 @@ calls out. DOCX has no page geometry without rendering, so a DOCX document carri
 ## Exit codes
 
     0  record written
-    2  a dependency is missing (advice printed, no traceback)
-    3  not an input this converter takes: unsupported format, legacy .doc, an OCR-layer PDF
-    4  the file is broken: corrupt, encrypted, over the ZIP limits
+    2  a dependency is missing (advice printed, no traceback) — LibreOffice for DOC/XLS too
+    3  not an input this converter takes: unsupported format, an OCR-layer PDF, or a seed
+       whose source.sha512 is not the file's digest (source_digest_mismatch)
+    4  the file is broken: corrupt, encrypted, over the ZIP limits, a failed conversion, or
+       over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S)
 
 Usage:
     python api_util/digital_to_json.py report.pdf --document-json-out report.document.json
@@ -139,12 +148,15 @@ from api_util.digital_ir import (  # noqa: E402  (re-exported: `d2j.DigitalLine`
     is_inverted,
     missing_dependency,
     sha256_file,
+    sha512_file,
 )
 from atrium_document import (  # noqa: E402
     DocumentRecord,
     canonical_doc_id,
+    load_document,
     validate_document,
 )
+from atrium_limits import LimitExceeded  # noqa: E402
 
 __all__ = [
     "REGION_FOOTER",
@@ -271,9 +283,35 @@ BAND_NOISY_AT = 0.50
 #: is used rather than an absolute, because the gap scales with the font.
 PARAGRAPH_GAP_RATIO = 1.8
 
-#: The `ocr` text-layer verdict needs at least half of the text-bearing pages before the
-#: whole DOCUMENT is refused — alto-postprocess `default_source_origin`'s rule.
+#: The `ocr` text-layer verdict needs at least this share of the text-bearing pages before the
+#: whole DOCUMENT is refused — ocr-postprocess `default_source_origin`'s rule. The default only:
+#: the effective value is the `OCR_LAYER_DOCUMENT_SHARE` setting (tool_limits.py, reported in
+#: the service's /info), read per document by `ocr_layer_document_share()`.
 OCR_LAYER_DOCUMENT_SHARE = 0.5
+
+#: Every input kind `sniff()` answers: every born-digital type AMČR accepts.
+KINDS: Tuple[str, ...] = ("pdf", "docx", "odt", "ods", "xlsx", "rtf", "doc", "xls")
+
+#: Media types per kind, for a caller (the service's 415 `accepted`, its /info).
+MEDIA_TYPES: Dict[str, str] = {
+    "pdf": "application/pdf",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "odt": "application/vnd.oasis.opendocument.text",
+    "ods": "application/vnd.oasis.opendocument.spreadsheet",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "rtf": "application/rtf",
+    "doc": "application/msword",
+    "xls": "application/vnd.ms-excel",
+}
+
+
+def ocr_layer_document_share() -> float:
+    """The effective `OCR_LAYER_DOCUMENT_SHARE` (the setting, else the module default)."""
+    try:
+        import tool_limits  # noqa: PLC0415  (repo root)
+    except ImportError:  # pragma: no cover - the repo root is on sys.path above
+        return OCR_LAYER_DOCUMENT_SHARE
+    return float(tool_limits.OCR_LAYER_DOCUMENT_SHARE.get())
 
 
 def _czech_letters() -> frozenset:
@@ -584,15 +622,30 @@ def normalize(doc: DigitalDocument) -> DigitalDocument:
 
 _OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 _OLE2_ENCRYPTED_STREAM = "EncryptedPackage".encode("utf-16-le")
+#: OLE2 directory entry names (UTF-16LE) that tell a Word 97–2003 document from an Excel one.
+_OLE2_WORD_STREAM = "WordDocument".encode("utf-16-le")
+_OLE2_EXCEL_STREAMS = ("Workbook".encode("utf-16-le"), "Book".encode("utf-16-le"))
+#: The `mimetype` member of an OpenDocument package, for the two types AMČR accepts.
+_ODF_KINDS = {
+    "application/vnd.oasis.opendocument.text": "odt",
+    "application/vnd.oasis.opendocument.text-template": "odt",
+    "application/vnd.oasis.opendocument.spreadsheet": "ods",
+    "application/vnd.oasis.opendocument.spreadsheet-template": "ods",
+}
+_ACCEPTED = "PDF, DOCX, ODT, ODS, XLSX, RTF, DOC or XLS"
 
 
 def sniff(path: str) -> str:
-    """`"pdf"` or `"docx"`, decided by content — the extension only names the file.
+    """The input's kind (one of `KINDS`), decided by content — the extension only names the file.
 
-    A PDF header may sit anywhere in the first KB; a Word package is a ZIP whose package
-    relationship or members name WordprocessingML (so `.docm`, `.dotx`, `.dotm` and a
-    mis-named `.zip` all qualify, and an `.xlsx` renamed `.docx` does not). OLE2 is either
-    a legacy binary `.doc` or an encrypted OOXML package; neither is readable here.
+    A PDF header may sit anywhere in the first KB; an RTF file starts with `{\\rtf`. A ZIP is a
+    Word package when its package relationship or members name WordprocessingML (so `.docm`,
+    `.dotx`, `.dotm` and a mis-named `.zip` all qualify), an Excel one when it has
+    `xl/workbook.xml`, an OpenDocument text or spreadsheet when its `mimetype` member says so.
+    OLE2 is an encrypted OOXML package, a legacy Word document (`WordDocument` stream), a
+    legacy Excel workbook (`Workbook`/`Book`), or another legacy Office file this converter
+    does not take (PowerPoint). Everything else, presentations and e-books included, is not a
+    born-digital type AMČR accepts.
     """
     try:
         with open(path, "rb") as handle:
@@ -601,32 +654,105 @@ def sniff(path: str) -> str:
         raise DigitalInputError("unsupported", f"unsupported input {path!r}: {exc}") from exc
     if b"%PDF-" in head:
         return "pdf"
+    if head.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"{\\rtf"):
+        return "rtf"
     if head.startswith(b"PK\x03\x04"):
         try:
             with zipfile.ZipFile(path) as zf:
                 names = set(zf.namelist())
-        except zipfile.BadZipFile as exc:
+                mimetype = ""
+                if "mimetype" in names:
+                    mimetype = zf.read("mimetype")[:200].decode("ascii", "replace").strip()
+        except (zipfile.BadZipFile, OSError) as exc:
             raise DigitalInputError("corrupt", f"not a readable ZIP package ({exc})") from exc
         if "word/document.xml" in names or (
             "_rels/.rels" in names and any(n.startswith("word/") for n in names)
         ):
             return "docx"
+        if "xl/workbook.xml" in names:
+            return "xlsx"
+        if mimetype in _ODF_KINDS:
+            return _ODF_KINDS[mimetype]
         raise DigitalInputError(
             "unsupported",
-            f"unsupported input {path!r}: a ZIP package but not a Word document "
-            f"(expected .pdf or .docx)",
+            f"unsupported input {path!r}: a ZIP package but not a born-digital document type "
+            f"this converter reads (expected {_ACCEPTED})",
         )
     if head.startswith(_OLE2_MAGIC):
         with open(path, "rb") as handle:
             blob = handle.read(64 * 1024 * 1024)
         if _OLE2_ENCRYPTED_STREAM in blob:
             raise DigitalInputError("encrypted", "password-protected Office document")
+        if _OLE2_WORD_STREAM in blob:
+            return "doc"
+        if any(stream in blob for stream in _OLE2_EXCEL_STREAMS):
+            return "xls"
         raise DigitalInputError(
             "legacy_office_unsupported",
-            f"unsupported input {path!r}: a legacy binary Word document (.doc); save it as "
-            f".docx first",
+            f"unsupported input {path!r}: a legacy binary Office file that is neither a Word "
+            f"document nor an Excel workbook (expected {_ACCEPTED})",
         )
-    raise DigitalInputError("unsupported", f"unsupported input {path!r}: expected .pdf or .docx")
+    raise DigitalInputError("unsupported", f"unsupported input {path!r}: expected {_ACCEPTED}")
+
+
+def verify_seed_digest(input_path: str, baseline: Optional[str]) -> Optional[str]:
+    """Refuse a seed whose `source.sha512` is not the digest of the file received.
+
+    atrium-digital-convert#2 (accepted by AMČR 2026-09-30): the service holds the original's
+    bytes, so it can check what the archive says they are. Done BEFORE anything is parsed, on
+    the ORIGINAL bytes — for a DOC/XLS that is the file before LibreOffice converts it. A seed
+    without `sha512` passes (the field is optional in the schema), as does a missing baseline.
+    Returns the verified digest, or None when there was nothing to verify.
+    """
+    if not baseline or not os.path.exists(baseline):
+        return None
+    try:
+        source = load_document(baseline).get("source") or {}
+    except Exception:  # a baseline that cannot be opened is DocumentRecord.open()'s to refuse
+        return None
+    expected = source.get("sha512") if isinstance(source, dict) else None
+    if not isinstance(expected, str) or not expected.strip():
+        return None
+    actual = sha512_file(input_path)
+    if actual != expected.strip().lower():
+        raise DigitalInputError(
+            "source_digest_mismatch",
+            f"the record's source.sha512 ({expected.strip()[:16]}…) is not the SHA-512 of the file "
+            f"received ({actual[:16]}…): the record would describe one file under another file's "
+            f"identity. Send the original the seed was made for, or a seed made for this file.",
+        )
+    return actual
+
+
+def _pdf_page_count(path: str) -> Optional[int]:
+    """The PDF's page count from its page tree (pypdfium2), or None when it cannot be read."""
+    try:
+        import pypdfium2 as pdfium  # noqa: PLC0415  (optional dependency, imported on use)
+    except ImportError:
+        return None
+    try:
+        pdf = pdfium.PdfDocument(path)
+    except Exception:
+        return None
+    try:
+        return len(pdf)
+    finally:
+        pdf.close()
+
+
+def check_page_count(pages: Optional[int], what: str = "The document") -> None:
+    """Refuse a document over `MAX_PAGES` (422 `limit_exceeded`; CLI exit 4)."""
+    if pages is None:
+        return
+    import tool_limits  # noqa: PLC0415  (repo root)
+
+    tool_limits.MAX_PAGES.check(
+        pages,
+        detail=(
+            f"{what} has {pages} pages; the limit is {tool_limits.MAX_PAGES.get()} (MAX_PAGES). "
+            "Split it, or raise the limit."
+        ),
+    )
 
 
 def extract_pdf(path: str, doc_id: Optional[str] = None) -> DigitalDocument:
@@ -649,12 +775,14 @@ def _refuse_ocr_layer(document: DigitalDocument) -> None:
     """An OCR-layer PDF is not born-digital: refuse it rather than stamp it so (G7)."""
     with_text = [p for p in document.pages if p.text_layer in (TEXT_LAYER_DIGITAL, TEXT_LAYER_OCR)]
     ocr = [p for p in with_text if p.text_layer == TEXT_LAYER_OCR]
-    if ocr and len(ocr) >= OCR_LAYER_DOCUMENT_SHARE * len(with_text):
+    share = ocr_layer_document_share()
+    if ocr and len(ocr) >= share * len(with_text):
         raise DigitalInputError(
             "ocr_text_layer",
             f"{len(ocr)} of {len(with_text)} text-bearing pages are a prior OCR run's invisible "
-            f"text over a page image, so this PDF is not born-digital. Its originator is "
-            f"alto-postprocess (`--method text-lines`, source.origin ocr:pdf-text-layer).",
+            f"text over a page image (OCR_LAYER_DOCUMENT_SHARE {share:g}), so this PDF is not "
+            f"born-digital: send it to OCR. Its originator is ocr-postprocess (source.origin "
+            f"ocr:pdf-text-layer).",
         )
 
 
@@ -668,7 +796,15 @@ def extract(
     if engine not in ENGINES:
         raise ValueError(f"engine must be one of {ENGINES}, got {engine!r}")
     kind = sniff(path)
+    doc_id = doc_id or canonical_doc_id(path)
+    if engine == "docling" and kind != "pdf":
+        print(
+            "[digital-convert] NOTE - --engine docling applies to PDF only: Docling's DOCX "
+            "backend reads the same OOXML with no page model. Using the light readers.",
+            file=sys.stderr,
+        )
     if kind == "pdf":
+        check_page_count(_pdf_page_count(path), "The PDF")
         document = extract_pdf(path, doc_id=doc_id)
         if engine == "docling":
             try:
@@ -679,14 +815,39 @@ def extract(
                 ) from exc
             document = refine_with_docling(path, document)
         _refuse_ocr_layer(document)
-        return document
-    if engine == "docling":
-        print(
-            "[digital-convert] NOTE - --engine docling applies to PDF only: Docling's DOCX "
-            "backend reads the same OOXML with no page model. Using the light DOCX reader.",
-            file=sys.stderr,
+    elif kind in ("doc", "xls"):
+        from api_util.digital_legacy import extract_legacy  # noqa: PLC0415
+
+        document = extract_legacy(
+            path,
+            doc_id,
+            kind,
+            read_converted=lambda converted, converted_kind: _read_native(
+                converted, doc_id, converted_kind, docx_page_breaks
+            ),
         )
-    return extract_docx(path, doc_id=doc_id, page_breaks=docx_page_breaks)
+    else:
+        document = _read_native(path, doc_id, kind, docx_page_breaks)
+    document.kind = document.kind or kind
+    check_page_count(len(document.pages))
+    return document
+
+
+def _read_native(path: str, doc_id: str, kind: str, docx_page_breaks: str) -> DigitalDocument:
+    """DOCX through this repository's reader; ODT/ODS/XLSX/RTF through the shared reader."""
+    if kind == "docx":
+        document = extract_docx(path, doc_id=doc_id, page_breaks=docx_page_breaks)
+        document.kind = "docx"
+        return document
+    from api_util.digital_text import extract_text_document  # noqa: PLC0415
+
+    try:
+        import tool_limits  # noqa: PLC0415  (repo root)
+
+        max_file_mb, max_pages = tool_limits.MAX_UPLOAD.get(), tool_limits.MAX_PAGES.get()
+    except ImportError:  # pragma: no cover
+        max_file_mb, max_pages = None, None
+    return extract_text_document(path, doc_id, kind, max_file_mb=max_file_mb, max_pages=max_pages)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -898,7 +1059,12 @@ def prepare(
     logger: Optional[Any] = None,
     run_uuid: Optional[str] = None,
 ) -> Tuple[DigitalDocument, DocumentRecord, List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Layers A–C for one file: the normalised document, the record and its rows."""
+    """Layers A–C for one file: the normalised document, the record and its rows.
+
+    A seed's `source.sha512` is verified against the original first (`verify_seed_digest`),
+    so a mismatched seed never reaches a reader.
+    """
+    verify_seed_digest(input_path, baseline)
     document = normalize(
         extract(input_path, doc_id=doc_id, engine=engine, docx_page_breaks=docx_page_breaks)
     )
@@ -1053,11 +1219,16 @@ def build_parser() -> argparse.ArgumentParser:
     """Exposed separately so `--help` is testable in-process (repo convention I1)."""
     parser = argparse.ArgumentParser(
         prog="digital_to_json.py",
-        description="Convert a digital-born PDF/DOCX into an atrium_document JSON record.",
-        epilog="Exit codes: 0 written; 2 dependency missing; 3 not a born-digital PDF/DOCX; "
-        "4 corrupt, encrypted or over the ZIP limits.",
+        description="Convert a born-digital PDF, DOCX, ODT, ODS, XLSX, RTF, DOC or XLS into an "
+        "atrium_document JSON record.",
+        epilog="Exit codes: 0 written; 2 dependency missing (LibreOffice for DOC/XLS too); 3 not a "
+        "born-digital input this converter takes, or a seed whose source.sha512 does not match "
+        "(source_digest_mismatch); 4 corrupt, encrypted, over the ZIP limits, a failed "
+        "conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S).",
     )
-    parser.add_argument("input", help="path to the .pdf or .docx to convert")
+    parser.add_argument(
+        "input", help="path to the born-digital file (.pdf .docx .odt .ods .xlsx .rtf .doc .xls)"
+    )
     # W9: `--document-json-out` is the CANONICAL name, `--out` a retained alias.
     #
     # Every other stage in the ecosystem takes the PAIR --document-json /
@@ -1132,6 +1303,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except DigitalInputError as exc:
         print(f"[digital-convert] {exc.reason}: {exc}", file=sys.stderr)
         return exc.exit_code
+    except LimitExceeded as exc:
+        print(f"[digital-convert] limit_exceeded: {exc.detail}", file=sys.stderr)
+        return 4
     except RuntimeError as exc:  # a missing optional dependency, reported as advice
         print(f"[digital-convert] {exc}", file=sys.stderr)
         return 2

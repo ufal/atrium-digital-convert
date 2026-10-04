@@ -1,10 +1,12 @@
-# 🤝 Contributing to the ATRIUM LLM Enricher
+# 🤝 Contributing to ATRIUM digital-convert
 
-Thank you for your interest in contributing! This repository is the LLM-only sibling of
-[`atrium-nlp-enrich`](https://github.com/ufal/atrium-nlp-enrich) (spun out per
-[ATRIUM issue #24](https://github.com/ufal/atrium-project/issues/24)) — it maps archival text
-onto the TEATER/AMCR archaeological vocabulary using an LLM, run either locally
-(`transformers`/`vLLM`, multi-GPU) or as a service (`OpenRouter`, lightweight local `Ollama`).
+Thank you for your interest in contributing! This repository is the **born-digital stage** of the
+ATRIUM pipeline: it reads born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, and DOC/XLS
+through LibreOffice) into `atrium_document` records, on the command line
+(`api_util/digital_to_json.py`) and as the HTTP service `api-digital` (`service/api.py`:
+`POST /reformat`, `POST /describe`). Until v1.0.0-beta it was `atrium-llm-enrich`; the keyword
+stage it held moved to [atrium-keyword-extract](https://github.com/ufal/atrium-keyword-extract)
+([#1](https://github.com/ufal/atrium-digital-convert/issues/1)).
 
 This document describes the development workflow, code conventions, and rules for
 contributors. ATRIUM-wide conventions (branching, commit types, the test/lint standard) are
@@ -14,6 +16,7 @@ identical across all repositories; anything repo-specific is called out explicit
 
 | Version         | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Status      |
 |:----------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------|
+| **v1.1.0-beta** | **The born-digital stage, under its own name** (#1, #2, #4; atrium-project#72). Service id `atrium-digital-convert` (the rename is declared in the spec, `x-atrium-service-previous`), images `ghcr.io/ufal/atrium-digital-convert-{api,digital}`, program id `digital-convert`. **`POST /reformat`** (file + optional AMČR seed → record, Markdown on request, `paradata`; calls no other service) and **`POST /describe`** (the same conversion + a per-page assessment: text layer, page type from page-classification, readability from ocr-postprocess, route `nlp`/`ocr`/`htr`/`none`, layout, text; the stages are called only when `PAGE_CLASSIFICATION_URL`/`OCR_POSTPROCESS_URL` are set, and their records are adopted only past a guard). The seed's `source.sha512` is checked before parsing (`source_digest_mismatch`). **Formats:** ODT, ODS, XLSX and RTF through atrium-ocr-postprocess's reader (vendored, SHA-pinned), DOC and XLS through headless LibreOffice (declared, never logged into the licence). New settings `OCR_LAYER_DOCUMENT_SHARE`, `ROUTE_TRASH_SHARE`, `MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`, `STAGE_TIMEOUT_S`. **Removed:** the keyword/LLM code, the vocabulary tooling, their workflows and the `remote`/`llm` images (recoverable from `v1.0.0-beta`; transfer manifest in `agent_dev_logs/digests/1.digest.md`). Released after `v1.0.0-beta` was marked a pre-release, so the spec starts a fresh baseline.                                                                                                                                                                                                                                                                                                        | Pre-release |
 | **v1.0.0-beta** | First release from the new repository `atrium-digital-convert` (atrium-digital-convert#1; atrium-project#72); the code is `atrium-llm-enrich` 0.9.0's, and its service id, program id (`llm-enrich`) and images are unchanged for now. **Run provenance (atrium-project#71):** every success carries its `CreateAction` as `paradata` (no paradata file is written), `run_uuid` stamps every block, an AMČR seed is checked against the seed profile, `ATRIUM_RUN_AGENT` names the operator. Re-vendored record contract with the program successor map (`llm-enrich` → `keyword-extract`); regenerated `openapi.json`; vocabulary metadata refreshed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Pre-release |
 | **v0.9.0**      | Typed OpenAPI contract and release asset; every limit a setting (cut replies never used, 413/502); `--detail standard`/`minimal` Markdown profiles (atrium-project#70); CC0 vocabularies; arbitrary-UID images; review/research tools out of the images; production-image declaration; TEITOK copy parity checked in CI.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Pre-release |
 | **v0.8.0**      | TEITOK/flexiconv input enrichment restored and the OCR-path `Trash`-line leak fixed (defect V-1); digital-born PDFs/DOCX now route through split light engines (`digital_pdf.py`/`digital_docx.py`) with layout cues and an optional Docling engine (#18); the document record schema frozen as `doc-schema-v1`; and a seed/doc_id mismatch that silently dropped `enrichment` from AMČR-seeded records is fixed (atrium-project#68).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Pre-release |
@@ -39,17 +42,22 @@ in `CITATION.cff` to the actual release date on every version bump.
 
 ## 🏗️ Project Contributions & Capabilities
 
-See [README.md](README.md) for full usage; in brief, four backends share one output contract
-(`llm_utils.py`/`llm_client_shared.py`):
+See [README.md](README.md) for full usage; in brief, the code is layered (the converter's module
+docstrings carry the detail):
 
-1. **`transformers`** (`llm_run.py`) — single-GPU, BnB 4-bit/AWQ/GGUF, models ≤ 31 B.
-2. **`vllm`** (`llm_run.py`) — multi-GPU, native guided JSON decoding, models ≥ 70 B.
-3. **`openrouter`** (`openrouter_client.py`) — remote LLM-as-a-service, provider-routed
-   data-sovereignty controls, optional file attachment for document-level input.
-4. **`ollama`** (`ollama_client.py`) — lightweight local server, native `format` JSON schema.
-
-`api_util/xml_to_md.py` renders whole TEITOK/ALTO documents to Markdown/plain-text for the
-document-level input path used by the remote/lightweight-local backends.
+1. **Layer A, readers**: `api_util/digital_pdf.py` (pdfplumber + pypdfium2),
+   `digital_docx.py` (python-docx + lxml), `digital_docling.py` (opt-in), `digital_text.py` (ODT,
+   ODS, XLSX, RTF through the vendored `text_formats.py`), `digital_legacy.py` (DOC/XLS through
+   headless LibreOffice), all into the internal representation in `digital_ir.py`.
+2. **Layers B–D**: `api_util/digital_to_json.py`: normalisation and decode sanity, the record
+   (`atrium_document.DocumentRecord`), and the output gate (field survival + JSON Schema).
+3. **The per-page assessment**: `api_util/digital_report.py`, pure and deterministic (routes,
+   quality summaries, layout counts).
+4. **The service**: `service/api.py` (`/reformat`, `/describe`, the shared `/info`, `/health`,
+   `/ready`) and `service/stages.py` (the page-classification and ocr-postprocess clients, the
+   record guard). `tools/stage_stub.py` stands in for both stages in tests and local demos.
+5. **The renderer**: `api_util/json_to_md.py`, `layout_md.py`, `xml_to_md.py` (record or
+   TEITOK/ALTO → annotated Markdown), which atrium-keyword-extract vendors.
 
 ---
 
@@ -70,9 +78,9 @@ main  ←  (humans only, after test stabilises)
 
 | Type           | Pattern          | Example                    |
 |----------------|------------------|----------------------------|
-| New feature    | `feature-<name>` | `feature-ollama-streaming` |
-| Bug fix        | `bugfix-<name>`  | `bugfix-vocab-truncation`  |
-| Hotfix on main | `hotfix-<name>`  | `hotfix-openrouter-retry`  |
+| New feature    | `feature-<name>` | `feature-odt-tables`       |
+| Bug fix        | `bugfix-<name>`  | `bugfix-pdf-page-labels`   |
+| Hotfix on main | `hotfix-<name>`  | `hotfix-seed-digest`       |
 
 ---
 
@@ -128,23 +136,31 @@ Format: `[type] concise description of what changed`
 * **Comments:** short and informative; add one when the function name doesn't fully explain intent.
 * **Argument types:** give every function argument a default type (`int`, `list`, …).
 * **Console flags:** every new CLI flag ships with a `help=` message.
-* **Config files:** when the set of `llm_config.txt` variables changes, reflect it in `README.md`.
-* **`llm_client_shared.py` parity:** if you change the quality filter, context-window builder, or
-  archaeological system prompt in `llm_utils.py`/`llm_run.py`, mirror the change in
-  `llm_client_shared.py` by hand (see that module's docstring) — and update
-  `tests/test_llm_client_shared.py` to cover it.
-* **Shared files have one owner each.** `vocab_manager.py`, `atrium_paradata.py` and
-  `para_licenses.py` are byte-identical copies of `atrium-nlp-enrich`'s (a repo drift-check,
-  `para-drift.yml`, enforces this for the paradata pair). The
-  `api_util/{teitok_read,flexiconv_convert,bbox_scale}.py` files are vendored from
-  `atrium-nlp-enrich` — do not fork their logic locally: `tests/test_vendored_teitok_parity.py`
-  pins their SHA-256 (plus `requirements_flexiconv.txt`, `tests/test_flexiconv_convert.py`, the
-  flexiconv fixtures and one writer sample), with the re-vendoring procedure in its docstring.
-  This repo only *reads* TEITOK: the writer (`teitok_alto.py`) lives in nlp-enrich alone.
-  `llm_utils.py` is **not** a verbatim copy: this repo's is the LLM engine, and nlp-enrich keeps
-  its own, older copy for its `llm_run.py` stage (checked 2026-09-24: ~380 differing lines). A
-  fix to shared logic — such as the line filter's missing-quality rule (#13 P5.1) — has to be
-  made in both by hand.
+* **Settings:** every limit or setting is declared in `tool_limits.py` and listed in
+  `.env.example` and the `## Limits` table of `service/README.md`; `tests/test_limits_contract.py`
+  and `tests/test_env_contract.py` fail when one of the three is missing.
+* **An API change** regenerates `service/openapi.json` in the same commit
+  (`python atrium_openapi.py export --app service.api:app --out service/openapi.json`). Removing an
+  operation or a reason code is a breaking change the release gate refuses.
+* **The production image** is declared in `.github/production-image.json`: a new module the
+  service imports goes into its `core` list (`python ../atrium-project/tools/ci/image_closure.py
+  --repo-root . --worktree`).
+* **Record ownership:** the converter writes only `digital-convert`'s fields; a field another stage
+  owns is never filled here (`atrium_document.BLOCK_FIELD_OWNERS`). `/describe` adopts a stage's
+  record only past the guard in `service/stages.py`.
+* **Shared files have one owner each:**
+  * the hub-canonical modules (`atrium_*.py`, `para_licenses.py`, `service/atrium_service.py`,
+    the schema files, …) come from `ufal/atrium-project`'s `docs/templates/shared/`, see below;
+  * `text_formats.py` is atrium-ocr-postprocess's reader, pinned by
+    `tests/test_vendored_reader_parity.py` (the names it imports from `tool_limits.py` keep
+    ocr-postprocess's spelling);
+  * `api_util/{teitok_read,flexiconv_convert,bbox_scale}.py` are atrium-nlp-enrich's, pinned by
+    `tests/test_vendored_teitok_parity.py` (plus `requirements_flexiconv.txt`, the flexiconv
+    fixtures and one writer sample).
+
+  Never fork their logic locally: change the owner, then re-vendor with the hub's
+  `scripts/revendor_shared.sh` and update the pin. This repo only *reads* TEITOK: the writer lives
+  in nlp-enrich.
 
 ### Minimum checks before every commit
 ```bash
@@ -154,43 +170,52 @@ pytest -m "not slow" --tb=short           # 3. fast lane — no models, no GPU, 
 ```
 
 ### Running the test suite
-The fast lane requires **no ML models, GPU, or network**:
+The fast lane requires **no ML models, GPU, network or LibreOffice** (the DOC/XLS tests run a
+fake `soffice`; `/describe` is tested against `tools/stage_stub.py` on a local port):
 ```bash
-pip install -r requirements.txt -r requirements_remote.txt pytest
+pip install -r requirements.txt -r requirements_digital.txt -r requirements-test.txt
 pytest -m "not slow" --tb=short                          # before every commit
 pytest -m "not slow" --cov=. --cov-report=term-missing   # with coverage
+python tests/fixtures/digital/make_fixtures.py --verify  # the generated fixtures are current
 ```
-Tests that load model weights, hit the network (OpenRouter, Ollama, HuggingFace), or need a GPU
-must be marked `@pytest.mark.slow` and are excluded by default — see
-[`.github/workflows/scheduled-smoke.yml`](.github/workflows/scheduled-smoke.yml) and
-[`.github/workflows/gpu-inference.yml`](.github/workflows/gpu-inference.yml) for where they run.
+Tests that need Docling's models or the network must be marked `@pytest.mark.slow`; they run in
+[`.github/workflows/scheduled-smoke.yml`](.github/workflows/scheduled-smoke.yml).
 
 ### Linting
 Ruff is the ATRIUM standard. Run `ruff check --config ruff.toml .` before opening a PR — this
 repo's `ruff.toml` (line-length 100, `E`/`F`/`W`/`I`/`B`) matches `atrium-nlp-enrich`'s, not the
-hub's 120-column default, since the two repos share engine and vendored files.
+hub's 120-column default, since the two repos share vendored files. The vendored
+`text_formats.py` is excluded from `ruff format` (it is formatted by its owner).
 
 ---
 
 ## 🔗 Shared ("drop-in") code
-`atrium_paradata.py` and `para_licenses.py` are **canonical** in
-`ufal/atrium-project/docs/templates/shared/` and copied verbatim into each tool repository.
+The `atrium_*.py` modules, `para_licenses.py`, `service/atrium_service.py`, the record schema and its
+frozen copy, and the shared tests are **canonical** in `ufal/atrium-project/docs/templates/shared/`
+(listed in its `MANIFEST.json`) and copied verbatim into each tool repository.
 
-* **Do not fork their logic locally:** edit the canonical copy in the hub, then re-sync to the tools.
+* **Do not fork their logic locally:** edit the canonical copy in the hub, then re-sync with the
+  hub's `scripts/revendor_shared.sh` (which also refreshes the sibling-owned copies, such as
+  `text_formats.py`).
 * **CI drift-check:** [`para-drift.yml`](.github/workflows/para-drift.yml) fails the build if this
-  repo's copy diverges from the canonical source.
-* **Configuration:** `para_config.txt` is the only per-repo dependency. Its `[components]` section
-  currently has an open TODO — see the comment block at the top of that file — for resolving
-  per-`MODEL_KEY`/provider licensing rather than a single fixed license row.
+  repo's copy diverges from the canonical source, and compares the sibling-owned copies with their
+  owners' `test` heads.
+* **A reason code the shared registry lacks** (today `source_digest_mismatch`) is registered at
+  runtime in `service/api.py` beside the registry, until the hub's canonical
+  `atrium_service.py` carries it.
+* **Configuration:** `para_config.txt` is the only per-repo dependency: the program id, the
+  version, and the licence of every component the converter may use.
 
 ---
 
 ## 📁 Repository Documentation Management
 
-| File              | Audience        | Responsibility                               |
-|-------------------|-----------------|----------------------------------------------|
-| `README.md`       | GitHub visitors | Project overview, backend usage, quick start |
-| `CONTRIBUTING.md` | Developers      | Code conventions, branches, PRs, testing     |
+| File                | Audience        | Responsibility                                |
+|---------------------|-----------------|-----------------------------------------------|
+| `README.md`         | GitHub visitors | Project overview, formats, usage, quick start |
+| `CONTRIBUTING.md`   | Developers      | Code conventions, branches, PRs, testing      |
+| `service/README.md` | API consumers   | Endpoints, fields, errors, limits             |
+| `agent_dev_logs/`   | Maintainers     | Per-issue digests and plans; the DEVLOG       |
 
 Do not duplicate rules across files — cross-reference the canonical source.
 
@@ -201,6 +226,6 @@ Maintainer: **lutsai.k@gmail.com** [^1] · Developed by UFAL [^2] · Funded by A
 
 **©️ 2026 UFAL & ATRIUM**
 
-[^1]: https://github.com/ufal/atrium-llm-enrich
+[^1]: https://github.com/ufal/atrium-digital-convert
 [^2]: https://ufal.mff.cuni.cz/
 [^3]: https://atrium-research.eu/
