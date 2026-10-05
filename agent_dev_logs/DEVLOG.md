@@ -4,7 +4,7 @@
 > moved to atrium-keyword-extract (#1). Open issues: **#1** (was llm-enrich#29, the repository's new role), **#2**
 > (was llm-enrich#28, `api-digital`), **#3** (was llm-enrich#11, DU inputs), **#4** (was llm-enrich#10, PDF/DOCX
 > inputs). Entries up to 2026-09-30 use the old numbers. Releases: **v1.0.0-beta** (2026-10-01, the transitional
-> snapshot of llm-enrich 0.9.0) · **v1.1.0-beta** prepared 2026-10-04 (working tree, not tagged)._
+> snapshot of llm-enrich 0.9.0) · **v1.1.0-beta** on `test` since 2026-10-04 (`20dabd8`, `b1cbb0c`), not yet tagged._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -459,7 +459,7 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   * docker/security/para-drift/dependabot updated;
   * README, CONTRIBUTING and `service/README.md` rewritten.
 * **Adjacent stages (same round, their own working trees):**
-  * page-classification `v1.10.0-beta`: `pages` on `/predict_document`, categories under the record's own labels
+  * page-classification `v1.9.2-beta` (drafted as `v1.10.0-beta`): `pages` on `/predict_document`, categories under the record's own labels
     (`page_index`), `page_label`;
   * ocr-postprocess `v1.9.0-beta`: `POST /score_record` with `document_hook.write_scores()`;
   * the hub: `SCORING_FIELDS` in the canonical `atrium_document.py` (a scoring merge is noted, adds no row, and is
@@ -488,6 +488,51 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
     `contribution: "scoring"`, honoured by `merge_document_records()` and `e2e_assert.py`.
   * **The original program still stamped in some places.** `bench_compare.py` still writes paradata as program
     `llm-enrich` (a research tool, #3, left as it is).
+
+  Files delivered in chat; pushed by the maintainer the same day as `20dabd8` and `b1cbb0c`.
+
+## 2026-10-04 (evening) — `test` re-read: the image smoke test's log check, stale references
+* **`test` heads:**
+  * digital-convert `b1cbb0c` (the code in `20dabd8`, the shared module in `b1cbb0c`);
+  * page-classification `41c84ca` (as `v1.9.2-beta`), ocr-postprocess `648aae7`, hub `fc06875` (= `v1`);
+  * nlp-enrich `5065929`, keyword-extract `dffe368`, translator `561d4a6` carry the re-vendored shared module.
+* **Docker api smoke (red on `b1cbb0c`).**
+  * After the container turned healthy, the hub's probe found no log record in the agreed
+    `%(asctime)s %(levelname)s %(name)s %(message)s` shape at the default `LOG_LEVEL` (atrium-project#61).
+  * uvicorn's lines have their own format, and a clean start of this service logged nothing else; the LLM service
+    used to log its warmup.
+  * **Fix:** `lifespan` logs one INFO record on a clean start: the version, whether LibreOffice was found, and the
+    `/describe` stages configured (their names, never their URLs).
+  * `tests/test_startup_log.py` (4) runs the real lifespan and matches the formatted record against the probe's
+    pattern. Without the fix, 3 of them fail.
+  * Live, `python -m service.api`:
+    * printed the line;
+    * served the committed spec, and `/info` `openapi_sha256` matched it;
+    * exited 143 on SIGTERM;
+    * with `LOG_LEVEL=WARNING`, did not print the line.
+* **API Meta-Contract `openapi-compat` (red):** expected until `v1.0.0-beta` is marked a pre-release (entry above).
+* **Stale references fixed:**
+  * page-classification's release is `v1.9.2-beta`, not the drafted `v1.10.0-beta`: `tools/stage_stub.py`, this
+    file, `digests/2`, `plans/2`;
+  * tag `v1.0.0-beta` is commit `31534d5`, not `770ab3f`: `digests/1`, `digests/2`, `plans/1`;
+  * `service/__init__.py` named the old service;
+  * three converter docstrings pointed at `llm_client_shared.py` / `llm_utils.py` as if they were still here.
+* **CONTRIBUTING:** the v1.1.0-beta row now also names `MAX_CONCURRENT_JOBS`, the two reader caps, the
+  `MAX_UPLOAD_MB` default (10 → 50) and the startup record.
+* **Checks:** a clean export of `test` with these files: 744 passed, 15 skipped (11 of them need an nlp-enrich
+  checkout beside it); ruff clean; spec current.
+
+  **Not pushed: files delivered in chat.**
+
+## 2026-10-05 — Alignment with the rest of the ecosystem
+* Part of the hub's 2026-10-05 sweep of the eight ATRIUM repositories:
+  * `text_formats.py` re-vendored from atrium-ocr-postprocess (docstrings now name this repository as the owner of
+    the mirrored thresholds) with its new pin in `tests/test_vendored_reader_parity.py`. Push it together with
+    ocr-postprocess: para-drift compares against ocr-postprocess's `test`.
+  * `.github/workflows/release.yml`: the images are tagged without the leading `v` (`:1.1.0-beta`), as the README
+    says; the header comment said `:v1.1.0-beta`.
+* Elsewhere: nlp-enrich's and llm-enrich's READMEs and the hub's docs now say the LLM code went to
+  atrium-keyword-extract and that this repository reads eight formats.
 
   **Not pushed: files delivered in chat.**
 

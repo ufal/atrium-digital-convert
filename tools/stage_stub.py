@@ -8,7 +8,7 @@ and in this repository's live smoke:
 
   * ``GET  /info``              — ``{"service": "atrium-stage-stub", "version": ...}``
   * ``POST /predict_document``  — page-classification (with the ``pages`` subset and the label
-    mapping of page-classification v1.10.0-beta): every requested page gets the category
+    mapping of page-classification v1.9.2-beta): every requested page gets the category
     ``STUB_PAGE_CATEGORY`` (default ``TEXT_P``), or ``STUB_NEEDS_OCR_CATEGORY`` (default
     ``TEXT_T``) when the record flags it ``needs_ocr``. Given ``document_json``, it writes
     ``page_categories`` and ``pages[].category/category_confidence`` under the record's own

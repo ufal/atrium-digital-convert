@@ -2,8 +2,8 @@
 api_util/docx_to_md.py — DOCX → visually-rich Markdown.
 
 Converts a Word ``.docx`` into the page-sectioned Markdown consumed by
-``run_document_level()`` (llm_client_shared.py), enriched with the visual-layout
-cues catalogued in ``layout_md.py`` (issue #10). DOCX is the *easy* input: it
+``run_document_level()`` (atrium-keyword-extract's llm_client_shared.py), enriched with the
+visual-layout cues catalogued in ``layout_md.py`` (issue #10). DOCX is the *easy* input: it
 carries a real Unicode text layer plus native styling metadata (fonts, colours,
 highlights, alignment, styles → headings, tables, headers/footers, page-size /
 margins), so most of the taxonomy can be recovered directly rather than inferred.

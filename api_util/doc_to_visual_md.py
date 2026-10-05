@@ -8,8 +8,8 @@ fonts, alignment, headers/footers, tables, …).
 
 Meant to be used exactly like ``xml_to_md.py`` / ``flexiconv_convert.py``:
 **pre-convert, then run**. Land the resulting ``.md`` in ``INPUT_DIR`` and the
-document-level pipeline (``run_document_level()`` in llm_client_shared.py, for
-BACKEND=openrouter / ollama) picks it up with no dispatch change — the HTML-
+document-level pipeline (``run_document_level()`` in llm_client_shared.py, which moved
+to atrium-keyword-extract with the LLM code) picks it up with no dispatch change — the HTML-
 comment cues are inert text that passes straight through to the LLM.
 
     python3 api_util/doc_to_visual_md.py report.docx --output INPUT_DIR/report.md
@@ -64,7 +64,8 @@ from api_util.digital_ir import DigitalInputError  # noqa: E402
 SUPPORTED_EXTENSIONS = frozenset({".docx", ".pdf"})
 
 #: Bumped whenever the Markdown a given input renders to changes, so a cached rendering from
-#: an older converter is not served as current (`llm_client_shared.prepare_document_input`).
+#: an older converter is not served as current (`llm_client_shared.prepare_document_input`,
+#: now in atrium-keyword-extract).
 CONVERTER_VERSION = "2026-09-30.detail-profiles"
 
 #: Not a simple extension — checked separately (see is_supported/convert_to_visual_md).

@@ -5,7 +5,8 @@ Renders a whole XML document (TEITOK ``*.teitok.xml`` or raw ALTO) to
 Markdown or plain text, so entire documents can be fed to LLMs as a single
 prompt (local or as an OpenRouter file/text attachment) — document-level
 input, complementing the existing line-level CSV/TEITOK row reader in
-llm_client_shared.read_input_rows() / llm_utils.read_input_rows().
+llm_client_shared.read_input_rows() / llm_utils.read_input_rows() (now in
+atrium-keyword-extract).
 
 Builds on teitok_read.py (TEITOK) and a small, dependency-free ALTO reader
 below, following teitok_read.read_teitok_rows()'s row shape

@@ -429,6 +429,18 @@ async def lifespan(app: FastAPI):
     problem = await asyncio.to_thread(_deep_health)
     if problem:
         logger.warning("digital-convert is not ready: %s", problem)
+    else:
+        # A clean start must log too: the image smoke test looks for one record in the agreed
+        # shape at the default LOG_LEVEL (atrium-project#61), and nothing else here logs at INFO.
+        from api_util.digital_legacy import libreoffice_binary  # noqa: PLC0415
+
+        configured = [stage for stage, on in stages.configured().items() if on]
+        logger.info(
+            "digital-convert %s ready: LibreOffice %s; /describe stages configured: %s",
+            app.version,
+            "available" if libreoffice_binary() else "not found (DOC/XLS are refused)",
+            ", ".join(configured) or "none",
+        )
     _state.warm = problem is None
     async with serve_lifecycle(_state):
         yield

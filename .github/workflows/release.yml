@@ -18,9 +18,9 @@
 #   git push origin v1.1.0-beta
 #
 # After the tag push, workflows fire in sequence:
-#   1. docker.yml   — builds and pushes ghcr.io/ufal/atrium-digital-convert-{digital,api}:v1.1.0-beta
+#   1. docker.yml   — builds and pushes ghcr.io/ufal/atrium-digital-convert-{digital,api}:1.1.0-beta (no leading `v`)
 #   2. release.yml  — creates the GitHub Release (this file)
-#   3. security.yml — (scheduled/dispatch) Trivy-scans :latest after :v1.1.0-beta is live
+#   3. security.yml — (scheduled/dispatch) Trivy-scans :latest after :1.1.0-beta is live
 
 name: Release
 

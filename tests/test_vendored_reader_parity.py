@@ -27,9 +27,10 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OCR_POSTPROCESS = REPO_ROOT.parent / "atrium-ocr-postprocess"
 
-#: Pinned 2026-10-04 to atrium-ocr-postprocess `test` 6a87397 (the file's last change: 6707320).
+#: Pinned 2026-10-05 to atrium-ocr-postprocess's text_formats.py as aligned on 2026-10-05 (docstrings
+#: naming atrium-digital-convert as the converter's home; the last change on `test` before it: 6707320).
 VENDORED = {
-    "text_formats.py": "a3467488c4ca8ad4f93fe6ac3f7052856ae610b2f9430680c2d9f5b03e58c3d7",
+    "text_formats.py": "3e6bfa36f66e84c6bbd20e1eb9f23ea4274d0ba7f118fe98841f1dd4947a0a3a",
 }
 
 #: The names the vendored module imports from this repository's `tool_limits.py`; they must keep

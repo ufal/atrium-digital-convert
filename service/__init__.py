@@ -1,1 +1,1 @@
-"""ATRIUM llm-enrich API service package."""
+"""ATRIUM digital-convert API service package."""
