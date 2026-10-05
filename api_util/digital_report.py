@@ -54,7 +54,7 @@ ROUTE_NONE = "none"
 ROUTES = (ROUTE_NLP, ROUTE_OCR, ROUTE_HTR, ROUTE_NONE)
 
 #: The report's text-layer verdicts are `digital_ir.TEXT_LAYERS` (ocr-postprocess's PDF reader uses
-#: the same first four), given by `digital_ir.text_layer_of()`; since v1.2.0-beta the record carries
+#: the same first four), given by `digital_ir.text_layer_of()`; since v1.1.1-beta the record carries
 #: the same value in `pages[].text_layer`, so the report and the record cannot disagree.
 
 #: ocr-postprocess's line categories (its `/info` `quality_categories`).

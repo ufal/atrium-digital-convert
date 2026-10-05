@@ -82,7 +82,7 @@ without page images). The `garbled`, `ocr` and `none` pages also carry `pages[].
 with a `needs_ocr_reason`. A PDF whose text-bearing pages are at least `OCR_LAYER_DOCUMENT_SHARE`
 (0.5) prior-OCR layers (invisible text over a page image) is refused, 422 `ocr_text_layer`, so the
 route step sends it to OCR; below that share the document is converted and those pages are flagged.
-atrium-ocr-postprocess (`v1.10.0-beta`) then merges the ATR ALTO of a flagged page back into the same
+atrium-ocr-postprocess (`v1.9.1-beta`) then merges the ATR ALTO of a flagged page back into the same
 record, that page only (atrium-digital-convert#4 W4).
 
 ### `POST /describe` (multipart form)
@@ -163,7 +163,7 @@ code or `null`, and refusals of a born-digital input name the converter's finer 
 | 503    | `null`                   | the service is shutting down; retry against a live replica                                                                    |
 
 `source_digest_mismatch` is in the shared registry (`service/atrium_service.py`, vendored from the hub)
-since v1.2.0-beta, so every ATRIUM service's spec publishes it; v1.1.0-beta registered it here.
+since v1.1.1-beta, so every ATRIUM service's spec publishes it; v1.1.0-beta registered it here.
 
 ## Configuration (environment)
 

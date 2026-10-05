@@ -1,8 +1,8 @@
 """
 api_util/layout_md.py — visual-layout cue vocabulary for LLM-friendly Markdown.
 
-Single source of truth for the "visual layout pieces" catalogued in issue #10
-(https://github.com/ufal/atrium-llm-enrich/issues/10, comment #2): the taxonomy
+Single source of truth for the "visual layout pieces" catalogued in issue #4 (was llm-enrich#10)
+(https://github.com/ufal/atrium-digital-convert/issues/4, comment #2): the taxonomy
 of page borders, bounding boxes, fonts, alignment, headers/footers, etc. that a
 PDF/DOCX front-end records so an LLM sees layout signal a plain text dump would
 lose.
