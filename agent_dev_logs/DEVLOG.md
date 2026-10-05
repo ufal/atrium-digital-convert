@@ -522,7 +522,7 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 * **Checks:** a clean export of `test` with these files: 744 passed, 15 skipped (11 of them need an nlp-enrich
   checkout beside it); ruff clean; spec current.
 
-  **Not pushed: files delivered in chat.**
+  Files delivered in chat; pushed by the maintainer as `f64c6df`.
 
 ## 2026-10-05 — Alignment with the rest of the ecosystem
 * Part of the hub's 2026-10-05 sweep of the eight ATRIUM repositories:
@@ -534,7 +534,7 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 * Elsewhere: nlp-enrich's and llm-enrich's READMEs and the hub's docs now say the LLM code went to
   atrium-keyword-extract and that this repository reads eight formats.
 
-  **Not pushed: files delivered in chat.**
+  Files delivered in chat; pushed by the maintainer as `f64c6df`.
 
 
 ## 2026-10-05 — `pages[].text_layer` in the record; `source_digest_mismatch` canonical; the W4 hand-off re-vendored
@@ -551,16 +551,34 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   * `service/api.py`: the `REASON_CODES.setdefault(...)` registration is gone; the code comes from the vendored
     `service/atrium_service.py` with the same wording and status (the spec's reason table is unchanged).
 * **Shared modules (re-vendored, hub round of 2026-10-05):** the OCR hand-off per page (W4; ocr-postprocess
-  `v1.10.0-beta` replaces a flagged page's lines and leaves the rest of this record alone), `text_layer` in the schema
+  `v1.9.1-beta` replaces a flagged page's lines and leaves the rest of this record alone), `text_layer` in the schema
   and the dc grant, `source_digest_mismatch` in the registry. `service/openapi.json` regenerated: the record schema
   gains `text_layer`; compatible with `v1.1.0-beta`.
 * **Tests:** `test_digital_to_json.py` (+3: every page's `text_layer` and the `needs_ocr` invariant, the
   table-only OCR page, the garbled fixture's record), `test_describe.py` (guard), `test_api_contract.py` (the
   canonical code). Full suite 774 passed, 4 skipped.
 * **Docs:** README, `service/README.md`, `digital_born/README.md`, CONTRIBUTING row; `para_config.txt` and
-  `CITATION.cff` at `v1.2.0-beta`.
+  `CITATION.cff` at `v1.1.1-beta`.
 
-  **Not pushed: files delivered in chat.**
+  Files delivered in chat; pushed by the maintainer as `fe494cd` and released as `v1.1.1-beta`.
+
+## 2026-10-05 (evening) — Issue logs refreshed after the two releases
+* **Pairs:**
+  * #1 and #2: rewritten for `v1.1.0-beta` / `v1.1.1-beta`. The hub E2E re-runs of 11:40 UTC cover the
+    `v1.1.1-beta` code (born-digital 37304422187; the dispatch on `-digital:latest`, 37305992407, too). The 24-file
+    list is now on atrium-keyword-extract#2 (11:37 UTC).
+  * #4: a W-items table. W1–W4 and W6 are released; W5 (nlp-enrich) has no issue; W7 stays with atrium-project#22.
+    The 2026-10-02 evidence table is brought to `2040ce1`. `/describe` is named as the one route that calls other
+    services.
+* **Docs** (in `2040ce1`):
+  * version numbers in `api_util/digital_report.py` and `service/README.md`: `v1.2.0-beta` → `v1.1.1-beta`, and
+    ocr-postprocess `v1.10.0-beta` → `v1.9.1-beta`;
+  * the `v1.1.1` row of CONTRIBUTING;
+  * the issue link in `api_util/layout_md.py` (→ #4).
+* **Not a file:** the `v1.1.1-beta` release notes still cite ocr-postprocess `v1.10.0-beta`.
+* **DEVLOG:** the 2026-10-04/05 entries name the commits that shipped (`f64c6df`, `fe494cd`).
+
+  Files delivered in chat; the maintainer pushed the pairs as `0b10e07` (#4) and `d9a3b1b` (#1, #2).
 
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
