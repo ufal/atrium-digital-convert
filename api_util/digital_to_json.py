@@ -137,8 +137,10 @@ from api_util.digital_ir import (  # noqa: E402  (re-exported: `d2j.DigitalLine`
     REGIONS,
     TEXT_LAYER_BLANK,
     TEXT_LAYER_DIGITAL,
+    TEXT_LAYER_GARBLED,
     TEXT_LAYER_NONE,
     TEXT_LAYER_OCR,
+    TEXT_LAYERS,
     DigitalDocument,
     DigitalInputError,
     DigitalLine,
@@ -149,6 +151,7 @@ from api_util.digital_ir import (  # noqa: E402  (re-exported: `d2j.DigitalLine`
     missing_dependency,
     sha256_file,
     sha512_file,
+    text_layer_of,
 )
 from atrium_document import (  # noqa: E402
     DocumentRecord,
@@ -165,8 +168,10 @@ __all__ = [
     "REGIONS",
     "TEXT_LAYER_BLANK",
     "TEXT_LAYER_DIGITAL",
+    "TEXT_LAYER_GARBLED",
     "TEXT_LAYER_NONE",
     "TEXT_LAYER_OCR",
+    "TEXT_LAYERS",
     "DigitalDocument",
     "DigitalInputError",
     "DigitalLine",
@@ -530,7 +535,10 @@ def assess_page(page: DigitalPage) -> None:
     A page with no lines has no score: there is nothing the score could be about, and
     writing Clear/1.0 for it is how an image-only page vanished (G1). A PDF page without text
     is flagged (Layer A's `text_layer == "none"`); an empty DOCX page (`blank`, two breaks in
-    a row) is not — there is no page image for an OCR engine to read.
+    a row) is not — there is no page image for an OCR engine to read. A prior OCR layer is
+    flagged whether or not any of its text became a line (a page whose words are all table
+    cells has none), so the flag is exactly the `garbled`, `ocr` and `none` pages of
+    `pages[].text_layer` (`digital_ir.text_layer_of`).
     """
     reasons: List[str] = []
     if not page.lines:
@@ -564,13 +572,13 @@ def assess_page(page: DigitalPage) -> None:
                 f"U+FFFD or control characters (a subset font without /ToUnicode?). The page "
                 f"has a text layer; it does not decode."
             )
-        if page.text_layer == TEXT_LAYER_OCR:
-            reasons.append(
-                f"the text layer is a prior OCR run: {page.invisible_text_objects} of "
-                f"{page.text_objects} text objects are invisible (render mode 3) over a page "
-                f"image. Re-acquire the page through the OCR originator (alto-postprocess, "
-                f"source.origin ocr:pdf-text-layer)."
-            )
+    if page.text_layer == TEXT_LAYER_OCR:
+        reasons.append(
+            f"the text layer is a prior OCR run: {page.invisible_text_objects} of "
+            f"{page.text_objects} text objects are invisible (render mode 3) over a page "
+            f"image. Re-acquire the page through the OCR originator (alto-postprocess, "
+            f"source.origin ocr:pdf-text-layer)."
+        )
 
     page.needs_ocr = bool(reasons)
     page.needs_ocr_reason = " ".join(reasons)
@@ -873,6 +881,9 @@ def _page_rows(doc: DigitalDocument) -> List[Dict[str, Any]]:
         if page.needs_ocr:
             row["needs_ocr"] = True
             row["needs_ocr_reason"] = page.needs_ocr_reason
+        # The verdict as a closed enum (hub schema since 2026-10-05), so a routing step reads a
+        # value instead of `needs_ocr_reason`'s prose; `/describe` reports the same function's.
+        row["text_layer"] = text_layer_of(page)
         rows.append(row)
     return rows
 

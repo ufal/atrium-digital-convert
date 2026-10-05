@@ -82,11 +82,13 @@ AMČR upload ──► seed record (doc_id, source.sha512, filename, media_type)
   facts. The seed's `source.sha512` is checked against the uploaded bytes before anything is
   parsed: a mismatch is `source_digest_mismatch` (HTTP 422, CLI exit 3), so a record is never
   attached to the wrong file.
-* **Pages the converter cannot vouch for** are flagged `pages[].needs_ocr`, with a reason:
-  * no text layer (a scan, text drawn as curves);
-  * a text layer that does not decode (broken font encodings, replacement characters);
-  * a few pages that are a prior OCR run.
-  The record is still written, and those pages go to the OCR/HTR route. A PDF that is mostly a
+* **Pages the converter cannot vouch for** are flagged `pages[].needs_ocr`, with a reason, and every
+  page says why in `pages[].text_layer` (`digital`, `garbled`, `ocr`, `none`, `blank`):
+  * no text layer (a scan, text drawn as curves): `none`;
+  * a text layer that does not decode (broken font encodings, replacement characters): `garbled`;
+  * a few pages that are a prior OCR run: `ocr`.
+  The record is still written, and those pages go to the OCR/HTR route. atrium-ocr-postprocess
+  merges the ATR ALTO of each such page back into the same record, that page only. A PDF that is mostly a
   prior OCR run (at least `OCR_LAYER_DOCUMENT_SHARE` of its pages, default 0.5) is not born-digital.
   It is refused as `ocr_text_layer` and belongs to the OCR route as a whole.
 * **The legacy DOC and XLS** were accepted by AMČR on
@@ -269,7 +271,8 @@ into mojibake), with no stage configured:
 }
 ```
 
-* **Text layer** (`text_layer`), from the converter:
+* **Text layer** (`text_layer`), from the converter; the record carries the same value in
+  `pages[].text_layer`:
   * `digital`: the layer decodes;
   * `garbled`: a layer that does not decode;
   * `ocr`: a prior OCR run;

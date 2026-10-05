@@ -321,7 +321,15 @@ def _record():
     return {
         "doc_id": "d",
         "source": {"origin": "digital-born-pdf"},
-        "pages": [{"page": "iv", "page_index": 1, "needs_ocr": True, "needs_ocr_reason": "x"}],
+        "pages": [
+            {
+                "page": "iv",
+                "page_index": 1,
+                "needs_ocr": True,
+                "needs_ocr_reason": "x",
+                "text_layer": "garbled",
+            }
+        ],
         "lines": [{"page": "iv", "line": 0, "text": "a", "bbox": [0, 0, 1, 1]}],
         "content": {"text": "a"},
     }
@@ -343,6 +351,7 @@ def test_the_guard_accepts_owned_contributions():
         (lambda r: r["source"].update(origin="ocr:x"), "source_changed"),
         (lambda r: r["pages"].append({"page": "1"}), "page_key_mismatch"),
         (lambda r: r["pages"][0].update(needs_ocr=False), "converter_field_changed"),
+        (lambda r: r["pages"][0].update(text_layer="digital"), "converter_field_changed"),
         (lambda r: r["lines"].append({"page": "iv", "line": 1}), "line_rows_changed"),
         (lambda r: r.update(content={"text": "b"}), "converter_block_changed"),
     ],

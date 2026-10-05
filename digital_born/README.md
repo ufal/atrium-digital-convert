@@ -162,12 +162,16 @@ Two things about that hand-off, both now enforced rather than assumed:
   the Markdown renderer emits it as a cue the model reads. Without the reason field every
   digital-born page rendered `<!-- NEEDS_OCR: pg_N (no extractable text layer) -->`, which
   is false by definition for a document that has one.
-* Setting `needs_ocr` is what **authorises** `alto-postprocess` to re-originate that
-  record's positional plane. `source.origin` stays `digital-born-pdf` (it describes how the
-  original was acquired, and it really was), the block stamp names whoever wrote the plane,
-  and `pages[].ocr` — never granted to `digital-convert` — records that an engine ran. Until
-  this was wired up, §3's "route per page before deferring to OCR" was unreachable: the
-  origin check refused every write `alto-postprocess` attempted on such a record.
+* Setting `needs_ocr` is what **authorises** `ocr-postprocess` (formerly `alto-postprocess`) to
+  re-originate **that page** of the record — per page since 2026-10-05 (atrium-digital-convert#4
+  W4): its lines are replaced by the OCR lines, and every other page stays as this converter wrote
+  it. `source.origin` stays `digital-born-pdf` (it describes how the original was acquired, and it
+  really was), the block stamps read `contribution: "ocr-handoff"`, and `pages[].ocr` — never
+  granted to `digital-convert` — records that an engine ran. Until this was wired up, §3's "route
+  per page before deferring to OCR" was unreachable: the origin check refused every write
+  `alto-postprocess` attempted on such a record.
+* `pages[].text_layer` (`digital`, `garbled`, `ocr`, `none`, `blank`) says the same thing as a
+  closed enum, on every page: `garbled`, `ocr` and `none` are exactly the flagged pages.
 
 For the garbage lines themselves, emit `lines[].categ` of exactly `"Garbage"` or
 `"Inverted"`. Those two strings are what `api_util/json_to_md.py`'s `DROP_CATEGORIES`

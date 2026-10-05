@@ -30,9 +30,6 @@ setting of ``tool_limits.py``; typed responses documented in the committed
 * 501 (``cause``: ``dependency_missing``) — LibreOffice is not installed for a DOC/XLS;
 * 503 — the service is draining.
 
-``source_digest_mismatch`` is registered here, beside the shared registry, until the hub's
-canonical ``atrium_service.py`` carries it (then ``setdefault`` below is a no-op and goes).
-
 Regenerate the spec after an API change::
 
     python atrium_openapi.py export --app service.api:app --out service/openapi.json
@@ -67,8 +64,6 @@ from . import stages
 # Shared ATRIUM meta-contract helpers (§4). Byte-identical across every service,
 # enforced by para-drift.reusable.yml.
 from .atrium_service import (
-    REASON_CODES,
-    REASON_STATUSES,
     AtriumDocument,
     AtriumHTTPError,
     CreateAction,
@@ -99,17 +94,6 @@ SERVICE = "atrium-digital-convert"
 PREVIOUS_SERVICE = "atrium-llm-enrich"
 #: The program id the record and the paradata carry (unchanged by the repository move).
 PROGRAM = "digital-convert"
-
-#: The reason AMČR accepted on #2 (2026-09-30). Registered locally until the hub's canonical
-#: registry has it; `setdefault` keeps the canonical wording once it does.
-REASON_CODES.setdefault(
-    "source_digest_mismatch",
-    "The record sent with the request names the original by its `source.sha512`, and the uploaded "
-    "file is not that file (HTTP 422): the record would describe one file under another file's "
-    "identity. Send the original the seed was made for, or a seed made for this file; do not retry "
-    "unchanged.",
-)
-REASON_STATUSES.setdefault("source_digest_mismatch", (422,))
 
 #: The import-time upload limit, for callers and tests that read it (requests read it live).
 MAX_UPLOAD_MB = MAX_UPLOAD.get()
@@ -281,7 +265,7 @@ class PageReport(BaseModel):
     page: str = Field(description="The page label (`pages[].page` in the record).")
     page_index: int = Field(description="1-based physical position.")
     text_layer: str = Field(
-        description="`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer), `blank` (an empty page without a page image)."
+        description="`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer), `blank` (an empty page without a page image): the record's `pages[].text_layer`."
     )
     needs_ocr: bool
     needs_ocr_reason: Optional[str]

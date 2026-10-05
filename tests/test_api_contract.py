@@ -287,6 +287,26 @@ def test_a_seed_for_another_file_is_422_source_digest_mismatch():
     assert "source_digest_mismatch" in _SPEC["x-atrium-reason-codes"]
 
 
+def test_source_digest_mismatch_is_the_canonical_registrys_not_this_services():
+    """Since the hub round of 2026-10-05 the code is in the shared registry (`atrium_service.py`,
+    vendored byte-identical), so every service publishes it; this service registers nothing of
+    its own at import time any more."""
+    import importlib.util
+
+    root = Path(__file__).resolve().parent.parent
+    spec = importlib.util.spec_from_file_location(
+        "_fresh_atrium_service", root / "service" / "atrium_service.py"
+    )
+    fresh = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fresh)
+    assert fresh.REASON_STATUSES["source_digest_mismatch"] == (422,)
+    assert (
+        fresh.REASON_CODES["source_digest_mismatch"]
+        == _SPEC["x-atrium-reason-codes"]["source_digest_mismatch"]["description"]
+    )
+    assert "REASON_CODES" not in (root / "service" / "api.py").read_text(encoding="utf-8")
+
+
 def test_an_ocr_layer_pdf_is_422_ocr_text_layer():
     files = {"file": ("scan.pdf", _pdf("ocr_layer.pdf"), "application/pdf")}
     body = _conforms("/reformat", 422, client.post("/reformat", files=files))

@@ -79,7 +79,13 @@ STATUSES: Tuple[str, ...] = (
 )
 
 #: The converter's fields in rows other stages also write: the guard holds them unchanged.
-CONVERTER_PAGE_FIELDS: Tuple[str, ...] = ("page_index", "canvas", "needs_ocr", "needs_ocr_reason")
+CONVERTER_PAGE_FIELDS: Tuple[str, ...] = (
+    "page_index",
+    "canvas",
+    "needs_ocr",
+    "needs_ocr_reason",
+    "text_layer",
+)
 CONVERTER_LINE_FIELDS: Tuple[str, ...] = ("text", "bbox", "group_id", "style")
 
 #: Short timeout for the best-effort `/info` probe that reads a stage's version.

@@ -46,6 +46,19 @@ TEXT_LAYER_DIGITAL = "digital"
 TEXT_LAYER_NONE = "none"
 TEXT_LAYER_OCR = "ocr"
 TEXT_LAYER_BLANK = "blank"
+#: Not an adapter's census value: a `digital` layer that Layer B's decode check
+#: (`digital_to_json.assess_page`) found does not decode, so the page is flagged `needs_ocr`.
+TEXT_LAYER_GARBLED = "garbled"
+#: The verdicts of `text_layer_of()`: the record's `pages[].text_layer` (a closed enum in the hub
+#: schema since 2026-10-05, atrium-project#71) and `/describe`'s `text_layer`. `garbled`, `ocr` and
+#: `none` are exactly the pages Layer B flags `needs_ocr`.
+TEXT_LAYERS: Tuple[str, ...] = (
+    TEXT_LAYER_DIGITAL,
+    TEXT_LAYER_GARBLED,
+    TEXT_LAYER_OCR,
+    TEXT_LAYER_NONE,
+    TEXT_LAYER_BLANK,
+)
 
 
 class DigitalInputError(ValueError):
@@ -195,6 +208,16 @@ class DigitalPage:
     @property
     def has_geometry(self) -> bool:
         return any(line.bbox for line in self.lines)
+
+
+def text_layer_of(page: DigitalPage) -> str:
+    """The page's text-layer verdict, as the record (`pages[].text_layer`) and `/describe` give it:
+    the adapter's census, with a `digital` layer that does not decode (`needs_ocr`) as `garbled`."""
+    if page.text_layer == TEXT_LAYER_DIGITAL and page.needs_ocr:
+        return TEXT_LAYER_GARBLED
+    if page.text_layer in TEXT_LAYERS:
+        return page.text_layer
+    return TEXT_LAYER_DIGITAL
 
 
 @dataclass

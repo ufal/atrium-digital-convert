@@ -75,11 +75,15 @@ is compared with the uploaded bytes **before anything is read** — for a DOC/XL
 LibreOffice conversion — and a mismatch is refused (422 `source_digest_mismatch`), so a record
 never describes one file under another file's identity.
 
-**The text layer.** A page whose embedded text does not decode (CP1250 read as CP1252, U+FFFD and
-control characters), or that has no text layer, carries `pages[].needs_ocr: true` with a
-`needs_ocr_reason`. A PDF whose text-bearing pages are at least `OCR_LAYER_DOCUMENT_SHARE` (0.5)
-prior-OCR layers (invisible text over a page image) is refused, 422 `ocr_text_layer`, so the route
-step sends it to OCR; below that share the document is converted and those pages are flagged.
+**The text layer.** Every page carries the converter's verdict in `pages[].text_layer`: `digital`
+(decodes), `garbled` (a layer that does not decode: CP1250 read as CP1252, U+FFFD and control
+characters), `ocr` (a prior OCR run), `none` (no text layer) or `blank` (an empty page of a format
+without page images). The `garbled`, `ocr` and `none` pages also carry `pages[].needs_ocr: true`
+with a `needs_ocr_reason`. A PDF whose text-bearing pages are at least `OCR_LAYER_DOCUMENT_SHARE`
+(0.5) prior-OCR layers (invisible text over a page image) is refused, 422 `ocr_text_layer`, so the
+route step sends it to OCR; below that share the document is converted and those pages are flagged.
+atrium-ocr-postprocess (`v1.10.0-beta`) then merges the ATR ALTO of a flagged page back into the same
+record, that page only (atrium-digital-convert#4 W4).
 
 ### `POST /describe` (multipart form)
 
@@ -131,8 +135,8 @@ category_confidence`; ocr-postprocess `lines[].categ/quality_score/lang` and `pa
 quality_band`, never over a line carrying the converter's decode verdict (`Garbage`/`Inverted`).
 The returned record is adopted only when it is the same document with the converter's part intact
 — the same `doc_id`, `source`, `content`, `tables`, page and line rows, and the converter's own
-fields (`text`, `bbox`, `group_id`, `style`, `page_index`, `canvas`, `needs_ocr`, `needs_ocr_reason`)
-unchanged — and when it validates. Otherwise the stage is `rejected` (e.g. `page_key_mismatch`:
+fields (`text`, `bbox`, `group_id`, `style`, `page_index`, `canvas`, `needs_ocr`, `needs_ocr_reason`,
+`text_layer`) unchanged — and when it validates. Otherwise the stage is `rejected` (e.g. `page_key_mismatch`:
 an older page-classification keys pages by physical number on a PDF whose pages carry labels)
 and the record stays as it was; the stage's answer still goes into `pages[]`.
 
@@ -158,8 +162,8 @@ code or `null`, and refusals of a born-digital input name the converter's finer 
 | 501    | `null`                   | a DOC/XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                              |
 | 503    | `null`                   | the service is shutting down; retry against a live replica                                                                    |
 
-`source_digest_mismatch` is registered by this service beside the shared registry until the hub's
-canonical `atrium_service.py` carries it; it is published in the spec like every other code.
+`source_digest_mismatch` is in the shared registry (`service/atrium_service.py`, vendored from the hub)
+since v1.2.0-beta, so every ATRIUM service's spec publishes it; v1.1.0-beta registered it here.
 
 ## Configuration (environment)
 

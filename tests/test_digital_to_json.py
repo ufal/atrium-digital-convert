@@ -588,6 +588,59 @@ def test_line_less_page_has_no_score_and_a_scan_is_flagged():
     assert not blank.needs_ocr and blank.needs_ocr_reason == ""
 
 
+def test_an_ocr_layer_page_is_flagged_even_without_lines():
+    """A prior OCR layer is not trusted whatever became of its words: a page whose text is all
+    table cells has no line, and used to go unflagged while its text layer read `ocr`."""
+    page = d2j.DigitalPage(
+        page="1",
+        page_index=1,
+        text_layer=d2j.TEXT_LAYER_OCR,
+        text_objects=4,
+        invisible_text_objects=4,
+    )
+    d2j.assess_page(page)
+    assert page.needs_ocr and page.needs_ocr_reason.startswith("the text layer is a prior OCR run")
+
+
+def test_every_page_row_carries_its_text_layer_and_it_matches_needs_ocr():
+    """`pages[].text_layer` (hub schema, 2026-10-05): the closed enum a routing step reads, the
+    same function `/describe` reports, and `garbled`/`ocr`/`none` are exactly the flagged pages."""
+    from api_util import digital_ir, digital_report
+
+    clean = d2j.DigitalPage(page="i", page_index=1)
+    clean.lines = [d2j.DigitalLine(page="i", line=0, text="Zpráva o sondě číslo 3.")]
+    garbled = d2j.DigitalPage(page="ii", page_index=2)
+    garbled.lines = [d2j.DigitalLine(page="ii", line=0, text="sondì èíslo høeby mìla")]
+    scan = d2j.DigitalPage(page="1", page_index=3, text_layer=d2j.TEXT_LAYER_NONE, images=1)
+    prior = d2j.DigitalPage(page="2", page_index=4, text_layer=d2j.TEXT_LAYER_OCR, text_objects=2)
+    prior.lines = [d2j.DigitalLine(page="2", line=0, text="Nálezová zpráva")]
+    blank = d2j.DigitalPage(page="3", page_index=5, text_layer=d2j.TEXT_LAYER_BLANK)
+    doc = d2j.normalize(
+        d2j.DigitalDocument(
+            doc_id="D",
+            origin=d2j.ORIGIN_PDF,
+            media_type="",
+            pages=[clean, garbled, scan, prior, blank],
+        )
+    )
+    rows = d2j._page_rows(doc)
+    assert [row["text_layer"] for row in rows] == ["digital", "garbled", "none", "ocr", "blank"]
+    for row in rows:
+        assert row["text_layer"] in d2j.TEXT_LAYERS
+        assert bool(row.get("needs_ocr")) == (row["text_layer"] in ("garbled", "ocr", "none")), row
+    assert digital_report.text_layer_of is digital_ir.text_layer_of, (
+        "the report and the record share one verdict"
+    )
+
+
+def test_the_record_validates_with_text_layer_on_the_garbled_fixture(digital_fixtures, tmp_path):
+    pytest.importorskip("pdfplumber")
+    out = d2j.convert(str(digital_fixtures / "garbled.pdf"), out_dir=str(tmp_path))
+    record = json.loads(Path(out).read_text(encoding="utf-8"))
+    assert {row["text_layer"] for row in record["pages"] if row.get("needs_ocr")} == {"garbled"}
+    assert all("text_layer" in row for row in record["pages"])
+
+
 def test_group_ids_are_unique_across_pages_and_split_on_column_and_region():
     lines = [
         d2j.DigitalLine(

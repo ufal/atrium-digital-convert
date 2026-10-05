@@ -536,6 +536,32 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   **Not pushed: files delivered in chat.**
 
+
+## 2026-10-05 — `pages[].text_layer` in the record; `source_digest_mismatch` canonical; the W4 hand-off re-vendored
+* **Why:** both were proposed on atrium-project#71 after v1.1.0-beta and taken in this round without new issues: a
+  route step should read the text-layer verdict as a value, not from `needs_ocr_reason`'s prose; and the reason code
+  AMČR accepted on #2 belongs in the shared registry, so every service publishes it.
+* **Code:**
+  * `api_util/digital_ir.py` holds `TEXT_LAYER_GARBLED`, `TEXT_LAYERS` and `text_layer_of()` (moved from
+    `digital_report.py`, which imports them), so the record and `/describe` share one verdict.
+  * `digital_to_json._page_rows()` writes `text_layer` on every page; the hub schema declares it as a closed enum.
+  * `assess_page()` flags a prior-OCR page even when none of its words became a line (all table cells), so
+    `needs_ocr` is exactly the `garbled`, `ocr` and `none` pages.
+  * `service/stages.py`: the `/describe` guard holds `text_layer` (`CONVERTER_PAGE_FIELDS`).
+  * `service/api.py`: the `REASON_CODES.setdefault(...)` registration is gone; the code comes from the vendored
+    `service/atrium_service.py` with the same wording and status (the spec's reason table is unchanged).
+* **Shared modules (re-vendored, hub round of 2026-10-05):** the OCR hand-off per page (W4; ocr-postprocess
+  `v1.10.0-beta` replaces a flagged page's lines and leaves the rest of this record alone), `text_layer` in the schema
+  and the dc grant, `source_digest_mismatch` in the registry. `service/openapi.json` regenerated: the record schema
+  gains `text_layer`; compatible with `v1.1.0-beta`.
+* **Tests:** `test_digital_to_json.py` (+3: every page's `text_layer` and the `needs_ocr` invariant, the
+  table-only OCR page, the garbled fixture's record), `test_describe.py` (guard), `test_api_contract.py` (the
+  canonical code). Full suite 774 passed, 4 skipped.
+* **Docs:** README, `service/README.md`, `digital_born/README.md`, CONTRIBUTING row; `para_config.txt` and
+  `CITATION.cff` at `v1.2.0-beta`.
+
+  **Not pushed: files delivered in chat.**
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

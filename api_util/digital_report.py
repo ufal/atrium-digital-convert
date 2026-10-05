@@ -39,10 +39,12 @@ from api_util.digital_ir import (
     REGION_HEADER,
     TEXT_LAYER_BLANK,
     TEXT_LAYER_DIGITAL,
+    TEXT_LAYER_GARBLED,
     TEXT_LAYER_NONE,
     TEXT_LAYER_OCR,
     DigitalDocument,
     DigitalPage,
+    text_layer_of,
 )
 
 ROUTE_NLP = "nlp"
@@ -51,15 +53,9 @@ ROUTE_HTR = "htr"
 ROUTE_NONE = "none"
 ROUTES = (ROUTE_NLP, ROUTE_OCR, ROUTE_HTR, ROUTE_NONE)
 
-#: The report's text-layer verdicts (ocr-postprocess's PDF reader uses the same first four).
-TEXT_LAYER_GARBLED = "garbled"
-TEXT_LAYERS = (
-    TEXT_LAYER_DIGITAL,
-    TEXT_LAYER_GARBLED,
-    TEXT_LAYER_OCR,
-    TEXT_LAYER_NONE,
-    TEXT_LAYER_BLANK,
-)
+#: The report's text-layer verdicts are `digital_ir.TEXT_LAYERS` (ocr-postprocess's PDF reader uses
+#: the same first four), given by `digital_ir.text_layer_of()`; since v1.2.0-beta the record carries
+#: the same value in `pages[].text_layer`, so the report and the record cannot disagree.
 
 #: ocr-postprocess's line categories (its `/info` `quality_categories`).
 QUALITY_CATEGORIES = ("Clear", "Noisy", "Trash", "Non-text", "Empty")
@@ -126,15 +122,6 @@ def summarize_quality(lines: Iterable[Mapping[str, Any]], **extra: Any) -> Optio
         summary["band"] = quality_band(clear, noisy, trash)
     summary.update(extra)
     return summary
-
-
-def text_layer_of(page: DigitalPage) -> str:
-    """The report's verdict on a page's text layer (see the module docstring)."""
-    if page.text_layer == TEXT_LAYER_DIGITAL and page.needs_ocr:
-        return TEXT_LAYER_GARBLED
-    if page.text_layer in TEXT_LAYERS:
-        return page.text_layer
-    return TEXT_LAYER_DIGITAL
 
 
 def _converter_quality(page: DigitalPage) -> Optional[Dict[str, Any]]:
