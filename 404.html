@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Page not found — llm-enrich — ATRIUM</title>
-<meta name="description" content="Application of LLMs for digitized document enrichment — keywords and vocabulary mapping, local or remote.">
+<title>Page not found — digital-convert — ATRIUM</title>
+<meta name="description" content="Digital-born documents transformed into JSON records, and page content information for the pages that still need OCR.">
 <link rel="stylesheet" href="assets/style.css">
-<link rel="canonical" href="https://ufal.github.io/atrium-llm-enrich/">
+<link rel="canonical" href="https://ufal.github.io/atrium-digital-convert/">
 </head>
 <body>
 <div class="wrap">
@@ -14,28 +14,26 @@
   <div class="eyebrow">
     <a href="https://ufal.github.io/atrium-project/">ATRIUM</a>
     <span class="sep">/</span>
-    <span>llm-enrich</span>
+    <span>digital-convert</span>
   </div>
 
   <main class="card">
     <p class="notfound-code">404 &middot; page not found</p>
-    <h1>ATRIUM LLM Enricher</h1>
+    <h1>Born-digital document conversion</h1>
     <p class="sub">That page is not on this stub &mdash; try the documentation site.</p>
-    <p class="tagline">Application of LLMs for digitized document enrichment — keywords and vocabulary mapping, local or remote.</p>
-    <p class="role">Semantic enrichment against the ATRIUM controlled vocabulary.</p>
+    <p class="tagline">Digital-born documents transformed into JSON records, and page content information for the pages that still need OCR.</p>
+    <p class="role">The born-digital route&#x27;s first stage: reads the text layer, flags the pages that need OCR.</p>
 
     <ul class="chips">
       <li><a class="chip" href="https://www.python.org/downloads/" rel="noopener"><span class="k">python</span><span class="v">3.11+</span></a></li>
-      <li><a class="chip" href="https://github.com/vllm-project/vllm" rel="noopener"><span class="k">backend</span><span class="v">transformers | vLLM</span></a></li>
-      <li><a class="chip" href="https://openrouter.ai/" rel="noopener"><span class="k">remote</span><span class="v">OpenRouter</span></a></li>
-      <li><a class="chip" href="https://ollama.com/" rel="noopener"><span class="k">local-light</span><span class="v">Ollama</span></a></li>
+      <li><a class="chip" href="https://github.com/ufal/atrium-project/blob/main/docs/document_schema.md" rel="noopener"><span class="k">record</span><span class="v">atrium_document 1.0</span></a></li>
       <li><a class="chip" href="https://opensource.org/license/mit/" rel="noopener"><span class="k">license</span><span class="v">MIT</span></a></li>
       <li><a class="chip" href="https://atrium-research.eu/" rel="noopener"><span class="k">funded by</span><span class="v">ATRIUM</span></a></li>
     </ul>
 
     <div class="actions">
-      <a class="btn btn-primary" href="https://ufal.github.io/atrium-project/workflows/llm-enrich/">Documentation &rarr;</a>
-      <a class="btn" href="https://github.com/ufal/atrium-llm-enrich">Source on GitHub</a>
+      <a class="btn btn-primary" href="https://ufal.github.io/atrium-project/workflows/digital-convert/">Documentation &rarr;</a>
+      <a class="btn" href="https://github.com/ufal/atrium-digital-convert">Source on GitHub</a>
       <a class="btn" href="https://ufal.github.io/atrium-project/">ATRIUM docs home</a>
     </div>
 
@@ -44,24 +42,26 @@
       <ul class="stages">
       <li><a href="https://ufal.github.io/atrium-page-classification/">page-classification</a></li>
       <li class="arrow">&rarr;</li>
-      <li><a href="https://ufal.github.io/atrium-alto-postprocess/">alto-postprocess</a></li>
+      <li><a href="https://ufal.github.io/atrium-ocr-postprocess/">ocr-postprocess</a></li>
       <li class="arrow">&rarr;</li>
       <li><a href="https://ufal.github.io/atrium-translator/">translator</a></li>
       <li class="arrow">&rarr;</li>
       <li><a href="https://ufal.github.io/atrium-nlp-enrich/">nlp-enrich</a></li>
       <li class="arrow">&rarr;</li>
-      <li><span class="here">llm-enrich</span></li>
+      <li><a href="https://ufal.github.io/atrium-keyword-extract/">keyword-extract</a></li>
+      <li class="arrow">&rarr;</li>
+      <li><span class="here">digital-convert</span></li>
       </ul>
     </div>
   </main>
 
   <footer>
     <p>This page is a published stub. The documentation itself lives in the
-       <a href="https://ufal.github.io/atrium-project/workflows/llm-enrich/">ATRIUM hub site</a>; the code lives on the
-       <a href="https://github.com/ufal/atrium-llm-enrich/tree/main"><code>main</code></a> branch.</p>
+       <a href="https://ufal.github.io/atrium-project/workflows/digital-convert/">ATRIUM hub site</a>; the code lives on the
+       <a href="https://github.com/ufal/atrium-digital-convert/tree/main"><code>main</code></a> branch.</p>
     <p>Developed by <a href="https://ufal.mff.cuni.cz">UFAL</a>, Charles University &middot;
        funded by <a href="https://atrium-research.eu/">ATRIUM</a> &middot;
-       MIT licensed &middot; generated 2026-09-25</p>
+       MIT licensed &middot; generated 2026-10-07</p>
   </footer>
 
 </div>
