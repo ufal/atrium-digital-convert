@@ -580,6 +580,17 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat; the maintainer pushed the pairs as `0b10e07` (#4) and `d9a3b1b` (#1, #2).
 
+## 2026-10-07 — The OCR originator's name in `needs_ocr_reason`
+* `api_util/digital_to_json.py`: the reason for a prior OCR layer names `ocr-postprocess` (was `alto-postprocess`);
+  the same wording in the docstrings of `api_util/digital_docling.py` and `api_util/doc_to_visual_md.py` (#2, plan
+  H.6). References to the predecessor's history stay.
+* **For #2 and #4:** the hub's digital E2E has its `-api` lane (Case 7); H.1 is met once it is green on `latest`.
+  ocr-postprocess has the W4 API tests (H.4).
+* **Checks:** `test_digital_to_json.py`, `test_describe.py`, `test_digital_formats.py`, `test_doc_to_visual_md.py`:
+  121 passed; ruff clean.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

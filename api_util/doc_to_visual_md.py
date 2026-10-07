@@ -35,7 +35,7 @@ the E2E ran the JSON route.
 The older converters stay reachable, deprecated:
 
 * ``ocr=True`` on a PDF still runs ``pdf_to_md`` — its opt-in Tesseract path is the only
-  OCR in this repo until the ``needs_ocr`` hand-off to the OCR originator (alto-postprocess)
+  OCR in this repo until the ``needs_ocr`` hand-off to the OCR originator (ocr-postprocess)
   takes over (#10 plan §10 Phase 3);
 * ``legacy=True`` (CLI ``--legacy``) runs ``docx_to_md`` / ``pdf_to_md`` for A/B checks.
 

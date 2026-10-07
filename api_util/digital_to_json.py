@@ -576,7 +576,7 @@ def assess_page(page: DigitalPage) -> None:
         reasons.append(
             f"the text layer is a prior OCR run: {page.invisible_text_objects} of "
             f"{page.text_objects} text objects are invisible (render mode 3) over a page "
-            f"image. Re-acquire the page through the OCR originator (alto-postprocess, "
+            f"image. Re-acquire the page through the OCR originator (ocr-postprocess, "
             f"source.origin ocr:pdf-text-layer)."
         )
 

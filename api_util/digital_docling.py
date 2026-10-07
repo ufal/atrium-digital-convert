@@ -18,7 +18,7 @@ its place by position, so the heavy engine can reorganise text but never lose it
 (decode sanity, grouping of the leftovers) then runs unchanged.
 
 OCR stays off (`do_ocr=False`): a page without a text layer is flagged `needs_ocr` and
-handed to the OCR originator (alto-postprocess), exactly as on the light path. Docling
+handed to the OCR originator (ocr-postprocess), exactly as on the light path. Docling
 writing OCR text into a `digital-born-*` record would put OCR output under the wrong
 originator.
 
