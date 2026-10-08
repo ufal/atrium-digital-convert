@@ -591,6 +591,42 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-07 (evening) — The stress suite for the Markdown renderers (#3)
+* **`tests/test_md_stress.py` (42 tests),** the suite plan 3 §6 names and #3's done criteria lean on, over both
+  renderers at every detail profile:
+  * **JSON route:** one record that uses everything the renderer reads (four pages labelled `i`, `ii`, `A-1`, `4`;
+    a page flagged for OCR with no lines; an OCR page with Trash, Garbage and Inverted lines; a running header and
+    footer; a heading; bold and italic; a footnote; a 2×2 table; paragraph groups; boxes and canvases; text in five
+    scripts). Asserted: no exception; each page once and in order, with its `PAGE_BREAK`; each surviving line once and
+    each dropped one never; the text stream identical in all three profiles and the cue sets nesting
+    (`minimal ⊂ standard ⊂ full`, `LAYOUT_MARGIN` only in `full`); the promised cues, with their values; grouped
+    structure and region order; the output independent of the input's line and page order; Unicode byte for byte.
+  * **TEITOK route:** nlp-enrich's format-2 fixture (`CTX000000002`, four pages, a sentence running over a page
+    break): the 52 source tokens are the body's characters, in order, once; pages and breaks; boxes well-formed and
+    inside the page.
+  * **Both:** only catalogued cues, in the same forms; `enrichment` never reaches the Markdown (a sentinel only the
+    block carries), and a record with nothing but `enrichment` is refused, not rendered; `convert()` from a file equals
+    `render_record()` from memory; the output is the same on every run and across three `PYTHONHASHSEED` values, in
+    fresh interpreters.
+  * **Mutation-checked:** dropping nothing by category, reversing the page order, losing the blank line at a group
+    change, and printing one line twice each fail tests (3, 3, 1 and 4).
+* **Found while writing it, not changed:**
+  * On the TEITOK/ALTO route `standard` is `minimal` plus `DOC_META`: it boxes a block (rows sharing a `group_id`),
+    and those rows carry none. Documented in `layout_md.BBOX_SCOPE`; it matters for #22's profile comparison on
+    scanned documents. The suite pins it.
+  * A line whose text contains a cue (`<!-- PAGE_BREAK: pg_99 -->`) or a page heading (`## Page 7`) is rendered
+    verbatim, so a document can forge the markers a page-citation verifier reads.
+* **README (§ Record → annotated Markdown):** annotated Markdown stated as the single model-facing representation,
+  with what that excludes; and a corrected sentence: keyword-extract does not vendor the renderer (its
+  `api_util/` holds `teitok_read.py` and `bbox_scale.py`); its batch clients read `.md` files, its service works line
+  by line. How the renderer is shared stays open (plan 3 D).
+* **Checks:** full suite 820 tests, 0 failures, 4 skipped; ruff clean.
+* **For #3:** done criteria 1–7 now have a test or a README line behind them; 8 is #22's, after the pilot.
+* **Dev logs:** the pairs of #3 and #4 refreshed. #1 and #2 were closed today; their pairs can be deleted. #5 (Dana's
+  15 PDFs) was opened at 14:19 and has no pair yet.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

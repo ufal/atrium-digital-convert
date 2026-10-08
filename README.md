@@ -333,9 +333,18 @@ python3 api_util/doc_to_visual_md.py report.pdf --output report.md         # con
 * **The format.** The Markdown is page-sectioned (`## Page N`). The visual-layout cues ride in HTML
   comments (`DOC_META`, `BBOX`, `PAGE_BREAK`, `NEEDS_OCR`, `HEADER_*`/`FOOTER_*`, headings, GFM
   tables, footnotes). The full taxonomy is `CUE_SCHEMA` in [`api_util/layout_md.py`](api_util/layout_md.py) 📎.
-* **Who uses it.** It is the input format the keyword stage reads
-  ([atrium-keyword-extract](https://github.com/ufal/atrium-keyword-extract) vendors the renderer with
-  SHA pins, atrium-project#72 B).
+* **The one model-facing representation.** Annotated Markdown is the single general input a language
+  model is given (digital-convert#3). PDF, DOCX, TEITOK, PAGE XML and ALTO stay upstream, as sources;
+  nothing downstream takes raw HTML or XML as a prompt. The record route and the TEITOK/ALTO route emit
+  the same cue vocabulary and the same page labels. What the model said (`enrichment`) is never read back
+  into the Markdown, and entities, keywords and enrichment are checked on the record, not in the Markdown.
+  [`tests/test_md_stress.py`](tests/test_md_stress.py) holds both routes to this at every detail profile:
+  each page and line once and in order, the cues each profile promises, the grouped structure, no
+  `enrichment`, and the same output on every run and hash seed.
+* **Who uses it.** The whole-document runs of the keyword clients read `.md` files
+  ([atrium-keyword-extract](https://github.com/ufal/atrium-keyword-extract)'s `openrouter_client.py` and
+  `ollama_client.py`); its service works line by line on the record and does not need it. How the renderer
+  is shared with that repository (vendored with a pin) is still to be settled (atrium-project#72 B).
 * **One source.** The rendering is a pure function of the record, so the Markdown cannot differ
   from the JSON.
 
