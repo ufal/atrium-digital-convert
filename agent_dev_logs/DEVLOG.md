@@ -627,6 +627,18 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-08 — Digest and plan for #5 and #6
+* **#5** (Dana's 15 PDFs): what the 10-08 comment established, with code references (the limits, the in-memory
+  upload, the `none`/`ocr`/`garbled` verdicts), and the case nothing flags: a little real text over a full-page
+  image is `digital`, and `/describe` routes it to NLP. The plan: the run over the 15 documents with the JSONs and a
+  per-document table, then the case measured on their pages before any rule ships.
+* **#6** (line text can forge cues): reproduced on `a5a1e38` at all three profiles (two `PAGE_BREAK` and three
+  `## Page` lines for a two-page record). The plan escapes `<!--`, `-->` and a line-leading `#` where raw text
+  enters a row, before the record route's own markup, so ordinary output stays byte-identical.
+* **Dev logs:** `digests/5.digest.md`, `plans/5.plan.md`, `digests/6.digest.md`, `plans/6.plan.md`.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
