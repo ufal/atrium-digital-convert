@@ -649,6 +649,45 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-09 — #5: the run over Dana's PDFs prepared
+* **The job.** `issue5_samples_job.sh` is cluster-side and not tracked, like ocr-postprocess's issue30 jobs. It runs every
+  stage of this repository over `/lnet/work/projects/atrium/digital_born_samples` on one node, GPU or CPU-only:
+  * the command line, light and Docling, with time and peak memory;
+  * the refusals;
+  * the Markdown at three profiles;
+  * the service contract on the real files (413 at the default limit, 200 at the pilot one, 429 with one slot, seed
+    digests);
+  * `/reformat` on a fresh server per file, for its peak memory;
+  * `/describe` without stages, with page-classification and ocr-postprocess served on the node, and with
+    `classify_pages=all`.
+
+  `stage()` markers make a re-submit resume, `FORCE`/`ONLY`/`DOCS` select, and scancel or Ctrl-C stops the stage's
+  services. With paths set, it runs on the laptop too.
+* **`tools/samples_report.py`** (new, research tooling, out of the image like all of `tools/`):
+  * `inventory`: sizes, pages, digest, producer, pages over page-classification's pixel cap; a `.env` the job sets
+    its limits from;
+  * `measure`: rc, time and peak memory of one command;
+  * `report`: the per-document table, a CLI = service parity check, per-page signals of the unflagged case (image
+    coverage over the crop box, Form XObjects included; body and header/footer characters), candidates with
+    thumbnails and a threshold grid, `limits.md`, and `deliver/` (one record and one report per document).
+
+  `tests/test_samples_report.py` has 9 tests, among them a stamp over a full-page image (the candidate), an image
+  nested in two forms, and a whole small run.
+* **Found while preparing it:** `/describe` meets the stages' own defaults before its `STAGE_TIMEOUT_S` matters.
+  * page-classification takes 10 MB per part, and 11 of the 15 files are larger. It classifies 50 pages per call, and
+    one page over 178,956,970 px at 300 dpi fails the whole call.
+  * ocr-postprocess takes a 25 MB record.
+  * A 413 there is the stage's `error`. So the pilot limits are four services' settings.
+* **Dry run** (`STAGES=stub`, the fixtures, `sample.pdf`, a stamp page, a 53.6 MB scan):
+  * every stage and every check passes; the stamp page and the scan are the only candidates;
+  * resume, `FORCE` and a wrong path (exit 2) work, and both signals stop the job and its services;
+  * shellcheck is clean.
+* **Checks:** 838 passed, 4 skipped; ruff check and format clean.
+* **Dev logs:** `digests/5.digest.md` (the files' sizes, the stages' limits, the experiments) and `plans/5.plan.md`
+  (setup, the run on GPU or CPU, the gap's measurement, limits, delivery) refreshed.
+
+  Files delivered in chat: the repository files as one zip, the job separately.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
