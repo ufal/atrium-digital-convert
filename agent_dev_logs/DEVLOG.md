@@ -639,6 +639,16 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-09 — Shared modules re-vendored (atrium-project#73, atrium-nlp-enrich#41)
+* `atrium_document.py`, `atrium_document.schema.json`, `service/atrium_service.py`,
+  `tests/test_document_originators.py` and `tests/test_schema_freeze.py` re-vendored from the hub: the record's
+  `keywords` and `quality_summary` blocks and the reason `upstream_unavailable`. A born-digital record gets its
+  `quality_summary` from ocr-postprocess's `/score_record`, not from this repository. `service/openapi.json`
+  regenerated. No behaviour change, no release.
+* **Checks:** 829 passed, 4 skipped; ruff check and format clean; spec current; image closure OK.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
