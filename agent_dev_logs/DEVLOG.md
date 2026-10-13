@@ -688,6 +688,20 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat: the repository files as one zip, the job separately.
 
+## 2026-10-13 — Shared modules re-vendored (atrium-project#51, atrium-nlp-enrich#41)
+* `atrium_rocrate.py`, `atrium_vocab.py`, `atrium_document.schema.json`, `service/atrium_service.py`,
+  `tests/test_atrium_rocrate.py` and `tests/test_schema_freeze.py` re-vendored from the hub:
+  * the crate names AMČR/TEATER concepts by their source URIs, from `teater_category_ids`, and no longer mints
+    `w3id.org/atrium/theme/<label>`;
+  * the schema declares `enrichment.items[].teater_category_ids`;
+  * the registry's theme maps follow keyword-extract's taxonomy;
+  * the shared 502 text says when to retry.
+* `service/openapi.json` regenerated (the record schema and its sha, the 502 description). No behaviour change, no
+  release.
+* **Checks:** the API-contract and vendored shared tests, 226 passed; spec current.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
