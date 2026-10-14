@@ -35,6 +35,7 @@
     "api_util/digital_report.py",
     "api_util/digital_ir.py",
     "api_util/digital_docling.py",
+    "api_util/pdf_coverage.py",
     "api_util/json_to_md.py",
     "api_util/layout_md.py",
     "api_util/xml_to_md.py"
