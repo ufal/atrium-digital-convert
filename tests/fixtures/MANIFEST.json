@@ -19,6 +19,11 @@
     "note": "WinAnsi declared over cp1250, no /ToUnicode — must trip decode-sanity",
     "sha256": "f985edd2a1f886e3f0f37a381b5aff3736d01e0f8f031febd08a8e927a09fcde"
   },
+  "headings.pdf": {
+    "bytes": 2696,
+    "note": "title, paragraphs and a table of smaller type; an OCR page's ',' — headings (#5)",
+    "sha256": "d6ecf68642300b2dd7219a80acc66d5af5b782da13f8ea2ba7ef4f18e1608203"
+  },
   "image_only.pdf": {
     "bytes": 1474,
     "note": "text page + image-only page + blank page — G1 needs_ocr",
@@ -43,6 +48,16 @@
     "bytes": 8678,
     "note": "title/localized headings, ins/del, footnote, text box, header/footer, 4 pages",
     "sha256": "80bbacf81970663749bb8ead8ad9ccec3b2e944b0b29b643250f9b69a2156477"
+  },
+  "rotated.pdf": {
+    "bytes": 1881,
+    "note": "vertical table headers (ttb with a second subset, btt); a btt caption (#5)",
+    "sha256": "b996845333e95560d805a517bd02796b01a1a91820165fb16998b9b0f096b12b"
+  },
+  "small_caps.pdf": {
+    "bytes": 1847,
+    "note": "capitals then smaller capitals in one word; real spaces; a Ts capital (#5)",
+    "sha256": "022d59f64cbf6599bff69d6f3495e0f639d3bec8f4a6a015acef2a92d845907a"
   },
   "stamped_scan.pdf": {
     "bytes": 1623,

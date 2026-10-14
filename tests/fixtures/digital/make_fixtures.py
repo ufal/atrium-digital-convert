@@ -83,6 +83,15 @@ the real files; every earlier fixture keeps its bytes:
                       `garbled`; two in an ASCII line show as U+FFFD and leave it `digital`.
     stamped_scan.pdf  a page number over a full-page image (`none`), a text page, and a page
                       number over a half-page image (`digital`).
+
+Added later on 2026-10-14, for the re-run of the samples (job 7100515):
+
+    headings.pdf      a title, paragraphs and a table in smaller type, and a prior-OCR page:
+                      only the title is a heading, not the paragraphs, a cell or the OCR text.
+    small_caps.pdf    small capitals ("O" + "BRÁZEK", one with a second-subset "Ř") are whole
+                      words; real spaces and a raised capital stay apart.
+    rotated.pdf       table headers and a caption on a 90° baseline, each one line read in its
+                      direction ("K_číslo", "Datace", "Obr. 18 Turnov").
 """
 
 from __future__ import annotations
@@ -601,6 +610,125 @@ def stamped_scan_pdf() -> bytes:
     )
 
 
+# ── PDF: the AMČR re-run's findings (atrium-digital-convert#5, 2026-10-14, job 7100515) ─────
+
+
+def _ruled_grid(cols: List[int], rows: List[int]) -> List[bytes]:
+    """Stroked rules of a grid: `rows` are the y of its horizontal rules, top to bottom."""
+    rules = [b"0.5 w"]
+    for y in rows:
+        rules.append(f"{cols[0]} {y} m {cols[-1]} {y} l S".encode("ascii"))
+    for x in cols:
+        rules.append(f"{x} {rows[-1]} m {x} {rows[0]} l S".encode("ascii"))
+    return rules
+
+
+def headings_pdf() -> bytes:
+    """Headings by size against the body text, not against a table's type.
+
+    Page 1 has a 16 pt bold title, a 12 pt paragraph and a ruled table whose 10 pt cells hold
+    more characters than the paragraph, its first cell set at 14 pt. Page 2 is a scan under an
+    invisible text layer (`ocr`) with a 20 pt ",". Page 3 is another 12 pt paragraph. Taking
+    the body size over every line made the cells' 10 pt the body, so the paragraphs, the 14 pt
+    cell and the "," became headings, the "," the top level (#5: 1,927 of 30,938 lines of a
+    table-heavy AMČR report). Only the title is a heading.
+    """
+    cols = [72, 192, 312, 432]
+    rows = [640, 620, 600, 580, 560, 540]
+    cells = [
+        ["Sonda", "Vrstva", "Nalezy"],
+        ["S1 sever", "ornice hneda", "keramika a mazanice"],
+        ["S2 jih", "hlina zluta", "zlomky nadob"],
+        ["S3 zapad", "kulturni vrstva", "kosti a uhliky"],
+        ["S4 vychod", "podlozi spras", "bez nalezu"],
+    ]
+    text = []
+    for r, row in enumerate(cells):
+        for c, value in enumerate(row):
+            size = 14 if (r, c) == (0, 0) else 10
+            cell = value.encode("ascii")
+            text.append(_text_at(cols[c] + 4, rows[r + 1] + 5, [cell], size=size))
+    page1 = b"\n".join(
+        [
+            _text_at(72, 730, [b"Vyzkum hradiste"], font="F2", size=16),
+            _text_at(72, 700, [b"Prvni odstavec popisuje sondy.", b"Druhy radek odstavce."]),
+            *_ruled_grid(cols, rows),
+            *text,
+        ]
+    )
+    page2 = b"\n".join(
+        [
+            FULL_PAGE_IMAGE,
+            _text_at(72, 720, [b","], size=20, render=3),
+            _text_at(72, 690, [b"Naskenovana strana s textem."], render=3),
+        ]
+    )
+    page3 = _text_at(72, 720, [b"Treti strana, odstavec o nalezech."])
+    return _build_pdf_ex([page1, page2, page3])
+
+
+#: Czech capitals outside WinAnsi in a second subset (Č Ě Ř Ů), for `small_caps_pdf`.
+FONT_CZECH_CAPS_SUBSET = (
+    b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+CzechCaps /FirstChar 128 /LastChar 131 "
+    b"/Widths [722 667 722 722] "
+    b"/Encoding << /Type /Encoding /Differences [128 /Ccaron /Ecaron /Rcaron /Uring] >> "
+    b"/FontDescriptor << /Type /FontDescriptor /FontName /ABCDEF+CzechCaps /Flags 32 "
+    b"/FontBBox [0 -207 1000 1000] /ItalicAngle 0 /Ascent 718 /Descent -207 /CapHeight 718 "
+    b"/StemV 80 >> >>"
+)
+
+
+def small_caps_pdf() -> bytes:
+    """Small capitals as Word and Distiller write them: a 10 pt capital, then 8 pt capitals.
+
+    pdfplumber, grouping characters by size, split those words: "O BRÁZEK" 212 times in one
+    AMČR report (#5). Lines: "OBRÁZEK 12", "TABULKA 3" and "SOUŘADNICOVÝ", whose `Ř` comes from
+    a second font subset, must be whole words. "P VI a P IX" (one size, real spaces), "V" +
+    space + 8 pt "PRUBEHU", and "KAPITOLA" with a 7 pt capital raised by `Ts` stay apart.
+    """
+    lines = [
+        b"/F3 10 Tf (O) Tj /F3 8 Tf (BR\xc1ZEK) Tj /F3 10 Tf ( 12) Tj",
+        b"/F3 10 Tf (T) Tj /F3 8 Tf (ABULKA) Tj /F3 10 Tf ( 3) Tj",
+        b"/F3 10 Tf (S) Tj /F3 8 Tf (OU) Tj /F5 8 Tf <82> Tj /F3 8 Tf (ADNICOV\xdd) Tj",
+        b"/F3 10 Tf (P VI a P IX) Tj",
+        b"/F3 10 Tf (V ) Tj /F3 8 Tf (PRUBEHU) Tj",
+        b"/F3 10 Tf (KAPITOLA) Tj /F3 7 Tf 4 Ts (A) Tj 0 Ts",
+    ]
+    blocks = []
+    for i, line in enumerate(lines):
+        blocks += [b"BT", f"1 0 0 1 72 {700 - 20 * i} Tm".encode("ascii"), line, b"ET"]
+    return _build_pdf_ex(
+        [b"\n".join(blocks)],
+        fonts={"F3": FONT_WINANSI, "F5": FONT_CZECH_CAPS_SUBSET},
+    )
+
+
+def rotated_pdf() -> bytes:
+    """Text on a 90° baseline: table headers set vertically, a caption along the page edge.
+
+    pdfminer gives a rotated character its advance as its size, so pdfplumber made a word of
+    nearly every character and the engine a line of each ("K_číslo" as K / _ / č / í s / l o:
+    432 lines on 77 pages of one AMČR report, #5). A ruled 2x2 table has a top-to-bottom header
+    "K_číslo" (its `č` from a second subset) and a bottom-to-top "Datace" over an upright row
+    "12" / "Halstat"; a bottom-to-top caption "Obr. 18 Turnov" runs up the left edge beside an
+    upright line. Each vertical run is one line, read in its direction.
+    """
+    cols = [72, 132, 252]
+    rows = [700, 620, 600]
+    page = b"\n".join(
+        [
+            *_ruled_grid(cols, rows),
+            b"BT /F3 10 Tf 0 -1 1 0 100 690 Tm (K_) Tj /F4 10 Tf <80> Tj /F3 10 Tf (\xedslo) Tj ET",
+            b"BT /F3 10 Tf 0 1 -1 0 196 630 Tm (Datace) Tj ET",
+            _text_at(76, 606, [b"12"], size=10),
+            _text_at(136, 606, [b"Halstat"], size=10),
+            b"BT /F3 10 Tf 0 1 -1 0 50 380 Tm (Obr. 18 Turnov) Tj ET",
+            _text_at(72, 420, [b"Text vedle popisku na okraji strany."]),
+        ]
+    )
+    return _build_pdf_ex([page], fonts={"F3": FONT_WINANSI, "F4": FONT_CZECH_SUBSET})
+
+
 # ── DOCX ─────────────────────────────────────────────────────────────────────
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -920,6 +1048,9 @@ BUILDERS = {
     "font_switch.pdf": font_switch_pdf,
     "unmapped.pdf": unmapped_pdf,
     "stamped_scan.pdf": stamped_scan_pdf,
+    "headings.pdf": headings_pdf,
+    "small_caps.pdf": small_caps_pdf,
+    "rotated.pdf": rotated_pdf,
 }
 
 NOTES = {
@@ -936,6 +1067,9 @@ NOTES = {
     "font_switch.pdf": "Czech letters from a second font subset mid-word; a Ts superscript (#5)",
     "unmapped.pdf": "codes StandardEncoding leaves undefined → (cid:N) → U+FFFD; garbled + digital (#5)",
     "stamped_scan.pdf": "page number over a full-page image → none; text page; half-page image (#5)",
+    "headings.pdf": "title, paragraphs and a table of smaller type; an OCR page's ',' — headings (#5)",
+    "small_caps.pdf": "capitals then smaller capitals in one word; real spaces; a Ts capital (#5)",
+    "rotated.pdf": "vertical table headers (ttb with a second subset, btt); a btt caption (#5)",
 }
 
 
