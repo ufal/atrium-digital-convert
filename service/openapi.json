@@ -2624,6 +2624,16 @@
             "type": "integer",
             "title": "Vector Paths",
             "description": "Vector paths the page draws (PDF): rules, curves, text drawn as outlines."
+          },
+          "words": {
+            "type": "integer",
+            "title": "Words",
+            "description": "Whitespace-separated words of the page's body text (outside its running header and footer)."
+          },
+          "damaged_words": {
+            "type": "integer",
+            "title": "Damaged Words",
+            "description": "Of those, the words that lost a letter to a glyph without a Unicode mapping (U+FFFD). A `digital` page goes to `ocr` when their share reaches `ROUTE_DAMAGED_WORD_SHARE`."
           }
         },
         "additionalProperties": true,
@@ -2637,7 +2647,9 @@
           "regions",
           "columns",
           "images",
-          "vector_paths"
+          "vector_paths",
+          "words",
+          "damaged_words"
         ],
         "title": "PageLayout",
         "description": "What the converter found on the page."
@@ -2697,6 +2709,33 @@
             "type": "integer",
             "title": "Lines Scored",
             "description": "Lines the verdict is based on."
+          },
+          "prose_lines_scored": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prose Lines Scored",
+            "description": "ocr-postprocess only: the scored lines that are prose — outside a table, at least 20 characters, mostly letters, not a table-of-contents line. The quality rule of a `digital` page counts only these (`ROUTE_TRASH_SHARE`)."
+          },
+          "prose_lines_by_category": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prose Lines By Category",
+            "description": "ocr-postprocess only: `lines_by_category` over the prose lines."
           }
         },
         "additionalProperties": true,

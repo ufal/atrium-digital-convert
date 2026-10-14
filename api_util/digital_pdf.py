@@ -26,6 +26,11 @@ And the layout cues the #18 mapping table promises: running headers and footers
 (`style.region`), headings by font size (`style.heading_level`), ruled tables (`tables[]`,
 the legacy `pdf_to_md` had them), PDF page labels (`iv`, `A-1`) as `pages[].page`.
 
+The AMČR samples (atrium-digital-convert#5) added what born-digital reports from Word and
+Acrobat do to words: a font switch inside a word, small capitals set in two sizes, and text on
+a 90° baseline are joined back into words (`_merge_split_words`), and headings are judged
+against the body text of `digital` pages only (`_assign_headings`).
+
 Coordinates stay pdfplumber's `top`/`bottom` pair — top-left origin, points — exactly what
 `$defs/bbox` requires; the bottom-up `y0`/`y1` are never read.
 """
@@ -36,11 +41,12 @@ import os
 import re
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from api_util.digital_ir import (
     REGION_FOOTER,
     REGION_HEADER,
+    TABLE_GROUP_PREFIX,
     TEXT_LAYER_DIGITAL,
     TEXT_LAYER_NONE,
     TEXT_LAYER_OCR,
@@ -50,6 +56,7 @@ from api_util.digital_ir import (
     DigitalPage,
     DigitalTable,
     font_flags,
+    in_table,
     is_inverted,
     missing_dependency,
     renumber_lines,
@@ -74,6 +81,15 @@ FURNITURE_ONLY_IMAGE_COVERAGE = 0.85
 #: the word-gap tolerance itself — and they overlap by at most `MERGE_OVERLAP_RATIO` of it.
 FONT_SWITCH_GAP_RATIO = WORD_GAP_RATIO
 MERGE_OVERLAP_RATIO = 0.25
+
+#: Small capitals emulated by the producer (Word, Distiller): a full-size capital, then the rest
+#: of the word in capitals of this share of its size, on its baseline, with no gap ("O" + "BRÁZEK",
+#: #5). A drop cap is far larger than the word after it, a raised superscript sits above it.
+SMALL_CAPS_MIN_RATIO = 0.6
+SMALL_CAPS_MAX_RATIO = 0.9
+#: How far the bottoms of the two seam characters may differ, as a share of the larger size: a
+#: smaller size of one font differs by its descent (0.4 pt at 10 pt); a `Ts` rise by far more.
+SMALL_CAPS_RISE_RATIO = 0.15
 
 #: A gap wider than this many font sizes splits a line into segments — a column gutter, a
 #: tab stop. Word gaps, even in loosely justified text, stay well under one em.
@@ -144,7 +160,8 @@ def _extract_words(page: Any) -> List[Dict[str, Any]]:
     Grouping by size alone splits them as well, because pdfminer derives a character's size
     from its font's descent and two fonts at one point size differ by float noise
     (12.000000000000007 against 12.0). So the grouping stays as it was — font and size still
-    decide bold, italic and headings — and `_merge_split_words` joins what a font switch split.
+    decide bold, italic and headings — and `_merge_split_words` joins what a font switch split,
+    capitals set as small caps ("O BRÁZEK"), and characters on a 90° baseline (`_vertical_runs`).
 
     Each word then keeps only what the engine reads (`_finish_word`): its majority font, an
     `inverted` flag, and its text with unmapped glyphs as U+FFFD. Dropping the per-character
@@ -171,54 +188,179 @@ def _baseline(word: Dict[str, Any]) -> float:
 def _split_by_font(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
     """Whether `right` continues `left`: one word that a font switch split.
 
-    Same size (to float noise), next to each other within the word-gap tolerance, and the
-    characters at the seam differ in font or in raw size — the only reason pdfplumber split
-    them. A superscript (another size, another baseline), a word after a space (a gap of a
-    quarter em or more) and an overprinted duplicate in the same font all stay apart.
+    Same size (to float noise) at the seam, next to each other within the word-gap tolerance,
+    and the characters at the seam differ in font or in raw size — the only reason pdfplumber
+    split them. A superscript (another size, another baseline), a word after a space (a gap of
+    a quarter em or more) and an overprinted duplicate in the same font all stay apart. The
+    seam's characters decide, not the words' first ones: a word already joined across small
+    caps ("S" + "OU") goes on across a font switch ("Ř" from a second subset).
     """
-    size = float(left.get("size") or 0.0)
-    if not size or round(size, 2) != round(float(right.get("size") or 0.0), 2):
+    last, first = (left.get("chars") or [{}])[-1], (right.get("chars") or [{}])[0]
+    size = float(last.get("size") or left.get("size") or 0.0)
+    other = float(first.get("size") or right.get("size") or 0.0)
+    if not size or round(size, 2) != round(other, 2):
         return False
     gap = float(right["x0"]) - float(left["x1"])
     if not -MERGE_OVERLAP_RATIO * size <= gap <= FONT_SWITCH_GAP_RATIO * size:
         return False
-    last, first = (left.get("chars") or [{}])[-1], (right.get("chars") or [{}])[0]
     return last.get("fontname") != first.get("fontname") or last.get("size") != first.get("size")
 
 
+def _small_caps(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+    """Whether `right` continues `left` as small capitals: "O" + "BRÁZEK" is "OBRÁZEK".
+
+    Word and Distiller set small caps as a full-size capital and smaller capitals, and
+    pdfplumber, grouping by size, splits the word there (#5: "O BRÁZEK" 212 times in one AMČR
+    report, "T ABULKA", "N EGATIV"). Joined when the seam goes from an uppercase letter to
+    capitals `SMALL_CAPS_MIN_RATIO`–`SMALL_CAPS_MAX_RATIO` of its size, with no gap and no rise.
+    A real space ("P VI", "V PRŮBĚHU"), a drop cap and a raised capital stay apart.
+    """
+    last, first = (left.get("chars") or [{}])[-1], (right.get("chars") or [{}])[0]
+    big, small = float(last.get("size") or 0.0), float(first.get("size") or 0.0)
+    if not big or not small or not SMALL_CAPS_MIN_RATIO <= small / big <= SMALL_CAPS_MAX_RATIO:
+        return False
+    gap = float(right["x0"]) - float(left["x1"])
+    if not -MERGE_OVERLAP_RATIO * small <= gap <= FONT_SWITCH_GAP_RATIO * small:
+        return False
+    rise = abs(float(first.get("bottom") or 0.0) - float(last.get("bottom") or 0.0))
+    if rise > SMALL_CAPS_RISE_RATIO * big:
+        return False
+    seam, text = str(last.get("text", "")), str(right.get("text", ""))
+    return (
+        seam.isalpha()
+        and seam.isupper()
+        and any(char.isalpha() for char in text)
+        and all(char.isupper() for char in text if char.isalpha())
+    )
+
+
+def _join(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+    """`left` and `right` as one word: `left`'s attributes, both texts and boxes, all chars."""
+    return {
+        **left,
+        "text": str(left["text"]) + str(right["text"]),
+        "x0": min(float(left["x0"]), float(right["x0"])),
+        "x1": max(float(left["x1"]), float(right["x1"])),
+        "top": min(float(left["top"]), float(right["top"])),
+        "bottom": max(float(left["bottom"]), float(right["bottom"])),
+        "chars": list(left.get("chars") or []) + list(right.get("chars") or []),
+    }
+
+
 def _merge_split_words(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Join the words a font switch split (`_split_by_font`), per baseline, left to right.
+    """Join the words a font switch (`_split_by_font`) or small caps (`_small_caps`) split, per
+    baseline, left to right; then the characters on a 90° baseline (`_vertical_runs`).
 
     By baseline, not by pdfplumber's line clustering: a second font with another descent puts
     its letters' `top` a few points off the line (`ř` in "Přílohy"), and pdfplumber then
-    clusters them into a line of their own. Rotated words are left as they are.
+    clusters them into a line of their own.
     """
     rows: Dict[float, List[Dict[str, Any]]] = {}
     merged: List[Dict[str, Any]] = []
+    rotated: List[Dict[str, Any]] = []
     for word in words:
         if word.get("upright", True):
             rows.setdefault(_baseline(word), []).append(word)
         else:
-            merged.append(word)
+            rotated.append(word)
     for row in rows.values():
         row.sort(key=lambda w: float(w["x0"]))
         current = row[0]
         for word in row[1:]:
-            if _split_by_font(current, word):
-                current = {
-                    **current,
-                    "text": str(current["text"]) + str(word["text"]),
-                    "x0": min(float(current["x0"]), float(word["x0"])),
-                    "x1": max(float(current["x1"]), float(word["x1"])),
-                    "top": min(float(current["top"]), float(word["top"])),
-                    "bottom": max(float(current["bottom"]), float(word["bottom"])),
-                    "chars": list(current.get("chars") or []) + list(word.get("chars") or []),
-                }
+            if _split_by_font(current, word) or _small_caps(current, word):
+                current = _join(current, word)
             else:
                 merged.append(current)
                 current = word
         merged.append(current)
-    return merged
+    return merged + _vertical_runs(rotated)
+
+
+def _run_direction(char: Dict[str, Any]) -> Optional[str]:
+    """`ttb` or `btt` for a character on a 90° baseline (by its text matrix), else None."""
+    matrix = char.get("matrix")
+    if not matrix or len(matrix) != 6:
+        return None
+    a, b = float(matrix[0]), float(matrix[1])
+    if abs(b) <= abs(a):
+        return None
+    return "ttb" if b < 0 else "btt"
+
+
+def _vertical_runs(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Words of characters set on a 90° baseline, one per run, read along it.
+
+    A column header set vertically in a table, a caption along a page edge: pdfminer gives a
+    rotated character its advance as its `size`, so pdfplumber, grouping by size, made a word
+    of nearly every character, and the engine a line of each ("K_číslo" read as K / _ / č / í s /
+    l o, #5: 432 such lines on 77 pages of one AMČR report). The characters of such words are
+    grouped by direction (`_run_direction`) and by their vertical baseline (the matrix `e`, the
+    same across a second font subset), ordered along it, and split where the gap is a word or a
+    segment gap. Each run becomes one word, marked `vertical`. Characters on another slant keep
+    pdfplumber's words.
+    """
+    kept: List[Dict[str, Any]] = []
+    groups: Dict[Tuple[str, float], List[Dict[str, Any]]] = {}
+    for word in words:
+        chars = word.get("chars") or []
+        directions = {_run_direction(char) for char in chars}
+        if not chars or None in directions or len(directions) != 1:
+            kept.append(word)
+            continue
+        direction = directions.pop()
+        for char in chars:
+            groups.setdefault((direction, round(float(char["matrix"][4]), 1)), []).append(char)
+    if not groups:
+        return kept
+
+    from pdfplumber.utils.text import LIGATURES  # noqa: PLC0415  (optional dependency)
+
+    runs: List[Dict[str, Any]] = []
+    for (direction, _), chars in groups.items():
+        ttb = direction == "ttb"
+        chars.sort(key=lambda c: float(c["top"]) if ttb else -float(c["bottom"]))
+        parts: List[List[Dict[str, Any]]] = [[chars[0]]]
+        for previous, char in zip(chars, chars[1:], strict=False):
+            size = float(char["x1"]) - float(char["x0"]) or 10.0
+            if ttb:
+                gap = float(char["top"]) - float(previous["bottom"])
+            else:
+                gap = float(previous["top"]) - float(char["bottom"])
+            if gap > SEGMENT_GAP_RATIO * size:
+                runs.append(_vertical_word(parts, direction, LIGATURES))
+                parts = [[char]]
+            elif gap > WORD_GAP_RATIO * size:
+                parts.append([char])
+            else:
+                parts[-1].append(char)
+        runs.append(_vertical_word(parts, direction, LIGATURES))
+    return kept + runs
+
+
+def _vertical_word(
+    parts: List[List[Dict[str, Any]]], direction: str, ligatures: Mapping[str, str]
+) -> Dict[str, Any]:
+    """One vertical run (its words, each a list of characters) as a pdfplumber-style word."""
+    chars = [char for part in parts for char in part]
+    text = " ".join(
+        "".join(ligatures.get(str(c.get("text", "")), str(c.get("text", ""))) for c in part)
+        for part in parts
+    )
+    fonts = Counter(str(char.get("fontname") or "") for char in chars)
+    return {
+        "text": text,
+        "x0": min(float(c["x0"]) for c in chars),
+        "x1": max(float(c["x1"]) for c in chars),
+        "top": min(float(c["top"]) for c in chars),
+        "bottom": max(float(c["bottom"]) for c in chars),
+        # The font's size across the baseline (the characters' box width), not their advance.
+        "size": max(float(c["x1"]) - float(c["x0"]) for c in chars),
+        "fontname": fonts.most_common(1)[0][0],
+        "upright": False,
+        "direction": direction,
+        "vertical": True,
+        "chars": chars,
+    }
 
 
 def _finish_word(word: Dict[str, Any]) -> Dict[str, Any]:
@@ -354,6 +496,7 @@ def _line_from_words(words: List[Dict[str, Any]], page_label: str) -> DigitalLin
         bold=bold,
         italic=italic,
         inverted=any(w.get("inverted") for w in words),
+        vertical=any(w.get("vertical") for w in words),
     )
 
 
@@ -437,7 +580,7 @@ def _extract_tables(
             continue
         number = counter[0]
         counter[0] += 1
-        group = f"tbl{number}"
+        group = f"{TABLE_GROUP_PREFIX}{number}"
         grid = DigitalTable(
             table_id=f"t{number}",
             page=label,
@@ -650,28 +793,46 @@ def _band(unit: _Unit, height: float) -> Optional[str]:
     return None
 
 
+def _heading_candidate(page: DigitalPage, line: DigitalLine) -> bool:
+    """A line that counts for the body size and may be a heading (`_assign_headings`)."""
+    return (
+        page.text_layer == TEXT_LAYER_DIGITAL
+        and line.region is None
+        and not in_table(line.group_id)
+        and not line.vertical
+        and bool(line.size)
+    )
+
+
 def _assign_headings(document: DigitalDocument) -> None:
-    """Heading levels by font size against the document's body size (char-weighted mode)."""
+    """Heading levels by font size against the document's body size (char-weighted mode).
+
+    Only the body lines of `digital` pages count, both for the body size and as headings. A
+    table's small type would otherwise become the "body" and every paragraph a heading (#5: 1,927
+    of 30,938 lines in a table-heavy AMČR report, Docling finding 192); a prior OCR layer's
+    invisible text has sizes of its own (a lone "," became a heading), and a vertical run or the
+    running header is never one. `garbled` is decided later (Layer B), so its pages still count.
+    """
+    candidates = [
+        line for page in document.pages for line in page.lines if _heading_candidate(page, line)
+    ]
     weights: Counter = Counter()
-    for line in document.all_lines():
-        if line.size and line.region is None:
-            weights[line.size] += len(line.text)
+    for line in candidates:
+        weights[line.size] += len(line.text)
     if not weights:
         return
     body = weights.most_common(1)[0][0]
     heading_sizes = sorted(
         {
             line.size
-            for line in document.all_lines()
-            if line.region is None
-            and line.size >= HEADING_SIZE_RATIO * body
-            and len(line.text) <= HEADING_MAX_CHARS
+            for line in candidates
+            if line.size >= HEADING_SIZE_RATIO * body and len(line.text) <= HEADING_MAX_CHARS
         },
         reverse=True,
     )
     levels = {size: min(i + 1, MAX_HEADING_LEVEL) for i, size in enumerate(heading_sizes)}
-    for line in document.all_lines():
-        if line.region is None and line.size in levels and len(line.text) <= HEADING_MAX_CHARS:
+    for line in candidates:
+        if line.size in levels and len(line.text) <= HEADING_MAX_CHARS:
             line.heading_level = levels[line.size]
 
 
@@ -753,7 +914,21 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
                 current.text_layer = TEXT_LAYER_DIGITAL
 
             table_units, words = _extract_tables(page, words, label, table_counter)
-            units = table_units + [seg for line in _cluster_lines(words) for seg in _segments(line)]
+            flat = [w for w in words if not w.get("vertical")]
+            units = table_units + [seg for line in _cluster_lines(flat) for seg in _segments(line)]
+            # A vertical run is a line of its own: clustered by `top` it would join whatever
+            # horizontal line its first character happens to sit beside.
+            units += [
+                _Unit(
+                    x0=float(w["x0"]),
+                    top=float(w["top"]),
+                    x1=float(w["x1"]),
+                    bottom=float(w["bottom"]),
+                    words=[w],
+                )
+                for w in words
+                if w.get("vertical")
+            ]
             staged.append((current, units))
             # pdfplumber keeps a page's layout and character dicts until the page is closed, and
             # the words no longer point at them: a 500-page report no longer holds every page.

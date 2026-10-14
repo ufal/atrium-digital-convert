@@ -17,6 +17,15 @@ For every page of a converted document it says, in one place:
       `ocr`  re-acquire the page with ATR (printed or typed text, or unknown);
       `htr`  re-acquire it with a handwriting model;
       `none` there is no text to read (a blank page, a drawing or photo).
+    A `digital` page goes to `ocr` instead of `nlp` in two cases (atrium-digital-convert#5):
+    when at least ROUTE_DAMAGED_WORD_SHARE of the words of its body text (outside its running
+    header and footer) lose a letter to a glyph without a Unicode mapping (U+FFFD: the
+    converter's own evidence, so it holds without any stage), and
+    when the quality model calls more than ROUTE_TRASH_SHARE of its *prose* lines Trash. A prose
+    line is outside a table, at least `PROSE_MIN_CHARS` long, mostly letters and not a dot
+    leader, and the page needs `MIN_PROSE_LINES` of them: the model is trained on running text,
+    and on born-digital pages its Trash lines are table cells, codes, coordinates and tables of
+    contents, whose text is exact (612 of 1,981 AMČR pages were moved for that before #5).
   * **layout** and **text** — what the converter found on the page.
 
 Everything here is derived: from the converter's internal document, the record and the stages'
@@ -30,13 +39,15 @@ typed / graphical / tabular), so a category added to the registry is routed with
 
 from __future__ import annotations
 
+import re
 from collections import Counter
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from api_util.digital_ir import (
     REGION_FOOTER,
     REGION_FOOTNOTE,
     REGION_HEADER,
+    REPLACEMENT_CHAR,
     TEXT_LAYER_BLANK,
     TEXT_LAYER_DIGITAL,
     TEXT_LAYER_GARBLED,
@@ -44,6 +55,7 @@ from api_util.digital_ir import (
     TEXT_LAYER_OCR,
     DigitalDocument,
     DigitalPage,
+    in_table,
     text_layer_of,
 )
 
@@ -62,6 +74,63 @@ QUALITY_CATEGORIES = ("Clear", "Noisy", "Trash", "Non-text", "Empty")
 
 #: The converter's own decode verdicts on `lines[].categ`.
 DECODE_CATEGORIES = ("Garbage", "Inverted")
+
+#: What the quality rule counts on a `digital` page: prose lines only (atrium-digital-convert#5).
+#: A line shorter than this (stripped) is not prose: a table cell, a label, a page number.
+PROSE_MIN_CHARS = 20
+#: Letters must be at least this share of a prose line's non-space characters: coordinates,
+#: find numbers and photo IDs ("DR-12982-18711;4990") are not language.
+PROSE_MIN_LETTER_SHARE = 0.5
+#: A table-of-contents line: dots, ellipses or underscores leading to a page number.
+DOT_LEADERS = re.compile(r"(\.\s?){4,}|…{2,}|_{4,}")
+#: Prose lines a page needs before the quality model's verdict on them can move it to OCR.
+MIN_PROSE_LINES = 5
+#: Why a line is or is not prose: the first test it fails, in this order (`line_kind`).
+LINE_KINDS = ("table", "short", "few letters", "dot leaders", "prose")
+#: How a quality-rule reroute's `route_reason` starts (`tools/samples_report.py` counts them).
+QUALITY_ROUTE_PREFIX = "the text layer decodes, but the quality model calls"
+#: How a lost-letter reroute's `route_reason` starts.
+DAMAGED_ROUTE_PREFIX = "the text layer decodes, but"
+
+
+def line_kind(text: str, group_id: Optional[str] = None) -> str:
+    """The kind of a line for the quality rule: one of `LINE_KINDS`.
+
+    `table` when it is a table cell (`group_id` `tbl…`), `short` under `PROSE_MIN_CHARS`,
+    `few letters` when letters are under `PROSE_MIN_LETTER_SHARE` of its non-space characters,
+    `dot leaders` for a table-of-contents line, else `prose`.
+    """
+    if in_table(group_id):
+        return "table"
+    stripped = str(text or "").strip()
+    if len(stripped) < PROSE_MIN_CHARS:
+        return "short"
+    dense = "".join(stripped.split())
+    if sum(char.isalpha() for char in dense) < PROSE_MIN_LETTER_SHARE * len(dense):
+        return "few letters"
+    if DOT_LEADERS.search(stripped):
+        return "dot leaders"
+    return "prose"
+
+
+def is_prose_line(text: str, group_id: Optional[str] = None) -> bool:
+    """Whether the quality rule counts this line (`line_kind` is `prose`)."""
+    return line_kind(text, group_id) == "prose"
+
+
+def count_damaged_words(texts: Iterable[str]) -> Tuple[int, int]:
+    """`(damaged, words)` over lines of text: whitespace tokens, and those of them that hold
+    U+FFFD and a letter — a word that lost a letter to a glyph without a Unicode mapping
+    ("poh�ební"). A token of U+FFFD alone is an unmapped symbol (a bullet), not a damaged word.
+    """
+    damaged = words = 0
+    for text in texts:
+        for token in str(text or "").split():
+            words += 1
+            if REPLACEMENT_CHAR in token and any(char.isalpha() for char in token):
+                damaged += 1
+    return damaged, words
+
 
 #: Used when `atrium_vocab` is not importable (it is vendored; this keeps the module standalone).
 _FALLBACK_COLLECTIONS: Dict[str, Sequence[str]] = {
@@ -96,10 +165,21 @@ def quality_band(clear: int, noisy: int, trash: int) -> str:
     return "Trash"
 
 
-def summarize_quality(lines: Iterable[Mapping[str, Any]], **extra: Any) -> Optional[Dict[str, Any]]:
+def summarize_quality(
+    lines: Iterable[Mapping[str, Any]],
+    prose: Optional[Sequence[bool]] = None,
+    **extra: Any,
+) -> Optional[Dict[str, Any]]:
     """One page's quality from ocr-postprocess's per-line answers (`category`/`categ`,
-    `quality_score`, `lang`). None when no line was scored."""
-    rows = [row for row in lines if (row.get("category") or row.get("categ"))]
+    `quality_score`, `lang`). None when no line was scored.
+
+    `prose`, one flag per line of `lines` (`is_prose_line` of the line the converter sent),
+    adds `prose_lines_scored` and `prose_lines_by_category`: what the quality rule of
+    `route_page` counts. Flags that do not match the lines one to one are ignored.
+    """
+    every = list(lines)
+    flags = list(prose) if prose is not None and len(prose) == len(every) else None
+    rows = [row for row in every if (row.get("category") or row.get("categ"))]
     if not rows:
         return None
     counts = Counter(str(row.get("category") or row.get("categ")) for row in rows)
@@ -120,6 +200,14 @@ def summarize_quality(lines: Iterable[Mapping[str, Any]], **extra: Any) -> Optio
     clear, noisy, trash = counts.get("Clear", 0), counts.get("Noisy", 0), counts.get("Trash", 0)
     if clear or noisy or trash:
         summary["band"] = quality_band(clear, noisy, trash)
+    if flags is not None:
+        prose_counts = Counter(
+            str(row.get("category") or row.get("categ"))
+            for row, flag in zip(every, flags, strict=True)
+            if flag and (row.get("category") or row.get("categ"))
+        )
+        summary["prose_lines_scored"] = sum(prose_counts.values())
+        summary["prose_lines_by_category"] = dict(sorted(prose_counts.items()))
     summary.update(extra)
     return summary
 
@@ -139,12 +227,46 @@ def _converter_quality(page: DigitalPage) -> Optional[Dict[str, Any]]:
     }
 
 
-def _trash_share(quality: Mapping[str, Any]) -> Optional[float]:
-    counts = quality.get("lines_by_category") or {}
-    judged = sum(int(counts.get(name, 0)) for name in ("Clear", "Noisy", "Trash"))
-    if not judged:
-        return None
-    return int(counts.get("Trash", 0)) / judged
+def _judged(counts: Optional[Mapping[str, Any]]) -> Tuple[int, int]:
+    """`(judged, trash)`: the Clear/Noisy/Trash lines of a `lines_by_category`-style count."""
+    counts = counts or {}
+    judged = sum(int(counts.get(name, 0) or 0) for name in ("Clear", "Noisy", "Trash"))
+    return judged, int(counts.get("Trash", 0) or 0)
+
+
+def _quality_route(
+    quality: Mapping[str, Any], trash_share_limit: float, min_prose_lines: int
+) -> Tuple[str, str]:
+    """The quality rule for a `digital` page that ocr-postprocess scored (module docstring)."""
+    band = quality.get("band")
+    judged, trash = _judged(quality.get("lines_by_category"))
+    over_all = bool(judged) and trash / judged > trash_share_limit
+    if "prose_lines_by_category" not in quality:
+        # A caller that does not know which lines are prose: the rule over every scored line.
+        if over_all:
+            return ROUTE_OCR, (
+                f"{QUALITY_ROUTE_PREFIX} {trash / judged:.0%} of its scored lines Trash "
+                f"(ROUTE_TRASH_SHARE {trash_share_limit:g}): re-acquire it"
+            )
+        return ROUTE_NLP, f"trustworthy text layer{f' (quality {band})' if band else ''}"
+    prose_judged, prose_trash = _judged(quality.get("prose_lines_by_category"))
+    if prose_judged >= min_prose_lines and prose_trash / prose_judged > trash_share_limit:
+        return ROUTE_OCR, (
+            f"{QUALITY_ROUTE_PREFIX} {prose_trash / prose_judged:.0%} of its prose lines Trash "
+            f"({prose_trash} of {prose_judged}; ROUTE_TRASH_SHARE {trash_share_limit:g}): "
+            "re-acquire it"
+        )
+    reason = f"trustworthy text layer (quality {band})" if band else "trustworthy text layer"
+    if not over_all:
+        return ROUTE_NLP, reason
+    # The model calls most lines Trash, but not the prose ones: say why the page stays.
+    if prose_judged >= min_prose_lines:
+        why = f"{prose_trash} of its {prose_judged} prose lines Trash"
+    else:
+        why = f"{prose_judged} prose line(s), fewer than {min_prose_lines} to judge"
+    return ROUTE_NLP, (
+        f"{reason}; its Trash lines are table cells, short lines, numbers or dot leaders ({why})"
+    )
 
 
 def route_page(
@@ -154,20 +276,27 @@ def route_page(
     trash_share_limit: float = 0.5,
     collections: Optional[Mapping[str, frozenset]] = None,
     drew_anything: bool = True,
+    damaged_words: Optional[Tuple[int, int]] = None,
+    damaged_word_limit: float = 0.05,
+    min_prose_lines: int = MIN_PROSE_LINES,
 ) -> tuple:
-    """`(route, reason)` for one page. Deterministic; see the module docstring."""
+    """`(route, reason)` for one page. Deterministic; see the module docstring.
+
+    `damaged_words` is the page's `count_damaged_words` (`(damaged, words)`): a `digital` page
+    at or over `damaged_word_limit` goes to `ocr` whatever the quality model says.
+    """
     if text_layer == TEXT_LAYER_BLANK:
         return ROUTE_NONE, "empty page; nothing to read"
     if text_layer == TEXT_LAYER_DIGITAL:
+        damaged, words = damaged_words or (0, 0)
+        if words and damaged and damaged / words >= damaged_word_limit:
+            return ROUTE_OCR, (
+                f"{DAMAGED_ROUTE_PREFIX} {damaged} of its {words} words ({damaged / words:.0%}) "
+                "lose a letter to a glyph without a Unicode mapping (U+FFFD; "
+                f"ROUTE_DAMAGED_WORD_SHARE {damaged_word_limit:g}): re-acquire it"
+            )
         if quality and quality.get("source") == "ocr-postprocess":
-            share = _trash_share(quality)
-            if share is not None and share > trash_share_limit:
-                return ROUTE_OCR, (
-                    f"the text layer decodes, but the quality model calls {share:.0%} of its scored "
-                    f"lines Trash (ROUTE_TRASH_SHARE {trash_share_limit:g}): re-acquire it"
-                )
-            band = quality.get("band")
-            return ROUTE_NLP, f"trustworthy text layer{f' (quality {band})' if band else ''}"
+            return _quality_route(quality, trash_share_limit, min_prose_lines)
         return ROUTE_NLP, "trustworthy text layer (decode check passed; quality model not run)"
 
     if text_layer == TEXT_LAYER_NONE and not drew_anything and not category:
@@ -224,6 +353,12 @@ def _layout(page: DigitalPage) -> Dict[str, Any]:
         "images": page.images,
         "vector_paths": page.vector_paths,
     }
+    # Body text only: a figure page whose only text is a running header that lost a letter has
+    # nothing to re-acquire (36 such pages in one AMČR report, #5).
+    damaged, words = count_damaged_words(
+        line.text for line in page.lines if line.region not in (REGION_HEADER, REGION_FOOTER)
+    )
+    layout["words"], layout["damaged_words"] = words, damaged
     return layout
 
 
@@ -233,11 +368,14 @@ def build_report(
     quality: Optional[Mapping[int, Mapping[str, Any]]] = None,
     trash_share_limit: float = 0.5,
     include_text: bool = True,
+    damaged_word_limit: float = 0.05,
 ) -> Dict[str, Any]:
     """`{"pages": [...], "summary": {...}}` for a converted document.
 
     `categories` and `quality` are keyed by `page_index` (1-based): what page-classification
     and ocr-postprocess answered for that page, as `stages.py` normalises it.
+    `trash_share_limit` and `damaged_word_limit` are ROUTE_TRASH_SHARE and
+    ROUTE_DAMAGED_WORD_SHARE (`tool_limits.py`).
     """
     categories = categories or {}
     quality = quality or {}
@@ -247,6 +385,7 @@ def build_report(
         layer = text_layer_of(page)
         category = categories.get(page.page_index)
         page_quality = quality.get(page.page_index) or _converter_quality(page)
+        layout = _layout(page)
         route, reason = route_page(
             layer,
             (category or {}).get("label"),
@@ -254,6 +393,8 @@ def build_report(
             trash_share_limit=trash_share_limit,
             collections=collections,
             drew_anything=bool(page.images or page.vector_paths or page.lines),
+            damaged_words=(layout["damaged_words"], layout["words"]),
+            damaged_word_limit=damaged_word_limit,
         )
         entry: Dict[str, Any] = {
             "page": page.page,
@@ -265,7 +406,7 @@ def build_report(
             "quality": dict(page_quality) if page_quality else None,
             "route": route,
             "route_reason": reason,
-            "layout": _layout(page),
+            "layout": layout,
         }
         if include_text:
             entry["text"] = "\n".join(line.text for line in page.lines)

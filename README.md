@@ -91,7 +91,13 @@ AMČR upload ──► seed record (doc_id, source.sha512, filename, media_type)
   The record is still written, and those pages go to the OCR/HTR route. atrium-ocr-postprocess
   merges the ATR ALTO of each such page back into the same record, that page only. A PDF that is mostly a
   prior OCR run (at least `OCR_LAYER_DOCUMENT_SHARE` of its pages, default 0.5) is not born-digital.
-  It is refused as `ocr_text_layer` and belongs to the OCR route as a whole.
+  It is refused as `ocr_text_layer` and belongs to the OCR route as a whole. A lower setting sends
+  any document with a prior OCR layer to that route whole.
+* **Which pages to re-acquire.** `needs_ocr` marks the pages whose text the converter cannot vouch
+  for. `/describe` makes the whole per-page decision: among those pages, page types send drawings
+  and photographs to `none` and handwriting to `htr`, and two rules send decoding pages to `ocr`
+  (lost letters, and the quality model). Its `summary.reacquire_pages` (routes `ocr` and `htr`) is the page list for
+  ATR/HTR; with `stages=none` it calls no other service.
 * **The legacy DOC and XLS** were accepted by AMČR on
   [#4](https://github.com/ufal/atrium-digital-convert/issues/4) (2026-09-26). LibreOffice
   converts the file to DOCX/XLSX first and is not counted in the record's licence; see
@@ -260,7 +266,8 @@ into mojibake), with no stage configured:
     "route_reason": "the text layer does not decode; page type unknown (page-classification not run): default to ATR",
     "layout": {"canvas": {"width": 612.0, "height": 792.0, "unit": "pt"}, "lines": 3, "blocks": 1,
                "tables": 0, "headings": 0, "columns": 1, "images": 0, "vector_paths": 0,
-               "regions": {"page_header": 0, "page_footer": 0, "footnote": 0}},
+               "regions": {"page_header": 0, "page_footer": 0, "footnote": 0},
+               "words": 16, "damaged_words": 0},
     "text": "Zpráva o sondì èíslo 3.\n…"
   }],
   "summary": {"pages": 1, "routes": {"nlp": 0, "ocr": 1, "htr": 0, "none": 0},
@@ -294,7 +301,7 @@ into mojibake), with no stage configured:
 
   | The page                                           | Route                                                                                                |
   |----------------------------------------------------|------------------------------------------------------------------------------------------------------|
-  | its text layer decodes                             | `nlp`, unless ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its lines `Trash` → `ocr` |
+  | its text layer decodes                             | `nlp`, unless it loses letters or its prose reads as `Trash` (below) → `ocr`                         |
   | no usable text, handwritten (`TEXT_HW`, `LINE_HW`) | `htr`                                                                                                |
   | no usable text, printed, typed or tabular          | `ocr`                                                                                                |
   | no usable text, graphical only (`DRAW`, `PHOTO`)   | `none`                                                                                               |
@@ -303,6 +310,15 @@ into mojibake), with no stage configured:
 
   The categories are read through the page-category facets of `atrium_vocab.COLLECTIONS`, so a
   category added to the vocabulary registry is routed without a code change.
+
+  A page whose text layer decodes still goes to `ocr` in two cases:
+  * **lost letters:** at least `ROUTE_DAMAGED_WORD_SHARE` (0.05) of the words of its body text
+    (outside the running header and footer) lose a letter to a glyph without a Unicode mapping
+    (U+FFFD). The converter sees this itself, without any stage;
+  * **the quality model:** ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose*
+    lines `Trash`, on a page with at least 5 of them. A prose line is outside a table, has at least
+    20 characters, is mostly letters and is not a table-of-contents line. Table cells, codes and
+    coordinates read as `Trash` to a model of running text, but on a born-digital page they are exact.
 * **Layout and text** (`layout`, `text`): the converter's counts per page, and the page's text in
   reading order (`include_text=false` leaves the text out).
 * **Stages** (`stages[]`), one entry per stage:
@@ -328,49 +344,65 @@ into mojibake), with no stage configured:
 
 [#5](https://github.com/ufal/atrium-digital-convert/issues/5) ran 15 excavation reports from AMČR
 (ARUP/ARUB, 2008–2022, 2.1–156 MB, 34–529 pages; 2,514 pages, 525 MB) through every stage on the
-cluster. What they show about the collection, and what the converter does about it:
+cluster, twice (2026-10-09 and 10-14). What they show about the collection, and what the converter
+does about it:
 
 * **Most are assembled documents.** Text written in Word, exported, then combined in Acrobat with
-  scanned or drawn parts: plans, photographs, forms, older reports. 10 of the 15 are mixed: 8 have
-  `none` pages among `digital` ones (from 1 to 157 per document), 2 have `ocr` pages. Routing is
-  per page, never per document.
-  * Two carry a prior OCR layer on some pages (Acrobat Paper Capture, PDFTron). It is below
-    `OCR_LAYER_DOCUMENT_SHARE`, so those pages are `ocr` and the document is converted.
-  * One has 23 pages that draw only vector paths: plans, or text drawn as curves. They are `none`.
-* **A font switch inside a word.** Acrobat Distiller sets the Czech letters outside WinAnsi
-  (ě č ř ů ň ť ď) in a second subset of the font. Until #5 the light engine split every word at
-  them ("Ji č ín"): nearly 24,000 letters, almost all in 5 of the 15 documents, on pages that read
-  `digital` and Clear. Words are now joined across a font switch on one baseline (`digital_pdf._merge_split_words`).
-* **Glyphs without a Unicode mapping.** A font without /ToUnicode gives pdfminer no character,
-  and it wrote `(cid:N)` instead, which passed as text: 3 documents, 87 pages, some 89–100 %
-  unmapped. Each such glyph is now U+FFFD; a line over 15 % of them is `Garbage` and its page
-  `garbled` (18 pages in the samples). A page with a few keeps them visible as U+FFFD and stays
-  `digital`: one report loses every ř, ě, č and ů that way on 68 pages.
-* **A page number over a scan.** A scanned page that Acrobat numbered has a text layer, the
-  number. Such a page is `none` when its only text is furniture and its images cover at least
-  `FURNITURE_ONLY_IMAGE_COVERAGE` of it (2 pages in the samples).
-* **Known, not handled:** doubled glyphs on cover pages ("ARC CHEOLO GICKÝ"), captions rotated
-  along a landscape page's edge read one character per line, unruled tables read column by
-  column, and the big type of a cover form taken for headings. Docling (`--engine docling`) is
-  the route for the last two.
-* **Resources.** Time and memory follow the text a document holds, not its size:
-  * the light engine took 1–35 s per document;
-  * the service's peak reached 1.9 GB for a 4.8 MB, 178-page report, and 1.4 GB for the 156 MB one.
+  scanned or drawn parts: plans, photographs, forms, older reports. 10 of the 15 are mixed, so
+  routing is per page, never per document. Of the 2,514 pages:
+  * 1,981 carry a usable text layer (`digital`);
+  * 533 do not. page-classification calls 434 of them photographs or drawings (`route: none`,
+    nothing to read) and 99 text or tables (`ocr`);
+  * two documents carry a prior OCR layer on some pages (Acrobat Paper Capture, PDFTron), under
+    `OCR_LAYER_DOCUMENT_SHARE`: those pages are `ocr` and the document is converted;
+  * one has 23 pages that draw only vector paths (plans, or text drawn as curves): `none`.
+* **What born-digital text does to words**, all fixed in the light engine (`digital_pdf.py`):
+  * Acrobat Distiller sets the Czech letters outside WinAnsi (ě č ř ů ň ť ď) in a second subset of
+    the font. Words were split at each of them ("Ji č ín"): nearly 24,000 letters, 484 after the
+    fix (432 of them the vertical headers below, also fixed since).
+  * Small capitals are a full-size capital and smaller capitals: "O BRÁZEK" (212 times in one
+    report), "T ABULKA", "N EGATIV". They are one word now ("OBRÁZEK"); real spaces ("P VI") stay.
+  * Table headers set vertically were read one letter per line (432 lines on 77 pages of one
+    report). A run of characters on a 90° baseline is one line now, read in its direction.
+  * Headings were judged against a body size that table cells set, so in table-heavy reports
+    every paragraph was a heading (1,927 of 30,938 lines in one report; Docling finds 192). Only
+    the body text of `digital` pages counts now.
+* **Glyphs without a Unicode mapping.** A font without /ToUnicode gives pdfminer no character. Each
+  such glyph is U+FFFD (it was the text `(cid:N)`); a line over 15 % of them is `Garbage` and its
+  page `garbled` (18 pages). One report loses every ř, ě, č and ů this way on the rest of its pages:
+  `/describe` sends a page to OCR when at least `ROUTE_DAMAGED_WORD_SHARE` (5 %) of the words of its
+  body text are damaged (29 pages, a median of 19 % of their words). Docling recovers none of them.
+  The record keeps these pages `digital` and does not flag them: they are in `/describe`'s
+  `reacquire_pages`, not in `needs_ocr`.
+* **A page number over a scan.** A scanned page that Acrobat numbered has a text layer, the number.
+  It is `none` when its only text is furniture and its images cover at least
+  `FURNITURE_ONLY_IMAGE_COVERAGE` of it (2 pages: a drawing and a photograph). 36 pages of another
+  report carry a running header over figures covering 58–64 % of them, and stay `digital`:
+  page-classification calls 30 of them photographs or drawings, and 6 drawings with a legend
+  (`DRAW_L`), which nothing reads if the legend is part of the image.
+* **The quality model and born-digital text.** ocr-postprocess's line-quality model judges running
+  text. On born-digital pages its `Trash` lines are table cells, codes, coordinates, photo IDs and
+  table-of-contents leaders, whose text is exact: counted over every line, `ROUTE_TRASH_SHARE` sent
+  612 of the 1,981 `digital` pages to OCR. It counts prose lines only now, and moves none of them.
+* **Known, not handled:** doubled glyphs on cover pages ("ARC CHEOLO GICKÝ"), letter-spaced captions
+  and map labels, and unruled tables read column by column.
+* **Resources** (10-14, an A40 node; times differ between nodes, memory does not):
+  * the light engine: 3–50 s per document, a peak of at most 0.7 GB on the command line and 0.8 GB
+    in the service (783 MB for a 282-page report; 560 MB for the 156 MB one). Memory follows the
+    text a document holds, not its size; budget about 1 GB plus the upload limit per
+    `MAX_CONCURRENT_JOBS` slot. `MAX_UPLOAD_MB` is 200 by default since #5;
+  * Docling (`--engine docling`, on the GPU): 25–341 s and 2.2–7.4 GB per document;
+  * `/describe` with both stages: up to 276 s (page-classification 135 s on 149 flagged pages,
+    202 s on all 529 with `classify_pages=all`). `STAGE_TIMEOUT_S` is 360 s by default since then.
+* **What the stages receive.** The compact record `/describe` sends a stage reached 14 MB, and
+  page-classification also gets the whole PDF: its defaults (10 MB per part, 50 pages per call)
+  need raising for these files (`service/README.md` § Limits).
+* **For a model.** The Markdown runs up to about 290k tokens at `full` and 150k at `minimal` for a
+  400–530-page report, so a model stage downstream has to chunk it.
 
-  The engine kept every page's parse until the end. It now closes each page and keeps no
-  per-character data: a synthetic 180-page, 1.3-million-character PDF fell from 2.7 GB to 0.2 GB
-  (and from 68 s to 51 s). Until a re-run measures the samples again, budget about 2 GB plus the
-  upload limit per `MAX_CONCURRENT_JOBS` slot. `MAX_UPLOAD_MB` is 200 by default since #5.
-* **What the stages receive.** The compact record that `/describe` sends to a stage reached 14 MB.
-  Page-classification also gets the whole PDF, and its default is 10 MB per part. A stage that
-  refuses a part reports `error` for that document. Set the stages' limits with this service's
-  (`service/README.md` § Limits).
-* **For a model.** The Markdown runs up to about 290k tokens at `full` and 150k at `minimal` for
-  a 400–530-page report, so a model stage downstream has to chunk it.
-
-`tools/samples_report.py` measures all of this on a run. Its `summary.md` has a "Text defects"
-table (split letters, unmapped glyphs, garbled pages, page numbers over scans, pages of
-one-character lines) that a re-run of the samples compares with.
+`tools/samples_report.py` measures all of this on a run: a "Text defects" table, the quality model's
+moves and what it judged (by kind of line), the pages whose only text is furniture, and the limits
+the run suggests.
 
 ## Record → annotated Markdown
 
@@ -386,6 +418,13 @@ python3 api_util/doc_to_visual_md.py report.pdf --output report.md         # con
 * **The format.** The Markdown is page-sectioned (`## Page N`). The visual-layout cues ride in HTML
   comments (`DOC_META`, `BBOX`, `PAGE_BREAK`, `NEEDS_OCR`, `HEADER_*`/`FOOTER_*`, headings, GFM
   tables, footnotes). The full taxonomy is `CUE_SCHEMA` in [`api_util/layout_md.py`](api_util/layout_md.py) 📎.
+* **Text never forges a cue** ([#6](https://github.com/ufal/atrium-digital-convert/issues/6)).
+  Document text that holds `<!--` or `-->` has them escaped (`&lt;!--`, `--&gt;`), and a line of
+  text that starts with `#` starts with `\#`, so a line reading `## Page 7` or `<!-- PAGE_BREAK -->`
+  is text. A page label, a `needs_ocr_reason` or a font name inside a cue stays on one line. A
+  reader that meets a raw `<!--`, a `## Page N` or a `PAGE_BREAK` is reading the renderer's own
+  structure: there are exactly as many `## Page` sections as pages. Text without these characters
+  renders as before; `--format text` keeps the document's text as it is.
 * **The one model-facing representation.** Annotated Markdown is the single general input a language
   model is given (digital-convert#3). PDF, DOCX, TEITOK, PAGE XML and ALTO stay upstream, as sources;
   nothing downstream takes raw HTML or XML as a prompt. The record route and the TEITOK/ALTO route emit
@@ -452,11 +491,12 @@ Every setting is an environment variable. [`.env.example`](.env.example) 📎 is
 |-----------------------------------------------------------|-------------------------|-------------------------------------------------------------------------------|
 | `MAX_UPLOAD_MB`, `MAX_PAGES`, `MAX_CONCURRENT_JOBS`       | 200, 2000, 2            | service limits                                                                |
 | `OCR_LAYER_DOCUMENT_SHARE`                                | 0.5                     | at or above this share of prior-OCR pages a PDF is refused (`ocr_text_layer`) |
-| `ROUTE_TRASH_SHARE`                                       | 0.5                     | `/describe`: a decoding page with more `Trash` lines than this goes to `ocr`  |
+| `ROUTE_TRASH_SHARE`                                       | 0.5                     | `/describe`: a decoding page with more `Trash` prose lines goes to `ocr`      |
+| `ROUTE_DAMAGED_WORD_SHARE`                                | 0.05                    | `/describe`: a decoding page with this share of words losing a letter → `ocr` |
 | `FURNITURE_ONLY_IMAGE_COVERAGE`                           | 0.85                    | a page with only header/footer text over images covering this much is `none`  |
 | `LIBREOFFICE_BIN`, `LIBREOFFICE_TIMEOUT_S`                | `soffice`, 120 s        | DOC/XLS conversion                                                            |
 | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`          | unset                   | `/describe`'s stages; unset → `not_configured`                                |
-| `STAGE_TIMEOUT_S`                                         | 120 s                   | per stage call; over it the stage is `unavailable`                            |
+| `STAGE_TIMEOUT_S`                                         | 360 s                   | per stage call; over it the stage is `unavailable`                            |
 | `PAGE_CLASSIFICATION_VERSION`, `PAGE_CLASSIFICATION_TOPN` | `all` (the ensemble), 3 | the model version and top-N `/describe` asks page-classification for          |
 | `DOCLING_ARTIFACTS_PATH`                                  | unset                   | Docling's model directory (`--engine docling`)                                |
 

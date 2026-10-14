@@ -122,6 +122,31 @@ CASES = [
         ["NEEDS_OCR: pg_2", "NEEDS_OCR: pg_3"],
     ),
     (
+        "#5 headings by size against the body text, not a table's or an OCR layer's",
+        "headings.pdf",
+        [
+            "### Vyzkum hradiste",
+            "Prvni odstavec popisuje sondy.",
+            "| Sonda | Vrstva | Nalezy |",
+            "## Page 2",
+            "## Page 3",
+            "Treti strana, odstavec o nalezech.",
+        ],
+        ["#### ", "### Prvni", "### Druhy", "### ,", "### Naskenovana", "### Treti"],
+    ),
+    (
+        "#5 small capitals are whole words; real spaces and a raised capital stay apart",
+        "small_caps.pdf",
+        ["OBRÁZEK 12", "TABULKA 3", "SOUŘADNICOVÝ", "P VI a P IX", "V PRUBEHU", "KAPITOLA A"],
+        ["O BRÁZEK", "T ABULKA", "S OU", "PVI", "VPRUBEHU", "KAPITOLAA"],
+    ),
+    (
+        "#5 text on a 90° baseline is one line read in its direction",
+        "rotated.pdf",
+        ["| K_číslo | Datace |", "| 12 | Halstat |", "Obr. 18 Turnov"],
+        ["K _", "e c a t a D", "nvonruT", "\n81\n"],
+    ),
+    (
         "G4 package without the main-part Override",
         "bare.docx",
         ["### Zpráva o sondě", "## Page 2"],

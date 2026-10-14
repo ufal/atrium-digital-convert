@@ -179,6 +179,7 @@ def _block_md(block: List[dict]) -> str:
     text = " ".join(ln["text"].strip() for ln in block if ln.get("text", "").strip()).strip()
     if not text:
         return ""
+    text = L.escape_text(text)  # #6: block text never reads as a cue or a page heading
     chars = [c for ln in block for c in ln.get("chars", [])]
     cues = L.bbox(_block_bbox(block))
     font_cue = _dominant_font(chars)
@@ -265,7 +266,7 @@ def _ocr_page(ocr_ctx: dict, page_num: int) -> Optional[List[str]]:
     parts: List[str] = [L.ocr_meta("tesseract", lang)]
     for block in blocks:
         if block["text"].strip():
-            parts.append(f"{L.bbox(block['bbox'])}\n{block['text']}")
+            parts.append(f"{L.bbox(block['bbox'])}\n{L.escape_text(block['text'])}")
     return parts if len(parts) > 1 else None
 
 
@@ -359,7 +360,7 @@ def convert(
             )
 
     try:
-        parts: List[str] = [f"# {doc_id_from_path(path)}"]
+        parts: List[str] = [f"# {L.cue_value(doc_id_from_path(path))}"]
         with pdfplumber.open(str(path)) as pdf:
             for i, page in enumerate(pdf.pages, start=1):
                 parts.extend(_render_page(page, i, ocr_ctx=ocr_ctx))

@@ -1084,6 +1084,148 @@ def test_a_real_size_change_or_a_same_font_gap_still_starts_a_new_word():
     assert sorted(texts) == ["1", "ab", "slova"]
 
 
+def _words(chars):
+    from api_util import digital_pdf
+
+    return [w["text"] for w in digital_pdf._extract_words(_CharsPage(chars))]
+
+
+def _caps(text, x0, size, top, width=6.0, font="AAAAAA+Times"):
+    """Characters of `text` set at `size`, from `x0`, all with their bottom at `top + size`."""
+    return [
+        _char(c, x0 + width * i, width, size=size, font=font, top=top) for i, c in enumerate(text)
+    ]
+
+
+def test_small_capitals_are_joined_into_one_word():
+    """#5: "O" at 10 pt then "BRÁZEK" at 8 pt on one baseline is "OBRÁZEK"; a chain across a
+    second font subset ("S" + "OU" + "Ř" + "ADNICOVÝ") is one word as well."""
+    pytest.importorskip("pdfplumber")
+    assert _words(_caps("O", 0, 10.0, 100.0, 7.8) + _caps("BRÁZEK", 7.8, 8.0, 102.0)) == ["OBRÁZEK"]
+    chain = (
+        _caps("S", 0, 10.0, 100.0, 6.7)
+        + _caps("OU", 6.7, 8.0, 102.0)
+        + _caps("Ř", 18.7, 8.0, 102.0, font="BBBBBB+Times")
+        + _caps("ADNICOVÝ", 24.7, 8.0, 102.0)
+    )
+    assert _words(chain) == ["SOUŘADNICOVÝ"]
+
+
+def test_a_drop_cap_lowercase_a_space_or_a_raised_capital_stay_apart():
+    pytest.importorskip("pdfplumber")
+    drop_cap = _caps("V", 0, 30.0, 80.0, 20.0) + _caps("ELKY", 20.0, 10.0, 100.0)
+    assert sorted(_words(drop_cap)) == ["ELKY", "V"], "a ratio of 1/3 is no small caps"
+    lowercase = _caps("O", 0, 10.0, 100.0, 7.8) + _caps("brazek", 7.8, 8.0, 102.0)
+    assert sorted(_words(lowercase)) == ["O", "brazek"]
+    spaced = _caps("V", 0, 10.0, 100.0, 6.7) + _caps("PRUBEHU", 9.5, 8.0, 102.0)
+    assert sorted(_words(spaced)) == ["PRUBEHU", "V"], "a real space is a word gap"
+    raised = _caps("KAPITOLA", 0, 10.0, 100.0) + _caps("A", 48.0, 7.0, 95.0)
+    assert sorted(_words(raised)) == ["A", "KAPITOLA"], "a Ts rise is not small caps"
+
+
+def _rotated(text, along, baseline_x, direction="ttb", font="AAAAAA+Helvetica", gap_after=None):
+    """Characters of `text` on a 90° baseline, as pdfminer gives them: `size` is the advance
+    (so it differs per character), the box is the font size wide, the run goes down (`ttb`)
+    or up (`btt`) the page from `along`."""
+    gap_after = gap_after or {}
+    chars, pos = [], along
+    for i, c in enumerate(text):
+        advance = 2.8 if c in "il.í" else 5.6
+        top, bottom = (pos, pos + advance) if direction == "ttb" else (pos - advance, pos)
+        b = -1 if direction == "ttb" else 1
+        chars.append(
+            {
+                "text": c, "x0": baseline_x - 2.1, "x1": baseline_x + 7.9, "top": top,
+                "bottom": bottom, "doctop": top, "upright": False, "size": advance,
+                "fontname": font, "matrix": (0, b, -b, 0, baseline_x, 700.0 - top),
+            }
+        )  # fmt: skip
+        step = advance + gap_after.get(i, 0.0)
+        pos = pos + step if direction == "ttb" else pos - step
+    return chars
+
+
+def test_text_on_a_90_degree_baseline_is_one_word_per_run_read_in_its_direction():
+    """#5: pdfminer gives a rotated character its advance as its size, so grouping by size made
+    a word of each; a vertical run is one word, top-to-bottom or bottom-to-top as it is set."""
+    pytest.importorskip("pdfplumber")
+    from api_util import digital_pdf
+
+    chars = (
+        _rotated("K_", 100.0, 100.0)
+        + _rotated("č", 111.2, 100.0, font="BBBBBB+Subset")
+        + _rotated("íslo", 116.8, 100.0)
+        + _rotated("Datace", 160.0, 196.0, direction="btt")
+        + _rotated("Obr.18", 500.0, 50.0, direction="btt", gap_after={3: 2.8})
+    )
+    words = digital_pdf._extract_words(_CharsPage(chars))
+    assert sorted(w["text"] for w in words) == ["Datace", "K_číslo", "Obr. 18"]
+    assert all(w["vertical"] and w["size"] == 10.0 for w in words)
+    assert {w["direction"] for w in words} == {"ttb", "btt"}
+
+
+def test_headings_are_judged_on_the_body_text_of_digital_pages():
+    """#5: table cells in smaller type, an OCR layer's text and a vertical run never set the
+    body size and are never headings; only the title is."""
+    from api_util import digital_pdf
+    from api_util.digital_ir import TEXT_LAYER_OCR, DigitalDocument, DigitalLine, DigitalPage
+
+    def line(page, text, size, group_id=None, vertical=False):
+        return DigitalLine(
+            page=page, line=0, text=text, size=size, group_id=group_id, vertical=vertical
+        )
+
+    first = DigitalPage(page="1", page_index=1)
+    first.lines = [
+        line("1", "Vyzkum hradiste", 16.0),
+        line("1", "Prvni odstavec popisuje sondy a vrstvy.", 12.0),
+        line("1", "Sonda", 14.0, group_id="tbl0-r0c0"),
+        *[line("1", "keramika a mazanice", 10.0, group_id=f"tbl0-r{r}c1") for r in range(1, 9)],
+        line("1", "K_cislo", 20.0, vertical=True),
+    ]
+    scan = DigitalPage(page="2", page_index=2, text_layer=TEXT_LAYER_OCR)
+    scan.lines = [line("2", ",", 20.0)]
+    last = DigitalPage(page="3", page_index=3)
+    last.lines = [line("3", "Treti strana, odstavec o nalezech.", 12.0)]
+    document = DigitalDocument(doc_id="d", origin="digital-born-pdf", media_type="application/pdf")
+    document.pages = [first, scan, last]
+    digital_pdf._assign_headings(document)
+    headings = [(ln.text, ln.heading_level) for ln in document.all_lines() if ln.heading_level]
+    assert headings == [("Vyzkum hradiste", 1)]
+
+
+def test_the_rerun_fixtures_read_as_their_pages_show(digital_fixtures):
+    """headings.pdf, small_caps.pdf and rotated.pdf through the whole converter (#5)."""
+    pytest.importorskip("pdfplumber")
+    record = d2j.build_record(str(digital_fixtures / "headings.pdf"))
+    headings = [
+        (ln["page"], ln["text"], ln["style"]["heading_level"])
+        for ln in record["lines"]
+        if (ln.get("style") or {}).get("heading_level")
+    ]
+    assert headings == [("1", "Vyzkum hradiste", 1)]
+    assert [p["text_layer"] for p in record["pages"]] == ["digital", "ocr", "digital"]
+
+    texts = [
+        ln["text"] for ln in d2j.build_record(str(digital_fixtures / "small_caps.pdf"))["lines"]
+    ]
+    assert texts == [
+        "OBRÁZEK 12",
+        "TABULKA 3",
+        "SOUŘADNICOVÝ",
+        "P VI a P IX",
+        "V PRUBEHU",
+        "KAPITOLA A",
+    ]
+
+    rotated = d2j.build_record(str(digital_fixtures / "rotated.pdf"))
+    texts = [ln["text"] for ln in rotated["lines"]]
+    assert {"K_číslo", "Datace", "12", "Halstat", "Obr. 18 Turnov"} <= set(texts)
+    assert not [t for t in texts if len(t) == 1], "no line of a single character"
+    cells = {ln["text"]: ln.get("group_id") for ln in rotated["lines"]}
+    assert cells["K_číslo"] == "tbl0-r0c0" and cells["Datace"] == "tbl0-r0c1"
+
+
 def test_unmapped_glyph_placeholders_become_one_replacement_character_each():
     from api_util.digital_ir import unmapped_to_replacement
 

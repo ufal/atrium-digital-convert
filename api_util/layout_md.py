@@ -18,10 +18,19 @@ string form documented in the issue, so both converters
 (``docx_to_md.py`` / ``pdf_to_md.py``) speak one canonical schema. ``CUE_SCHEMA``
 lists the whole taxonomy (including cues no current tool emits yet) so the set of
 "all possible visual layout pieces" stays discoverable and testable in one place.
+
+**Document text never forges a cue** (atrium-digital-convert#6). Cues are HTML comments and the
+``## Page N`` headings, and readers key on them: keyword-extract's whole-document prompt places a
+line on the page whose ``PAGE_BREAK``/``## Page`` marker is above it, and cites that page. So
+text that reaches the Markdown never holds a raw ``<!--`` or ``-->`` and never starts a line with
+``#`` (``escape_text``), and a value inside a cue or a page heading (a PDF page label, a
+``needs_ocr_reason``, a font name, a watermark) stays on one line without either delimiter
+(``cue_value``, applied by every cue emitter). Text without them renders exactly as before.
 """
 
 from __future__ import annotations
 
+import re
 from typing import Iterable, Optional, Sequence
 
 # --------------------------------------------------------------------------- #
@@ -158,9 +167,45 @@ def emits(detail: str, cue: str) -> bool:
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
+#: What Python's ``str.splitlines`` breaks on: a cue or a page heading must stay one line.
+_LINE_BREAKS = re.compile(r"[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]+")
+
+
+def escape_cue_delimiters(text) -> str:
+    """``<!--`` → ``&lt;!--`` and ``-->`` → ``--&gt;``: text that can neither open nor close an
+    HTML comment, so never a cue (#6). Idempotent; text without them is returned unchanged."""
+    return str(text).replace("<!--", "&lt;!--").replace("-->", "--&gt;")
+
+
+def escape_line_start(text) -> str:
+    """A line whose first non-space character is ``#`` gets ``\\#``: the line ``## Page 7`` is
+    then text, not a page heading (#6). Idempotent. Only for text that starts a Markdown line —
+    not for a table cell, where ``md_table`` would show the backslash."""
+    text = str(text)
+    stripped = text.lstrip()
+    if stripped.startswith("#"):
+        return text[: len(text) - len(stripped)] + "\\" + stripped
+    return text
+
+
+def escape_text(text) -> str:
+    """A line of document text as Markdown that no reader can take for a cue (#6): comment
+    delimiters escaped and a leading ``#`` escaped (``escape_cue_delimiters``,
+    ``escape_line_start``). Emphasis, ``|`` and other HTML are left as they are."""
+    return escape_line_start(escape_cue_delimiters(text))
+
+
+def cue_value(value) -> str:
+    """A value inside a cue or a ``## Page`` heading — a page label, a reason, a font name, a
+    title: line breaks become spaces and comment delimiters are escaped, so it cannot end the
+    cue or start a new line (#6). A one-line value without delimiters is unchanged."""
+    return escape_cue_delimiters(_LINE_BREAKS.sub(" ", str(value)))
+
+
 def _comment(body: str) -> str:
-    """Wrap a payload in an HTML comment: ``<!-- body -->``."""
-    return f"<!-- {body} -->"
+    """Wrap a payload in an HTML comment: ``<!-- body -->``. The body goes through
+    ``cue_value``, so a label, reason or font name taken from a document cannot close it."""
+    return f"<!-- {cue_value(body)} -->"
 
 
 def _page_id(page_id) -> str:
@@ -336,7 +381,7 @@ def align_div(content: str, align: str) -> str:
 
 def image(alt: str, src: str, box: Optional[Sequence[float]] = None) -> str:
     """``![alt](src) <!-- BBOX: [x,y,w,h] -->`` — a figure placeholder for VLMs."""
-    md = f"![{alt or ''}]({src})"
+    md = f"![{cue_value(alt or '')}]({src})"
     return f"{md} {bbox(box)}" if box else md
 
 
@@ -347,15 +392,15 @@ def footnote_ref(n) -> str:
 
 def footnote_def(n, text: str) -> str:
     """Footnote definition line: ``[^1]: Note content.``."""
-    return f"[^{n}]: {text}"
+    return f"[^{n}]: {escape_cue_delimiters(text)}"
 
 
 # --------------------------------------------------------------------------- #
 # Tabular data (shared GFM renderer)
 # --------------------------------------------------------------------------- #
 def _escape_cell(value) -> str:
-    """Make a value safe inside a GFM pipe-table cell."""
-    text = "" if value is None else str(value)
+    """Make a value safe inside a GFM pipe-table cell (comment delimiters escaped, #6)."""
+    text = "" if value is None else escape_cue_delimiters(value)
     return text.replace("\\", "\\\\").replace("|", "\\|").replace("\n", "<br>").strip()
 
 

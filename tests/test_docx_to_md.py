@@ -128,3 +128,20 @@ def test_convert_missing_lib_raises(monkeypatch, sample_docx):
     monkeypatch.setattr(docx_to_md, "docx_available", lambda: False)
     with pytest.raises(docx_to_md.DocxNotInstalled):
         docx_to_md.convert(sample_docx)
+
+
+def test_paragraph_text_never_reads_as_a_cue_or_a_page_heading(tmp_path):
+    """#6: paragraphs and a header that look like the renderer's own structure stay text."""
+    import docx
+
+    d = docx.Document()
+    d.sections[0].header.paragraphs[0].text = "## Page 9"
+    d.add_paragraph("Úvodní věta.")
+    d.add_paragraph("<!-- PAGE_BREAK -->")
+    d.add_paragraph("## Page 7")
+    path = tmp_path / "forged.docx"
+    d.save(str(path))
+    md = docx_to_md.convert(path)
+    assert md.count("<!-- PAGE_BREAK") == 0
+    assert "&lt;!-- PAGE_BREAK --&gt;" in md and "\\## Page 7" in md and "\\## Page 9" in md
+    assert [line for line in md.splitlines() if line.startswith("## Page")] == ["## Page 1"]

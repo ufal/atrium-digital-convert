@@ -774,6 +774,63 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-14 (evening) — #5: the re-run read, its defects fixed (R2)
+* **Job 7100515** (an A40 node, 1 h 35 min) ran every stage over the 15 PDFs: all passed. Its results are `data_samples/` on `test`. It confirmed the morning's fixes and showed six new problems:
+  * ocr-postprocess's quality model sent 612 of the 1,981 born-digital pages to OCR, for table cells, codes, coordinates and contents lines;
+  * CTX202000362 loses ř, ě, č and ů on 29 pages, a median of 19 % of their words, and they stayed `nlp`;
+  * paragraphs became headings in table-heavy reports (1,939 against Docling's 192);
+  * small capitals were split ("O BRÁZEK");
+  * vertical table headers were read one letter per line;
+  * page-classification's Hub loader left three of its five models on the CPU.
+* **Routing (`api_util/digital_report.py`, `service/stages.py`, `service/api.py`):**
+  * the quality rule counts prose lines only (`line_kind`, `MIN_PROSE_LINES`): 612 → 0;
+  * a `digital` page whose body text loses letters to U+FFFD goes to `ocr` (new POLICY `ROUTE_DAMAGED_WORD_SHARE` 0.05): 29 pages;
+  * `layout.words`/`damaged_words`, `quality.prose_lines_*`;
+  * `STAGE_TIMEOUT_S` 360.
+* **The light engine (`api_util/digital_pdf.py`):**
+  * headings judged on body text of `digital` pages only;
+  * `_small_caps`;
+  * `_vertical_runs`;
+  * three new fixtures, each failing on the old code. The 13 existing fixtures and `sample.pdf` convert as before.
+* **`tools/samples_report.py`:** per-stage columns, the candidates and near misses, measured limits, the "Quality model on born-digital text" table.
+* **Against AMČR's grounding report:**
+  * `/describe`'s `summary.reacquire_pages` is the page list for ATR, documented as such: the lost-letter pages are in it, not in `needs_ocr`;
+  * `OCR_LAYER_DOCUMENT_SHARE` can be lowered so any document with a prior OCR layer goes to OCR whole;
+  * originals reach about 1.5 GB against the 200 MB default;
+  * the 36 header-only figure pages include 6 drawings with a legend.
+* **Docs:** README, `service/README.md`, `.env.example`, `data_samples/README.md` (the known defects of the committed files).
+* **page-classification** (its repository): `load_from_hub` moves the model to the device; a failing model is logged once, and the ensemble says how many models answered.
+* **The job (cluster-side):**
+  * a code-state guard;
+  * `STRICT`;
+  * requirement and import pre-flight;
+  * page-classification failures read from its log;
+  * the CPU model;
+  * `PYTHONPYCACHEPREFIX`;
+  * each stage service's GPU peak. 10-14's 24.8 GB was a snapshot after ocr-postprocess scored every page, and 6.7 GB at rest. AMČR plans one 24 GB card for three services.
+* **Checks:** 913 passed, 3 skipped (with #6's tests); ruff clean; fixtures and spec current; an offline re-score of 7100515 gives routes 1,952 / 434 / 128.
+* **Dev logs:**
+  * `digests/5.digest.md`: the re-run, plus a table against AMČR's requirements;
+  * `plans/5.plan.md`: R, C, B, R2 done; C2 a clean re-run; D limits; E delivery; F outside the repo.
+
+  Files delivered in chat.
+
+## 2026-10-14 (evening) — #6: line text and labels can no longer forge cues
+* **Option (a), escaping, widened by the refresh:**
+  * a PDF's page labels and the values inside cues (`needs_ocr_reason`, font names, watermarks) could forge too;
+  * escaping in `_read_alto_rows` would have reached `--format text`;
+  * a `\#` added to rows would have shown in table cells.
+* **Code:**
+  * **`api_util/layout_md.py`:** `escape_cue_delimiters`, `escape_line_start`, `escape_text`, `cue_value`; every cue body through `cue_value`.
+  * **`json_to_md.py`:** the delimiters per row; the leading `#` after the tables, before the heading marks; the `content.text` fallback.
+  * **`xml_to_md.py`:** the layout readers and `rows_to_markdown`; page labels and titles. Plain text stays raw.
+  * **The deprecated `docx_to_md.py` and `pdf_to_md.py`.**
+* **Tests:** 18, each failing on the old code: the helpers, forged lines on both routes at every profile, the issue's reproduction, a forged label and reason, table cells, the deprecated renderers.
+* **Ordinary output:** 126 renders byte-identical, among them #5's 15 AMČR records at three profiles. None of their 188,264 lines holds cue syntax.
+* **Docs:** README "Text never forges a cue"; `digests/6.digest.md` and `plans/6.plan.md` refreshed.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

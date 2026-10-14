@@ -195,6 +195,18 @@ class DigitalLine:
     #: Reading-order column on its page (PDF only). Internal: a column change is a
     #: paragraph boundary even when the vertical gap says otherwise.
     column: int = 0
+    #: Set by the light engine for a line read along a 90° rotated baseline (a table header
+    #: set vertically, a caption along the page edge). Internal: such a line is never a heading.
+    vertical: bool = False
+
+
+#: `group_id` prefix of the lines that are table cells (`tbl{n}-r{r}c{c}`), in every adapter.
+TABLE_GROUP_PREFIX = "tbl"
+
+
+def in_table(group_id: Optional[str]) -> bool:
+    """Whether a line with this `group_id` is a table cell."""
+    return bool(group_id) and str(group_id).startswith(TABLE_GROUP_PREFIX)
 
 
 @dataclass

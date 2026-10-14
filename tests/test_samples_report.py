@@ -39,7 +39,7 @@ def _signals(tmp_path: Path, name: str, data: bytes) -> list:
     path = tmp_path / name
     path.write_bytes(data)
     record = d2j.build_record(str(path))
-    return sr.page_signals(path.stem, path, record, {}, {}, RULE)
+    return sr.page_signals(path.stem, path, record, {}, RULE)
 
 
 def test_the_union_of_overlapping_boxes_is_measured_once_and_clipped_to_the_page():
@@ -215,3 +215,101 @@ def test_a_docling_failure_is_named_not_called_a_missing_dependency(tmp_path):
     assert sr.cli_reason(err, {"rc": 4}) == "limit_exceeded"
     err.write_text("")
     assert sr.cli_reason(err, {"rc": 2}) == "dependency_missing"
+
+
+# ── the re-run of #5: one column per stage run, the shipped furniture rule, the quality model ──
+
+
+def _describe_page(route, reason, category=None, quality=None):
+    page = {"page": "1", "page_index": 1, "route": route, "route_reason": reason}
+    if category:
+        page["category"] = {"label": category, "confidence": 0.9}
+    if quality:
+        page["quality"] = quality
+    return {"pages": [page]}
+
+
+def test_each_stage_column_comes_from_its_own_run(tmp_path):
+    """The 10-14 report paired stage 62's page type with stage 61's route; never again."""
+    path = tmp_path / "minimal.pdf"
+    path.write_bytes(mf.minimal_pdf())
+    record = d2j.build_record(str(path))
+    quality = {"source": "ocr-postprocess", "band": "Trash", "lines_by_category": {"Trash": 3}}
+    reports = {
+        "none": _describe_page("nlp", "trustworthy text layer (decode check passed; …)"),
+        "stages": _describe_page(
+            "ocr", "the text layer decodes, but the quality model calls 100% …", "TEXT", quality
+        ),
+        "all": _describe_page("none", "no text layer; page type DRAW is graphical …", "DRAW"),
+    }
+    first = sr.page_signals("minimal", path, record, reports, RULE)[0]
+    assert (first["none_route"], first["stages_route"], first["all_route"]) == (
+        "nlp",
+        "ocr",
+        "none",
+    )
+    assert (first["stages_category"], first["all_category"]) == ("TEXT", "DRAW")
+    assert first["stages_route_kind"] == "quality model"
+    assert (first["stages_judged"], first["stages_trash"]) == (3, 3)
+    assert first["stages_prose_judged"] == 0, "no record lines in the answer: no prose counted"
+    assert first["prose_rule"] == 0
+    assert (first["words"], first["damaged_words"]) == (18, 0)
+
+
+def test_the_furniture_rule_s_pages_and_its_near_misses_are_listed(tmp_path):
+    rows = _signals(tmp_path, "stamped_scan.pdf", mf.stamped_scan_pdf())
+    assert [(r["text_layer"], r["furniture_only"]) for r in rows] == [
+        ("none", 1),
+        ("digital", 0),
+        ("digital", 1),
+    ]
+    text = sr.candidates_md(rows, RULE)
+    assert "**Flagged by that rule:** 1 page(s)." in text
+    assert "**Near misses, only furniture under the threshold:** 1 `digital` page(s)." in text
+    assert "no rule is shipped" not in text
+
+
+def test_the_quality_model_section_counts_what_it_moved_and_why():
+    """Table cells read as Trash moved the page; the prose rule would not have."""
+    lines = [
+        {"page": "1", "line": n, "text": t, "group_id": g, "categ": c}
+        for n, (t, g, c) in enumerate(
+            [("Vrstva", "tbl0-r0c0", "Trash"), ("30 cm", "tbl0-r0c1", "Trash"),
+             ("Ornice", "tbl0-r1c0", "Trash"), ("12", "p1-0", "Trash"),
+             *[("Výsledky záchranného archeologického výzkumu", "p1-1", "Clear")] * 5]
+        )
+    ]  # fmt: skip
+    stages = {"document_json": {"lines": lines}}
+    signals = [
+        {"page": "1", "text_layer": "digital", "stages_band": "Trash",
+         "stages_route_kind": "quality model", "all_category": "LINE_P", "prose_rule": 0},
+        {"page": "2", "text_layer": "none", "stages_route_kind": "page type"},
+    ]  # fmt: skip
+    columns = sr.quality_columns(stages, signals)
+    assert (columns["qm_digital"], columns["qm_moved"], columns["qm_prose_moves"]) == (1, 1, 0)
+    assert columns["qm_moved_categories"] == "LINE_P 1"
+    assert (columns["qm_trash_table"], columns["qm_trash_short"], columns["qm_trash_prose"]) == (
+        3,
+        1,
+        0,
+    )
+    assert sr.quality_columns(None, signals) == {}
+    assert sr.route_kind("the text layer decodes, but 2 of its 10 words (20%) lose a letter …") == (
+        "lost letters"
+    )
+
+
+def test_limits_take_the_new_stage_timeout_and_report_docling(tmp_path):
+    run_dir = tmp_path / "run"
+    (run_dir / sr.INVENTORY).mkdir(parents=True)
+    (run_dir / sr.INVENTORY / "inventory.tsv").write_text(
+        "doc\tfile\tmb\tpages\tmax_page_px\nCTX1\tCTX1.pdf\t5.0\t20\t1000\n", encoding="utf-8"
+    )
+    (run_dir / "env.txt").write_text("gpu: NVIDIA A40, 46068 MiB\n", encoding="utf-8")
+    rows = [
+        {"doc": "CTX1", "mb": 5.0, "docling_rc": 0, "docling_s": 30.5, "docling_peak_mb": 2182.3}
+    ]
+    text = sr.limits_md(sr.Run(run_dir), rows)
+    assert "| digital-convert | STAGE_TIMEOUT_S | 360 |" in text
+    assert "**Docling (`--engine docling`, stage 20).** 1 of 1 documents converted" in text
+    assert "2.2–2.2 GB (GPU: NVIDIA A40, 46068 MiB)" in text

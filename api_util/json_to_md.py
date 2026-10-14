@@ -155,7 +155,9 @@ def _rows_from_lines(
         score = line.get("quality_score")
         if score is not None and score < min_quality:
             continue
-        text = str(line.get("text") or "").strip()
+        # #6: no line of text may open or close a cue, wherever it lands (body, header, footer,
+        # footnote, table cell); a leading `#` is escaped later, where a line starts (not in cells).
+        text = L.escape_cue_delimiters(str(line.get("text") or "").strip())
         if not text:
             continue
         label = _label(line.get("page"))
@@ -254,6 +256,13 @@ def _assemble_regions(rows: List[dict], detail: str = L.DEFAULT_DETAIL) -> List[
                 continue
             if region is None:
                 for row in members:
+                    escaped = L.escape_line_start(row["text"])
+                    if escaped != row["text"] and not str(row.get("group_id")).startswith(
+                        "__table__"
+                    ):
+                        # #6: a body line that reads `## Page 7` stays text; tables are
+                        # assembled by now, so their cells keep a leading `#` as it is.
+                        row = dict(row, text=escaped)
                     if "style" in row:
                         row = dict(row, text=_decorate(row, detail))
                     out.append(row)
@@ -272,7 +281,9 @@ def _assemble_regions(rows: List[dict], detail: str = L.DEFAULT_DETAIL) -> List[
                     if region == "page_header"
                     else (L.footer_start(), L.footer_end())
                 )
-                first["text"] = "\n".join([start, *(r["text"] for r in members), end])
+                first["text"] = "\n".join(
+                    [start, *(L.escape_line_start(r["text"]) for r in members), end]
+                )
             out.append(first)
     return out
 
@@ -508,7 +519,8 @@ def render_record(
             f"everything) — falling back to unsectioned content.text.",
             file=sys.stderr,
         )
-        return f"# {doc_id}\n\n{fallback_text.strip()}\n"
+        text = "\n".join(L.escape_text(line) for line in fallback_text.strip().split("\n"))
+        return f"# {L.cue_value(doc_id)}\n\n{text}\n"
 
     if rows:
         return xml_to_md.rows_to_layout_markdown(rows, pages, title=doc_id, detail=detail)

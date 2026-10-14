@@ -90,6 +90,8 @@ def test_the_collections_come_from_the_vocabulary_registry():
     [
         ("minimal.pdf", [("digital", "nlp"), ("digital", "nlp")]),
         ("garbled.pdf", [("garbled", "ocr")]),
+        # atrium-digital-convert#5: page 2 decodes, but 2 of its 10 words lose a letter (U+FFFD).
+        ("unmapped.pdf", [("garbled", "ocr"), ("digital", "ocr")]),
     ],
 )
 def test_the_report_over_the_fixtures(tmp_path, fixture, expected):
@@ -117,3 +119,110 @@ def test_a_mixed_document_says_so():
     )
     assert summary["document_route"] == "mixed"
     assert summary["needs_ocr_pages"] == [2] and summary["reacquire_pages"] == [2]
+
+
+# ── atrium-digital-convert#5: what the quality rule counts, and lost letters ─────────────────
+
+
+@pytest.mark.parametrize(
+    "text, group_id, kind",
+    [
+        ("Vrstva", "tbl0-r0c0", "table"),
+        ("Výsledky záchranného archeologického výzkumu", "tbl3-r1c2", "table"),
+        ("Text pod tabulkou.", "p1-0", "short"),
+        ("291 749625.58 1056434.97", None, "few letters"),
+        ("DR-12982-18711;4990;detail profilu", None, "few letters"),
+        ("Geografický a sídelní kontext lokality ............ 12", None, "dot leaders"),
+        ("Geografický a sídelní kontext lokality____________", None, "dot leaders"),
+        ("Výsledky záchranného archeologického výzkumu", "p4-2", "prose"),
+    ],
+)
+def test_a_line_is_prose_only_outside_tables_long_and_mostly_letters(text, group_id, kind):
+    assert R.line_kind(text, group_id) == kind
+    assert R.is_prose_line(text, group_id) == (kind == "prose")
+
+
+def test_a_damaged_word_holds_a_replacement_character_and_a_letter():
+    assert R.count_damaged_words(["\ufffd Počet dnů", "sond\ufffd m\ufffdla"]) == (2, 5)
+    assert R.count_damaged_words(["\ufffd\ufffd", ""]) == (0, 1), "an unmapped bullet is no word"
+    assert R.count_damaged_words([]) == (0, 0)
+
+
+def _prose_quality(prose_trash=0, prose_clear=0, other_trash=0):
+    rows = (
+        [{"category": "Trash", "quality_score": 0.1}] * prose_trash
+        + [{"category": "Clear", "quality_score": 0.9}] * prose_clear
+        + [{"category": "Trash", "quality_score": 0.1}] * other_trash
+    )
+    prose = [True] * (prose_trash + prose_clear) + [False] * other_trash
+    return R.summarize_quality(rows, prose=prose)
+
+
+def test_the_quality_rule_counts_prose_lines_only():
+    quality = _prose_quality(prose_trash=5, prose_clear=1, other_trash=20)
+    assert quality["prose_lines_scored"] == 6
+    assert quality["prose_lines_by_category"] == {"Clear": 1, "Trash": 5}
+    route, reason = R.route_page("digital", None, quality)
+    assert route == "ocr" and reason.startswith(R.QUALITY_ROUTE_PREFIX)
+    assert "prose lines Trash (5 of 6; ROUTE_TRASH_SHARE 0.5)" in reason
+
+    # The AMČR case: the model calls the table cells Trash and the prose Clear.
+    route, reason = R.route_page("digital", None, _prose_quality(prose_clear=6, other_trash=20))
+    assert route == "nlp"
+    assert "table cells" in reason and "0 of its 6 prose lines Trash" in reason
+
+    # Fewer prose lines than MIN_PROSE_LINES: not enough to judge the page.
+    route, reason = R.route_page("digital", None, _prose_quality(prose_trash=4, other_trash=20))
+    assert route == "nlp" and "fewer than 5 to judge" in reason
+    quality = _prose_quality(prose_trash=4)
+    assert R.route_page("digital", None, quality, min_prose_lines=4)[0] == "ocr"
+
+    quality = _prose_quality(prose_clear=6)
+    assert R.route_page("digital", None, quality) == (
+        "nlp",
+        "trustworthy text layer (quality Clear)",
+    )
+
+
+def test_without_prose_flags_the_rule_counts_every_scored_line():
+    quality = R.summarize_quality([{"category": "Trash"}] * 3, prose=[True])
+    assert "prose_lines_by_category" not in quality, "flags that do not match the rows are ignored"
+    route, reason = R.route_page("digital", None, quality)
+    assert route == "ocr" and "of its scored lines Trash" in reason
+
+
+def test_lost_letters_send_a_decoding_page_to_ocr_whatever_its_quality():
+    clear = _quality(clear=5)
+    route, reason = R.route_page("digital", None, clear, damaged_words=(6, 100))
+    assert route == "ocr"
+    assert "6 of its 100 words (6%)" in reason and "ROUTE_DAMAGED_WORD_SHARE 0.05" in reason
+    assert R.route_page("digital", None, clear, damaged_words=(4, 100))[0] == "nlp"
+    assert R.route_page("digital", None, None, damaged_words=(5, 100))[0] == "ocr", "at the limit"
+    assert (
+        R.route_page("digital", None, None, damaged_words=(4, 100), damaged_word_limit=0.04)[0]
+        == "ocr"
+    )
+    assert R.route_page("digital", None, None, damaged_words=(0, 0))[0] == "nlp"
+    route, reason = R.route_page("garbled", "DRAW", None, damaged_words=(90, 100))
+    assert route == "none", "a page without usable text is routed by its category"
+
+
+def test_lost_letters_count_on_the_body_text_not_the_running_header():
+    """#5: 36 figure pages of one AMČR report lose letters only in their running header; the
+    header is not re-acquired for that, a body that loses them is."""
+    from api_util.digital_ir import REGION_HEADER, DigitalDocument, DigitalLine, DigitalPage
+
+    header = DigitalLine(page="1", line=0, text="Praha � Nov� M�sto", region=REGION_HEADER)
+    figure = DigitalPage(page="1", page_index=1, lines=[header], images=2)
+    body = [
+        DigitalLine(page="2", line=n, text="poh�ební ritus a nálezy z hrob�", group_id="p2-0")
+        for n in (1, 2)
+    ]
+    text = DigitalPage(page="2", page_index=2, lines=[header, *body])
+    document = DigitalDocument(doc_id="d", origin="digital-born-pdf", media_type="application/pdf")
+    document.pages = [figure, text]
+    first, second = R.build_report(document)["pages"]
+    assert (first["layout"]["words"], first["layout"]["damaged_words"]) == (0, 0)
+    assert first["route"] == "nlp"
+    assert (second["layout"]["words"], second["layout"]["damaged_words"]) == (12, 4)
+    assert second["route"] == "ocr" and "4 of its 12 words" in second["route_reason"]

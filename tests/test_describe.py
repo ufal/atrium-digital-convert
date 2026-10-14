@@ -291,7 +291,67 @@ def test_an_older_ocr_postprocess_is_asked_page_by_page(monkeypatch):
         p["quality"]["source"] == "ocr-postprocess" and p["quality"]["aligned"]
         for p in body["pages"]
     )
+    assert [p["quality"]["prose_lines_scored"] for p in body["pages"]] == [3, 1]
     assert body["document_json"]["assembled"]["blocks"]["lines"]["program"] == "digital-convert"
+
+
+def _score_record_all_trash(url, files=None, data=None, **_k):
+    """A `/score_record` that calls every line it is sent Trash (ocr-postprocess's shape)."""
+    record = json.loads(files["document_json"][1])
+    rows, per_page = [], {}
+    for line in record["lines"]:
+        line.update(categ="Trash", quality_score=0.1, lang="ces")
+        rows.append(
+            {"page": str(line["page"]), "line": line["line"], "text": line["text"],
+             "category": "Trash", "quality_score": 0.1, "lang": "ces"}
+        )  # fmt: skip
+        per_page[str(line["page"])] = per_page.get(str(line["page"]), 0) + 1
+    pages = [
+        {"page": page, "lines_scored": n, "skipped_decode_verdict": 0, "skipped_empty": 0,
+         "quality_score": 0.1, "quality_band": "Trash"}
+        for page, n in per_page.items()
+    ]  # fmt: skip
+    body = {"type": "record", "doc_id": record["doc_id"], "cleaned_lines": rows, "pages": pages}
+    return _Reply(200, {**body, "document_json": record})
+
+
+def test_the_quality_model_moves_a_digital_page_only_for_its_prose(monkeypatch):
+    """atrium-digital-convert#5: table cells and short lines read as Trash to a model of running
+    text; only a page whose prose the model calls Trash goes to OCR."""
+    _patch_requests(monkeypatch, _score_record_all_trash)
+    page = _describe("table.pdf", stages="ocr-postprocess")["pages"][0]
+    assert page["quality"]["lines_by_category"] == {"Trash": 8}
+    assert page["quality"]["prose_lines_scored"] == 1, "6 cells and one short line are not prose"
+    assert page["route"] == "nlp" and "fewer than 5 to judge" in page["route_reason"]
+
+    page = _describe("enrichable.pdf", stages="ocr-postprocess")["pages"][0]
+    assert page["quality"]["prose_lines_by_category"] == {"Trash": 6}
+    assert page["route"] == "ocr" and "prose lines Trash (6 of 6;" in page["route_reason"]
+
+
+def test_prose_lines_are_judged_on_the_lines_the_converter_sent():
+    record = {
+        "doc_id": "d",
+        "lines": [
+            {"page": "1", "line": 0, "text": "Výsledky záchranného archeologického výzkumu"},
+            {"page": "1", "line": 1, "text": "Výsledky záchranného archeologického výzkumu",
+             "group_id": "tbl0-r0c0"},
+        ],
+    }  # fmt: skip
+    sent = stages._line_index(record)
+    assert stages._prose({"page": "1", "line": 0, "text": "x"}, sent) is True
+    assert stages._prose({"page": "1", "line": 1}, sent) is False, "a table cell"
+    row = {"page": "2", "line": 0, "text": "Výsledky záchranného archeologického výzkumu"}
+    assert stages._prose(row, sent) is True, "no such line sent: the row's own text"
+
+
+def test_lost_letters_route_a_digital_page_to_ocr_without_any_stage(no_stages, monkeypatch):
+    page = _describe("unmapped.pdf", stages="none")["pages"][1]
+    assert page["text_layer"] == "digital" and not page["needs_ocr"]
+    assert (page["layout"]["words"], page["layout"]["damaged_words"]) == (10, 2)
+    assert page["route"] == "ocr" and "ROUTE_DAMAGED_WORD_SHARE 0.05" in page["route_reason"]
+    monkeypatch.setenv("ROUTE_DAMAGED_WORD_SHARE", "0.5")
+    assert _describe("unmapped.pdf", stages="none")["pages"][1]["route"] == "nlp"
 
 
 def test_a_stage_that_rewrites_converter_fields_is_rejected(monkeypatch):

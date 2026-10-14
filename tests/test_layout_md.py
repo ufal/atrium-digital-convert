@@ -135,3 +135,40 @@ def test_md_table_empty_is_empty_string():
 def test_cue_schema_documents_core_cues():
     for name in ("PAGE_BREAK", "DOC_META", "BBOX", "FONT", "STYLE", "HEADER_START", "NEEDS_OCR"):
         assert name in L.CUE_SCHEMA
+
+
+# ── document text never forges a cue (#6) ────────────────────────────────────
+
+
+def test_comment_delimiters_in_text_are_escaped_and_nothing_else():
+    assert L.escape_cue_delimiters("a <!-- PAGE_BREAK --> b") == "a &lt;!-- PAGE_BREAK --&gt; b"
+    assert L.escape_cue_delimiters("<!-->") == "&lt;!--&gt;"
+    for ordinary in ("Sonda 3 — <u>x</u> | **y** ->", "č. 12 # 3", "a -- b < c > d"):
+        assert L.escape_text(ordinary) == ordinary
+
+
+def test_a_line_starting_with_hashes_is_text():
+    assert L.escape_line_start("## Page 7") == "\\## Page 7"
+    assert L.escape_line_start("  # Title") == "  \\# Title"
+    assert L.escape_line_start("Page # 7") == "Page # 7"
+
+
+def test_the_escapes_are_idempotent():
+    for text in ("<!-- PAGE_BREAK -->", "## Page 7", "a --> b <!-- c", "plain"):
+        once = L.escape_text(text)
+        assert L.escape_text(once) == once
+
+
+def test_a_value_inside_a_cue_stays_on_one_line_and_inside_it():
+    assert L.cue_value("7 -->\n## Page 99") == "7 --&gt; ## Page 99"
+    assert L.cue_value("iv") == "iv"
+    cue = L.needs_ocr("pg_1", reason="x -->\n<!-- PAGE_BREAK: pg_9 -->")
+    assert cue.count("<!--") == 1 and cue.count("-->") == 1 and "\n" not in cue
+    assert L.page_break("7 -->\n## Page 99").count("-->") == 1
+    assert L.watermark('a --> "b"').count("-->") == 1
+
+
+def test_a_table_cell_escapes_delimiters_but_keeps_a_leading_hash():
+    table = L.md_table([["#", "<!-- PAGE_BREAK -->"], ["#1", "x"]], header=True)
+    assert "| # | &lt;!-- PAGE_BREAK --&gt; |" in table
+    assert "| #1 | x |" in table and "\\#" not in table

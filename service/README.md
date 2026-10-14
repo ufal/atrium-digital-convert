@@ -102,18 +102,18 @@ The response is `/reformat`'s plus:
   * `text_layer` — `digital` (decodes), `garbled` (a layer that does not decode), `ocr` (a prior OCR run), `none` (no text layer), `blank` (an empty page of a format without page images);
   * `needs_ocr`, `needs_ocr_reason`;
   * `category` — page-classification's answer (`label`, `confidence`, `top`), or null;
-  * `quality` — `source: ocr-postprocess` (the common line-quality model: `score`, `band`, `lines_by_category`, `lang`) or `source: digital-convert` (the decode check only);
+  * `quality` — `source: ocr-postprocess` (the common line-quality model: `score`, `band`, `lines_by_category`, `lang`, and `prose_lines_scored` / `prose_lines_by_category`: the lines its route rule counts) or `source: digital-convert` (the decode check only);
   * `route` + `route_reason`, below;
-  * `layout` — `canvas`, `lines`, `blocks`, `tables`, `headings`, `regions`, `columns`, `images`, `vector_paths`;
+  * `layout` — `canvas`, `lines`, `blocks`, `tables`, `headings`, `regions`, `columns`, `images`, `vector_paths`, `words` (of the body text, outside the running header and footer), `damaged_words` (those of them that lost a letter to a glyph without a Unicode mapping, U+FFFD);
   * `text`.
-* `summary` — `pages`, `routes` (pages per route), `needs_ocr_pages`, `reacquire_pages`, `document_route` (`nlp`, `ocr`, `htr`, `none` or `mixed`).
+* `summary` — `pages`, `routes` (pages per route), `needs_ocr_pages`, `reacquire_pages`, `document_route` (`nlp`, `ocr`, `htr`, `none` or `mixed`). `reacquire_pages` (routes `ocr` and `htr`) is the page list to hand to ATR/HTR: it adds the decoding pages the two rules below send to OCR and leaves out the graphical ones, which `needs_ocr_pages` (the record's flags) does not.
 * `stages[]` — per stage: `status`, `detail`, `url`, `http_status`, `reason`, `elapsed_s`, `service_version`, `pages` sent, `record_adopted`, and the stage's own `paradata`.
 
 **Routes.** Deterministic (`api_util/digital_report.py`):
 
 | The page                                                                                                         | Route                                                                                                       |
 |------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| its text layer decodes                                                                                           | `nlp`, unless ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its scored lines `Trash` → `ocr` |
+| its text layer decodes                                                                                           | `nlp`, unless one of the two rules below sends it to `ocr`                                                  |
 | no usable text layer, category handwritten only (`TEXT_HW`, `LINE_HW`)                                           | `htr`                                                                                                       |
 | no usable text layer, printed, typed or tabular text (`TEXT_P`, `TEXT_T`, `TEXT`, `LINE_*`, `DRAW_L`, `PHOTO_L`) | `ocr`                                                                                                       |
 | no usable text layer, graphical only (`DRAW`, `PHOTO`)                                                           | `none`                                                                                                      |
@@ -123,6 +123,21 @@ The response is `/reformat`'s plus:
 Categories are read through the page-category facets of `atrium_vocab.COLLECTIONS`
 (handwritten / printed / typed / graphical / tabular), so a category added to the registry is routed
 without a code change.
+
+A page whose text layer decodes goes to `ocr` instead of `nlp` when either holds
+([#5](https://github.com/ufal/atrium-digital-convert/issues/5)):
+
+* **Lost letters.** At least `ROUTE_DAMAGED_WORD_SHARE` (0.05) of the words of its body text (outside
+  the running header and footer) lose a letter to a glyph without a Unicode mapping (U+FFFD; a font
+  without /ToUnicode). This is the converter's own evidence, so it holds with `stages=none` too. The
+  record keeps the page `digital` and does not flag it `needs_ocr`: take such pages from
+  `summary.reacquire_pages`.
+* **The quality model.** ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose*
+  lines `Trash`, and the page has at least 5 of them. A prose line is outside a table, at least 20
+  characters long, mostly letters and not a table-of-contents line. The model judges running text;
+  on born-digital pages its other `Trash` lines are table cells, codes, coordinates and contents
+  pages, whose text is exact. Counted over every line, the rule sent 612 of 1,981 born-digital AMČR
+  pages to OCR; counted over prose, none.
 
 **Stage statuses.** `ok`, `partial` (some pages failed), `not_configured` (its URL is unset),
 `not_requested`, `skipped` (nothing to do: not a PDF, no page needs classifying, no lines),
@@ -199,9 +214,10 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `max_pages`                     | `MAX_PAGES`                         | 2000    | pages   | 422 `limit_exceeded` — split the document                                                                                         |
 | `max_concurrent_jobs`           | `MAX_CONCURRENT_JOBS`               | 2       | jobs    | 429 `busy` with `Retry-After`                                                                                                     |
 | `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — a DOC/XLS LibreOffice did not convert in time                                                              |
-| `stage_timeout_s`               | `STAGE_TIMEOUT_S`                   | 120     | s       | `/describe`: the stage is reported `unavailable`; the request still succeeds                                                      |
+| `stage_timeout_s`               | `STAGE_TIMEOUT_S`                   | 360     | s       | `/describe`: the stage is reported `unavailable`; the request still succeeds                                                      |
 | `ocr_layer_document_share`      | `OCR_LAYER_DOCUMENT_SHARE`          | 0.5     | share   | policy: at or above it a PDF with prior-OCR pages is refused (422 `ocr_text_layer`); below it those pages carry `needs_ocr`       |
-| `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its lines `Trash`       |
+| `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its prose lines `Trash` |
+| `route_damaged_word_share`      | `ROUTE_DAMAGED_WORD_SHARE`          | 0.05    | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when this share of its body's words lose a letter (U+FFFD)   |
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needs_ocr`) when its images cover this share of it |
 | `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                           |
 | `pdf_object_cap`                | `ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP` | 20000   | objects | the shared reader judges a PDF page's text layer on its first N objects                                                           |
@@ -209,17 +225,23 @@ checks this table against `tool_limits.py` and `.env.example`.
 **Large documents** (measured on the 15 AMČR samples of
 [#5](https://github.com/ufal/atrium-digital-convert/issues/5): up to 156 MB and 529 pages):
 
-* **Upload.** The upload is held in memory, so the 200 MB default accepts every sample.
-* **Memory and time follow the text, not the file size.** `/reformat` took 1–38 s, and the
-  server's peak reached 1.9 GB for a 4.8 MB, 178-page report. Those figures predate the light
-  engine closing each page after reading it; a synthetic 180-page text PDF fell from 2.7 GB to
-  0.2 GB with that change. Budget about 2 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot
-  until the samples are measured again.
+* **Upload.** The upload is held in memory, so the 200 MB default accepts every sample. AMČR's
+  originals reach about 1.5 GB: raise `MAX_UPLOAD_MB` for them (measured only up to 156 MB), or
+  let the orchestration split the file; the 413 names the setting.
+* **Memory follows the text, not the file size.** The server's peak reached 783 MB, for a 282-page
+  report, and 560 MB for the 156 MB one (10-14, after the light engine stopped holding every page's
+  parse; 1.9 GB before). Budget about 1 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot.
+* **Time.** `/reformat` took 3–58 s per document. `/describe` with both stages took up to 276 s
+  (a 529-page report): page-classification 135 s for its 149 flagged pages, 202 s for all of them
+  (`classify_pages=all`), ocr-postprocess up to 76 s. `STAGE_TIMEOUT_S` is 360 s since then; a
+  client, a proxy and `GRACEFUL_SHUTDOWN_S` must allow about 5 minutes for one such request.
 * **The stages' own limits decide `/describe` first.** The record part `/describe` sends a stage
   reached 14 MB compact. Page-classification also receives the whole PDF, and takes 10 MB per
-  part and 50 pages per call by default. ocr-postprocess takes a 25 MB record. A stage that
-  refuses a part (413) is that document's stage `error`; the request still answers 200. Set the
-  stages' limits together with this service's.
+  part and 50 pages per call by default: these samples need `MAX_UPLOAD_MB` ≥ 160 and
+  `MAX_PDF_PAGES` ≥ 157 (the most flagged pages in one document), or ≥ 529 with
+  `classify_pages=all`. ocr-postprocess takes a 25 MB record. A stage that refuses a part (413) is
+  that document's stage `error`; the request still answers 200. Set the stages' limits together
+  with this service's.
 
 ## How it works
 

@@ -192,6 +192,9 @@ def test_canonical_manifest_path_is_independent_of_outdir(make_fixtures, tmp_pat
         "font_switch.pdf",
         "unmapped.pdf",
         "stamped_scan.pdf",
+        "headings.pdf",
+        "small_caps.pdf",
+        "rotated.pdf",
     ],
 )
 def test_pdf_xref_offsets_resolve(blobs, name):
@@ -321,6 +324,20 @@ def test_sample_run_pdfs_carry_the_constructions_they_are_named_for(blobs):
     stamped = blobs["stamped_scan.pdf"]
     assert b"/Count 3" in stamped and stamped.count(b"/Im1 Do") == 2
     assert b"612 0 0 792 0 0 cm /Im1 Do" in stamped and b"612 0 0 396 0 0 cm /Im1 Do" in stamped
+
+
+def test_rerun_pdfs_carry_the_constructions_they_are_named_for(blobs):
+    """#5's re-run fixtures: a table in smaller type and an OCR page, small caps, 90° text."""
+    headings = blobs["headings.pdf"]
+    assert b"/F2 16 Tf" in headings and b"/F1 14 Tf" in headings and b"/F1 10 Tf" in headings
+    assert b"3 Tr" in headings and b"/F1 20 Tf" in headings and b"/Count 3" in headings
+    small_caps = blobs["small_caps.pdf"]
+    assert b"(O) Tj /F3 8 Tf (BR\xc1ZEK) Tj" in small_caps
+    assert b"/F5 8 Tf <82> Tj" in small_caps and b"/Rcaron" in small_caps
+    assert b"4 Ts (A) Tj" in small_caps
+    rotated = blobs["rotated.pdf"]
+    assert b"0 -1 1 0 100 690 Tm" in rotated and b"0 1 -1 0 196 630 Tm" in rotated
+    assert b"/F4 10 Tf <80> Tj" in rotated and b"0 1 -1 0 50 380 Tm" in rotated
 
 
 def test_rich_docx_carries_the_documented_structure(blobs):

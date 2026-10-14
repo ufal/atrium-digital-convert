@@ -145,7 +145,7 @@ def _run_to_md(run) -> str:
     Cues are emitted only for *explicitly* set attributes — python-docx returns
     None for inherited properties — so unstyled body runs stay clean.
     """
-    raw = run.text or ""
+    raw = L.escape_cue_delimiters(run.text or "")  # #6: a run's text never opens or closes a cue
     if not raw.strip():
         return raw  # whitespace-only: keep spacing, add no markup
 
@@ -254,6 +254,7 @@ def _paragraph_to_md(paragraph, referenced: set) -> str:
 
     if not body:
         return ""
+    body = L.escape_line_start(body)  # #6: a paragraph reading `## Page 7` stays text
 
     prefix = _heading_prefix(getattr(paragraph.style, "name", None))
     if prefix:
@@ -284,7 +285,7 @@ def _table_to_md(table) -> str:
 # --------------------------------------------------------------------------- #
 def _region_md(paragraphs, opener: str, closer: str) -> str:
     """Wrap non-empty header/footer paragraph text in a region cue block."""
-    text = "\n".join(p.text.strip() for p in paragraphs if p.text and p.text.strip())
+    text = "\n".join(L.escape_text(p.text.strip()) for p in paragraphs if p.text and p.text.strip())
     if not text:
         return ""
     return f"{opener}\n{text}\n{closer}"
@@ -328,7 +329,7 @@ def convert(path: str | Path) -> str:
     footnotes = _collect_footnotes(document)
     referenced: set = set()
 
-    parts: List[str] = [f"# {doc_id_from_path(path)}"]
+    parts: List[str] = [f"# {L.cue_value(doc_id_from_path(path))}"]
 
     # Page geometry + repeating regions, once at the top.
     if document.sections:

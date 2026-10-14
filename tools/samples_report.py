@@ -9,9 +9,11 @@ PDFs (the 15 AMČR documents of atrium-digital-convert#5) and leaves one run dir
                largest page in pixels at page-classification's rendering resolution
     measure    run one command; record its exit code, wall and CPU time and peak memory
     report     read the run directory and the PDFs; write `<run>/report/`: the per-document
-               table, the per-page signals of the case nothing flags yet (a little text over a
-               full-page image), its candidates with thumbnails, the limits the run suggests,
-               and the delivery set (one record and one `/describe` report per document)
+               tables, the per-page signals (`page_signals.csv`, one column per stage run), the
+               pages whose only text is furniture or a little text over an image, with
+               thumbnails, what the quality model did to born-digital text, the limits the run
+               suggests, and the delivery set (one record and one `/describe` report per
+               document)
 
     python tools/samples_report.py inventory --samples DIR --out RUN/02_inventory/inventory.tsv
     python tools/samples_report.py measure --out RUN/10_cli_light/X.run.json --timeout 7200 -- \\
@@ -61,7 +63,9 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 # The coverage helpers are the light engine's own (its furniture-only rule uses them), so the
-# report measures every page exactly as the converter measures the pages it decides on.
+# report measures every page exactly as the converter measures the pages it decides on; the
+# route rules are the service's own (`/describe`), so the report re-applies exactly them.
+from api_util import digital_report as R  # noqa: E402
 from api_util.pdf_coverage import image_boxes, page_frame, union_share  # noqa: E402
 
 #: page-classification renders a PDF page at this resolution and refuses the whole call when a
@@ -69,8 +73,12 @@ from api_util.pdf_coverage import image_boxes, page_frame, union_share  # noqa: 
 PC_RENDER_DPI = 300
 PC_MAX_IMAGE_PIXELS = 178_956_970
 #: The other defaults the limits table compares with (each service's tool_limits.py). This
-#: repository's upload default is 200 since the #5 run (50 before).
-DEFAULTS = {"upload": 200, "pages": 2000, "stage_timeout": 120, "pc_upload": 10, "pc_pages": 50}
+#: repository's upload default is 200 since the #5 run (50 before), its stage timeout 360 since
+#: the re-run (120 before).
+DEFAULTS = {"upload": 200, "pages": 2000, "stage_timeout": 360, "pc_upload": 10, "pc_pages": 50}
+#: ROUTE_DAMAGED_WORD_SHARE's default (tool_limits.py): a `digital` page with this share of its
+#: body's words losing a letter (U+FFFD) goes to OCR.
+DAMAGED_WORD_SHARE = 0.05
 OP_UPLOAD_DEFAULT = 25
 
 #: The candidate rule measured, and the grid of alternatives reported beside it.
@@ -125,13 +133,20 @@ SUMMARY_COLUMNS = (
     "none_s none_routes none_doc_route stages_http stages_reason stages_s stages_routes "
     "stages_doc_route stages_pc stages_op stages_bands stages_categories all_http all_reason "
     "all_s all_pc all_categories high_coverage_digital candidates split_letters unmapped_glyphs "
-    "unmapped_pages short_line_pages stamped_scans"
+    "unmapped_pages short_line_pages stamped_scans furniture_only_pages lost_letter_pages "
+    "qm_digital qm_moved qm_moved_categories qm_moved_lost qm_prose_moves "
+    + " ".join(f"qm_trash_{kind.replace(' ', '_')}" for kind in R.LINE_KINDS)
 ).split()
 SIGNAL_COLUMNS = (
-    "doc page_index page text_layer needs_ocr lines body_chars furniture_chars "
-    "text_area_share images image_coverage category category_confidence route candidate thumbnail "
-    "split_letters unmapped_glyphs short_line_share"
+    "doc page_index page text_layer needs_ocr lines body_chars furniture_chars furniture_only "
+    "text_area_share images image_coverage none_route stages_route stages_route_kind "
+    "stages_category stages_category_confidence stages_band stages_judged stages_trash "
+    "stages_prose_judged stages_prose_trash prose_rule all_route all_category "
+    "all_category_confidence words damaged_words candidate thumbnail split_letters "
+    "unmapped_glyphs short_line_share"
 ).split()
+#: The `/describe` runs a page's columns come from, by column prefix.
+REPORT_STAGES = (("none", DESCRIBE_NONE), ("stages", DESCRIBE), ("all", DESCRIBE_ALL))
 
 
 # ── small helpers ───────────────────────────────────────────────────────────────────────────
@@ -521,30 +536,90 @@ def describe_columns(body: Mapping[str, Any], prefix: str) -> Dict[str, Any]:
     }
 
 
-def per_page(body: Optional[Mapping[str, Any]], key: str) -> Dict[int, Any]:
-    pages = (body or {}).get("pages") or []
-    return {
-        int(p.get("page_index") or 0): p[key]
-        for p in pages
-        if isinstance(p, dict) and p.get(key) is not None
-    }
+def route_kind(reason: Optional[str]) -> str:
+    """Why `/describe` routed a page, in a word: the quality model, lost letters, the text
+    layer as it is, the page type, or a blank page."""
+    text = str(reason or "")
+    if not text:
+        return ""
+    if text.startswith(R.QUALITY_ROUTE_PREFIX):
+        return "quality model"
+    if "lose a letter" in text:
+        return "lost letters"
+    if text.startswith("trustworthy text layer"):
+        return "text layer"
+    if text.startswith("empty page") or "a blank page" in text:
+        return "blank"
+    return "page type"
+
+
+def _judged_counts(counts: Optional[Mapping[str, Any]]) -> Tuple[int, int]:
+    """`(judged, trash)`: the Clear/Noisy/Trash lines of a `lines_by_category` count."""
+    counts = counts or {}
+    judged = sum(int(counts.get(name, 0) or 0) for name in ("Clear", "Noisy", "Trash"))
+    return judged, int(counts.get("Trash", 0) or 0)
+
+
+def _scored_lines(body: Optional[Mapping[str, Any]]) -> Dict[str, List[Mapping[str, Any]]]:
+    """The lines of a `/describe` answer's record that ocr-postprocess scored, by page label."""
+    by_label: Dict[str, List[Mapping[str, Any]]] = {}
+    for line in ((body or {}).get("document_json") or {}).get("lines") or []:
+        if isinstance(line, dict) and line.get("categ") in ("Clear", "Noisy", "Trash"):
+            by_label.setdefault(str(line.get("page")), []).append(line)
+    return by_label
+
+
+def _prose_quality(page: Mapping[str, Any], scored: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    """A page's ocr-postprocess quality with its prose-line counts: as `/describe` gave them
+    (since #5's re-run), else counted on the scored record lines the answer carries."""
+    quality = dict(page.get("quality") or {})
+    if quality.get("source") != OP or "prose_lines_by_category" in quality:
+        return quality
+    prose = Counter(
+        str(line.get("categ"))
+        for line in scored
+        if R.is_prose_line(str(line.get("text") or ""), line.get("group_id"))
+    )
+    quality["prose_lines_by_category"] = dict(prose)
+    return quality
+
+
+def _loses_letters(row: Mapping[str, Any], share: float = DAMAGED_WORD_SHARE) -> bool:
+    words = _int(row.get("words")) or 0
+    return (
+        row.get("text_layer") == "digital"
+        and bool(words)
+        and ((_int(row.get("damaged_words")) or 0) / words >= share)
+    )
 
 
 def page_signals(
     doc: str,
     pdf_path: Optional[Path],
     record: Mapping[str, Any],
-    categories: Mapping[int, Any],
-    routes: Mapping[int, Any],
+    reports: Mapping[str, Optional[Mapping[str, Any]]],
     rule: Tuple[float, int],
     thumbs: Optional[Path] = None,
     budget: Optional[List[int]] = None,
 ) -> List[Dict[str, Any]]:
-    """One row per page of a converted document (SIGNAL_COLUMNS)."""
+    """One row per page of a converted document (SIGNAL_COLUMNS).
+
+    `reports` holds the `/describe` answers by run, `none` (50), `stages` (61) and `all` (62);
+    each page's `<run>_…` columns come from that run alone.
+    """
     coverage_min, body_chars_max = rule
     by_label: Dict[str, List[Mapping[str, Any]]] = {}
     for line in record.get("lines") or []:
         by_label.setdefault(str(line.get("page")), []).append(line)
+    pages = {
+        prefix: {
+            int(p.get("page_index") or 0): p
+            for p in (body or {}).get("pages") or []
+            if isinstance(p, dict)
+        }
+        for prefix, body in ((prefix, reports.get(prefix)) for prefix, _ in REPORT_STAGES)
+    }
+    scored = _scored_lines(reports.get("stages"))
     pdf = None
     if pdf_path is not None:
         try:
@@ -557,12 +632,14 @@ def page_signals(
     try:
         for page_row in record.get("pages") or []:
             index = int(page_row.get("page_index") or 0)
-            lines = by_label.get(str(page_row.get("page")), [])
-            body = sum(
-                len(str(ln.get("text") or ""))
+            label = str(page_row.get("page"))
+            lines = by_label.get(label, [])
+            body_lines = [
+                ln
                 for ln in lines
                 if (ln.get("style") or {}).get("region") not in ("page_header", "page_footer")
-            )
+            ]
+            body = sum(len(str(ln.get("text") or "")) for ln in body_lines)
             area = sum(
                 max(b[2] - b[0], 0) * max(b[3] - b[1], 0)
                 for b in (ln.get("bbox") or () for ln in lines)
@@ -570,7 +647,7 @@ def page_signals(
             )
             canvas = page_row.get("canvas") or {}
             canvas_area = float(canvas.get("width") or 0) * float(canvas.get("height") or 0)
-            category = categories.get(index) or {}
+            damaged, words = R.count_damaged_words(str(ln.get("text") or "") for ln in body_lines)
             row: Dict[str, Any] = {
                 "doc": doc,
                 "page_index": index,
@@ -580,13 +657,36 @@ def page_signals(
                 "lines": len(lines),
                 "body_chars": body,
                 "furniture_chars": sum(len(str(ln.get("text") or "")) for ln in lines) - body,
+                "furniture_only": int(bool(lines) and not body_lines),
                 "text_area_share": round(min(area / canvas_area, 1.0), 4) if canvas_area else "",
-                "category": category.get("label"),
-                "category_confidence": _r(_num(category.get("confidence")), 3),
-                "route": routes.get(index),
+                "words": words,
+                "damaged_words": damaged,
                 "candidate": 0,
                 **text_defects(lines),
             }
+            for prefix, _ in REPORT_STAGES:
+                described = pages[prefix].get(index)
+                if described is None:
+                    continue
+                row[f"{prefix}_route"] = described.get("route")
+                if prefix != "none":
+                    category = described.get("category") or {}
+                    row[f"{prefix}_category"] = category.get("label")
+                    row[f"{prefix}_category_confidence"] = _r(_num(category.get("confidence")), 3)
+            described = pages["stages"].get(index)
+            if described is not None:
+                row["stages_route_kind"] = route_kind(described.get("route_reason"))
+                quality = _prose_quality(described, scored.get(label, []))
+                if quality.get("source") == OP:
+                    row["stages_band"] = quality.get("band")
+                    row["stages_judged"], row["stages_trash"] = _judged_counts(
+                        quality.get("lines_by_category")
+                    )
+                    row["stages_prose_judged"], row["stages_prose_trash"] = _judged_counts(
+                        quality.get("prose_lines_by_category")
+                    )
+                    if row["text_layer"] == "digital":
+                        row["prose_rule"] = int(R.route_page("digital", None, quality)[0] == "ocr")
             page = pdf[index - 1] if pdf is not None and 1 <= index <= len(pdf) else None
             if page is not None:
                 try:
@@ -600,13 +700,9 @@ def page_signals(
                 and row.get("image_coverage", -1) >= coverage_min
                 and body <= body_chars_max
             )
-            if (
-                row["candidate"]
-                and thumbs is not None
-                and page is not None
-                and budget
-                and budget[0]
-            ):
+            # candidates.md shows these pages: render them while the budget lasts.
+            shown = row["candidate"] or row["furniture_only"]
+            if shown and thumbs is not None and page is not None and budget and budget[0]:
                 try:
                     thumbs.mkdir(parents=True, exist_ok=True)
                     name = f"{doc}_p{index}.png"
@@ -621,6 +717,39 @@ def page_signals(
         if pdf is not None:
             pdf.close()
     return rows
+
+
+def quality_columns(
+    stages: Optional[Mapping[str, Any]], signals: Sequence[Mapping[str, Any]]
+) -> Dict[str, Any]:
+    """What ocr-postprocess's quality model did to the `digital` pages of run 61 (#5): the
+    pages it moved to OCR, their page types, its Trash lines by kind (`digital_report.line_kind`),
+    and what the prose rule moves. Empty when the model did not score the document."""
+    digital = [s for s in signals if s.get("text_layer") == "digital"]
+    if not stages or not any(s.get("stages_band") for s in digital):
+        return {}
+    moved = [s for s in digital if s.get("stages_route_kind") == "quality model"]
+    labels = {str(s.get("page")) for s in digital}
+    kinds: Counter = Counter()
+    for label, lines in _scored_lines(stages).items():
+        if label in labels:
+            kinds.update(
+                R.line_kind(str(ln.get("text") or ""), ln.get("group_id"))
+                for ln in lines
+                if ln.get("categ") == "Trash"
+            )
+    columns: Dict[str, Any] = {
+        "qm_digital": len(digital),
+        "qm_moved": len(moved),
+        "qm_moved_categories": _histogram(
+            s.get("all_category") or s.get("stages_category") for s in moved
+        ),
+        "qm_moved_lost": sum(1 for s in digital if s.get("stages_route_kind") == "lost letters"),
+        "qm_prose_moves": sum(_int(s.get("prose_rule")) or 0 for s in digital),
+    }
+    for kind in R.LINE_KINDS:
+        columns[f"qm_trash_{kind.replace(' ', '_')}"] = kinds.get(kind, 0)
+    return columns
 
 
 def deliver(out: Path, doc: str, bodies: Mapping[str, Any]) -> List[str]:
@@ -699,13 +828,9 @@ def document_row(
     ]
     signals: List[Dict[str, Any]] = []
     if record:
-        categories = {
-            **per_page(bodies[DESCRIBE], "category"),
-            **per_page(bodies[DESCRIBE_ALL], "category"),
-        }
-        routes = {**per_page(bodies[DESCRIBE_NONE], "route"), **per_page(bodies[DESCRIBE], "route")}
+        reports = {prefix: bodies[stage] for prefix, stage in REPORT_STAGES}
         thumbs = out / "thumbs" if budget[1] else None
-        signals = page_signals(doc, run.pdf(inv), record, categories, routes, rule, thumbs, budget)
+        signals = page_signals(doc, run.pdf(inv), record, reports, rule, thumbs, budget)
         row["candidates"] = sum(s["candidate"] for s in signals)
         row["split_letters"] = sum(s["split_letters"] for s in signals)
         row["unmapped_glyphs"] = sum(s["unmapped_glyphs"] for s in signals)
@@ -719,6 +844,9 @@ def document_row(
             for s in signals
             if s["text_layer"] == "digital" and s.get("image_coverage", -1) >= rule[0]
         )
+        row["furniture_only_pages"] = sum(1 for s in signals if s["furniture_only"])
+        row["lost_letter_pages"] = sum(1 for s in signals if _loses_letters(s))
+        row.update(quality_columns(bodies[DESCRIBE], signals))
     return row, signals, problems, deliver(out / "deliver", doc, bodies)
 
 
@@ -764,6 +892,7 @@ def build_report(
 
 
 def candidates_md(rows: Sequence[Mapping[str, Any]], rule: Tuple[float, int]) -> str:
+    """The pages whose only text is furniture or a little text over an image (#5)."""
     digital = [r for r in rows if r.get("text_layer") == "digital" and "image_coverage" in r]
     grid = [
         [f"≥ {cov:g}"]
@@ -774,40 +903,52 @@ def candidates_md(rows: Sequence[Mapping[str, Any]], rule: Tuple[float, int]) ->
         + [sum(r["image_coverage"] >= cov for r in digital)]
         for cov in COVERAGE_STEPS
     ]
+    flagged = [r for r in rows if r.get("furniture_only") and r.get("text_layer") == "none"]
+    near = [r for r in rows if r.get("furniture_only") and r.get("text_layer") == "digital"]
     picked = [r for r in rows if r.get("candidate")]
-    listing = [
-        [r["doc"], r["page"], r["page_index"], r.get("image_coverage"), r["body_chars"],
-         r["furniture_chars"], r.get("category"), r.get("route"),
-         f"![]({r['thumbnail']})" if r.get("thumbnail") else ""]
-        for r in picked
-    ]  # fmt: skip
+    headers = (
+        "document", "page", "index", "coverage", "body chars", "header/footer chars",
+        "page type", "route", "run", "thumbnail",
+    )  # fmt: skip
+
+    def described(r: Mapping[str, Any]) -> Tuple[Any, Any, str]:
+        """Page type and route from ONE `/describe` run: 62 (every page classified), else 61,
+        else 50 (no page type)."""
+        for prefix, stage in (("all", DESCRIBE_ALL), ("stages", DESCRIBE)):
+            if r.get(f"{prefix}_route"):
+                return r.get(f"{prefix}_category"), r.get(f"{prefix}_route"), stage[:2]
+        return None, r.get("none_route"), DESCRIBE_NONE[:2] if r.get("none_route") else ""
+
+    def listing(selected: Sequence[Mapping[str, Any]]) -> str:
+        return _md_table(
+            headers,
+            [
+                [r["doc"], r["page"], r["page_index"], r.get("image_coverage"), r["body_chars"],
+                 r["furniture_chars"], *described(r),
+                 f"![]({r['thumbnail']})" if r.get("thumbnail") else ""]
+                for r in selected
+            ],
+        )  # fmt: skip
+
     return (
-        "# A little text over a full-page image: candidates\n\n"
-        "The case nothing flags yet (atrium-digital-convert#5): a page whose text layer decodes "
-        "(`digital`) but whose text is a stamp, a running header or a few words over an image "
-        "that covers the page. Measured; no rule is shipped.\n\n"
-        f"**Rule measured:** `text_layer = digital`, image coverage ≥ {rule[0]:g}, at most "
-        f"{rule[1]} body characters (the lines outside the running header and footer): "
-        f"{len(picked)} of {len(digital)} `digital` pages.\n\n"
-        "**Other thresholds:** `digital` pages per coverage floor (rows) and body-character "
+        "# Pages whose only text is furniture, or a little text over an image\n\n"
+        "A scanned page that the PDF's producer numbered or stamped has a text layer: that number "
+        "or stamp (atrium-digital-convert#5). The light engine makes such a page `none`, with "
+        "`needs_ocr`, when its only text is a running header or footer and its images cover at "
+        f"least `FURNITURE_ONLY_IMAGE_COVERAGE` of it ({rule[0]:g} here).\n\n"
+        f"**Flagged by that rule:** {len(flagged)} page(s).\n\n"
+        + listing(flagged)
+        + f"\n\n**Near misses, only furniture under the threshold:** {len(near)} `digital` page(s). "
+        "The page type says whether a scanned text hides under the header (then lower the "
+        "threshold) or a figure (then nothing is lost).\n\n"
+        + listing(near)
+        + f"\n\n**A little text over a full-page image:** `text_layer = digital`, image coverage "
+        f"≥ {rule[0]:g}, at most {rule[1]} body characters (the lines outside the running header "
+        f"and footer): {len(picked)} of {len(digital)} `digital` pages. No rule acts on these.\n\n"
+        + listing(picked)
+        + "\n\n**Other thresholds:** `digital` pages per coverage floor (rows) and body-character "
         "ceiling (columns); the last column ignores the characters.\n\n"
         + _md_table(["coverage", *(f"≤ {c}" for c in BODY_CHARS_STEPS), "any"], grid)
-        + "\n\n**The candidates.** Category: page-classification's label, where it ran. Route: "
-        "where `/describe` sends the page today.\n\n"
-        + _md_table(
-            (
-                "document",
-                "page",
-                "index",
-                "coverage",
-                "body chars",
-                "header/footer chars",
-                "category",
-                "route",
-                "thumbnail",
-            ),
-            listing,
-        )  # fmt: skip
         + "\n"
     )
 
@@ -836,7 +977,7 @@ def limits_md(run: Run, rows: Sequence[Mapping[str, Any]]) -> str:
         ["digital-convert", "MAX_PAGES", DEFAULTS["pages"], max(DEFAULTS["pages"], math.ceil(max_pages / 500) * 500),
          "unchanged unless a document has more pages"],
         ["digital-convert", "STAGE_TIMEOUT_S", DEFAULTS["stage_timeout"],
-         max(120, math.ceil(max(answered) * 1.5 / 60) * 60) if answered else "",
+         max(DEFAULTS["stage_timeout"], math.ceil(max(answered) * 1.5 / 60) * 60) if answered else "",
          f"the slowest stage call ({max(answered):.0f} s) × 1.5" if answered else "needs runs 61/62"],
         ["page-classification", "MAX_UPLOAD_MB", DEFAULTS["pc_upload"],
          max(DEFAULTS["pc_upload"], math.ceil(max(largest, record) / 10) * 10),
@@ -877,12 +1018,27 @@ def limits_md(run: Run, rows: Sequence[Mapping[str, Any]]) -> str:
         )
         text += [
             "",
-            f"**Memory.** The highest was {where}: {peak:,.0f} MB, for {worst.get('doc')} "
+            f"**Memory (measured).** The highest was {where}: {peak:,.0f} MB, for {worst.get('doc')} "
             f"({worst.get('mb')} MB, {worst.get('pages')} pages, {worst.get('lines') or '?'} lines). "
             f"The largest file, {biggest.get('doc')} ({biggest.get('mb')} MB), peaked at "
             f"{_num(biggest.get(key)) or 0:,.0f} MB: memory follows the text a document holds, not "
             f"its size. Budget about {budget:g} GB plus the upload limit per concurrent job "
             f"(`MAX_CONCURRENT_JOBS`).",
+        ]
+    docling = [r for r in rows if r.get("docling_rc") == 0]
+    if docling:
+        seconds = [_num(r.get("docling_s")) or 0 for r in docling]
+        peaks_gb = [(_num(r.get("docling_peak_mb")) or 0) / 1000 for r in docling]
+        gpu = next(
+            (line.split(":", 1)[1].strip() for line in _env_lines(run) if line.startswith("gpu:")),
+            "",
+        )
+        text += [
+            "",
+            f"**Docling (`--engine docling`, stage 20).** {len(docling)} of {len(rows)} documents "
+            f"converted, in {min(seconds):g}–{max(seconds):g} s each, peaking at "
+            f"{min(peaks_gb):.1f}–{max(peaks_gb):.1f} GB{f' (GPU: {gpu})' if gpu else ''}. The service "
+            "image runs the light engine only; budget Docling per job when a batch runs it.",
         ]
     if timed_out:
         text += [
@@ -935,7 +1091,27 @@ SECTIONS: Tuple[Tuple[str, str, Tuple[Tuple[str, str], ...]], ...] = (
          ("ocr-postprocess", "stages_op"), ("quality bands", "stages_bands"),
          ("categories, all pages", "all_cell")),
     ),
+    (
+        "Quality model on born-digital text",
+        "qm_digital",
+        (("document", "doc"), ("digital pages", "qm_digital"),
+         ("moved to OCR by the quality model", "qm_moved"), ("their page types", "qm_moved_categories"),
+         ("Trash lines: table · short · few letters · dot leaders · prose", "qm_trash"),
+         ("the prose rule moves", "qm_prose_moves"),
+         ("moved for lost letters", "qm_moved_lost"),
+         ("pages losing letters", "lost_letter_pages")),
+    ),
 )  # fmt: skip
+
+#: Under the "Quality model" table: what its columns count.
+QUALITY_NOTE = (
+    "Counted on the `digital` pages of `61_describe_stages`, as that run routed them. A line is "
+    "prose when it is outside a table, at least 20 characters long, at least half letters and "
+    'not a table-of-contents line (`api_util/digital_report.py`); "the prose rule moves" are '
+    'the pages whose prose lines (5 or more) the model calls more than half Trash. "Pages losing '
+    'letters": at least {share:.0%} of the words of the body text hold U+FFFD (a glyph without '
+    "a Unicode mapping), measured on the command line's record; `/describe` sends them to OCR."
+)
 
 
 def _display(row: Mapping[str, Any]) -> Dict[str, Any]:
@@ -961,6 +1137,10 @@ def _display(row: Mapping[str, Any]) -> Dict[str, Any]:
     )
     for key in ("s", "peak_mb", "lines", "tables", "headings", "furniture_lines", "footnote_lines"):
         out[f"cmp_{key}"] = pair(key)
+    if row.get("qm_digital") not in (None, ""):
+        out["qm_trash"] = " · ".join(
+            str(row.get(f"qm_trash_{kind.replace(' ', '_')}") or 0) for kind in R.LINE_KINDS
+        )
     if row.get("md_needs_ocr_cues") not in (None, ""):
         out["cues"] = f"{row['md_needs_ocr_cues']} / {row.get('needs_ocr', DASH)}"
     for prefix in ("none", "stages", "all"):
@@ -974,6 +1154,14 @@ def _display(row: Mapping[str, Any]) -> Dict[str, Any]:
     return out  # fmt: skip
 
 
+def _env_lines(run: Run) -> List[str]:
+    """The lines of the run's `env.txt` the report quotes: job, node, GPU, Python, settings, heads."""
+    env = run.root / "env.txt"
+    lines = env.read_text(encoding="utf-8", errors="replace").splitlines() if env.is_file() else []
+    keep = ("job", "node", "gpu", "python", "settings")
+    return [line for line in lines if line.split(":", 1)[0] in keep or line.startswith("atrium-")]
+
+
 def summary_md(
     run: Run,
     rows: Sequence[Mapping[str, Any]],
@@ -981,12 +1169,7 @@ def summary_md(
     problems: Sequence[Sequence[Any]],
     rule: Tuple[float, int],
 ) -> str:
-    env = run.root / "env.txt"
-    env_lines = [
-        line
-        for line in (env.read_text(encoding="utf-8", errors="replace").splitlines() if env.is_file() else [])
-        if line.split(":", 1)[0] in ("job", "node", "gpu", "python", "settings") or line.startswith("atrium-")
-    ]  # fmt: skip
+    env_lines = _env_lines(run)
     pages = sum(_int(r.get("pages")) or 0 for r in rows)
     size = sum(_num(r.get("mb")) or 0 for r in rows)
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -1009,6 +1192,8 @@ def summary_md(
         if title.startswith("`/describe`") and problems:
             out += ["", "Stage answers that were not `ok`:", ""]
             out.append(_md_table(("document", "run", "stage", "status", "detail"), problems))
+        if title.startswith("Quality model"):
+            out += ["", QUALITY_NOTE.format(share=DAMAGED_WORD_SHARE)]
     for title, stage in (("Command-line refusals", NEGATIVE), ("Service contract", CONTRACT)):
         checks = _read_tsv(run.root / stage / "results.tsv")
         if checks:
@@ -1017,6 +1202,8 @@ def summary_md(
             out.append(_md_table(keys, [[c.get(k) for k in keys] for c in checks]))
     digital = sum(1 for s in signals if s.get("text_layer") == "digital")
     picked = sum(1 for s in signals if s.get("candidate"))
+    flagged = sum(1 for s in signals if s.get("furniture_only") and s.get("text_layer") == "none")
+    near = sum(1 for s in signals if s.get("furniture_only") and s.get("text_layer") == "digital")
     failed = [
         r["doc"]
         for r in rows
@@ -1032,11 +1219,14 @@ def summary_md(
     )
     out += [
         "",
-        "## A little text over a full-page image",
+        "## Pages whose only text is furniture, or little text over an image",
         "",
+        f"{flagged} page(s) are `none` by the furniture-only rule (their only text a running "
+        f"header or footer over images covering ≥ {rule[0]:g} of the page); {near} `digital` "
+        "page(s) carry only furniture under that coverage; and "
         f"{picked} of {digital} `digital` pages have image coverage ≥ {rule[0]:g} and at most "
-        f"{rule[1]} body characters: [candidates.md](candidates.md) has them with thumbnails, "
-        "category and route, and the counts under other thresholds; "
+        f"{rule[1]} body characters. [candidates.md](candidates.md) lists them with thumbnails, "
+        "page type and route, and the counts under other thresholds; "
         "[page_signals.csv](page_signals.csv) has every page.",
         "",
         "## Elsewhere",

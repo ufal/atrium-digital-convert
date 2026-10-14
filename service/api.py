@@ -57,7 +57,14 @@ from api_util.digital_report import build_report
 from atrium_document import canonical_doc_id, validate_baseline, validate_document
 from atrium_limits import LimitExceeded
 from atrium_paradata import ParadataLogger
-from tool_limits import LIMITS, MAX_CONCURRENT_JOBS, MAX_UPLOAD, ROUTE_TRASH_SHARE, STAGE_TIMEOUT_S
+from tool_limits import (
+    LIMITS,
+    MAX_CONCURRENT_JOBS,
+    MAX_UPLOAD,
+    ROUTE_DAMAGED_WORD_SHARE,
+    ROUTE_TRASH_SHARE,
+    STAGE_TIMEOUT_S,
+)
 
 from . import stages
 
@@ -233,6 +240,15 @@ class PageQuality(BaseModel):
         description="The page's dominant language, when the model reports one."
     )
     lines_scored: int = Field(description="Lines the verdict is based on.")
+    prose_lines_scored: Optional[int] = Field(
+        None,
+        description="ocr-postprocess only: the scored lines that are prose — outside a table, at "
+        "least 20 characters, mostly letters, not a table-of-contents line. The quality rule of a "
+        "`digital` page counts only these (`ROUTE_TRASH_SHARE`).",
+    )
+    prose_lines_by_category: Optional[Dict[str, int]] = Field(
+        None, description="ocr-postprocess only: `lines_by_category` over the prose lines."
+    )
 
 
 class PageLayout(BaseModel):
@@ -254,6 +270,15 @@ class PageLayout(BaseModel):
     images: int = Field(description="Images the page draws (PDF).")
     vector_paths: int = Field(
         description="Vector paths the page draws (PDF): rules, curves, text drawn as outlines."
+    )
+    words: int = Field(
+        description="Whitespace-separated words of the page's body text (outside its running "
+        "header and footer)."
+    )
+    damaged_words: int = Field(
+        description="Of those, the words that lost a letter to a glyph without a Unicode mapping "
+        "(U+FFFD). A `digital` page goes to `ocr` when their share reaches "
+        "`ROUTE_DAMAGED_WORD_SHARE`."
     )
 
 
@@ -783,6 +808,7 @@ async def describe(
                 quality=quality,
                 trash_share_limit=ROUTE_TRASH_SHARE.get(),
                 include_text=include_text,
+                damaged_word_limit=ROUTE_DAMAGED_WORD_SHARE.get(),
             )
             result: Dict[str, Any] = {
                 "service": SERVICE,

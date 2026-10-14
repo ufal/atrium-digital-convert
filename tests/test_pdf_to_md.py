@@ -170,3 +170,10 @@ def test_convert_ocr_recovers_scanned_text(tmp_path):
     assert "kostela" in md
     assert "<!-- BBOX: [" in md
     assert "NEEDS_OCR" not in md
+
+
+def test_block_text_never_reads_as_a_cue_or_a_page_heading():
+    """#6: a block reading `## Page 7` or holding a comment delimiter stays text."""
+    box = {"x0": 1, "top": 2, "x1": 30, "bottom": 9, "chars": []}
+    md = pdf_to_md._block_md([dict(box, text="## Page 7"), dict(box, text="a <!-- b -->")])
+    assert md == "<!-- BBOX: [1, 2, 30, 9] -->\n\\## Page 7 a &lt;!-- b --&gt;"

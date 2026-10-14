@@ -190,7 +190,16 @@ def _read_alto_layout(path: str | Path) -> tuple:
                 if box:
                     pages[page_num]["figures"].append({"bbox": box, "type": tag})
 
-    return rows, pages
+    return _as_markdown_text(rows), pages
+
+
+def _as_markdown_text(rows: List[dict]) -> List[dict]:
+    """The layout readers' rows with their text escaped for the Markdown stream (#6): a line
+    that reads ``<!-- PAGE_BREAK -->`` or ``## Page 7`` stays text. Only the layout path takes
+    these rows; ``--format text`` reads the document again and keeps it as it is."""
+    for row in rows:
+        row["text"] = L.escape_text(row["text"])
+    return rows
 
 
 def _union(boxes: List[list]) -> list | None:
@@ -347,7 +356,7 @@ def _read_teitok_layout(path: str | Path) -> tuple:
         for meta in pages.values():
             meta["origin"] = "printspace"
 
-    return rows, pages
+    return _as_markdown_text(rows), pages
 
 
 def read_document_layout(path: str | Path) -> tuple:
@@ -415,6 +424,11 @@ def rows_to_layout_markdown(
     Rows without either key render exactly as before, so the ALTO/TEITOK path is
     byte-for-byte unchanged.
 
+    A row's ``text`` is written as it is, so it must already be safe Markdown (#6): the layout
+    readers and json_to_md.py escape document text (``layout_md.escape_text``) before it gets
+    here, and json_to_md.py's heading marks and emphasis are the only markup in it. Page
+    labels and the title go through ``layout_md.cue_value`` here.
+
     ``detail`` picks the cue profile (``layout_md.DETAIL_LEVELS``, atrium-project#70): the
     text lines are the same in every profile, ``standard`` keeps one BBOX per block and
     ``minimal`` drops geometry, DOC_META and OCR provenance. A page meta dict may carry
@@ -425,7 +439,7 @@ def rows_to_layout_markdown(
     scope = L.BBOX_SCOPE[detail]
     block_boxes = _block_boxes(rows) if scope == "block" else {}
     pages = pages or {}
-    parts: List[str] = [f"# {title}"] if title else []
+    parts: List[str] = [f"# {L.cue_value(title)}"] if title else []
     current_page = None
     # A distinct sentinel, because `None` is a legitimate group_id (the ALTO path): the first
     # text row of a page must never emit a boundary, whatever its group is.
@@ -438,7 +452,7 @@ def rows_to_layout_markdown(
         if page != current_page:
             if current_page is not None:
                 parts.append(L.page_break(label))
-            parts.append(f"\n## Page {label}\n")
+            parts.append(f"\n## Page {L.cue_value(label)}\n")
             meta = pages.get(page, {})
             w, h = meta.get("width"), meta.get("height")
             origin = {"origin": meta["origin"]} if meta.get("origin") else {}
@@ -497,18 +511,18 @@ def rows_to_layout_markdown(
 def rows_to_markdown(rows: List[dict], title: str = "") -> str:
     """Renders {page_num, line_num, text} rows as page-sectioned Markdown."""
     if not rows:
-        return f"# {title}\n" if title else ""
+        return f"# {L.cue_value(title)}\n" if title else ""
 
-    parts: List[str] = [f"# {title}"] if title else []
+    parts: List[str] = [f"# {L.cue_value(title)}"] if title else []
     current_page = None
     for row in rows:
         page = row.get("page_num")
         if page != current_page:
-            parts.append(f"\n## Page {page}\n")
+            parts.append(f"\n## Page {L.cue_value(page)}\n")
             current_page = page
         text = str(row.get("text", "")).strip()
         if text:
-            parts.append(text)
+            parts.append(L.escape_text(text))  # #6: document text never reads as a heading
 
     return "\n".join(parts).strip() + "\n"
 

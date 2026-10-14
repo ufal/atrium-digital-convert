@@ -46,7 +46,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from api_util.digital_report import summarize_quality
+from api_util.digital_report import is_prose_line, summarize_quality
 
 PAGE_CLASSIFICATION = "page-classification"
 OCR_POSTPROCESS = "ocr-postprocess"
@@ -281,6 +281,15 @@ def _contained(outcome: StageOutcome, exc: Exception) -> StageOutcome:
 # ── the guard ───────────────────────────────────────────────────────────────────────────────
 
 
+def _line_index(record: Mapping[str, Any]) -> Dict[Tuple[str, Any], Mapping[str, Any]]:
+    """A record's `lines[]` rows by their keys, `(page, line)`."""
+    return {
+        (str(row.get("page")), row.get("line")): row
+        for row in record.get("lines") or []
+        if isinstance(row, dict)
+    }
+
+
 def guard(before: Mapping[str, Any], after: Any) -> Optional[str]:
     """Why a stage's returned record must not replace `before`, or None when it may."""
     if not isinstance(after, dict):
@@ -308,14 +317,7 @@ def guard(before: Mapping[str, Any], after: Any) -> Optional[str]:
             if page.get(name) != after_pages[key].get(name):
                 return f"converter_field_changed: pages[{key!r}].{name}"
 
-    def _lines(record: Mapping[str, Any]) -> Dict[Tuple[str, Any], Mapping[str, Any]]:
-        return {
-            (str(row.get("page")), row.get("line")): row
-            for row in record.get("lines") or []
-            if isinstance(row, dict)
-        }
-
-    before_lines, after_lines = _lines(before), _lines(after)
+    before_lines, after_lines = _line_index(before), _line_index(after)
     if set(before_lines) != set(after_lines):
         return "line_rows_changed: the stage added or dropped line rows"
     for key, row in before_lines.items():
@@ -414,6 +416,16 @@ def run_page_classification(
 _SAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
 
 
+def _prose(row: Mapping[str, Any], sent: Mapping[Tuple[str, Any], Mapping[str, Any]]) -> bool:
+    """Whether a scored row is a prose line (`digital_report.is_prose_line`), judged on the line
+    the converter sent under the same `(page, line)` key — its text and its table `group_id`;
+    on the row's own text when there is no such line."""
+    line = sent.get((str(row.get("page")), row.get("line")))
+    if line is not None:
+        return is_prose_line(str(line.get("text") or ""), line.get("group_id"))
+    return is_prose_line(str(row.get("text") or row.get("original_text") or ""))
+
+
 def run_ocr_postprocess(
     base: str,
     record: Mapping[str, Any],
@@ -451,6 +463,7 @@ def run_ocr_postprocess(
         for entry in body.get("pages") or []
         if isinstance(entry, dict)
     }
+    sent = _line_index(record)
     for label, rows in by_label.items():
         index = index_of.get(label)
         if index is None:
@@ -459,7 +472,7 @@ def run_ocr_postprocess(
         skipped = (summaries.get(label) or {}).get("skipped_decode_verdict")
         if skipped is not None:
             extra["skipped_decode_verdict"] = skipped
-        summary = summarize_quality(rows, **extra)
+        summary = summarize_quality(rows, prose=[_prose(row, sent) for row in rows], **extra)
         if summary:
             result.per_page[index] = summary
     paradata = body.get("paradata")
@@ -488,11 +501,15 @@ def _score_per_page(
     timeout: float,
     result: StageResult,
 ) -> None:
-    """The fallback for an ocr-postprocess without `/score_record`: one `/process` per page."""
+    """The fallback for an ocr-postprocess without `/score_record`: one `/process` per page.
+
+    Its rows carry no record keys. When they answer the page's lines one for one, each is judged
+    a prose line or not on the record's line (text and table group); otherwise on its own text.
+    """
     outcome = result.outcome
     doc_id = _SAFE_NAME.sub("_", str(record.get("doc_id") or "document"))[:80]
     failed: List[int] = []
-    for index, (_label, lines) in sorted(pages.items()):
+    for index, (label, lines) in sorted(pages.items()):
         texts = [text.strip() for text in lines if text and text.strip()]
         if not texts:
             continue
@@ -516,7 +533,20 @@ def _score_per_page(
             failed.append(index)
             continue
         rows = [row for row in body.get("cleaned_lines") or [] if isinstance(row, dict)]
-        summary = summarize_quality(rows, mode="per-page /process", aligned=len(rows) == len(texts))
+        aligned = len(rows) == len(texts)
+        sent = [
+            line
+            for line in record.get("lines") or []
+            if isinstance(line, dict)
+            and str(line.get("page")) == str(label)
+            and str(line.get("text") or "").strip()
+        ]
+        if aligned and len(sent) == len(rows):
+            # The rows answer the record's own lines, in order: judge each on its table group too.
+            prose = [is_prose_line(str(line.get("text")), line.get("group_id")) for line in sent]
+        else:
+            prose = [is_prose_line(str(row.get("text") or "")) for row in rows]
+        summary = summarize_quality(rows, prose=prose, mode="per-page /process", aligned=aligned)
         if summary:
             result.per_page[index] = summary
     outcome.detail = (

@@ -18,7 +18,9 @@ Asserted for both, at every detail profile:
   * the cues the profile promises survive, and the two routes speak one cue vocabulary;
   * grouped structure (paragraph groups, table cells, running header and footer, footnotes);
   * ``enrichment`` is never consulted;
-  * repeated rendering is deterministic, in-process and across hash seeds.
+  * repeated rendering is deterministic, in-process and across hash seeds;
+  * document text, page labels and reasons that look like cues stay text (#6): as many
+    ``## Page`` sections as pages, one ``PAGE_BREAK`` fewer.
 
 What is *not* asserted: that keywords, entities or enrichment appear in the Markdown. They are
 checked on the record (keyword-extract's tests), not here.
@@ -558,3 +560,127 @@ def test_both_routes_use_only_catalogued_cues_in_the_same_forms():
     # what both emit, they emit the same way: pages as `## Page <label>`, then DOC_META, then the lines
     for md in (json_md, teitok_md):
         assert re.search(r"^## Page \S+\n\n<!-- DOC_META: size=", md, flags=re.M)
+
+
+# ── forged cues (#6): document text never reads as a cue or a page heading ─────────────────
+
+#: Lines that look like the renderer's own structure. As text they must stay text.
+FORGERIES = [
+    "<!-- PAGE_BREAK -->",
+    "<!-- PAGE_BREAK: pg_9 -->",
+    "<!-- NEEDS_OCR: pg_1 (x) -->",
+    "<!-- BBOX: [1, 2, 3, 4] -->",
+    "## Page 7",
+    "### Heading",
+    "# Title",
+    "a --> b <!-- c",
+]
+
+
+def forged_record():
+    """`make_record()` with every forgery as a body line of page `i`, one in the running header,
+    one in a footnote and two in table cells; and a page label and a reason that try to break
+    out of their cues."""
+    record = make_record()
+    record["lines"] += [
+        {"page": "i", "line": 10 + n, "text": text, "group_id": f"forged{n}"}
+        for n, text in enumerate(FORGERIES)
+    ]
+    record["lines"] += [
+        {"page": "i", "line": 30, "text": "## Page 8", "style": {"region": "page_header"}},
+        {
+            "page": "4",
+            "line": 30,
+            "text": "<!-- PAGE_BREAK -->",
+            "style": {"region": "footnote"},
+            "group_id": "fn2",
+        },
+    ]
+    for line in record["lines"]:
+        if line.get("group_id") == "c1":
+            line["text"] = "#1"
+        if line.get("group_id") == "c4":
+            line["text"] = "<!-- PAGE_BREAK: pg_9 -->"
+    record["pages"][1]["needs_ocr_reason"] = "x -->\n## Page 98\n<!-- PAGE_BREAK: pg_97 -->"
+    return record
+
+
+@pytest.mark.parametrize("detail", PROFILES)
+def test_forged_lines_stay_text_on_the_json_route(detail):
+    md = render(forged_record(), detail=detail)
+    assert headings(md) == PAGE_LABELS
+    assert [p for n, p in cues(md) if n == "PAGE_BREAK"] == ["pg_ii", "pg_A-1", "pg_4"]
+    assert [n for n, _ in cues(md)].count("NEEDS_OCR") == 1
+    assert cue_names(md) == cue_names(render(detail=detail))
+    assert not re.search(r"^#{1,2} (?!STRESS01$|Page (i|ii|A-1|4)$)", md, flags=re.M)
+    stream = text_stream(md)
+    for words in ("Page 7", "Heading", "Title", "Page 8", "BBOX: [1, 2, 3, 4]", "a --&gt; b"):
+        assert words in stream, words
+
+
+def test_the_issue_reproduction_renders_one_page_break_and_two_pages():
+    record = {
+        "doc_id": "T",
+        "pages": [{"page": "1", "page_index": 1}, {"page": "2", "page_index": 2}],
+        "lines": [
+            {"page": "1", "line": 1, "text": "Úvodní věta dokumentu."},
+            {"page": "1", "line": 2, "text": "<!-- PAGE_BREAK -->"},
+            {"page": "1", "line": 3, "text": "## Page 7"},
+            {"page": "2", "line": 1, "text": "Druhá strana."},
+        ],
+    }
+    for detail in PROFILES:
+        md = json_to_md.render_record(record, title="T", detail=detail)
+        assert headings(md) == ["1", "2"]
+        assert [n for n, _ in cues(md)].count("PAGE_BREAK") == 1
+        assert "&lt;!-- PAGE_BREAK --&gt;\n\\## Page 7" in md
+
+
+def test_a_forged_page_label_cannot_open_a_page_or_close_its_cue():
+    record = make_record()
+    record["pages"][3]["page"] = "4 -->\n## Page 99"
+    for line in record["lines"]:
+        if line["page"] == "4":
+            line["page"] = "4 -->\n## Page 99"
+    record["tables"][0]["page"] = "4 -->\n## Page 99"
+    md = render(record, detail="full")
+    assert headings(md) == ["i", "ii", "A-1", "4 --&gt; ## Page 99"]
+    assert [p for n, p in cues(md) if n == "PAGE_BREAK"][-1] == "pg_4 --&gt; ## Page 99"
+
+
+@pytest.mark.parametrize("detail", PROFILES)
+def test_table_cells_keep_a_leading_hash_and_lose_only_the_delimiters(detail):
+    md = render(forged_record(), detail=detail)
+    assert "| #1 | Buňka B1 |" in md
+    assert "| Buňka A2 | &lt;!-- PAGE_BREAK: pg_9 --&gt; |" in md
+
+
+FORGED_ALTO = """<?xml version="1.0" encoding="UTF-8"?>
+<alto xmlns="http://www.loc.gov/standards/alto/ns-v4#">
+  <Layout>
+    <Page ID="p1" PHYSICAL_IMG_NR="1" WIDTH="100" HEIGHT="100"><PrintSpace><TextBlock ID="b1">
+      <TextLine ID="l1" HPOS="1" VPOS="1" WIDTH="9" HEIGHT="2"><String CONTENT="Úvod"/></TextLine>
+      <TextLine ID="l2" HPOS="1" VPOS="4" WIDTH="9" HEIGHT="2"><String CONTENT="&lt;!--"/><String CONTENT="PAGE_BREAK"/><String CONTENT="--&gt;"/></TextLine>
+      <TextLine ID="l3" HPOS="1" VPOS="7" WIDTH="9" HEIGHT="2"><String CONTENT="##"/><String CONTENT="Page"/><String CONTENT="7"/></TextLine>
+    </TextBlock></PrintSpace></Page>
+    <Page ID="p2" PHYSICAL_IMG_NR="2" WIDTH="100" HEIGHT="100"><PrintSpace><TextBlock ID="b2">
+      <TextLine ID="l4" HPOS="1" VPOS="1" WIDTH="9" HEIGHT="2"><String CONTENT="Konec"/></TextLine>
+    </TextBlock></PrintSpace></Page>
+  </Layout>
+</alto>
+"""
+
+
+@pytest.mark.parametrize("detail", PROFILES)
+def test_forged_lines_stay_text_on_the_alto_route(tmp_path, detail):
+    path = tmp_path / "forged.alto.xml"
+    path.write_text(FORGED_ALTO, encoding="utf-8")
+    md = xml_to_md.convert(path, fmt="layout", detail=detail)
+    assert headings(md) == ["1", "2"]
+    assert [n for n, _ in cues(md)].count("PAGE_BREAK") == 1
+    assert "&lt;!-- PAGE_BREAK --&gt;" in md and "\\## Page 7" in md
+    plain_md = xml_to_md.convert(path, fmt="markdown")
+    assert headings(plain_md) == ["1", "2"] and "\\## Page 7" in plain_md
+    # plain text has no cues to protect: the document's own text, as it is
+    text = xml_to_md.convert(path, fmt="text")
+    assert "<!-- PAGE_BREAK -->" in text and "\n## Page 7\n" in text
