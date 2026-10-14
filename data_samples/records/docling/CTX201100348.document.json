@@ -21,6 +21,10 @@
         "pdfplumber",
         "pdfminer.six",
         "pypdfium2",
+        "docling",
+        "docling-parse",
+        "docling-layout-heron",
+        "docling-tableformer",
         "jsonschema"
       ],
       "components": [
@@ -43,6 +47,30 @@
           "rank": 1
         },
         {
+          "name": "docling",
+          "license": "MIT",
+          "license_url": "https://opensource.org/license/mit/",
+          "rank": 1
+        },
+        {
+          "name": "docling-parse",
+          "license": "MIT",
+          "license_url": "https://opensource.org/license/mit/",
+          "rank": 1
+        },
+        {
+          "name": "docling-layout-heron",
+          "license": "Apache-2.0",
+          "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+          "rank": 1
+        },
+        {
+          "name": "docling-tableformer",
+          "license": "CDLA-Permissive-2.0",
+          "license_url": "https://cdla.dev/permissive-2-0/",
+          "rank": 1
+        },
+        {
           "name": "jsonschema",
           "license": "MIT",
           "license_url": "https://opensource.org/license/mit/",
@@ -50,16 +78,16 @@
         }
       ],
       "unknown_licenses": [],
-      "notes": "Effective output license is MIT, the most restrictive among 4 component(s) used."
+      "notes": "Effective output license is MIT, the most restrictive among 8 component(s) used."
     },
     "contributors": [
       {
         "program": "digital-convert",
-        "run_id": "261009-191346",
-        "run_uuid": "urn:uuid:1bbe5714-fd28-4562-88a7-124eafc3048d",
-        "paradata_ref": "261009-191346_digital-convert.json",
+        "run_id": "261014-084501",
+        "run_uuid": "urn:uuid:111b2d66-1d7f-43dd-91f1-fd92ce9adc68",
+        "paradata_ref": "261014-084501_digital-convert.json",
         "blocks": "pages,lines,content",
-        "at": "2026-10-09T19:13:50.682432+00:00"
+        "at": "2026-10-14T08:45:38.085267+00:00"
       }
     ]
   },
@@ -67,24 +95,24 @@
     "blocks": {
       "pages": {
         "program": "digital-convert",
-        "run_id": "261009-191346",
-        "run_uuid": "urn:uuid:1bbe5714-fd28-4562-88a7-124eafc3048d",
-        "paradata_ref": "261009-191346_digital-convert.json",
-        "updated_at": "2026-10-09T19:13:50.539811+00:00"
+        "run_id": "261014-084501",
+        "run_uuid": "urn:uuid:111b2d66-1d7f-43dd-91f1-fd92ce9adc68",
+        "paradata_ref": "261014-084501_digital-convert.json",
+        "updated_at": "2026-10-14T08:45:37.889887+00:00"
       },
       "lines": {
         "program": "digital-convert",
-        "run_id": "261009-191346",
-        "run_uuid": "urn:uuid:1bbe5714-fd28-4562-88a7-124eafc3048d",
-        "paradata_ref": "261009-191346_digital-convert.json",
-        "updated_at": "2026-10-09T19:13:50.540198+00:00"
+        "run_id": "261014-084501",
+        "run_uuid": "urn:uuid:111b2d66-1d7f-43dd-91f1-fd92ce9adc68",
+        "paradata_ref": "261014-084501_digital-convert.json",
+        "updated_at": "2026-10-14T08:45:37.890895+00:00"
       },
       "content": {
         "program": "digital-convert",
-        "run_id": "261009-191346",
-        "run_uuid": "urn:uuid:1bbe5714-fd28-4562-88a7-124eafc3048d",
-        "paradata_ref": "261009-191346_digital-convert.json",
-        "updated_at": "2026-10-09T19:13:50.540225+00:00"
+        "run_id": "261014-084501",
+        "run_uuid": "urn:uuid:111b2d66-1d7f-43dd-91f1-fd92ce9adc68",
+        "paradata_ref": "261014-084501_digital-convert.json",
+        "updated_at": "2026-10-14T08:45:37.890962+00:00"
       }
     },
     "had_baseline": false,
@@ -1173,7 +1201,7 @@
     }
   ],
   "content": {
-    "text": "obj1.jpg\nobj2.jpg\nobj1rez.jpg\nobj2rez.jpg\nZoner Photo Studio 11\nobj3.jpg\nobj4.jpg\nobj3rez.jpg\nobj4rez.jpg\nZoner Photo Studio 11\nobj5.jpg\nobj6.jpg\nobj5rez.jpg\nobj6rez.jpg\nZoner Photo Studio 11\nobj7.jpg\nobj8.jpg\nobj7rez.jpg\nobj8rez.jpg\nZoner Photo Studio 11\nobj9.jpg\nobj10.jpg\nobj9rez.jpg\nobj10rez.jpg\nZoner Photo Studio 11\nobj1.jpg\nobj2.jpg\nobj1rez.jpg\nobj2rezA.jpg\nZoner Photo Studio 11\nobj2rezB.jpg\nobj3B.jpg\nobj3.jpg\nobj3rez.jpg\nZoner Photo Studio 11\nobj1.jpg\nobj5.jpg\nobj1rez.jpg\nobj6.jpg\nZoner Photo Studio 11\nobj6rez.jpg\nobj10rez.jpg\nobj10.jpg\nobj12.jpg\nZoner Photo Studio 11\nobj12rez.jpg\nobj25.jpg\nobj17.jpg\nobj25rez.jpg\nZoner Photo Studio 11\nobj29.jpg\nobj31.jpg\nobj29rez.jpg\nobj31rez.jpg\nZoner Photo Studio 11\nobj32.jpg\nobj33.jpg\nobj32rez.jpg\nobj35.jpg\nZoner Photo Studio 11\nobj35rez.jpg\nobj41rez.jpg\nobj41.jpg\nobj42.jpg\nZoner Photo Studio 11\nobj42rez.jpg\nobj44rez.jpg\nobj44.jpg\nobj52.jpg\nZoner Photo Studio 11\nobj52rez.jpg\nobj66.jpg\nobj66rez.jpg\nZoner Photo Studio 11",
+    "text": "obj1.jpg\nobj1rez.jpg\nobj2.jpg\nobj2rez.jpg\nobj3.jpg\nobj3rez.jpg\nobj4.jpg\nobj4rez.jpg\nobj5.jpg\nobj5rez.jpg\nobj6.jpg\nobj6rez.jpg\nobj7.jpg\nobj7rez.jpg\nobj8rez.jpg\nobj9.jpg\nobj9rez.jpg\nobj10rez.jpg\nobj1.jpg\nobj1rez.jpg\nobj2.jpg\nobj2rezA.jpg\nobj3B.jpg\nobj2rezB.jpg\nobj3.jpg\nobj3rez.jpg\nobj1.jpg\nobj1rez.jpg\nobj5.jpg\nobj6.jpg\nobj6rez.jpg\nobj10.jpg\nobj10rez.jpg\nobj12.jpg\nobj12rez.jpg\nobj17.jpg\nobj25rez.jpg\nobj29.jpg\nobj29rez.jpg\nobj31rez.jpg\nobj32.jpg\nobj32rez.jpg\nobj33.jpg\nobj35.jpg\nobj35rez.jpg\nobj41.jpg\nobj41rez.jpg\nobj42.jpg\nobj42rez.jpg\nobj44.jpg\nobj44rez.jpg\nobj52.jpg\nobj66.jpg\nobj52rez.jpg\nobj66rez.jpg",
     "reading_order": "layout"
   },
   "lines": [
@@ -1187,7 +1215,7 @@
         320.76,
         40.92
       ],
-      "group_id": "p76-0",
+      "group_id": "d92",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -1203,25 +1231,12 @@
         173.456,
         411.196
       ],
-      "group_id": "p76-1",
+      "group_id": "d94",
       "quality_score": 1.0
     },
     {
       "page": "76",
       "line": 2,
-      "text": "obj2.jpg",
-      "bbox": [
-        145.4,
-        774.596,
-        173.456,
-        782.596
-      ],
-      "group_id": "p76-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "76",
-      "line": 3,
       "text": "obj1rez.jpg",
       "bbox": [
         416.3,
@@ -1229,7 +1244,20 @@
         455.452,
         411.196
       ],
-      "group_id": "p76-2",
+      "group_id": "d96",
+      "quality_score": 1.0
+    },
+    {
+      "page": "76",
+      "line": 3,
+      "text": "obj2.jpg",
+      "bbox": [
+        145.4,
+        774.596,
+        173.456,
+        782.596
+      ],
+      "group_id": "d98",
       "quality_score": 1.0
     },
     {
@@ -1242,7 +1270,7 @@
         455.452,
         782.596
       ],
-      "group_id": "p76-2",
+      "group_id": "d100",
       "quality_score": 1.0
     },
     {
@@ -1255,8 +1283,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p76-2",
-      "quality_score": 1.0
+      "group_id": "d101",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "77",
@@ -1268,7 +1299,7 @@
         320.76,
         40.92
       ],
-      "group_id": "p77-0",
+      "group_id": "d102",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -1284,25 +1315,12 @@
         172.948,
         411.196
       ],
-      "group_id": "p77-1",
+      "group_id": "d104",
       "quality_score": 1.0
     },
     {
       "page": "77",
       "line": 2,
-      "text": "obj4.jpg",
-      "bbox": [
-        145.4,
-        774.596,
-        173.456,
-        782.596
-      ],
-      "group_id": "p77-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "77",
-      "line": 3,
       "text": "obj3rez.jpg",
       "bbox": [
         416.3,
@@ -1310,7 +1328,20 @@
         455.452,
         411.196
       ],
-      "group_id": "p77-2",
+      "group_id": "d106",
+      "quality_score": 1.0
+    },
+    {
+      "page": "77",
+      "line": 3,
+      "text": "obj4.jpg",
+      "bbox": [
+        145.4,
+        774.596,
+        173.456,
+        782.596
+      ],
+      "group_id": "d108",
       "quality_score": 1.0
     },
     {
@@ -1323,7 +1354,7 @@
         455.452,
         782.596
       ],
-      "group_id": "p77-2",
+      "group_id": "d110",
       "quality_score": 1.0
     },
     {
@@ -1336,8 +1367,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p77-2",
-      "quality_score": 1.0
+      "group_id": "d111",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "78",
@@ -1349,7 +1383,7 @@
         320.76,
         40.92
       ],
-      "group_id": "p78-0",
+      "group_id": "d112",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -1365,25 +1399,12 @@
         173.456,
         411.196
       ],
-      "group_id": "p78-1",
+      "group_id": "d114",
       "quality_score": 1.0
     },
     {
       "page": "78",
       "line": 2,
-      "text": "obj6.jpg",
-      "bbox": [
-        145.4,
-        774.596,
-        173.456,
-        782.596
-      ],
-      "group_id": "p78-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "78",
-      "line": 3,
       "text": "obj5rez.jpg",
       "bbox": [
         416.3,
@@ -1391,7 +1412,20 @@
         455.452,
         411.196
       ],
-      "group_id": "p78-2",
+      "group_id": "d116",
+      "quality_score": 1.0
+    },
+    {
+      "page": "78",
+      "line": 3,
+      "text": "obj6.jpg",
+      "bbox": [
+        145.4,
+        774.596,
+        173.456,
+        782.596
+      ],
+      "group_id": "d118",
       "quality_score": 1.0
     },
     {
@@ -1404,7 +1438,7 @@
         455.452,
         782.596
       ],
-      "group_id": "p78-2",
+      "group_id": "d120",
       "quality_score": 1.0
     },
     {
@@ -1417,8 +1451,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p78-2",
-      "quality_score": 1.0
+      "group_id": "d121",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "79",
@@ -1430,7 +1467,7 @@
         320.36,
         40.92
       ],
-      "group_id": "p79-0",
+      "group_id": "d122",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -1446,25 +1483,12 @@
         173.456,
         411.196
       ],
-      "group_id": "p79-1",
+      "group_id": "d124",
       "quality_score": 1.0
     },
     {
       "page": "79",
       "line": 2,
-      "text": "obj8.jpg",
-      "bbox": [
-        145.4,
-        774.596,
-        173.456,
-        782.596
-      ],
-      "group_id": "p79-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "79",
-      "line": 3,
       "text": "obj7rez.jpg",
       "bbox": [
         416.3,
@@ -1472,12 +1496,12 @@
         455.452,
         411.196
       ],
-      "group_id": "p79-2",
+      "group_id": "d126",
       "quality_score": 1.0
     },
     {
       "page": "79",
-      "line": 4,
+      "line": 3,
       "text": "obj8rez.jpg",
       "bbox": [
         416.3,
@@ -1485,8 +1509,24 @@
         455.452,
         782.596
       ],
-      "group_id": "p79-2",
+      "group_id": "d129",
       "quality_score": 1.0
+    },
+    {
+      "page": "79",
+      "line": 4,
+      "text": "obj8.jpg",
+      "bbox": [
+        145.4,
+        774.596,
+        173.456,
+        782.596
+      ],
+      "group_id": "d130",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "79",
@@ -1498,8 +1538,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p79-2",
-      "quality_score": 1.0
+      "group_id": "d131",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "80",
@@ -1511,7 +1554,7 @@
         320.46,
         40.92
       ],
-      "group_id": "p80-0",
+      "group_id": "d132",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -1527,25 +1570,12 @@
         173.456,
         411.196
       ],
-      "group_id": "p80-1",
+      "group_id": "d134",
       "quality_score": 1.0
     },
     {
       "page": "80",
       "line": 2,
-      "text": "obj10.jpg",
-      "bbox": [
-        143.3,
-        774.596,
-        175.556,
-        782.596
-      ],
-      "group_id": "p80-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "80",
-      "line": 3,
       "text": "obj9rez.jpg",
       "bbox": [
         416.3,
@@ -1553,12 +1583,12 @@
         455.452,
         411.196
       ],
-      "group_id": "p80-2",
+      "group_id": "d136",
       "quality_score": 1.0
     },
     {
       "page": "80",
-      "line": 4,
+      "line": 3,
       "text": "obj10rez.jpg",
       "bbox": [
         414.2,
@@ -1566,8 +1596,24 @@
         457.544,
         782.596
       ],
-      "group_id": "p80-2",
+      "group_id": "d139",
       "quality_score": 1.0
+    },
+    {
+      "page": "80",
+      "line": 4,
+      "text": "obj10.jpg",
+      "bbox": [
+        143.3,
+        774.596,
+        175.556,
+        782.596
+      ],
+      "group_id": "d140",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "80",
@@ -1579,8 +1625,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p80-2",
-      "quality_score": 1.0
+      "group_id": "d141",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "81",
@@ -1592,7 +1641,7 @@
         320.76,
         40.92
       ],
-      "group_id": "p81-0",
+      "group_id": "d142",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -1608,25 +1657,12 @@
         173.456,
         411.196
       ],
-      "group_id": "p81-1",
+      "group_id": "d144",
       "quality_score": 1.0
     },
     {
       "page": "81",
       "line": 2,
-      "text": "obj2.jpg",
-      "bbox": [
-        145.4,
-        774.596,
-        173.456,
-        782.596
-      ],
-      "group_id": "p81-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "81",
-      "line": 3,
       "text": "obj1rez.jpg",
       "bbox": [
         416.3,
@@ -1634,7 +1670,20 @@
         455.452,
         411.196
       ],
-      "group_id": "p81-2",
+      "group_id": "d146",
+      "quality_score": 1.0
+    },
+    {
+      "page": "81",
+      "line": 3,
+      "text": "obj2.jpg",
+      "bbox": [
+        145.4,
+        774.596,
+        173.456,
+        782.596
+      ],
+      "group_id": "d148",
       "quality_score": 1.0
     },
     {
@@ -1647,7 +1696,7 @@
         458.048,
         782.596
       ],
-      "group_id": "p81-2",
+      "group_id": "d150",
       "quality_score": 1.0
     },
     {
@@ -1660,8 +1709,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p81-2",
-      "quality_score": 1.0
+      "group_id": "d151",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "82",
@@ -1673,7 +1725,7 @@
         320.76,
         40.92
       ],
-      "group_id": "p82-0",
+      "group_id": "d152",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -1682,19 +1734,6 @@
     {
       "page": "82",
       "line": 1,
-      "text": "obj2rezB.jpg",
-      "bbox": [
-        137.7,
-        403.196,
-        181.26,
-        411.196
-      ],
-      "group_id": "p82-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "82",
-      "line": 2,
       "text": "obj3B.jpg",
       "bbox": [
         143.2,
@@ -1702,7 +1741,20 @@
         175.648,
         782.596
       ],
-      "group_id": "p82-1",
+      "group_id": "d154",
+      "quality_score": 1.0
+    },
+    {
+      "page": "82",
+      "line": 2,
+      "text": "obj2rezB.jpg",
+      "bbox": [
+        137.7,
+        403.196,
+        181.26,
+        411.196
+      ],
+      "group_id": "d155",
       "quality_score": 1.0
     },
     {
@@ -1715,7 +1767,7 @@
         449.348,
         411.196
       ],
-      "group_id": "p82-2",
+      "group_id": "d156",
       "quality_score": 1.0
     },
     {
@@ -1728,7 +1780,7 @@
         455.452,
         782.596
       ],
-      "group_id": "p82-2",
+      "group_id": "d157",
       "quality_score": 1.0
     },
     {
@@ -1741,8 +1793,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p82-2",
-      "quality_score": 1.0
+      "group_id": "d158",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "83",
@@ -1754,7 +1809,7 @@
         320.76,
         40.92
       ],
-      "group_id": "p83-0",
+      "group_id": "d159",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -1770,25 +1825,12 @@
         173.456,
         411.196
       ],
-      "group_id": "p83-1",
+      "group_id": "d162",
       "quality_score": 1.0
     },
     {
       "page": "83",
       "line": 2,
-      "text": "obj5.jpg",
-      "bbox": [
-        145.4,
-        774.596,
-        173.456,
-        782.596
-      ],
-      "group_id": "p83-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "83",
-      "line": 3,
       "text": "obj1rez.jpg",
       "bbox": [
         416.3,
@@ -1796,7 +1838,20 @@
         455.452,
         411.196
       ],
-      "group_id": "p83-2",
+      "group_id": "d162",
+      "quality_score": 1.0
+    },
+    {
+      "page": "83",
+      "line": 3,
+      "text": "obj5.jpg",
+      "bbox": [
+        145.4,
+        774.596,
+        173.456,
+        782.596
+      ],
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
@@ -1809,7 +1864,7 @@
         449.852,
         782.596
       ],
-      "group_id": "p83-2",
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
@@ -1822,28 +1877,15 @@
         566.944,
         810.996
       ],
-      "group_id": "p83-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "84",
-      "line": 0,
-      "text": "Strana 2/8",
-      "bbox": [
-        274.6,
-        30.92,
-        320.76,
-        40.92
-      ],
-      "group_id": "p84-0",
+      "group_id": "d166",
       "quality_score": 1.0,
       "style": {
-        "region": "page_header"
+        "region": "page_footer"
       }
     },
     {
       "page": "84",
-      "line": 1,
+      "line": 0,
       "text": "obj6rez.jpg",
       "bbox": [
         139.9,
@@ -1851,7 +1893,20 @@
         179.052,
         411.196
       ],
-      "group_id": "p84-1",
+      "group_id": "d165",
+      "quality_score": 1.0
+    },
+    {
+      "page": "84",
+      "line": 1,
+      "text": "obj10.jpg",
+      "bbox": [
+        419.7,
+        403.196,
+        451.948,
+        411.196
+      ],
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
@@ -1864,25 +1919,12 @@
         181.148,
         782.596
       ],
-      "group_id": "p84-1",
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
       "page": "84",
       "line": 3,
-      "text": "obj10.jpg",
-      "bbox": [
-        419.7,
-        403.196,
-        451.948,
-        411.196
-      ],
-      "group_id": "p84-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "84",
-      "line": 4,
       "text": "obj12.jpg",
       "bbox": [
         419.6,
@@ -1890,8 +1932,24 @@
         452.056,
         782.596
       ],
-      "group_id": "p84-2",
+      "group_id": "d165",
       "quality_score": 1.0
+    },
+    {
+      "page": "84",
+      "line": 4,
+      "text": "Strana 2/8",
+      "bbox": [
+        274.6,
+        30.92,
+        320.76,
+        40.92
+      ],
+      "group_id": "d167",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_header"
+      }
     },
     {
       "page": "84",
@@ -1903,28 +1961,15 @@
         566.944,
         810.996
       ],
-      "group_id": "p84-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "85",
-      "line": 0,
-      "text": "Strana 3/8",
-      "bbox": [
-        274.6,
-        30.92,
-        320.76,
-        40.92
-      ],
-      "group_id": "p85-0",
+      "group_id": "d170",
       "quality_score": 1.0,
       "style": {
-        "region": "page_header"
+        "region": "page_footer"
       }
     },
     {
       "page": "85",
-      "line": 1,
+      "line": 0,
       "text": "obj12rez.jpg",
       "bbox": [
         137.7,
@@ -1932,25 +1977,12 @@
         181.252,
         411.196
       ],
-      "group_id": "p85-1",
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
       "page": "85",
-      "line": 2,
-      "text": "obj25.jpg",
-      "bbox": [
-        143.3,
-        774.596,
-        175.652,
-        782.596
-      ],
-      "group_id": "p85-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "85",
-      "line": 3,
+      "line": 1,
       "text": "obj17.jpg",
       "bbox": [
         419.7,
@@ -1958,12 +1990,12 @@
         452.052,
         411.196
       ],
-      "group_id": "p85-2",
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
       "page": "85",
-      "line": 4,
+      "line": 2,
       "text": "obj25rez.jpg",
       "bbox": [
         414.1,
@@ -1971,8 +2003,40 @@
         457.548,
         782.596
       ],
-      "group_id": "p85-2",
+      "group_id": "d165",
       "quality_score": 1.0
+    },
+    {
+      "page": "85",
+      "line": 3,
+      "text": "Strana 3/8",
+      "bbox": [
+        274.6,
+        30.92,
+        320.76,
+        40.92
+      ],
+      "group_id": "d171",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_header"
+      }
+    },
+    {
+      "page": "85",
+      "line": 4,
+      "text": "obj25.jpg",
+      "bbox": [
+        143.3,
+        774.596,
+        175.652,
+        782.596
+      ],
+      "group_id": "d175",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "85",
@@ -1984,28 +2048,15 @@
         566.944,
         810.996
       ],
-      "group_id": "p85-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "86",
-      "line": 0,
-      "text": "Strana4/8",
-      "bbox": [
-        275.0,
-        30.92,
-        320.36,
-        40.92
-      ],
-      "group_id": "p86-0",
+      "group_id": "d176",
       "quality_score": 1.0,
       "style": {
-        "region": "page_header"
+        "region": "page_footer"
       }
     },
     {
       "page": "86",
-      "line": 1,
+      "line": 0,
       "text": "obj29.jpg",
       "bbox": [
         143.2,
@@ -2013,25 +2064,12 @@
         175.656,
         411.196
       ],
-      "group_id": "p86-1",
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
       "page": "86",
-      "line": 2,
-      "text": "obj31.jpg",
-      "bbox": [
-        143.2,
-        774.596,
-        175.656,
-        782.596
-      ],
-      "group_id": "p86-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "86",
-      "line": 3,
+      "line": 1,
       "text": "obj29rez.jpg",
       "bbox": [
         414.1,
@@ -2039,12 +2077,12 @@
         457.644,
         411.196
       ],
-      "group_id": "p86-2",
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
       "page": "86",
-      "line": 4,
+      "line": 2,
       "text": "obj31rez.jpg",
       "bbox": [
         414.1,
@@ -2052,8 +2090,40 @@
         457.644,
         782.596
       ],
-      "group_id": "p86-2",
+      "group_id": "d165",
       "quality_score": 1.0
+    },
+    {
+      "page": "86",
+      "line": 3,
+      "text": "Strana4/8",
+      "bbox": [
+        275.0,
+        30.92,
+        320.36,
+        40.92
+      ],
+      "group_id": "d177",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_header"
+      }
+    },
+    {
+      "page": "86",
+      "line": 4,
+      "text": "obj31.jpg",
+      "bbox": [
+        143.2,
+        774.596,
+        175.656,
+        782.596
+      ],
+      "group_id": "d181",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "86",
@@ -2065,8 +2135,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p86-2",
-      "quality_score": 1.0
+      "group_id": "d182",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     },
     {
       "page": "87",
@@ -2078,7 +2151,7 @@
         320.46,
         40.92
       ],
-      "group_id": "p87-0",
+      "group_id": "d183",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -2094,25 +2167,12 @@
         175.656,
         411.196
       ],
-      "group_id": "p87-1",
+      "group_id": "d185",
       "quality_score": 1.0
     },
     {
       "page": "87",
       "line": 2,
-      "text": "obj33.jpg",
-      "bbox": [
-        143.7,
-        774.596,
-        175.148,
-        782.596
-      ],
-      "group_id": "p87-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "87",
-      "line": 3,
       "text": "obj32rez.jpg",
       "bbox": [
         414.1,
@@ -2120,7 +2180,20 @@
         457.644,
         411.196
       ],
-      "group_id": "p87-2",
+      "group_id": "d187",
+      "quality_score": 1.0
+    },
+    {
+      "page": "87",
+      "line": 3,
+      "text": "obj33.jpg",
+      "bbox": [
+        143.7,
+        774.596,
+        175.148,
+        782.596
+      ],
+      "group_id": "d189",
       "quality_score": 1.0
     },
     {
@@ -2133,7 +2206,7 @@
         452.052,
         782.596
       ],
-      "group_id": "p87-2",
+      "group_id": "d191",
       "quality_score": 1.0
     },
     {
@@ -2146,28 +2219,15 @@
         566.944,
         810.996
       ],
-      "group_id": "p87-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "88",
-      "line": 0,
-      "text": "Strana 6/8",
-      "bbox": [
-        274.6,
-        30.92,
-        320.76,
-        40.92
-      ],
-      "group_id": "p88-0",
+      "group_id": "d192",
       "quality_score": 1.0,
       "style": {
-        "region": "page_header"
+        "region": "page_footer"
       }
     },
     {
       "page": "88",
-      "line": 1,
+      "line": 0,
       "text": "obj35rez.jpg",
       "bbox": [
         137.7,
@@ -2175,7 +2235,20 @@
         181.148,
         411.196
       ],
-      "group_id": "p88-1",
+      "group_id": "d165",
+      "quality_score": 1.0
+    },
+    {
+      "page": "88",
+      "line": 1,
+      "text": "obj41.jpg",
+      "bbox": [
+        419.6,
+        403.196,
+        452.056,
+        411.196
+      ],
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
@@ -2188,25 +2261,12 @@
         181.252,
         782.596
       ],
-      "group_id": "p88-1",
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
       "page": "88",
       "line": 3,
-      "text": "obj41.jpg",
-      "bbox": [
-        419.6,
-        403.196,
-        452.056,
-        411.196
-      ],
-      "group_id": "p88-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "88",
-      "line": 4,
       "text": "obj42.jpg",
       "bbox": [
         419.6,
@@ -2214,8 +2274,24 @@
         452.056,
         782.596
       ],
-      "group_id": "p88-2",
+      "group_id": "d165",
       "quality_score": 1.0
+    },
+    {
+      "page": "88",
+      "line": 4,
+      "text": "Strana 6/8",
+      "bbox": [
+        274.6,
+        30.92,
+        320.76,
+        40.92
+      ],
+      "group_id": "d193",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_header"
+      }
     },
     {
       "page": "88",
@@ -2227,28 +2303,15 @@
         566.944,
         810.996
       ],
-      "group_id": "p88-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "89",
-      "line": 0,
-      "text": "Strana 7/8",
-      "bbox": [
-        274.6,
-        30.92,
-        320.76,
-        40.92
-      ],
-      "group_id": "p89-0",
+      "group_id": "d198",
       "quality_score": 1.0,
       "style": {
-        "region": "page_header"
+        "region": "page_footer"
       }
     },
     {
       "page": "89",
-      "line": 1,
+      "line": 0,
       "text": "obj42rez.jpg",
       "bbox": [
         137.7,
@@ -2256,7 +2319,20 @@
         181.252,
         411.196
       ],
-      "group_id": "p89-1",
+      "group_id": "d165",
+      "quality_score": 1.0
+    },
+    {
+      "page": "89",
+      "line": 1,
+      "text": "obj44.jpg",
+      "bbox": [
+        419.6,
+        403.196,
+        452.056,
+        411.196
+      ],
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
@@ -2269,21 +2345,24 @@
         181.252,
         782.596
       ],
-      "group_id": "p89-1",
+      "group_id": "d165",
       "quality_score": 1.0
     },
     {
       "page": "89",
       "line": 3,
-      "text": "obj44.jpg",
+      "text": "Strana 7/8",
       "bbox": [
-        419.6,
-        403.196,
-        452.056,
-        411.196
+        274.6,
+        30.92,
+        320.76,
+        40.92
       ],
-      "group_id": "p89-2",
-      "quality_score": 1.0
+      "group_id": "d199",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_header"
+      }
     },
     {
       "page": "89",
@@ -2295,7 +2374,7 @@
         452.056,
         782.596
       ],
-      "group_id": "p89-2",
+      "group_id": "d204",
       "quality_score": 1.0
     },
     {
@@ -2308,41 +2387,15 @@
         566.944,
         810.996
       ],
-      "group_id": "p89-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "90",
-      "line": 0,
-      "text": "Strana 8/8",
-      "bbox": [
-        274.6,
-        30.92,
-        320.76,
-        40.92
-      ],
-      "group_id": "p90-0",
+      "group_id": "d205",
       "quality_score": 1.0,
       "style": {
-        "region": "page_header"
+        "region": "page_footer"
       }
     },
     {
       "page": "90",
-      "line": 1,
-      "text": "obj52rez.jpg",
-      "bbox": [
-        137.7,
-        403.196,
-        181.252,
-        411.196
-      ],
-      "group_id": "p90-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "90",
-      "line": 2,
+      "line": 0,
       "text": "obj66.jpg",
       "bbox": [
         419.6,
@@ -2350,7 +2403,36 @@
         452.056,
         411.196
       ],
-      "group_id": "p90-1",
+      "group_id": "d165",
+      "quality_score": 1.0
+    },
+    {
+      "page": "90",
+      "line": 1,
+      "text": "Strana 8/8",
+      "bbox": [
+        274.6,
+        30.92,
+        320.76,
+        40.92
+      ],
+      "group_id": "d206",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_header"
+      }
+    },
+    {
+      "page": "90",
+      "line": 2,
+      "text": "obj52rez.jpg",
+      "bbox": [
+        137.7,
+        403.196,
+        181.252,
+        411.196
+      ],
+      "group_id": "d208",
       "quality_score": 1.0
     },
     {
@@ -2363,7 +2445,7 @@
         181.252,
         782.596
       ],
-      "group_id": "p90-2",
+      "group_id": "d211",
       "quality_score": 1.0
     },
     {
@@ -2376,8 +2458,11 @@
         566.944,
         810.996
       ],
-      "group_id": "p90-2",
-      "quality_score": 1.0
+      "group_id": "d212",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_footer"
+      }
     }
   ]
 }

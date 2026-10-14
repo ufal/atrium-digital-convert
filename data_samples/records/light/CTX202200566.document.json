@@ -55,11 +55,11 @@
     "contributors": [
       {
         "program": "digital-convert",
-        "run_id": "261009-191631",
-        "run_uuid": "urn:uuid:043f3268-877f-40a5-b535-5fd8aa20f8c8",
-        "paradata_ref": "261009-191631_digital-convert.json",
+        "run_id": "261014-084106",
+        "run_uuid": "urn:uuid:676ec1af-b073-4ea2-b877-c53b3efd4c7b",
+        "paradata_ref": "261014-084106_digital-convert.json",
         "blocks": "pages,lines,content,tables",
-        "at": "2026-10-09T19:16:32.838252+00:00"
+        "at": "2026-10-14T08:41:09.851708+00:00"
       }
     ]
   },
@@ -67,31 +67,31 @@
     "blocks": {
       "pages": {
         "program": "digital-convert",
-        "run_id": "261009-191631",
-        "run_uuid": "urn:uuid:043f3268-877f-40a5-b535-5fd8aa20f8c8",
-        "paradata_ref": "261009-191631_digital-convert.json",
-        "updated_at": "2026-10-09T19:16:32.700385+00:00"
+        "run_id": "261014-084106",
+        "run_uuid": "urn:uuid:676ec1af-b073-4ea2-b877-c53b3efd4c7b",
+        "paradata_ref": "261014-084106_digital-convert.json",
+        "updated_at": "2026-10-14T08:41:09.620279+00:00"
       },
       "lines": {
         "program": "digital-convert",
-        "run_id": "261009-191631",
-        "run_uuid": "urn:uuid:043f3268-877f-40a5-b535-5fd8aa20f8c8",
-        "paradata_ref": "261009-191631_digital-convert.json",
-        "updated_at": "2026-10-09T19:16:32.704202+00:00"
+        "run_id": "261014-084106",
+        "run_uuid": "urn:uuid:676ec1af-b073-4ea2-b877-c53b3efd4c7b",
+        "paradata_ref": "261014-084106_digital-convert.json",
+        "updated_at": "2026-10-14T08:41:09.626156+00:00"
       },
       "content": {
         "program": "digital-convert",
-        "run_id": "261009-191631",
-        "run_uuid": "urn:uuid:043f3268-877f-40a5-b535-5fd8aa20f8c8",
-        "paradata_ref": "261009-191631_digital-convert.json",
-        "updated_at": "2026-10-09T19:16:32.704335+00:00"
+        "run_id": "261014-084106",
+        "run_uuid": "urn:uuid:676ec1af-b073-4ea2-b877-c53b3efd4c7b",
+        "paradata_ref": "261014-084106_digital-convert.json",
+        "updated_at": "2026-10-14T08:41:09.626363+00:00"
       },
       "tables": {
         "program": "digital-convert",
-        "run_id": "261009-191631",
-        "run_uuid": "urn:uuid:043f3268-877f-40a5-b535-5fd8aa20f8c8",
-        "paradata_ref": "261009-191631_digital-convert.json",
-        "updated_at": "2026-10-09T19:16:32.704883+00:00"
+        "run_id": "261014-084106",
+        "run_uuid": "urn:uuid:676ec1af-b073-4ea2-b877-c53b3efd4c7b",
+        "paradata_ref": "261014-084106_digital-convert.json",
+        "updated_at": "2026-10-14T08:41:09.626623+00:00"
       }
     },
     "had_baseline": false,
@@ -281,14 +281,16 @@
     {
       "page": "16",
       "page_index": 16,
-      "quality_score": 1.0,
-      "quality_band": "Clear",
+      "quality_score": 0.0,
+      "quality_band": "Trash",
       "canvas": {
         "width": 595.32,
         "height": 841.92,
         "unit": "pt"
       },
-      "text_layer": "digital"
+      "needs_ocr": true,
+      "needs_ocr_reason": "garbled text layer: 42 of 42 lines are over 15% glyphs without a Unicode mapping (U+FFFD) or control characters (a font without /ToUnicode?). The page has a text layer; it does not decode.",
+      "text_layer": "garbled"
     },
     {
       "page": "17",
@@ -964,7 +966,7 @@
     }
   ],
   "content": {
-    "text": "Muzeum Českého ráje\nSkálova 71, 511 01 Turnov\ntel./fax: 481-322106, 325277\nmailto: mail@muzeum-turnov.cz\nNálezová zpráva ze záchranného archeologického výzkumu\nTurnov (okr. Semily)\n„ Turnov – oprava VH sítí v ul. Palackého “\n03 – 04/2018\nID 24/2018, AMČR C-201800965\nvedoucí výzkumu: PhDr. Jan Prostředník, PhD. (Muzeum Českého ráje v Turnově)\nterénní technik: Petr Hartman, Mgr. Roman Sirovátka (Muzeum Českého ráje v Turnově)\nNázev výzkumu: „ Turnov – oprava VH sítí v ul. Palackého “\nProjektový název stavby: „ Turnov – oprava VH sítí v ul. Palackého “\nInvestor: Vodohospodářské sdružení Turnov, Dobrovolný svazek obcí, Antonína Dvořáka\n287, 511 01 Turnov; IČO 49295934\nProjektant: –\nOprávněná organizace ve věci provádění archeologických výzkumů:\nMuzeum Českého ráje v Turnově, Skálova 71, 511 01 Turnov; IČO: 00085804\nOdborný garant záchranného archeologického výzkumu:\nPhDr. Jan Prostředník, PhD. (Muzeum Českého ráje v Turnově)\nLokalizace: S-JTSK: 1) 683921,61/994727,18; 2) 684086,13/994705,18\nProjekt AMČR: C-201800965\nTermín provedení záchranného archeologického výzkumu: 13. března – 24. dubna 2018\nAutor nálezové zprávy: Mgr. Roman Sirovátka, 7. 11. 2022.\nObsah\n1. Úvod ....................................................................................................................................... 4\n2. Popis a kontext lokality .......................................................................................................... 4\n3. Metodika výzkumu a popis nálezové situace ......................................................................... 4\n4. Interpretace nálezové situace ................................................................................................. 5\n4.1 Typologie zjištěných historických terénů a jejich lokalizace ........................................... 5\n4.2 Situace před domem čp. 175 ............................................................................................ 6\n4.3 Situace mezi domy č. p. 189, 175 a 766 a dále před č. p. 185 ......................................... 6\n4.4 Situace před domy č. p. 184 a 526 ................................................................................... 7\n4.5 Archeologické nálezy ....................................................................................................... 7\n5. Exkurs 1: Zaniklé domy v „mezimostí“ ................................................................................. 7\n6. Exkurs 2: Zpráva k domu č. p. 189 ...................................................................................... 16\n7. Závěr ..................................................................................................................................... 16\n8. Prameny a literatura ............................................................................................................. 18\n9. Seznam příloh ....................................................................................................................... 18\n10. Přílohy ................................................................................................................................ 22\n1. Úvod\nOd března do dubna 2018 proběhl záchranný archeologický výzkum (ZAV) v souvislosti\ns opravou VH sítí a kompletní rekonstrukcí ulice Palackého v k. ú. Turnov (ID ZAV 24/2018 ,\nprojekt AMČR C-201800965 ). Stavba byla situována na pozemcích 308/1, 308/2, 308/3, 308/4,\n308/5, 308/6, 308/8, 308/9, 308/10, 308/11, 308/20308/21, 308/22, 308/23, 308/24 mezi domy\nč. p. 190 až 536. Investorem stavby byla společnost Vodohospodářské sdružení Turnov,\nDobrovolný svazek obcí, Antonína Dvořáka 287, 511 01 Turnov.\n2. Popis a kontext lokality\nZkoumaný prostor západní části ulice Palackého leží mimo MPZ Turnov. Území se nachází\nuprostřed inundace řeky Jizery. Jde o původně záplavovou zónu, kterou v těchto místech\nminimálně od vrcholného středověku protnula komunikace vedená přes řečiště nejprve brodem,\npozději přes dřevěný most. Ve vrcholném středověku vzniklo rozsáhlé vodní dílo – struha –\ndnes zvaná Malá Jizera, čímž se referovaný prostor s komunikací ocitl „na ostrově“ mezi\npůvodním řečištěm a nově vybudovaným kanálem. Předpokládáme, že prvotní zástavba zde\nvznikla na přelomu středověku a novověku. Domy se vázaly přímo na komunikaci, která byla\npostupně vyvyšována až o několik metrů nad záplavové území. Zástavba se zahustila téměř do\ndnešní podoby již v průběhu 16. a 17. století, jak dokládají zprávy o majetkových poměrech\nzprostředkovaných J. V. Šimákem ( 1904 , 347-367).\n3. Metodika výzkumu a popis nálezové situace\nPo oznámení stavebního záměru jsme se dohodli se stavebníkem na provedení záchranného\narcheologického výzkumu, který probíhal podle postupu zemních prací formou dohledů\nprovedených ve dnech: 13/03, 14/03, 15/03, 19/03, 20/03, 23/03, 26/03, 28/03, 29/03, 04/04,\n06/04, 09/04, 10/04, 11/04, 16/04 a 24/04/2018.\nZemní práce realizovány v předjaří za vlhkého počasí. Průběh ZAV byl limitován stavebním\nvýkopem zejména pro kanalizační stoku. Historické terény byly zjištěny v hlavním výkopu pro\nkanalizaci ve východní části stavby během dohledu mezi domy č. p. 175 a 190. Zastavili jsme\nzemní práce a provedli nezbytné začištění a dokumentaci. Poté jsme dozorovali další\npokračování výkopu, čímž došlo k dalšímu odhalení historických terénů a konstrukcí.\nPo realizaci hlavní části stavby byly podle potřeby přikládán vodovod a inženýrské sítě. Ostatní\nčást ulice byla odkryta kromě chodníků (ty byly realizovány po skončení hlavní stavby) pouze\nna nezbytnou hloubku, aby mohla být provedena rekonstrukce vozovky.\nBěhem výkopových prací byl získán drobný soubor novověké až recentní keramiky. Šlo o\njediné movité archeologické nálezy, vzorky na environmentální analýzy nebyly odebrány.\nPo provedení terénní části byla s odstupem času v r. 2022 vyhotovena tato nálezová zpráva. Při\njejím zpracování byla provedena heuristická část ZAV. Během ní byl prohledán archiv\nhistorických fotografií uložených v turnovském muzeu, který přinesl zjištění o podobě ulice\nještě v 19. a počátku 20. století. Důležitým zjištěním bylo, že zjištěné konstrukce při výzkumu\nz větší části souvisejí s opěrnou zdí, a nikoliv s předpokládaným vodním kanálem.\nZaměřené relikty zdí a zejména ty dokumentované a porovnané s historickými fotografiemi\nbyly následně zaneseny do prostředí GIS (zpracování proběhlo v programu QGIS verze 3.16).\nTam byly znázorněny v podobě polygonů a linií. Polygony výkopů na plánech byly odvozeny\nz projektové dokumentace, katastrální mapy a vzájemné dispozice budov (Obr. 6, 18-21). Pro\ntvorbu plánu bylo velmi nápomocné měření přímo v GIS a v Analýzách výškopisu ( ČÚZK\n2021c ). Zmapovány byly také proměny zástavby v průběhu 19. a 20. století. Půdorysy starších\ndomů znázorněné na obr. 18 byly zakresleny na základě provnání Šimákovy mapy se Stabilním\nkatastrem ( Šimák 1904 ; ČÚZK 2021a ).\n4. Interpretace nálezové situace\nV ulici byly dokumentovány tři typy historických terénů:\n1) Uloženiny související s komunikací,\n2) Recentní kanalizace a vkopy,\n3) Zděné konstrukce a jejich zásypové horizonty.\nŠlo o relikty zděných konstrukcí a souvztažných kulturních nebo zásypových vrstev, které lze\ndatovat do širšího intervalu raného až vrcholného novověku (16. – 18./19. stol.).\nJednotlivé relikty konstrukcí byly zkoumány v rámci terénního archeologického výzkumu,\nkterý navazoval na proběhnuvší výkopové práce. Historické terény byly standardně\ndokumentovány kresebně i fotograficky a část z nich byla geodeticky zaměřena (tj. východní\nčást ve výkopu u č. p. 175 (zaměření, výpočty a zpracování bylo provedeno v závazném\nreferenčním systému Jednotné trigonometrické sítě katastrální S-JTSK a výškového systému\nBalt po vyrovnání; viz Tab. 2, viz Obr. 18, 19 – zelené body = zaměření).\nStratigrafie ve stavbou dotčených terénech byla poměrně uniformní (viz dále). Podloží zde\ntvořil zejména náplavový říční sediment a ojedinělé ostrůvky spraše.\n4.1 Typologie zjištěných historických terénů a jejich lokalizace\n1) Uloženiny související s komunikací\nStratigrafie dokumentovaná v řezech hlavního výkopu: 1) povrch – asfalt, 2) kamenné kostky\n„kočičí hlavy“, 3) štěrk, 4) kamenný štět (čedič), 5) jíl, 6) tmavý okrový jíl, 7) štěrkopísek, 8)\nkamenné konstrukce – pískovcové zdivo (K 901–906), 2x klenba kolmo k průběhu ulice,\nrozrušeno výkopovými pracemi.\nZjištěné konstrukce, evidované při kresebné dokumentaci (další část byla dokumentována\npouze fotograficky), patří k archeologicky nejhodnotnějšímu zjištění. Jedná se o relikty\nseverního zpevnění vyvýšené komunikace.\nV terénu a následně při tvorbě Expertního listu pro investora jsme kamenné relikty původně\nmylně pokládali buď za pozůstatky někdejší zástavby, mostního pilíře nebo dokonce za vodní\nkanál k předpokládanému mlýnu nebo manufaktuře. Během heuristické části však bylo\nzjištěno, že zjištěné relikty jsou původní zpevnění komunikace . Odhalená zeď měla dvojí\nfunkci: zpevnění cesty a zejména její ochranu proti častým povodním.\n2) Recentní vkopy pro kanalizaci a inženýrské sítě\nNa více místech v hlavním výkopu byly pozorována rozrušená recentní keramická nebo\nplastová potrubí a vkopy pro ně, které narušovaly starší uloženiny popsané výše.\n3) Zděné konstrukce domu č. p. 179\nZákladové zdivo činžovního domu č. p. 179 vystavěného ke konci 19. stol., bohužel nebyly\ndokumentovány žádné konstrukce související s bývalou pazdernou s počátky snad již v 15. stol.\n(historické terény zřejmě zničeny při výstavbě činžovního domu).\nčíslo\nkontextu\npopis\ndatace\ninterpretace\n901\nzdivo z druhotně\npoužitých štuků\n18./19. stol. (?)\nopěrná zeď\nObr. 22-39; 76, 77\n902\nzdivo z druhotně\npoužitých štuků\n19. stol.\nopěrná zeď\nObr. 44-64; 78\n903\nzdivo z druhotně\npoužitých štuků\n19. stol.\nopěrná zeď\nObr. 44-64; 79, 80\n904\nzdivo tvořící valeně\nklenutou klenbu\n19. stol.\npovodňový propustek\nObr. 52-64; 80\n905\nzdivo z druhotně\npoužitých štuků\n19. stol.\nopěrná zeď\nObr. 10, 11; 65, 66; 81\n906\nzdivo tvořící valeně\nklenutou klenbu\n19. stol.\npovodňový propustek\nObr. 10, 11; 69, 70, 71; 82\nTab. 1. Turnov – ul. Palackého. Přehled stratigrafických jednotek.\n4.2 Situace před domem čp. 175\nŠlo o pozůstatek zdiva z pískovcových štuků, zřejmě z první poloviny 19. století, které byly\nzasypány po r. 1850 (S-JTSK: 683942,1/994719,46). Konstrukce (K 901) fungovala jako\nopěrná zeď. Velmi pravděpodobně se jedná o jedno ze statických zajištění a jednu ze stavebních\nfází vyvýšené komunikace mezi mosty. V odhalené nejnižší nivelitě výkopu, tj. hl. 2,5 m,\ndosahovalo zdivo šíře cca 1,2 m. Velmi zajímavé bylo druhotné nebo primární užití tří pečlivě\nopracovaných kamenů, které buď zde, nebo v případě druhotného užití fungovaly jako schody\n(viz obrazová příloha, Obr. 32-39).\n4.3 Situace mezi domy č. p. 189, 175 a 766 a dále před č. p. 185\nPozůstatky opěrné zdi s dvěma protipovodňovými propustky (linie S-JTSK: 1)\n683939,19/994715,82; 2) 684021,17/994715,45) vystavěné po r. 1850 a zasypané vytvořením\nnáspu ještě před rokem 1915. Po tomto roce došlo k rekonstrukci ulice a obnově poškozených\ndomů. Ve 20. letech 20. století byly na severní straně u malého mostu postaveny současné domy\nč. p. 766 a o pár let později současný dům č. p. 175 jako náhrada za bývalou barvírnu.\nID\ny\nx\npopis\n1\n-683932.6434,250.2067\n-994723.5065\nvýzkumný polygon\n2\n-683930.9920,249.7920\n-994718.7719\nvýzkumný polygon\n3\n-683937.0852,250.2098\n-994717.2415\nvýzkumný polygon\n4\n-683937.2682,250.1822\n-994722.5088\nvýzkumný polygon\n5\n-683938.7296,250.0434\n-994720.5673\nvýzkumný polygon\n6\n-683938.3274,248.3508\n-994719.1312\nzeď\n7\n-683932.2436,248.1985\n-994721.7356\nzeď\n8\n-683939.7415,249.0100\n-994718.7142\nzeď\n9\n-683939.2708,248.9730\n-994718.7479\nzeď\n10\n-683938.6278,249.3252\n-994719.0137\nštět-NI\n11\n-683939.9303,248.7166\n-994718.7238\nzeď\n12\n-683939.8192,248.7080\n-994718.0896\nzeď\nTab. 2. Turnov – ul. Palackého. Zaměření zkoumané části před č. p. 175.\n4.4 Situace před domy č. p. 184 a 526\nPozůstatky zbořeného domu č. p. 179 (střed S-JTSK: 684042,21/994716,82). Dům byl zbořen\npo r. 1959. Šlo o činžovní dům vystavěného na místě bývalé „pazderny“ v polovině 19. století\n(viz níže). Ve výkopu byly odhaleny relikty cihlového a základového kamenného zdiva se\nsvětlíky do sklepení (to nezkoumáno).\n4.5 Archeologické nálezy\nBěhem průběžných dohledů byl získán soubor nálezů. Jde o recentní keramiku ze zásypů.\nSoubor 1 , získán před č. p. 175, parc. č.: 308/1, 308/8; Obr. 83:\n10 ks KE (3 kachle, 3 okraje, 1 zmetek, 1 ucho, 2 atyp); 2 BK (knoflík, spona/štítek?), 2 FE, 1\nkost.\nSoubor 2 , získán před č. p. 184, parc. č.: 308/11, 308/1, 308/8; Obr. 84:\n2 ks KE nádob (nezdob, neglaz).\n5. Exkurs 1: Zaniklé domy v „mezimostí“\nMěstská část „mezimostí“, nebo též „mezi mosty“ se nachází mezi velkým mostem přes Jizeru\na mostem malým přes kanál Malou Jizerou. Mosty samotné byly původně dřevěné zastřešené.\nV druhé pol. 19. stol. je nahradily mosty nové bez zastřešení. Další obnova mostů probíhala na\nkonci 19. století (první mosty kovové konstrukce), v období 1. republiky, v 60. letech 20. stol.\na naposledy v letech 1999 (rekonstrukce velkého mostu) a r. 2018-2019 (rekonstrukce malého\nmostu). Sledovaný prostor je součást ulice zvané původně ul. Mostecká, od r. 1859 ul. Nádražní\na nyní ul. Palackého. Původně, nejméně již od 14. nebo 15. století, byla cesta mezi mosty\nvyvýšena nad záplavovou nivu Jizery. Ještě na historických snímcích (viz Příloha) je zřetelný\nvýškový rozdíl mezi komunikací a domy severně od ní. Tato část textu se věnuje právě jim 1 .\nČ. p. 175 (st. 263, barevna)\nJednalo se původně snad o barokní až rokokovou patrovou budovu s palovalbovou střechou,\ndům měl rozsáhlou zahradu a prošel nejméně dvěma stavebními etapami. Je možné, že dům\nměl nejprve zděné pouze přízemí a další části byly dřevěné. Na historických snímcích je však\njiž celý zděný a nese slohově empírové prvky (poč. 19. stol.). Funkčně dům sloužil jako\nbarevna, zbořen byl do r. 1925. Dnes na jeho místě stojí bývalá brusírna drahokamů Herman &\nPalma. Archeologicky nezachyceno, existují fotografie exteriéru (MČRT: Obr. 10, 11).\nHistorie domu ( Šimák 1904 , 347-349)\n1546, 27. srpna – Markéta barvířka zámostská připovídá se na peníze Jakuba malého Němce\npro dluh 1 k. 7. gr., půjčených jemu od neb. Jiříka barvíře.\n1558 – (1 O 1) - louka vedle struhy pod barvířem.\n1565, 4. července – (díl. ced.) - Hanuš barvíř (?).\n1569 – (reg. Sirotčí) - sirotci barvíře meziměstského.\n1571 – (kn. 2.; 114, 115) - Jan barvíř (?).\n1585 – (ou.) - Kryštof mandlíř.\n1587-1599 – (ou.) - Jakub mandlíř.\n1601 – (n. zel. 334, bl. 81) - Adam kolářův postoupil JMti pánu domu a barevny mezi mosty,\nkteréž držel z odkazu po neb. Jakubu Houbovi, mandlíři pláten.\n1606 – (ou.) - Martin Krauz, mandlíř.\n1636, 10. března – (st. 60) - Marek [Tázler], mandlíř, koupil dům, slove barevna, podle domce\nVáclava Dentulína, se zahradou při něm, mezi mosty, s rolí ornou i s osetím při Vesecku a na\nVohrazeništi ležící, od Doroty, tchýně své, vdovy po zemřelém Martinovi Krauzovi, mandlíři,\nza 300 k. Výměněk: svobodný byt s komorou a stravou a s vyživením jedné krávy.\n1663, 21. května – (st. 189) - Daniel Tázler, mandlíř, ujal barevnu mezi mosty s verštatem a\ns potřebami k řemeslu mandlířskému patřícími, jakož i rolí ornou mezi lesem Veseckem, od\nstarodávna k té barevně náležejícím, od Marka Tázlera, otce svého, za 250 k.; výměněk Marka\nTázlera se ženou: byt svobodný s komorou a chlévem, též s rolí Penčenkovskou.\n1 Historie domů je převzata z knihy J. V. Šimáka – Příběhy města Turnova na Jizerou ( 1904 , 347-359).\n1700, 29. října – (bíl. 68) - Vavřinec Mehr z Hormrštorfu, mandlíř, koupil barevnu mezi mosty,\nse zahradou při ní, se třemi kusy role orné, k té barevně patřícími, u Vohrazenic, též čtvrtým\nkusem za lesem Veseckem, vedle cesty pěší, od Jana Strejčka z Vohrazenic vyhandlovaným,\ntéž s půl stodolou, od pana Daniele Tázlera, tchána svého, za 420 k. m. Výměnek Daniele\nTázlera: světnice nahoře se dvěma komorami do úmrtí.\n1741, 6. října – (požl. 8, 206) - František Meer, mandlíř, ujal dům neb barevnu se zahradou při\nní ležící, mezi mosty, vedle cesty průjizdné sousedské, též role, slove na Karlouště, pod 6\nstrychů, les u Vesecka pod 7 strychů, začnouc od silnice sychrovské a dobíhající až k lesu\ndesfourovskému se strany jedné a paní Anny Kobusové se strany druhé, dle průkazu kšaftu po\nzemřelém otci svém Vavčinci Meerovi za 150 zl. rýnských. Macecha jeho Terezie Meerová má\nv témž domě: „jednu světničku nahoře, s komorou, též půl stodoly a jeden chlív pro svůj\ndobytek, až do úmrtí neb jejího vdaní“.\n1746, 18. února – (zel. 36) - František Neuman, krejčí, koupil dům na obci, slove bývalou\nbarevnu, za malým mostkem, od Františka Meera, barvíře, za 316 zl. rýn. Vdova Terezie\nMeerová má v tom domě výměnek.\n1776, 16. ledna – (m. 394) - Josef Neuman koupil domek mezi mosty č. 263. s loukou, k němu\npřipojenou, se zahradou vedle cesty sousedské do luk jdoucí, od spoludědiců po Frant.\nNeumanovi, otci svém, za 300 zl. rýn.\n1816, 20. listopadu – (alb. 10) – Josef Neuman ujal se dědictví po otci Josefu bratru Aloisu,\ndomu v Mostecké ulici č. 263. st. 175. n.\n1854 – Josef Neuman.\n1857 – Josef a Helena Kroupovi.\n1883 – Josef Kroupa.\n1890 – Otilie Kroupová.\nChalupa zašlá mezi č . p. 175 a 176\nZcela zaniklý, zřejmě přízemní dřevěný dům zbořený do r. 1800. Dnes na jeho místě stojí\nbývalá Herman & Palma. Archeologicky nezachyceno, neexistují fotografie ani vyobrazení.\nHistorie domu ( Šimák 1904 , 349)\n1585 – (ou.) - Jakub Chodců platí 3 ½ gr. ouroku.\n1587-1594 – (ou.) - Jakub kolovrátník.\n1595-1606 – (ou.) - Anna kolovrátnice.\n1607 – (ou.) - Mikuláš Posselt, pekař.\n1608, 27. října – (bl. 117) - Jiřík Loveček koupil domec na obci za malým mostem, vedle\nbarevny Martina mandlíře a zahrádky Adama Suchana, od Mikuláše Poselta, pekaře, za 50 k.\nhot.\n1633 – (nz. 344) - Anna Lovečková.\n1634-1645 – (ou.) - Jakub Voskovaný.\n1673, 6. listopadu – (červ. 206) - Jiřík Tichej, jinak Voskovanej, ujal dům nápadem po\nMandelíně, matce své vlastní, v ulici za malým mostem k hrubému mostu, vedle domu Daniele\nTázlera, barvíře, se zahrádkou při témž domku, až k zahradě Dan. Hořičského dobíhající.\n1705 – (vyzn.) - pusté místo po Jakubu Voskovaném.\n1726 – (požl. 494) - Lorenc Meer přikoupil pusté místo k č. 177.\nČ. p. 177 (st. 264, zašlé)\nZcela zaniklý, zřejmě přízemní dřevěný dům zbořený do r. 1800. Archeologicky nezachyceno,\nneexistují fotografie ani vyobrazení.\nHistorie domu ( Šimák 1904 , 350-351)\n1585-1595 – (ou.) - Adam hajného platí 4 gr. ouroku.\n1595 – (ou.) - Matěj Žamberský.\n1606 – (ou.) - Zuzana Macháčková.\n1607-1610 – (ou.) - Šimon Střelecký.\n1614 – (ou.) - Samuel Macháčkův, jinak Žamberský.\n1618, 22. ledna – (nz. 130) - Simeon Chmel synu nejstaršímu Václavu z první manželky své\nDoroty koupil dům mezi mosty, vedle Martina Krauza, mandlíře a Sim. Fibikara, se zahradou,\nrámem, barevnou, prádlem, od Samuele Žamberského za 346 k.\n1629, 19. února – (nz. 765) - Šimon, syn neb., Šimona Chmele, soukeníka, koupil od Václava,\nbratra svého nejstaršího, za 140 k. Po něm dům koupil r. 1632, 21. června Václav Dentulin za\n135 k.\n1663 – (st. 189) - dům Jindřicha Millera.\n1665, 31. července – (č. 107) - Magdalena, vdova po Hen. Millerovi, soukeníku, ujala dům na\ngruntu mezi mosty v lukách, se zahradou a loukou, se stavem soukenickým a rámem, jehož ona\na syn její nevlastní do smrti užívati mají, od obce za 120 k.\n1666, 25. září – (č. 107) - Magdalena, vdova Millerová a již manželka Daniele Hořického,\npostupuje dům svůj manželu.\n1676, 25. září – Daniel Tázler koupil dům na gruntu mezi mosty, po neb. Dan. Hořickém, se\nzahradou a loukou při něm, vedle odhadu osob deputovaných za 110 k. m. Cestou, jdoucí týmž\ngruntem, smí projížděti jen ten, kdo v té straně grunty má, a to ještě musí se dřív ohlásiti.\n1700 – (bíl. 68) - dům Václava Tázlera.\n1705 – (vyzn.) - grunt pustý Hendrychovský Vavřinec Mér, mandlíř, drží.\n1712, 20. května – (bíl. 229) - Lorenc Meer, mandlíř, koupil zbořený grunt po neb. Dan.\nHořickém mezi mosty, od nápadníků po Danieli Konst. Tázlerovi za 150 k. m., s povinností\nstavěti.\n1726, 30. srpna – (požl. 494) - Lorec Meer koupil zahrádku slove Lovečovsko podle své\nzahrady od Jakuba Pusta za 14 k. m.\n1747, 30. června – (pom. 115) - Ant. Zíbr koupil grunt Hendrychovský v lukách, s pozemky,\nod Teresie, vdovy Meerovy, za 1100 k. gr.\n1768, 22. října – (m. 306) - Václav Vorel, řezník, ujal grunt Hendrychovský od Ant. Zíbra,\ntchána svého, za 1000 zl.\n1777, 18. března – (růž. 46) - Václav Vorel koupil dům č. 264. mezi mosty od otce svého\nVáclava za 500 zl.\n1779, 30. září – (růž. 81) - Václav Vorel ujal grunt Hendrychovský a to první polovici za 500\nzl., masný krám za 100 zl. a mobilie za 55 zl. 10 1 / kr. od dědiců po svém otci Václavu Vorlovi.\n2\nAntonín Vorel ujal druhou polovici gruntu za 859 zl. 10 1 / kr.\n2\n1792, 5. března – (vi. 133) - Václav Vorel prodal Antonínu Markovi a manželce jeho Josefě\nchalupu mezi mosty, tzv. grunt Hendrychovský, za 480 zl. Antonín Vorel prodal svou polovinu\nVáclavu Bičíkovi (vi. 182). Potom grunt zašel.\nČ. p. 176 (st. 265; nyní při č. 17 8)\nPůvodně skupina několika stavení, v 19. století rozšířeno a sjednoceno jako továrna na kartouny\nrodiny Weilů, součástí areálu byla atypická mohutná budova zvaná „henk“ s kamenným\npřízemím a patrem zajištěným opěrnými pilíři a vysokou dřevěnou nástavbou (zbořeno v letech\n1899-1901). Archeologicky nezachyceno, existuje několik fotografií exteriéru (MČRT).\nSoučástí areálu je také atypická mohutná budova zvaná „henk“ s kamenným přízemím a patrem\nzajištěným opěrnými pilíři a vysokou dřevěnou nástavbou (zbořeno v letech 1899-1901).\nArcheologicky nezachyceno, existuje několik fotografií exteriéru (MČRT).\nHistorie domu ( Šimák 1904 , 351-353)\n1585-1599 – (ou.) - Vávra kožišník platí 7 gr. ouroku a ½ gr. z kusu přidaného.\n1605 – (ou.) - Adam Suchan z rámu, koupeného od Simše Fabianova, platí 1 gr.\n1605, 5. prosince – (bl. 40) - Purkmistr a páni odevzdali Adamu Suchanovi kousek obce mezi\nmosty před okny jeho světnice pod plat, že po každém sv. Jiří a sv. Havlu 3 gr. platiti bude.\nVedle toho slíbil, že přes struhu, kteráž z dvoru jeho jde, 2 tesy položí, tak aby lidé přes ni volně\nchoditi mohli.\n1605, 5. prosince – (bl. 14) - Adam Suchan přijal od konšelů z poručení páně kus obce mezi\nmosty před okny konšelů z poručení páně kus obce mezi mosty před okny jeho světničnými\nblíž k oknům Prasátkovým za roční úrok 6 grošů k obci.\n1610, 15. listopadu – (bl. 173) - Šimeon, syn Václava Fibigara, koupil dům mezi mosty na obci,\nvedle domu Jiříka Prasátky a domu Jiříka Lovečka, se dvěma zahradami, od Adama Suchana,\nsoukeníka, za 220 k.\nR. 1612 koupila obec turnovská od Adama Suchana peněz gruntovních zbylých 132 k. za 40 k.\nhot.\n1633, 26. září – (n. zel. 343) - Jindřich Smichaeus koupil rám soukenický mezi mosty na obci,\nvedle domu Šim. Fibigara a domce Anny Lovečkovy, od Ondřeje Vejvody, Jana Špáty z Jičína,\nnápadníků nebožky Salomeny Suchanky, za 10 k. m.\n1640 – (ou.) - Šimon Fibigar.\n1642 – (ou.) - domec po Fibigarovi.\n1650, 10. října – (č. 65 b) - domec Jindřicha Rychtera pohodného.\n1665, 16. června – (žid. 890) – Daniel Richter, pohodný, kupuje domec Fibigarovský mezi\nmosty. Viz č. 181.\n1672, 14. října – (žid. 895) - Michal Holub, pohodlný a mistr popravní hradišťský, kupuje od\nDan. Richtra. Viz č. 181.\n1673, 20. října – (žid. 897) - Matěj Růžička, pohodlný. (Viz č. 181).\n1691, 23. července – (žl. 211) - Obec Turnovská koupila spáleniště na obci mezi mosty, se\nzahrádkou při něm, vedle zahrady Lovečkové a zahrady Hendrychovské, kterou Dan. Tázler\nnyní má, a domku Jana Krále, od Mandaleny, vdovy po neb. Matějovi Růžičkovi, pohodlném,\nza 40 k. m.\n1691, 3. prosince – (žl. 215) - Daniel Zikmund koupil domek na obci mezi mosty, se zahradou\npři něm, vedle zahrady Lovečkové a zahrady Hendrichovské a domku Jana Krále, od obce za\n40 k. Ouroku po 9 kr. 2 denárů. – „Poněvadž od starodávna tam poctiví lidé bydleli, až o\nnepřátelských vpádech se tam snížené lidé zdržovali, de nařízení poctivými lidmi se osazuje a\ntrestem se hrozí, kdo by nynější držitele utrhačným jazykem na poctivosti urážeti chtěl“.\n1765, 10 června – (pom. 132) - Joachim Durych koupil domek se zahradou mezi mosty od Jana\nBubáka a Antonína Zíbra, též dvě louky a mezi nimi kus role vorné za odhonem ležící, podle\ngruntů Jos. Zicha, Dan. Pacovského, mlynáře podkostelního, až k obec. gruntu dobíhající\nk Jizeře Malé, od Matěje Fridricha za 440 zl. r.\n1771, 30. ledna – (pom. 250) - František Danneberk koupil domek mezi mosty, se zahradou, od\nJáchyma Durycha, kamenáře, za 217 zl. r.\n1826, 31. ledna – (alb. 401) - Jan Černohouz koupil dům č. 265. od Marie Danneberkové.\n1830, 10. října – (fer. 183) - Jan Eisler prodal Josefu Pfeiferovi, obchodníku z Jablonce, dům č.\n176. mezi mosty.\n1834, 8. listopadu – (fer. 350,351) - Jan Eisler prodal domy č. 176. a č. 178. mezi mosty\nžidovské rodině Jáchyma Weila, majitele továrny na tisknutí kartonů, pro rozšíření závodu, za\n3200 zl. Ke kupu tomu Weil dostal 28. září 1834 cís. Svolení na revers, že užijte budov těch\njen k továrnímu provozování, a zanikne-li továrna, prodá hned stavení zase křesťanu.\n1859 – Františka Weilová.\n1889 – Arnošt a Rosa Weilovi.\nČ. 178 (st. 266)\nPůvodně skupina několika stavení, v 19. století rozšířeno a sjednoceno jako továrna na kartouny\nrodiny Weilů, součástí areálu byla atypická mohutná budova zvaná „henk“ s kamenným\npřízemím a patrem zajištěným opěrnými pilíři a vysokou dřevěnou nástavbou (zbořeno v letech\n1899-1901). Archeologicky nezachyceno, existuje několik fotografií exteriéru (MČRT).\nSoučástí areálu je také atypická mohutná budova zvaná „henk“ s kamenným přízemím a patrem\nzajištěným opěrnými pilíři a vysokou dřevěnou nástavbou (zbořeno v letech 1899-1901).\nArcheologicky nezachyceno, existuje několik fotografií exteriéru (MČRT).\nHistorie domu ( Šimák 1904 , 353-355)\n1585 – (ou.) - Valentin řezáč platí 3 gr. ouroku.\n1587-1618 – (ou.) - Jiřík Prasátko.\n1620 – (ou.) - Anna Prasátková, Šimon Ryba.\n1622, 24. ledna – (n. zel. 293) - Šimon Ryba ujal domec na obci mezi mosty, vedle domu\nŠimona Fibigkara a pazderny obecní, se zahrádkou, po tchánu svém Jiřím Prasátkovi, kšaftem\nsobě a manželce své Lidmile odkázaný, za 80 k.\n1622, 22. srpna – (n. zel. 326 b) - Pavel Valter, sítař, koupil dům na obci podle pazderny obecní\nod Šimona Ryby za 80 k. hotových.\n1633 – (ou.) - Pavel sítař.\n1637 – (ou.) - sítařka.\n1640, 24. září – (st. 34) - Jan Chloumecký koupil domec mezi mosty, zůstalý po zemřelém\nPavlu Valterovi, sítaři, se zahrádkou, od Jana Geblera a Marka mandlíře, poručníků sirotka Jana\nzůstalého za 32 k.\n1650, 10. října – (č. 65 b) - Jan Král, punčochář, koupil domec na obci mezi mosty, se\nzahrádkou, vdovy po Janu Chloumeckým, za 45 k. m. Anna Chloumecká a matka její mají\nv tom domě byt s komrou a v užívání 1 jabloň, 1 švestku. Jan Král má bezplatně vyučiti\nMikoláše Chloumeckého řemeslu punčochářskému.\n1692, 29. února – (žl. 222) - Jiřík Král koupil domec na obci mezi mosty, se zahrádkou při něm,\nod Jana Krále, otce svého, za 60 k. m. Výměnek Jana Krále s manželkou: byt svobodný ve\nsvětnici, s komorou a zahrádkou před okny, též 1 hrušku v zahradě, co slove Václavka větší, do\nsmrti.\n1720, 29. ledna – (požl. 149) - Šimon Král, punčochář, koupil domec na obci mezi mosty od\nKateřiny, vdovy s dětmi do vdaní nebo do smrti: malou světničku zadní, 4 švestkové stromy,\nhrušku jednu Václavku u síně, jabloň jednu vinnou pod hruškou pargamentkou, 2 záhony 6\nkroků dlouhé a 4 kroky široké, neb za výměnek 2 k. m. ročně.\n1757, 8. listopadu – (zel. 280) - Jan Cibulák, kolář, koupil domec na obci, blíž brány\nVelkomostské, po neb. Šimonu Královi za 235 k. m. hotov.; vdova Magdalena Králová má\ns hospodářem byt do smrti, 1 / ovoce, 3 mladé štípky, švestku před oknem a 2 záhony pro salát.\n3\n1777, 28. srpna – (m. 456) - Jiří Horna k ruce syna svého Jana koupil domec blíž brány\nVelkomostecký, se zahradou až k Hrubé Jizeře dobíhající, od Jana Bubáka za 150 zl. rýn.\n1790, 22. ledna – (viol. 67) - Jan Horna koupil od Jana Bubáka domek č. 266. blíž brány\nVelkomostský za 100 zl. se zahradou až k Hrubé Jizeře dobíhající.\n1798, 9. května – (j. zel. 83) - Václav Horna prodal Matěji Mlejnkovi z Konic Jiřího dům č.\n266., blíž brány Velkomostské.\n1823 – (fer. 170) - Jiří Mlejnek prodal Janu Eislerovi domek č. 178. za 420 zl.\n1834, 8. listopadu – (fer. 350, 351) - Jan Eisler prodal dům č. 178. Jáchymu Weilovi, židu, pro\nrozšíření továrny na kartouny (viz. č. 176).\n1859 – Františka Weilová.\n1889 – Arnošt a Rosa Weilovi.\nČ. p. 179 (st. 267)\nNa místě bývalé přízemní poloroubenky – tzv. pazderny. Na konci 19. stol. na jejím místě\nstavba činžovního domu, později nazývaný jako dům Dostrašilův. Novodobý dům prošel\ndvěma stavebními fázemi. Archeologicky zachyceno ve výkopu pro kanalizaci, existuje několik\nfotografií exteriéru (MČRT: Obr. 9, 14, 15).\nHistorie domu ( Šimák 1904 , 355-356)\nV XI. věku pazderna, dům v něm len trou (četné zápisy v kn. 1-4).\n1651, 9. ledna – (st. 91 b) - Jindřich Chloumecký koupil domec na obci mezi mosty, slove\npazderna, podle prošacování purkmistra a pánů za 40 k. se závazkem: „pánům sousedům té\ndobročinnosti a služebnosti proti předešlému platu obyčejnému bez překážky v té pazderně příti\na té kulně aneb podstájí před tou pazdernou nikdy nespouštěti bude povinen“.\n1688, 3. května – (žl. 157) - Jan Pecina, krejčí, koupil dům od Anny Chloumecký, tchýně své,\nza 80 k. m. Výměnek Anny Chloumecké: světničku s komůrkou, ovoce ze zahrady na polovic,\npak jednu jabloň vinnou, sladké jabloně ½, slívy sedmihradské blíž hrubého mostu 4, až do\nsmrti.\n1716, 4. prosince – (žl. 157) - Jan Pecina, kloboučník, ujal dům dle smlouvy s neb. Matkou a\nsestrami svými: Kateřinou, Dorotou, Alžbětou a Lidmilou za 90 k. m. hotov. Sestrám byt v tom\ndomě do vdaní neb do smrti.\n1756, 13. ledna – (zel. 263) - Alžběta Pecinová dostává od téhož manžela Jana Peciny, který\ndomec ten r. 1725, 16. února zapsaný má v ceně 90 k. m.\n1776, 16. dubna (m. 398) - Jiří Veska ujal dům č. 267. u velkého mostu od Jana Vesky, bratra\nsvého.\n1792, 30. října – (viol. 159) - Jiří Veska prodal Václ. Zunovi dům č. 267. za 415 zl.\n1807, 25. května – (jz. 163) – Václav Zuna prodal dům č. 267. st. 179. n. Josefu Jirovi\nz Ohrazenic.\n1826, 15. září – (žel. 11) - Kateřina, manželka Josefa Dostrašila, ujala se domu č. 267. s. 179.\nn. mezi mosty po otci Jos. Jírovi.\n1891 – Václav Dostrašil.\nČ. p. 183 (st. 1?)\nTj. „brána zrušená u mostu hrubého“. Jednalo se o dům, prve dřevěný, následně zřejmě\npřestavěný na kamenných základech (viz stabilní katastr) u zprve zastřešeného mostu přes\nJizeru a o dům, kde se vybíralo mýto.\nHistorie domu ( Šimák 1904 , 359)\n1850, 29. března – (II, 194) - v odhadu městského majetku píše se: „Domek pod číslem\ndomovním 183. u hrubého vodního mostu, nazvaný mostecká brána, ze dřeva vystaven,\nobsahuje jednu světničku. Cena tohoto domku i s místem na kterém stojí, udává se na 480 zl.“\n(cid:25)(cid:17)(cid:3)(cid:40)(cid:91)(cid:78)(cid:88)(cid:85)(cid:86)(cid:3)(cid:21)(cid:29)(cid:3)(cid:61)(cid:83)(cid:85)(cid:105)(cid:89)(cid:68)(cid:3)(cid:78)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:3)(cid:254)(cid:17)(cid:3)(cid:83)(cid:17)(cid:3)(cid:20)(cid:27)(cid:28)(cid:3)\n(cid:43)(cid:76)(cid:86)(cid:87)(cid:82)(cid:85)(cid:76)(cid:72)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:3)(cid:77)(cid:72)(cid:3)(cid:85)(cid:82)(cid:89)(cid:81)(cid:268)(cid:229)(cid:3)(cid:83)(cid:82)(cid:83)(cid:86)(cid:105)(cid:81)(cid:68)(cid:3)(cid:89)(cid:3)(cid:78)(cid:81)(cid:76)(cid:93)(cid:72)(cid:3)(cid:45)(cid:17)(cid:3)(cid:57)(cid:17)(cid:3)(cid:226)(cid:76)(cid:80)(cid:105)(cid:78)(cid:68)(cid:3)(cid:11) (cid:20)(cid:28)(cid:19)(cid:23) (cid:15)(cid:3)(cid:22)(cid:25)(cid:24)(cid:16)(cid:22)(cid:25)(cid:25)(cid:12)(cid:15)(cid:3)(cid:81)(cid:76)(cid:70)(cid:80)(cid:112)(cid:81)(cid:268)(cid:3)(cid:89)(cid:93)(cid:75)(cid:79)(cid:72)(cid:71)(cid:72)(cid:80)(cid:3)\n(cid:78)(cid:3)(cid:87)(cid:82)(cid:80)(cid:88)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:89)(cid:234)(cid:227)(cid:72)(cid:3)(cid:83)(cid:82)(cid:83)(cid:76)(cid:86)(cid:88)(cid:77)(cid:76)(cid:3)(cid:71)(cid:82)(cid:80)(cid:92)(cid:3)(cid:77)(cid:76)(cid:229)(cid:3)(cid:81)(cid:72)(cid:86)(cid:87)(cid:82)(cid:77)(cid:116)(cid:70)(cid:116)(cid:15)(cid:3)(cid:83)(cid:284)(cid:76)(cid:83)(cid:82)(cid:77)(cid:88)(cid:77)(cid:76)(cid:3)(cid:81)(cid:68)(cid:3)(cid:87)(cid:82)(cid:80)(cid:87)(cid:82)(cid:3)(cid:80)(cid:116)(cid:86)(cid:87)(cid:268)(cid:3)(cid:77)(cid:72)(cid:227)(cid:87)(cid:268)(cid:3)(cid:93)(cid:68)(cid:77)(cid:116)(cid:80)(cid:68)(cid:89)(cid:82)(cid:88)(cid:3)(cid:70)(cid:76)(cid:87)(cid:68)(cid:70)(cid:76)(cid:3)\n(cid:93)(cid:3)(cid:81)(cid:82)(cid:89)(cid:76)(cid:81)(cid:3)(cid:43)(cid:79)(cid:68)(cid:86)(cid:92)(cid:3)(cid:51)(cid:82)(cid:77)(cid:76)(cid:93)(cid:72)(cid:85)(cid:86)(cid:78)(cid:112)(cid:3)(cid:93)(cid:3)(cid:85)(cid:82)(cid:78)(cid:88)(cid:3)(cid:20)(cid:28)(cid:21)(cid:21)(cid:3)(cid:11)(cid:70)(cid:76)(cid:87)(cid:17)(cid:3) (cid:54)(cid:70)(cid:75)(cid:292)(cid:93)(cid:72)(cid:3)(cid:80)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:112)(cid:75)(cid:82)(cid:3)(cid:93)(cid:68)(cid:86)(cid:87)(cid:88)(cid:83)(cid:76)(cid:87)(cid:72)(cid:79)(cid:86)(cid:87)(cid:89)(cid:68)(cid:3)(cid:55)(cid:88)(cid:85)(cid:81)(cid:82)(cid:89)(cid:86)(cid:78)(cid:112)(cid:75)(cid:82) (cid:12)(cid:15)(cid:3)(cid:78)(cid:71)(cid:72)(cid:3)\n(cid:77)(cid:72)(cid:3) (cid:88)(cid:89)(cid:72)(cid:71)(cid:72)(cid:81)(cid:3) (cid:71)(cid:82)(cid:78)(cid:79)(cid:68)(cid:71)(cid:3) (cid:72)(cid:91)(cid:76)(cid:86)(cid:87)(cid:72)(cid:81)(cid:70)(cid:72)(cid:3) (cid:71)(cid:85)(cid:88)(cid:75)(cid:112)(cid:75)(cid:82)(cid:3) (cid:83)(cid:82)(cid:89)(cid:82)(cid:71)(cid:278)(cid:82)(cid:89)(cid:112)(cid:75)(cid:82)(cid:3) (cid:83)(cid:85)(cid:82)(cid:83)(cid:88)(cid:86)(cid:87)(cid:78)(cid:88)(cid:3) (cid:11)(cid:93)(cid:68)(cid:3) (cid:93)(cid:77)(cid:76)(cid:227)(cid:87)(cid:268)(cid:81)(cid:116)(cid:3) (cid:71)(cid:268)(cid:78)(cid:88)(cid:77)(cid:76)(cid:3) (cid:78)(cid:82)(cid:79)(cid:72)(cid:74)(cid:82)(cid:89)(cid:76)(cid:3)\n(cid:39)(cid:68)(cid:89)(cid:76)(cid:71)(cid:88)(cid:3)(cid:48)(cid:68)(cid:85)(cid:78)(cid:82)(cid:89)(cid:76)(cid:12)(cid:17)(cid:3)\n(cid:39)(cid:82)(cid:86)(cid:79)(cid:82)(cid:89)(cid:81)(cid:105)(cid:3)(cid:70)(cid:76)(cid:87)(cid:68)(cid:70)(cid:72)(cid:29)(cid:3)\n(cid:51)(cid:85)(cid:89)(cid:81)(cid:116)(cid:80)(cid:3)(cid:83)(cid:284)(cid:72)(cid:71)(cid:80)(cid:268)(cid:87)(cid:72)(cid:80)(cid:3)(cid:77)(cid:72)(cid:71)(cid:81)(cid:105)(cid:81)(cid:116)(cid:3)(cid:69)(cid:92)(cid:79)(cid:3)(cid:82)(cid:71)(cid:83)(cid:85)(cid:82)(cid:71)(cid:72)(cid:77)(cid:3)(cid:254)(cid:105)(cid:86)(cid:87)(cid:76)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:72)(cid:69)(cid:81)(cid:116)(cid:3)(cid:83)(cid:68)(cid:85)(cid:70)(cid:72)(cid:79)(cid:92)(cid:3)(cid:254)(cid:116)(cid:86)(cid:79)(cid:82)(cid:3)(cid:78)(cid:68)(cid:87)(cid:17)(cid:3)(cid:26)(cid:15)(cid:3)(cid:89)(cid:72)(cid:3)(cid:89)(cid:234)(cid:80)(cid:268)(cid:284)(cid:72)(cid:3)(cid:21)(cid:21)(cid:3)(cid:254)(cid:87)(cid:89)(cid:72)(cid:85)(cid:17)(cid:3)\n(cid:54)(cid:105)(cid:75)(cid:292)(cid:3)(cid:80)(cid:68)(cid:81)(cid:229)(cid:72)(cid:79)(cid:292)(cid:80)(cid:3)(cid:41)(cid:85)(cid:68)(cid:81)(cid:87)(cid:76)(cid:227)(cid:78)(cid:88)(cid:3)(cid:68)(cid:3)(cid:53)(cid:292)(cid:229)(cid:72)(cid:81)(cid:268)(cid:3)(cid:228)(cid:263)(cid:105)(cid:85)(cid:86)(cid:78)(cid:234)(cid:80)(cid:17)(cid:3)(cid:53)(cid:72)(cid:73)(cid:72)(cid:85)(cid:72)(cid:81)(cid:87)(cid:3)(cid:83)(cid:17)(cid:3)(cid:81)(cid:105)(cid:80)(cid:268)(cid:86)(cid:87)(cid:72)(cid:78)(cid:3)(cid:45)(cid:17)(cid:3)(cid:228)(cid:105)(cid:78)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:3)(cid:81)(cid:105)(cid:80)(cid:268)(cid:86)(cid:87)(cid:72)(cid:78)(cid:3)\n(cid:86)(cid:71)(cid:268)(cid:79)(cid:88)(cid:77)(cid:72)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:80)(cid:68)(cid:77)(cid:76)(cid:87)(cid:72)(cid:79)(cid:112)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:3)(cid:254)(cid:17)(cid:3)(cid:20)(cid:27)(cid:28)(cid:15)(cid:3)(cid:41)(cid:85)(cid:68)(cid:81)(cid:87)(cid:76)(cid:227)(cid:72)(cid:78)(cid:3)(cid:68)(cid:3)(cid:53)(cid:292)(cid:229)(cid:72)(cid:81)(cid:68)(cid:3)(cid:228)(cid:263)(cid:105)(cid:85)(cid:86)(cid:78)(cid:234)(cid:70)(cid:75)(cid:15)(cid:3)(cid:89)(cid:3)(cid:49)(cid:105)(cid:71)(cid:85)(cid:68)(cid:229)(cid:81)(cid:116)(cid:3)(cid:88)(cid:79)(cid:76)(cid:70)(cid:76)(cid:15)(cid:3)(cid:75)(cid:82)(cid:71)(cid:79)(cid:68)(cid:77)(cid:116)(cid:3)\n(cid:88)(cid:78)(cid:82)(cid:88)(cid:83)(cid:76)(cid:87)(cid:76)(cid:3)(cid:93)(cid:68)(cid:3)(cid:83)(cid:284)(cid:116)(cid:254)(cid:76)(cid:81)(cid:82)(cid:88)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:92)(cid:3)(cid:68)(cid:3)(cid:85)(cid:82)(cid:93)(cid:227)(cid:116)(cid:284)(cid:72)(cid:81)(cid:116)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:15)(cid:3)(cid:254)(cid:105)(cid:86)(cid:87)(cid:3)(cid:83)(cid:82)(cid:93)(cid:72)(cid:80)(cid:78)(cid:88)(cid:3)(cid:89)(cid:72)(cid:3)(cid:89)(cid:234)(cid:80)(cid:268)(cid:284)(cid:72)(cid:3)(cid:21)(cid:21)(cid:3)(cid:254)(cid:87)(cid:89)(cid:72)(cid:85)(cid:17)(cid:3)(cid:54)(cid:105)(cid:75)(cid:292)(cid:15)(cid:3)(cid:87)(cid:68)(cid:78)(cid:229)(cid:72)(cid:3)(cid:69)(cid:92)(cid:3)\n(cid:93)(cid:71)(cid:72)(cid:3)(cid:81)(cid:68)(cid:71)(cid:3)(cid:78)(cid:68)(cid:81)(cid:105)(cid:79)(cid:72)(cid:80)(cid:3)(cid:93)(cid:68)(cid:86)(cid:87)(cid:68)(cid:89)(cid:72)(cid:81)(cid:82)(cid:3)(cid:69)(cid:92)(cid:79)(cid:82)(cid:3)(cid:83)(cid:85)(cid:105)(cid:93)(cid:71)(cid:81)(cid:112)(cid:3)(cid:80)(cid:116)(cid:86)(cid:87)(cid:82)(cid:3)(cid:68)(cid:3)(cid:88)(cid:85)(cid:82)(cid:89)(cid:81)(cid:68)(cid:79)(cid:68)(cid:3)(cid:86)(cid:72)(cid:3)(cid:88)(cid:79)(cid:76)(cid:254)(cid:81)(cid:116)(cid:3)(cid:73)(cid:85)(cid:82)(cid:81)(cid:87)(cid:68)(cid:3)(cid:71)(cid:89)(cid:82)(cid:88)(cid:3)(cid:86)(cid:82)(cid:88)(cid:86)(cid:72)(cid:71)(cid:81)(cid:116)(cid:70)(cid:75)(cid:3)\n(cid:71)(cid:82)(cid:80)(cid:292)(cid:17)(cid:3)(cid:48)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:105)(cid:3)(cid:85)(cid:68)(cid:71)(cid:68)(cid:3)(cid:89)(cid:72)(cid:3)(cid:86)(cid:89)(cid:112)(cid:3)(cid:86)(cid:70)(cid:75)(cid:292)(cid:93)(cid:76)(cid:15)(cid:3)(cid:71)(cid:81)(cid:72)(cid:3)(cid:20)(cid:24)(cid:17)(cid:3)(cid:71)(cid:88)(cid:69)(cid:81)(cid:68)(cid:3)(cid:78)(cid:82)(cid:81)(cid:68)(cid:81)(cid:112)(cid:15)(cid:3)(cid:88)(cid:86)(cid:81)(cid:72)(cid:86)(cid:79)(cid:68)(cid:3)(cid:86)(cid:72)(cid:3)(cid:229)(cid:105)(cid:71)(cid:82)(cid:86)(cid:87)(cid:76)(cid:3)(cid:87)(cid:112)(cid:3)(cid:89)(cid:92)(cid:75)(cid:82)(cid:89)(cid:268)(cid:87)(cid:76)(cid:15)(cid:3)(cid:85)(cid:82)(cid:89)(cid:81)(cid:268)(cid:229)(cid:3)\n(cid:76)(cid:3)(cid:73)(cid:76)(cid:81)(cid:68)(cid:81)(cid:254)(cid:81)(cid:116)(cid:3)(cid:78)(cid:82)(cid:80)(cid:76)(cid:86)(cid:72)(cid:3)(cid:68)(cid:3)(cid:86)(cid:76)(cid:70)(cid:72)(cid:3)(cid:83)(cid:85)(cid:82)(cid:71)(cid:72)(cid:77)(cid:3)(cid:83)(cid:82)(cid:93)(cid:72)(cid:80)(cid:78)(cid:88)(cid:3)(cid:93)(cid:68)(cid:3)(cid:20)(cid:3)(cid:254)(cid:87)(cid:89)(cid:72)(cid:85)(cid:17)(cid:3)(cid:54)(cid:105)(cid:75)(cid:3)(cid:20)(cid:19)(cid:19)(cid:3)(cid:46)(cid:3)(cid:86)(cid:3)(cid:87)(cid:82)(cid:88)(cid:3)(cid:83)(cid:82)(cid:71)(cid:80)(cid:116)(cid:81)(cid:78)(cid:82)(cid:88)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:229)(cid:68)(cid:71)(cid:68)(cid:87)(cid:72)(cid:79)(cid:112)(cid:3)(cid:69)(cid:92)(cid:3)\n(cid:80)(cid:88)(cid:86)(cid:72)(cid:79)(cid:76)(cid:3)(cid:77)(cid:72)(cid:227)(cid:87)(cid:268)(cid:3)(cid:87)(cid:82)(cid:75)(cid:82)(cid:87)(cid:82)(cid:3)(cid:85)(cid:82)(cid:78)(cid:88)(cid:3)(cid:284)(cid:72)(cid:254)(cid:72)(cid:81)(cid:82)(cid:88)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:88)(cid:3)(cid:83)(cid:85)(cid:82)(cid:89)(cid:112)(cid:86)(cid:87)(cid:76)(cid:17)(cid:3)(cid:51)(cid:85)(cid:82)(cid:87)(cid:76)(cid:3)(cid:87)(cid:82)(cid:80)(cid:88)(cid:87)(cid:82)(cid:3)(cid:82)(cid:71)(cid:83)(cid:85)(cid:82)(cid:71)(cid:72)(cid:77)(cid:76)(cid:3)(cid:89)(cid:227)(cid:68)(cid:78)(cid:3)(cid:83)(cid:85)(cid:82)(cid:87)(cid:72)(cid:86)(cid:87)(cid:88)(cid:77)(cid:116)(cid:3)(cid:86)(cid:82)(cid:88)(cid:86)(cid:72)(cid:71)(cid:112)(cid:3)\n(cid:76)(cid:3)(cid:81)(cid:268)(cid:78)(cid:87)(cid:72)(cid:284)(cid:116)(cid:3)(cid:89)(cid:93)(cid:71)(cid:105)(cid:79)(cid:72)(cid:81)(cid:268)(cid:77)(cid:227)(cid:116)(cid:3)(cid:80)(cid:68)(cid:77)(cid:76)(cid:87)(cid:72)(cid:79)(cid:112)(cid:3)(cid:71)(cid:82)(cid:80)(cid:292)(cid:15)(cid:3)(cid:83)(cid:82)(cid:88)(cid:78)(cid:68)(cid:93)(cid:88)(cid:77)(cid:116)(cid:70)(cid:72)(cid:3)(cid:81)(cid:68)(cid:3)(cid:87)(cid:82)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:69)(cid:92)(cid:3)(cid:93)(cid:85)(cid:88)(cid:227)(cid:72)(cid:81)(cid:116)(cid:80)(cid:3)(cid:78)(cid:68)(cid:81)(cid:105)(cid:79)(cid:88)(cid:3)(cid:89)(cid:3)(cid:83)(cid:105)(cid:71)(cid:88)(cid:3)(cid:83)(cid:82)(cid:89)(cid:82)(cid:71)(cid:81)(cid:268)(cid:3)\n(cid:81)(cid:72)(cid:69)(cid:92)(cid:79)(cid:3)(cid:229)(cid:105)(cid:71)(cid:81)(cid:234)(cid:3)(cid:82)(cid:71)(cid:87)(cid:82)(cid:78)(cid:3)(cid:89)(cid:82)(cid:71)(cid:92)(cid:3)(cid:68)(cid:3)(cid:81)(cid:105)(cid:86)(cid:79)(cid:72)(cid:71)(cid:78)(cid:72)(cid:80)(cid:3)(cid:87)(cid:82)(cid:75)(cid:82)(cid:3)(cid:69)(cid:92)(cid:79)(cid:76)(cid:3)(cid:69)(cid:92)(cid:3)(cid:81)(cid:68)(cid:3)(cid:86)(cid:89)(cid:112)(cid:80)(cid:3)(cid:80)(cid:68)(cid:77)(cid:72)(cid:87)(cid:78)(cid:88)(cid:3)(cid:82)(cid:75)(cid:85)(cid:82)(cid:229)(cid:72)(cid:81)(cid:76)(cid:3)(cid:68)(cid:3)(cid:93)(cid:81)(cid:68)(cid:254)(cid:81)(cid:112)(cid:3)(cid:227)(cid:78)(cid:82)(cid:71)(cid:92)(cid:3)\n(cid:69)(cid:92)(cid:3)(cid:88)(cid:79)(cid:85)(cid:83)(cid:268)(cid:79)(cid:76)(cid:17)(cid:3)(cid:48)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:105)(cid:3)(cid:85)(cid:68)(cid:71)(cid:68)(cid:3)(cid:87)(cid:92)(cid:87)(cid:82)(cid:3)(cid:81)(cid:105)(cid:80)(cid:76)(cid:87)(cid:78)(cid:92)(cid:3)(cid:93)(cid:68)(cid:80)(cid:116)(cid:87)(cid:79)(cid:68)(cid:3)(cid:68)(cid:3)(cid:229)(cid:105)(cid:71)(cid:82)(cid:86)(cid:87)(cid:76)(cid:3)(cid:80)(cid:68)(cid:81)(cid:229)(cid:72)(cid:79)(cid:292)(cid:3)(cid:228)(cid:263)(cid:105)(cid:85)(cid:86)(cid:78)(cid:234)(cid:70)(cid:75)(cid:3)(cid:89)(cid:92)(cid:75)(cid:82)(cid:89)(cid:268)(cid:79)(cid:68)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:3)\n(cid:47)(cid:76)(cid:81)(cid:78)(cid:68)(cid:3) (cid:71)(cid:82)(cid:83)(cid:82)(cid:85)(cid:88)(cid:254)(cid:88)(cid:77)(cid:72)(cid:15)(cid:3) (cid:68)(cid:69)(cid:92)(cid:3) (cid:83)(cid:284)(cid:76)(cid:3) (cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:268)(cid:3) (cid:85)(cid:82)(cid:93)(cid:227)(cid:116)(cid:284)(cid:72)(cid:81)(cid:112)(cid:75)(cid:82)(cid:3) (cid:71)(cid:82)(cid:80)(cid:88)(cid:3) (cid:83)(cid:68)(cid:80)(cid:68)(cid:87)(cid:82)(cid:89)(cid:105)(cid:81)(cid:82)(cid:3) (cid:69)(cid:92)(cid:79)(cid:82)(cid:3) (cid:81)(cid:68)(cid:3) (cid:89)(cid:82)(cid:79)(cid:81)(cid:234)(cid:3) (cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:3)\n(cid:78)(cid:3)(cid:83)(cid:79)(cid:82)(cid:89)(cid:105)(cid:85)(cid:81)(cid:268)(cid:3)(cid:68)(cid:3)(cid:87)(cid:72)(cid:81)(cid:76)(cid:86)(cid:86)(cid:88)(cid:15)(cid:3)(cid:68)(cid:69)(cid:92)(cid:3)(cid:83)(cid:82)(cid:86)(cid:87)(cid:68)(cid:89)(cid:72)(cid:81)(cid:3)(cid:69)(cid:92)(cid:79)(cid:3)(cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:76)(cid:70)(cid:116)(cid:3)(cid:71)(cid:292)(cid:80)(cid:3)(cid:68)(cid:3)(cid:86)(cid:76)(cid:70)(cid:72)(cid:3)(cid:93)(cid:284)(cid:116)(cid:93)(cid:72)(cid:81)(cid:116)(cid:80)(cid:3)(cid:82)(cid:87)(cid:72)(cid:89)(cid:284)(cid:72)(cid:81)(cid:112)(cid:3)(cid:89)(cid:82)(cid:79)(cid:81)(cid:112)(cid:3)(cid:86)(cid:116)(cid:81)(cid:268)(cid:15)(cid:3)(cid:77)(cid:68)(cid:78)(cid:112)(cid:3)\n(cid:77)(cid:86)(cid:82)(cid:88)(cid:3)(cid:89)(cid:72)(cid:3)(cid:89)(cid:72)(cid:79)(cid:78)(cid:234)(cid:70)(cid:75)(cid:3)(cid:68)(cid:3)(cid:77)(cid:76)(cid:81)(cid:234)(cid:70)(cid:75)(cid:3)(cid:80)(cid:268)(cid:86)(cid:87)(cid:72)(cid:70)(cid:75)(cid:3)(cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:76)(cid:70)(cid:116)(cid:3)(cid:71)(cid:82)(cid:80)(cid:92)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:268)(cid:81)(cid:92)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:3)(cid:86)(cid:87)(cid:68)(cid:85)(cid:82)(cid:86)(cid:87)(cid:68)(cid:3)(cid:71)(cid:105)(cid:89)(cid:105)(cid:3)(cid:75)(cid:79)(cid:68)(cid:86)(cid:82)(cid:89)(cid:68)(cid:87)(cid:76)(cid:3)(cid:82)(cid:3)\n(cid:81)(cid:105)(cid:89)(cid:85)(cid:75)(cid:88)(cid:3)(cid:80)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:112)(cid:3) (cid:85)(cid:68)(cid:71)(cid:92)(cid:3)(cid:93)(cid:68)(cid:3)(cid:82)(cid:71)(cid:83)(cid:85)(cid:82)(cid:71)(cid:105)(cid:81)(cid:116)(cid:3) (cid:83)(cid:82)(cid:93)(cid:72)(cid:80)(cid:78)(cid:88)(cid:3) (cid:68)(cid:3) (cid:86)(cid:76)(cid:70)(cid:72)(cid:3) (cid:21)(cid:21) (cid:15)(cid:3) (cid:77)(cid:72)(cid:71)(cid:72)(cid:81)(cid:3)(cid:86)(cid:105)(cid:75)(cid:3)(cid:93)(cid:68)(cid:3) (cid:20)(cid:19)(cid:19)(cid:3)(cid:46)(cid:15)(cid:3)(cid:86)(cid:3)(cid:87)(cid:82)(cid:81)(cid:3) (cid:89)(cid:227)(cid:68)(cid:78)(cid:3)\n(cid:83)(cid:82)(cid:71)(cid:80)(cid:116)(cid:81)(cid:78)(cid:82)(cid:88)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:93)(cid:80)(cid:116)(cid:81)(cid:268)(cid:81)(cid:105)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:68)(cid:3)(cid:77)(cid:72)(cid:227)(cid:87)(cid:268)(cid:3)(cid:85)(cid:82)(cid:78)(cid:88)(cid:3)(cid:79)(cid:72)(cid:87)(cid:82)(cid:227)(cid:81)(cid:116)(cid:75)(cid:82)(cid:3)(cid:83)(cid:85)(cid:82)(cid:89)(cid:72)(cid:71)(cid:72)(cid:81)(cid:68)(cid:3)(cid:69)(cid:234)(cid:87)(cid:76)(cid:3)(cid:80)(cid:88)(cid:86)(cid:116)(cid:17)(cid:3)(cid:54)(cid:82)(cid:88)(cid:75)(cid:79)(cid:68)(cid:86)(cid:17)(cid:3)(cid:177)(cid:3)(cid:51)(cid:284)(cid:76)(cid:75)(cid:79)(cid:105)(cid:227)(cid:72)(cid:81)(cid:234)(cid:3)\n(cid:78)(cid:72)(cid:3)(cid:86)(cid:79)(cid:82)(cid:89)(cid:88)(cid:3)(cid:83)(cid:85)(cid:82)(cid:73)(cid:72)(cid:86)(cid:82)(cid:85)(cid:3)(cid:45)(cid:72)(cid:284)(cid:105)(cid:69)(cid:72)(cid:78)(cid:3)(cid:254)(cid:76)(cid:81)(cid:116)(cid:3)(cid:81)(cid:105)(cid:89)(cid:85)(cid:75)(cid:3)(cid:77)(cid:68)(cid:78)(cid:82)(cid:3)(cid:83)(cid:68)(cid:81)(cid:3)(cid:47)(cid:76)(cid:81)(cid:78)(cid:68)(cid:3)(cid:82)(cid:75)(cid:79)(cid:72)(cid:71)(cid:81)(cid:268)(cid:3)(cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:88)(cid:3)(cid:89)(cid:3)(cid:284)(cid:72)(cid:254)(cid:72)(cid:81)(cid:112)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:268)(cid:15)(cid:3)(cid:68)(cid:3)\n(cid:71)(cid:82)(cid:83)(cid:82)(cid:85)(cid:88)(cid:254)(cid:88)(cid:77)(cid:72)(cid:15)(cid:3)(cid:68)(cid:69)(cid:92)(cid:3)(cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:3)(cid:87)(cid:82)(cid:75)(cid:82)(cid:87)(cid:82)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:3)(cid:69)(cid:92)(cid:79)(cid:3)(cid:81)(cid:105)(cid:78)(cid:79)(cid:68)(cid:71)(cid:72)(cid:80)(cid:3)(cid:82)(cid:69)(cid:70)(cid:72)(cid:3)(cid:89)(cid:72)(cid:254)(cid:72)(cid:85)(cid:3)(cid:68)(cid:3)(cid:89)(cid:3)(cid:81)(cid:82)(cid:70)(cid:76)(cid:3)(cid:82)(cid:86)(cid:89)(cid:268)(cid:87)(cid:79)(cid:82)(cid:89)(cid:105)(cid:81)(cid:17)(cid:3)(cid:49)(cid:105)(cid:89)(cid:85)(cid:75)(cid:3)\n(cid:83)(cid:68)(cid:81)(cid:68)(cid:3)(cid:47)(cid:76)(cid:81)(cid:78)(cid:92)(cid:3)(cid:68)(cid:3)(cid:83)(cid:85)(cid:82)(cid:73)(cid:17)(cid:3)(cid:45)(cid:72)(cid:284)(cid:105)(cid:69)(cid:78)(cid:68)(cid:3)(cid:86)(cid:72)(cid:3)(cid:83)(cid:284)(cid:76)(cid:77)(cid:116)(cid:80)(cid:105)(cid:17)(cid:3)\n(cid:61)(cid:3)(cid:83)(cid:284)(cid:72)(cid:71)(cid:79)(cid:82)(cid:229)(cid:72)(cid:81)(cid:112)(cid:75)(cid:82)(cid:3)(cid:87)(cid:72)(cid:91)(cid:87)(cid:88)(cid:3) (cid:77)(cid:72)(cid:3)(cid:83)(cid:68)(cid:87)(cid:85)(cid:81)(cid:112)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:82)(cid:78)(cid:82)(cid:79)(cid:81)(cid:116)(cid:3)(cid:86)(cid:82)(cid:88)(cid:86)(cid:72)(cid:71)(cid:112)(cid:3)(cid:86)(cid:72)(cid:3)(cid:82)(cid:69)(cid:105)(cid:89)(cid:68)(cid:79)(cid:92)(cid:3) (cid:83)(cid:82)(cid:89)(cid:82)(cid:71)(cid:81)(cid:116)(cid:3) (cid:81)(cid:68)(cid:87)(cid:82)(cid:79)(cid:76)(cid:78)(cid:15)(cid:3) (cid:229)(cid:72)(cid:3)(cid:89)(cid:93)(cid:81)(cid:72)(cid:86)(cid:79)(cid:76)(cid:3)\n(cid:81)(cid:105)(cid:80)(cid:76)(cid:87)(cid:78)(cid:92)(cid:3) (cid:89)(cid:292)(cid:254)(cid:76)(cid:3) (cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:268)(cid:15)(cid:3) (cid:83)(cid:284)(cid:76)(cid:3) (cid:78)(cid:87)(cid:72)(cid:85)(cid:112)(cid:3) (cid:80)(cid:268)(cid:79)(cid:3) (cid:69)(cid:234)(cid:87)(cid:3) (cid:83)(cid:85)(cid:82)(cid:83)(cid:88)(cid:86)(cid:87)(cid:72)(cid:78)(cid:3) (cid:93)(cid:68)(cid:86)(cid:92)(cid:83)(cid:105)(cid:81)(cid:17)(cid:3) (cid:55)(cid:116)(cid:80)(cid:87)(cid:82)(cid:3) (cid:80)(cid:105)(cid:80)(cid:72)(cid:3) (cid:77)(cid:72)(cid:75)(cid:82)(cid:3) (cid:72)(cid:91)(cid:76)(cid:86)(cid:87)(cid:72)(cid:81)(cid:70)(cid:76)(cid:3)\n(cid:83)(cid:82)(cid:71)(cid:79)(cid:82)(cid:229)(cid:72)(cid:81)(cid:82)(cid:88)(cid:3)(cid:68)(cid:79)(cid:72)(cid:86)(cid:83)(cid:82)(cid:278)(cid:3)(cid:83)(cid:116)(cid:86)(cid:72)(cid:80)(cid:81)(cid:268)(cid:15)(cid:3)(cid:78)(cid:71)(cid:92)(cid:229)(cid:3)(cid:81)(cid:72)(cid:81)(cid:116)(cid:3)(cid:93)(cid:68)(cid:70)(cid:75)(cid:92)(cid:70)(cid:72)(cid:81)(cid:3)(cid:81)(cid:68)(cid:3)(cid:229)(cid:105)(cid:71)(cid:81)(cid:112)(cid:3)(cid:75)(cid:76)(cid:86)(cid:87)(cid:82)(cid:85)(cid:76)(cid:70)(cid:78)(cid:112)(cid:3)(cid:73)(cid:82)(cid:87)(cid:82)(cid:74)(cid:85)(cid:68)(cid:73)(cid:76)(cid:76)(cid:3)(cid:77)(cid:68)(cid:78)(cid:82)(cid:3)(cid:83)(cid:85)(cid:82)(cid:83)(cid:88)(cid:86)(cid:87)(cid:72)(cid:78)(cid:3)\n(cid:93)(cid:105)(cid:83)(cid:68)(cid:71)(cid:81)(cid:116)(cid:17)(cid:3)\n(cid:26)(cid:17)(cid:3)(cid:61)(cid:105)(cid:89)(cid:268)(cid:85)(cid:3)\n(cid:61)(cid:105)(cid:70)(cid:75)(cid:85)(cid:68)(cid:81)(cid:81)(cid:234)(cid:3) (cid:68)(cid:85)(cid:70)(cid:75)(cid:72)(cid:82)(cid:79)(cid:82)(cid:74)(cid:76)(cid:70)(cid:78)(cid:234)(cid:3) (cid:89)(cid:234)(cid:93)(cid:78)(cid:88)(cid:80)(cid:3) (cid:83)(cid:85)(cid:82)(cid:69)(cid:116)(cid:75)(cid:68)(cid:79)(cid:3) (cid:81)(cid:68)(cid:3) (cid:77)(cid:68)(cid:284)(cid:72)(cid:3) (cid:89)(cid:3)(cid:85)(cid:82)(cid:70)(cid:72)(cid:3) (cid:21)(cid:19)(cid:20)(cid:27)(cid:3) (cid:68)(cid:3) (cid:86)(cid:82)(cid:88)(cid:89)(cid:76)(cid:86)(cid:72)(cid:79)(cid:3) (cid:86)(cid:3)(cid:70)(cid:72)(cid:79)(cid:78)(cid:82)(cid:89)(cid:82)(cid:88)(cid:3)\n(cid:85)(cid:72)(cid:78)(cid:82)(cid:81)(cid:86)(cid:87)(cid:85)(cid:88)(cid:78)(cid:70)(cid:72)(cid:3) (cid:88)(cid:79)(cid:76)(cid:70)(cid:72)(cid:3) (cid:51)(cid:68)(cid:79)(cid:68)(cid:70)(cid:78)(cid:112)(cid:75)(cid:82)(cid:17)(cid:3) (cid:51)(cid:284)(cid:76)(cid:3) (cid:61)(cid:36)(cid:57)(cid:3) (cid:69)(cid:92)(cid:79)(cid:92)(cid:3) (cid:93)(cid:77)(cid:76)(cid:227)(cid:87)(cid:268)(cid:81)(cid:92)(cid:3) (cid:68)(cid:3) (cid:71)(cid:82)(cid:78)(cid:88)(cid:80)(cid:72)(cid:81)(cid:87)(cid:82)(cid:89)(cid:105)(cid:81)(cid:92)(cid:3) (cid:75)(cid:76)(cid:86)(cid:87)(cid:82)(cid:85)(cid:76)(cid:70)(cid:78)(cid:112)(cid:3) (cid:87)(cid:72)(cid:85)(cid:112)(cid:81)(cid:92)(cid:3)\n(cid:86)(cid:82)(cid:88)(cid:89)(cid:76)(cid:86)(cid:72)(cid:77)(cid:116)(cid:70)(cid:116)(cid:3)(cid:86)(cid:3)(cid:89)(cid:234)(cid:89)(cid:82)(cid:77)(cid:72)(cid:80)(cid:3)(cid:80)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:112)(cid:3)(cid:254)(cid:105)(cid:86)(cid:87)(cid:76)(cid:3)(cid:196)(cid:80)(cid:72)(cid:93)(cid:76)(cid:80)(cid:82)(cid:86)(cid:87)(cid:116)(cid:179)(cid:17)(cid:3)(cid:61)(cid:36)(cid:57)(cid:3)(cid:83)(cid:85)(cid:82)(cid:69)(cid:116)(cid:75)(cid:68)(cid:79)(cid:3)(cid:73)(cid:82)(cid:85)(cid:80)(cid:82)(cid:88)(cid:3)(cid:71)(cid:82)(cid:75)(cid:79)(cid:72)(cid:71)(cid:88)(cid:3)(cid:81)(cid:68)(cid:71)(cid:3)(cid:93)(cid:72)(cid:80)(cid:81)(cid:116)(cid:80)(cid:76)(cid:3)\n(cid:83)(cid:85)(cid:68)(cid:70)(cid:72)(cid:80)(cid:76)(cid:15)(cid:3) (cid:78)(cid:87)(cid:72)(cid:85)(cid:112)(cid:3) (cid:86)(cid:83)(cid:82)(cid:254)(cid:116)(cid:89)(cid:68)(cid:79)(cid:92)(cid:3) (cid:93)(cid:72)(cid:77)(cid:80)(cid:112)(cid:81)(cid:68)(cid:3) (cid:86)(cid:3)(cid:73)(cid:82)(cid:87)(cid:82)(cid:71)(cid:82)(cid:78)(cid:88)(cid:80)(cid:72)(cid:81)(cid:87)(cid:68)(cid:70)(cid:116)(cid:3) (cid:89)(cid:92)(cid:75)(cid:79)(cid:82)(cid:88)(cid:69)(cid:72)(cid:81)(cid:112)(cid:75)(cid:82)(cid:3) (cid:75)(cid:79)(cid:68)(cid:89)(cid:81)(cid:116)(cid:75)(cid:82)(cid:3) (cid:89)(cid:234)(cid:78)(cid:82)(cid:83)(cid:88)(cid:3) (cid:83)(cid:85)(cid:82)(cid:3)\n(cid:78)(cid:68)(cid:81)(cid:68)(cid:79)(cid:76)(cid:93)(cid:68)(cid:70)(cid:76)(cid:3)(cid:83)(cid:284)(cid:76)(cid:69)(cid:79)(cid:76)(cid:229)(cid:81)(cid:268)(cid:3)(cid:88)(cid:83)(cid:85)(cid:82)(cid:86)(cid:87)(cid:284)(cid:72)(cid:71)(cid:3)(cid:88)(cid:79)(cid:76)(cid:70)(cid:72)(cid:17)(cid:3)\n(cid:37)(cid:92)(cid:79)(cid:92)(cid:3)(cid:71)(cid:82)(cid:78)(cid:88)(cid:80)(cid:72)(cid:81)(cid:87)(cid:82)(cid:89)(cid:105)(cid:81)(cid:92)(cid:3)(cid:87)(cid:284)(cid:76)(cid:3)(cid:87)(cid:92)(cid:83)(cid:92)(cid:3)(cid:75)(cid:76)(cid:86)(cid:87)(cid:82)(cid:85)(cid:76)(cid:70)(cid:78)(cid:234)(cid:70)(cid:75)(cid:3)(cid:87)(cid:72)(cid:85)(cid:112)(cid:81)(cid:292)(cid:29)(cid:3)(cid:20)(cid:12)(cid:3)(cid:83)(cid:85)(cid:89)(cid:78)(cid:92)(cid:3)(cid:86)(cid:82)(cid:88)(cid:89)(cid:76)(cid:86)(cid:72)(cid:77)(cid:116)(cid:70)(cid:116)(cid:3)(cid:83)(cid:284)(cid:116)(cid:80)(cid:82)(cid:3)(cid:86)(cid:3)(cid:78)(cid:82)(cid:80)(cid:88)(cid:81)(cid:76)(cid:78)(cid:68)(cid:70)(cid:116)(cid:3)(cid:11)(cid:87)(cid:77)(cid:17)(cid:3)\n(cid:93)(cid:72)(cid:80)(cid:76)(cid:87)(cid:112)(cid:3) (cid:88)(cid:79)(cid:82)(cid:229)(cid:72)(cid:81)(cid:76)(cid:81)(cid:92)(cid:15)(cid:3) (cid:86)(cid:87)(cid:68)(cid:69)(cid:76)(cid:79)(cid:76)(cid:93)(cid:68)(cid:254)(cid:81)(cid:116)(cid:3) (cid:78)(cid:68)(cid:80)(cid:72)(cid:81)(cid:81)(cid:112)(cid:3) (cid:93)(cid:71)(cid:76)(cid:3) (cid:68)(cid:3) (cid:83)(cid:82)(cid:89)(cid:82)(cid:71)(cid:278)(cid:82)(cid:89)(cid:112)(cid:3) (cid:83)(cid:85)(cid:82)(cid:83)(cid:88)(cid:86)(cid:87)(cid:78)(cid:92)(cid:12)(cid:30)(cid:3) (cid:21)(cid:12)(cid:3) (cid:83)(cid:85)(cid:89)(cid:78)(cid:92)(cid:3) (cid:86)(cid:82)(cid:88)(cid:89)(cid:76)(cid:86)(cid:72)(cid:77)(cid:116)(cid:70)(cid:116)(cid:3)\n(cid:86)(cid:3)(cid:85)(cid:72)(cid:70)(cid:72)(cid:81)(cid:87)(cid:81)(cid:116)(cid:80)(cid:76)(cid:3)(cid:89)(cid:78)(cid:82)(cid:83)(cid:92)(cid:3)(cid:83)(cid:85)(cid:82)(cid:3)(cid:78)(cid:68)(cid:81)(cid:68)(cid:79)(cid:76)(cid:93)(cid:68)(cid:70)(cid:76)(cid:15)(cid:3)(cid:89)(cid:82)(cid:71)(cid:82)(cid:89)(cid:82)(cid:71)(cid:3)(cid:68)(cid:3)(cid:76)(cid:81)(cid:229)(cid:72)(cid:81)(cid:234)(cid:85)(cid:86)(cid:78)(cid:112)(cid:3)(cid:86)(cid:116)(cid:87)(cid:268)(cid:30)(cid:3)(cid:22)(cid:12)(cid:3)(cid:85)(cid:72)(cid:79)(cid:76)(cid:78)(cid:87)(cid:92)(cid:3)(cid:93)(cid:105)(cid:78)(cid:79)(cid:68)(cid:71)(cid:292)(cid:3)(cid:254)(cid:76)(cid:81)(cid:229)(cid:82)(cid:89)(cid:81)(cid:116)(cid:75)(cid:82)(cid:3)\n(cid:71)(cid:82)(cid:80)(cid:88)(cid:3) (cid:93)(cid:3)(cid:20)(cid:28)(cid:17)(cid:3) (cid:86)(cid:87)(cid:82)(cid:79)(cid:72)(cid:87)(cid:116)(cid:17)(cid:3) (cid:51)(cid:85)(cid:82)(cid:3) (cid:76)(cid:81)(cid:87)(cid:72)(cid:85)(cid:83)(cid:85)(cid:72)(cid:87)(cid:68)(cid:70)(cid:76)(cid:3) (cid:93)(cid:105)(cid:89)(cid:268)(cid:85)(cid:292)(cid:3) (cid:69)(cid:92)(cid:79)(cid:82)(cid:3) (cid:89)(cid:72)(cid:79)(cid:76)(cid:70)(cid:72)(cid:3) (cid:83)(cid:284)(cid:116)(cid:81)(cid:82)(cid:86)(cid:81)(cid:112)(cid:3) (cid:83)(cid:82)(cid:85)(cid:82)(cid:89)(cid:81)(cid:105)(cid:81)(cid:116)(cid:3) (cid:93)(cid:77)(cid:76)(cid:227)(cid:87)(cid:268)(cid:81)(cid:234)(cid:70)(cid:75)(cid:3)\n(cid:20)(cid:25)(cid:3)\n(cid:3)\nhistorických situací s historickými fotografickými snímky uložených v archivu turnovského\nmuzea ( MČRT ). Právě to nám napomohlo k přesné interpretaci odhalených konstrukcí, ohledně\nkterých jsme zprvu uvažovali zcela v jiném smyslu. První naše úvahy a představy počítaly s\nexistencí jakéhosi vodního kanálu k mlýnu či manufaktuře nebo dokonce interpretací zjištěných\nreliktů zdiva jako základů domů s připuštěním turbulentních změn zástavby v průběhu\npokročilého novověku.\nPo zhlédnutí dochovaných historických fotografií však vytkvěla zcela jiná představa o\ncharakteru této městské části v 18. a 19. století. Jednalo se o okrajovou městskou část, která\nměla po dlouhou dobu středověký charakter a začala se rozvíjet do dnešní podoby až v druhé\npol. 19. století. Na základě heusristického přístupu můžeme nyní potvrdit, že za velmi krátkou\ndobu se komunikace vedoucí skrze okrajovou městkou část proměnila v reprezentativní\nměstskou ulici. Došlo k tomu po záplavách v roce 1915, po nichž byl vystavěn dům nesoucí\nsoučasné č. p. 766. V souvislosti s tím došlo k následné rekonstrukci ulice, při níž zanikly\nprotipovodňové propustky a nedlouho poté došlo také k výstavbě funkcionalistické budovy\nbrusírny drahokamů Herman & Palma, tj. současné č. p. 175, v místech bývalé barvírny.\nArcheologický výzkum a následné porovnání s historickými fotografiemi dovolilo\npřipomenout, jaký charakter měla tato část města ještě v 19. a potažmo v 20. století. Na základě\ntěchto zjištění můžeme lépe uvažovat, jak komunikace a později ulice mohla vypadat ve\nstředověku.\n8. Prameny a literatura\nADČ 2017: Archeologická databáze Čech, k. ú. Turnov.\nČÚZK 2021a : Archiv. URL: <https://ags.cuzk.cz/archiv/>.\nČÚZK 2021b : Archiv LMS. URL: <https://ags.cuzk.cz/archiv/?start=lms>.\nČÚZK 2021c : Analýzy výškopisu. URL: <https://ags.cuzk.cz/av/>.\nMuzeum Českého ráje v Turnově , Sbírka fotografií.\nSchůze městského zastupitelstva Turnovského . In: Hlasy Pojizerské, roč. 37, č. 23, 4. červen\n1922, s. 2.\n– – –\nDemek - Mackovčin a kol. 2006 : Zeměpisný lexikon ČR, Hory a nížiny. Praha.\nFilip, J. 1947 : Dějinné počátky Českého ráje. Praha.\nMikyška, R. a kol., 1972 : Geobotanická mapa ČSSR, Praha.\nNeuhäselová, Z. 2001 : Mapa potenciální přirozené vegetace České republiky. Academia, Praha.\nProstředník, J. – Šída, P. 2010 : Nejstarší dějiny Českého ráje a horního Pojizeří. Turnov.\nŠimák, J. V. 1904 : Příběhy města Turnova nad Jizerou. Díl III. Místopis. Zprávy musea\nTurnovského V. za rok 1903–1904. Turnov.\nŠimák, J. V. 1909 : Soupis památek historických a uměleckých v politickém okresu\nTurnovském. Praha.\n9. Seznam příloh\nTab. 1. Turnov – ul. Palackého. Přehled stratigrafických jednotek.\nTab. 2. Turnov – ul. Palackého. Zaměření zkoumané části před č. p. 175.\nObr. 1. Turnov – ul. Palackého. Úvodní foto – pohled na výkop mezi č. p. 190 a 175 , jde o\nzpevňující zeď komunikace (Foto P. Hartman 23. 3. 2018).\nObr. 2. Turnov – ul. Palackého. Výřez z mapy Stabilního katastru ( ČÚZK 2021a ).\nObr. 3. Turnov – ul. Palackého. Výřez z mapy J. V. Šimáka (MČRT).\nObr. 4. Turnov – ul. Palackého. Výřez z leteckého snímku z r. 1938 ( ČÚZK 2021b ).\nObr. 5. Turnov – ul. Palackého. Výřez z mapy stínovaného modelu terénu ( ČÚZK 2021c ).\nObr. 6. Turnov – ul. Palackého. Výřez z katastrální mapy, výzkumný polygon = stavba\nvodovodu a kanalizace (CorelDraw X8).\nObr. 7. Turnov – ul. Palackého. Veduta od ak. malíře pana M. Bělohlávka (MČRT).\nObr. 8. Turnov – ul. Palackého. Nejstarší fotografie Turnova z r. 1866 (MČRT).\nObr. 9. Turnov – ul. Palackého. Pohled na město z r. 1899 (MČRT).\nObr. 10. Turnov – ul. Palackého. Povodně v r. 1915 (MČRT).\nObr. 11. Turnov – ul. Palackého. Stav po povodni v r. 1915 (MČRT).\nObr. 12. Turnov – ul. Palackého. Ulice po rekonstrukci v r. 1925 (MČRT).\nObr. 13. Turnov – ul. Palackého. Bývalá barvírna č. p. 175 v r. 1925 (MČRT).\nObr. 14. Turnov – ul. Palackého. Most přes Malou Jizeru (tj. umělý kanál; MČRT).\nObr. 15. Turnov – ul. Palackého. Rozšíření ulice v 30. – 40. letech 20. stol. (MČRT).\nObr. 16. Turnov – ul. Palackého. Přestavba mostu a celková rekonstrukce ulice s objízdnou\ntrasou pro automobily okolo bývalé manufaktury přes luka v r. 1959 (MČRT).\nObr. 17. Turnov – ul. Palackého. Západní část „mezimostí“ a most přes Jizeru, vlevo\nodstavený letoun MiG-15, 60.-70. léta 20. stol. (MČRT).\nObr. 18. Turnov – ul. Palackého. GIS: celková situace (QGIS).\nObr. 19. Turnov – ul. Palackého. GIS: detail – východní část zkoumaného prostoru (QGIS).\nObr. 20. Turnov – ul. Palackého. GIS: detail – střední část zkoumaného prostoru (QGIS).\nObr. 21. Turnov – ul. Palackého. GIS: detail – západní část zkoumaného prostoru (QGIS).\nObr. 22. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 23. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 24. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 25. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 26. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 27. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 28-29. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 30. Turnov – ul. Palackého. Pokračování hloubení ve východní části výkopu po\nzdokumentování situace na snímku v popředí (Foto P. Hartman 15. 3. 2018).\nObr. 31-32. Turnov – ul. Palackého. Pokračování v odkryvu u č. p. 175 (Foto P. Hartman 15.\n3. 2018).\nObr. 33-34. Turnov – ul. Palackého. Fotodokumentace odkryté situace u domu č. p. 175 (Foto\nP. Hartman 15. 3. 2018).\nObr. 35. Turnov – ul. Palackého. Fotodokumentace situace u č. p. 175 (Foto P. Hartman 15. 3.\n2018).\nObr. 36-37. Turnov – ul. Palackého. Fotodokumentace situace před domem č. p. 175 (Foto P.\nHartman 15. 3. 2018).\nObr. 38-39. Turnov – ul. Palackého. Fotodokumentace situace (Foto P. Hartman 15. 3. 2018).\nObr. 40-41. Turnov – ul. Palackého. Fotodokumentace severního řezu výkopu u domu č. p.\n175 poblíž mostu přes Malou Jizeru (Foto P. Hartman 23. 3. 2018).\nObr. 42-43. Turnov – ul. Palackého. Fotodokumentace severního výkopu u domů č. p. 175\npoblíž mostu přes Malou Jizeru (Foto P. Hartman 23. 3. 2018).\nObr. 44-45. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190\n(Foto P. Hartman 23. 3. 2018).\nObr. 46-47. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 –\nseverní řez (Foto P. Hartman 23. 3. 2018).\nObr. 48-49. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 –\nseverní řez (Foto P. Hartman 23. 3. 2018).\nObr. 50. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 –\nseverní řez, propojení snímku nahoře východní část, dole západní (Foto P. Hartman 23. 3.\n2018).\nObr. 51-52. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 (Foto P.\nHartman 23. 3. 2018).\nObr. 53-54. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 (Foto P.\nHartman 23. 3. 2018).\nObr. 55-56. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\njižní řez výkopem (Foto P. Hartman 23. 3. 2018).\nObr. 57-58. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nseverní řez výkopem (Foto P. Hartman 23. 3. 2018).\nObr. 59. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nseverní řez výkopem (Foto P. Hartman 23. 3. 2018).\nObr. 60. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nzápadní konec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 61-62. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nzápadní konec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 63-64. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nzápadní konec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 65. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 766 a 187 – pohled na severní řez\nhlavního výkopu pro kanalizaci s nálezem kamenného zdiva (Foto P. Hartman 29. 3. 2018).\nObr. 66. Turnov – ul. Palackého. Část výkopu před domem č. p. 186 – pohled na severní řez hlavního\nvýkopu pro kanalizaci s nálezem kamenného zdiva (Foto P. Hartman 4. 4. 2018).\nObr. 67. Turnov – ul. Palackého. Výkop před domy č. p. 185-188 (Foto P. Hartman 5. 4. 2018).\nObr. 68. Turnov – ul. Palackého. Výkop před domy č. p. 188-185 (Foto P. Hartman 5. 4. 2018).\nObr. 69. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 9. 4. 2018).\nObr. 70. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 9. 4. 2018).\nObr. 71. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 6. 4. 2018).\nObr. 72. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 (Foto P. Hartman 11. 4. 2018).\nObr. 73. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 – relikty činžovního domu č. p. 179\nzbořeného po r. 1959 (Foto P. Hartman 11. 4. 2018).\nObr. 74. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 – relikty činžovního domu č. p. 179\nzbořeného po r. 1959 (Foto P. Hartman 11. 4. 2018).\nObr. 75. Turnov – ul. Palackého. Závěr výzkumného polygonu před domem č. p. 573 u velkého mostu\npřes Jizeru (Foto P. Hartman 13. 4. 2018).\nObr. 76. Turnov – ul. Palackého. Půdorys K901 dokumentované před domem č. p. 175.\nObr. 77. Turnov – ul. Palackého. Řez K901 dokumentované před domem č. p. 175.\nObr. 78. Turnov – ul. Palackého. Řez K902 dokumentované před domy č. p. 175 a 190.\nObr. 79. Turnov – ul. Palackého. Řez K903 dokumentované před domy č. p. 189 a 190.\nObr. 80. Turnov – ul. Palackého. Řez K903 a 904 dokumentované mezi domy č. p. 175, 766 a 190.\nObr. 81. Turnov – ul. Palackého. Řez K905 dokumentované mezi domem č. p. 766.\nObr. 82. Turnov – ul. Palackého. Řez K906 dokumentované mezi domem č. p. 185.¨\nObr. 83. Turnov – ul. Palackého. Získané nálezy, soubor 1, před č. p. 175.\nObr. 84. Turnov – ul. Palackého. Získané nálezy, soubor 2, před č. p. 184.\n10. Přílohy\nObr. 1. Turnov – ul. Palackého. Úvodní foto – pohled na výkop mezi domy č. p. 190 a 175, jde o\nzpevňující zeď komunikace (Foto P. Hartman 23. 3. 2018).\nObr. 2. Turnov – ul. Palackého. Výřez z mapy Stabilního katastru ( ČÚZK 2021a ).\nObr. 3. Turnov – ul. Palackého. Výřez z mapy J. V. Šimáka (MČRT).\nObr. 4. Turnov – ul. Palackého. Výřez z leteckého snímku z r. 1938 ( ČÚZK 2021b ).\nObr. 5. Turnov – ul. Palackého. Výřez z mapy stínovaného modelu terénu ( ČÚZK 2021c ).\nObr. 6. Turnov – ul. Palackého. Výzkumný polygon = stavba vodovodu a kanalizace.\nObr. 7. Turnov – ul. Palackého. Veduta od ak. malíře pana M. Bělohlávka (MČRT).\nObr. 8. Turnov – ul. Palackého. Nejstarší fotografie Turnova z r. 1866 (MČRT).\nObr. 9. Turnov – ul. Palackého. Pohled na město z r. 1899 (MČRT).\nObr. 10. Turnov – ul. Palackého. Povodně v r. 1915 (MČRT).\nObr. 11. Turnov – ul. Palackého. Stav po povodni v r. 1915 (MČRT).\nObr. 12. Turnov – ul. Palackého. Ulice po rekonstrukci v r. 1925 (MČRT).\nObr. 13. Turnov – ul. Palackého. Bývalá barvírna č. p. 175 v r. 1925 (MČRT).\nObr. 14. Turnov – ul. Palackého. Most přes Malou Jizeru (tj. umělý kanál; MČRT).\nObr. 15. Turnov – ul. Palackého. Rozšíření ulice v 30. – 40. letech 20. stol. (MČRT).\nObr. 16. Turnov – ul. Palackého. Přestavba mostu a celková rekonstrukce ulice s objízdnou trasou pro\nautomobily okolo bývalé manufaktury přes luka v r. 1959 (MČRT).\nObr. 17. Turnov – ul. Palackého. Západní část „mezimostí“ a most přes Jizeru, vlevo odstavený letoun MiG-15,\n60.-70. léta 20. stol. (MČRT).\nO\nb\nr\n.\n18\n.\nT\nu\nr\nnov\n–\nu\nl\n.\nP\na\nl\nac\nk\né\nho\n.\nG\nI\nS\n:\nce\nl\nkov\ná\ns\nit\n31 u\nace\n( QG\nI\nS\n)\n.\nO\nb\nr\n.\n19\n.\nT\nu\nr\nnov\n–\nu\nl\n.\nP\na\nl\nac\nk\né\nho\n.\nG\nI\nS\n:\nd\ne\nt\na\nil\n–\nvý\nc\n32\nhodn\ní\nčá\ns\nt\nz\nkou\nm\na\nn\né\nho\np\nr\no\ns\nt\no\nr\nu\n( QG\nI\nS\n)\n.\nO\nb\nr\n.\n20\n.\nT\nu\nr\nnov\n–\nu\nl\n.\nP\na\nl\nac\nk\né\nho\n.\nG\nI\nS\n:\nd\ne\nt\na\nil\n–\ns\nt\nř\ne\n33\ndn\ní\nčá\ns\nt\nz\nkou\nm\na\nn\né\nho\np\nr\no\ns\nt\no\nr\nu\n( QG\nI\nS\n)\n.\nO\nb\nr\n.\n21\n.\nT\nu\nr\nnov\n–\nu\nl\n.\nP\na\nl\nac\nk\né\nho\n.\nG\nI\nS\n:\nd\ne\nt\na\nil\n–\nzá\np\n34\na\ndn\ní\nčá\ns\nt\nz\nkou\nm\na\nn\né\nho\np\nr\no\ns\nt\no\nr\nu\n( QG\nI\nS\n)\n.\nObr. 22. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 23. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 24. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 25. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 26. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 27. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 28-29. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 30. Turnov – ul. Palackého. Pokračování hloubení ve východní části výkopu po zdokumentování\nsituace na snímku v popředí (Foto P. Hartman 15. 3. 2018).\nObr. 31-32. Turnov – ul. Palackého. Pokračování v odkryvu u č. p. 175 (Foto P. Hartman 15. 3. 2018).\nObr. 33-34. Turnov – ul. Palackého. Fotodokumentace odkryté situace u domu č. p. 175 (Foto P.\nHartman 15. 3. 2018).\nObr. 35. Turnov – ul. Palackého. Fotodokumentace situace u č. p. 175 (Foto P. Hartman 15. 3. 2018).\nObr. 36-37. Turnov – ul. Palackého. Fotodokumentace situace před domem č. p. 175 (Foto P. Hartman\n15. 3. 2018).\nObr. 38-39. Turnov – ul. Palackého. Fotodokumentace situace (Foto P. Hartman 15. 3. 2018).\nObr. 40-41. Turnov – ul. Palackého. Fotodokumentace severního řezu výkopu u domu č. p. 175 poblíž\nmostu přes Malou Jizeru (Foto P. Hartman 23. 3. 2018).\nObr. 42-43. Turnov – ul. Palackého. Fotodokumentace severního výkopu u domů č. p. 175 poblíž mostu\npřes Malou Jizeru (Foto P. Hartman 23. 3. 2018).\nObr. 44-45. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 (Foto P.\nHartman 23. 3. 2018).\nObr. 46-47. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 – severní řez\n(Foto P. Hartman 23. 3. 2018).\nObr. 48-49. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 – severní řez\n(Foto P. Hartman 23. 3. 2018).\nObr. 50. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 – severní řez,\npropojení snímku nahoře východní část, dole západní (Foto P. Hartman 23. 3. 2018).\nObr. 51-52. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 (Foto P. Hartman 23.\n3. 2018).\nObr. 53-54. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 (Foto P. Hartman 23.\n3. 2018).\nObr. 55-56. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na jižní řez\nvýkopem (Foto P. Hartman 23. 3. 2018).\nObr. 57-58. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na severní\nřez výkopem (Foto P. Hartman 23. 3. 2018).\nObr. 59. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na severní řez\nvýkopem (Foto P. Hartman 23. 3. 2018).\nObr. 60. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na západní\nkonec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 61-62. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na západní\nkonec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 63-64. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na západní\nkonec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 65. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 766 a 187 – pohled na severní řez\nhlavního výkopu pro kanalizaci s nálezem kamenného zdiva (Foto P. Hartman 29. 3. 2018).\nObr. 66. Turnov – ul. Palackého. Část výkopu před domem č. p. 186 – pohled na severní řez hlavního\nvýkopu pro kanalizaci s nálezem kamenného zdiva (Foto P. Hartman 4. 4. 2018).\nObr. 67. Turnov – ul. Palackého. Výkop před domy č. p. 185-188 (Foto P. Hartman 5. 4. 2018).\nObr. 68. Turnov – ul. Palackého. Výkop před domy č. p. 188-185 (Foto P. Hartman 5. 4. 2018).\nObr. 69. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 9. 4. 2018).\nObr. 70. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 9. 4. 2018).\nObr. 71. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 6. 4. 2018).\nObr. 72. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 (Foto P. Hartman 11. 4. 2018).\nObr. 73. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 – relikty činžovního domu č. p. 179\nzbořeného po r. 1959 (Foto P. Hartman 11. 4. 2018).\nObr. 74. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 – relikty činžovního domu č. p. 179\nzbořeného po r. 1959 (Foto P. Hartman 11. 4. 2018).\nObr. 75. Turnov – ul. Palackého. Závěr výzkumného polygonu před domem č. p. 573 u velkého mostu\npřes Jizeru (Foto P. Hartman 13. 4. 2018).\nObr. 76. Turnov – ul. Palackého. Půdorys K901 dokumentované před domem č. p. 175.\nObr. 77. Turnov – ul. Palackého. Řez K901 dokumentované před domem č. p. 175.\nObr. 78. Turnov – ul. Palackého. Řez K902 dokumentované před domy č. p. 175 a 190.\nObr. 79. Turnov – ul. Palackého. Řez K903 dokumentované před domy č. p. 189 a 190.\nObr. 80. Turnov – ul. Palackého. Řez K903 a 904 dokumentované mezi domy č. p. 175, 766 a 190.\nObr. 81. Turnov – ul. Palackého. Řez K905 dokumentované mezi domem č. p. 766.\nObr. 82. Turnov – ul. Palackého. Řez K906 dokumentované mezi domem č. p. 185.\nObr. 83. Turnov – ul. Palackého. Získané nálezy, soubor 1, před č. p. 175.\nObr. 84. Turnov – ul. Palackého. Získané nálezy, soubor 2, před č. p. 184.",
+    "text": "Muzeum Českého ráje\nSkálova 71, 511 01 Turnov\ntel./fax: 481-322106, 325277\nmailto: mail@muzeum-turnov.cz\nNálezová zpráva ze záchranného archeologického výzkumu\nTurnov (okr. Semily)\n„ Turnov – oprava VH sítí v ul. Palackého “\n03 – 04/2018\nID 24/2018, AMČR C-201800965\nvedoucí výzkumu: PhDr. Jan Prostředník, PhD. (Muzeum Českého ráje v Turnově)\nterénní technik: Petr Hartman, Mgr. Roman Sirovátka (Muzeum Českého ráje v Turnově)\nNázev výzkumu: „ Turnov – oprava VH sítí v ul. Palackého “\nProjektový název stavby: „ Turnov – oprava VH sítí v ul. Palackého “\nInvestor: Vodohospodářské sdružení Turnov, Dobrovolný svazek obcí, Antonína Dvořáka\n287, 511 01 Turnov; IČO 49295934\nProjektant: –\nOprávněná organizace ve věci provádění archeologických výzkumů:\nMuzeum Českého ráje v Turnově, Skálova 71, 511 01 Turnov; IČO: 00085804\nOdborný garant záchranného archeologického výzkumu:\nPhDr. Jan Prostředník, PhD. (Muzeum Českého ráje v Turnově)\nLokalizace: S-JTSK: 1) 683921,61/994727,18; 2) 684086,13/994705,18\nProjekt AMČR: C-201800965\nTermín provedení záchranného archeologického výzkumu: 13. března – 24. dubna 2018\nAutor nálezové zprávy: Mgr. Roman Sirovátka, 7. 11. 2022.\nObsah\n1. Úvod ....................................................................................................................................... 4\n2. Popis a kontext lokality .......................................................................................................... 4\n3. Metodika výzkumu a popis nálezové situace ......................................................................... 4\n4. Interpretace nálezové situace ................................................................................................. 5\n4.1 Typologie zjištěných historických terénů a jejich lokalizace ........................................... 5\n4.2 Situace před domem čp. 175 ............................................................................................ 6\n4.3 Situace mezi domy č. p. 189, 175 a 766 a dále před č. p. 185 ......................................... 6\n4.4 Situace před domy č. p. 184 a 526 ................................................................................... 7\n4.5 Archeologické nálezy ....................................................................................................... 7\n5. Exkurs 1: Zaniklé domy v „mezimostí“ ................................................................................. 7\n6. Exkurs 2: Zpráva k domu č. p. 189 ...................................................................................... 16\n7. Závěr ..................................................................................................................................... 16\n8. Prameny a literatura ............................................................................................................. 18\n9. Seznam příloh ....................................................................................................................... 18\n10. Přílohy ................................................................................................................................ 22\n1. Úvod\nOd března do dubna 2018 proběhl záchranný archeologický výzkum (ZAV) v souvislosti\ns opravou VH sítí a kompletní rekonstrukcí ulice Palackého v k. ú. Turnov (ID ZAV 24/2018,\nprojekt AMČR C-201800965). Stavba byla situována na pozemcích 308/1, 308/2, 308/3, 308/4,\n308/5, 308/6, 308/8, 308/9, 308/10, 308/11, 308/20308/21, 308/22, 308/23, 308/24 mezi domy\nč. p. 190 až 536. Investorem stavby byla společnost Vodohospodářské sdružení Turnov,\nDobrovolný svazek obcí, Antonína Dvořáka 287, 511 01 Turnov.\n2. Popis a kontext lokality\nZkoumaný prostor západní části ulice Palackého leží mimo MPZ Turnov. Území se nachází\nuprostřed inundace řeky Jizery. Jde o původně záplavovou zónu, kterou v těchto místech\nminimálně od vrcholného středověku protnula komunikace vedená přes řečiště nejprve brodem,\npozději přes dřevěný most. Ve vrcholném středověku vzniklo rozsáhlé vodní dílo – struha –\ndnes zvaná Malá Jizera, čímž se referovaný prostor s komunikací ocitl „na ostrově“ mezi\npůvodním řečištěm a nově vybudovaným kanálem. Předpokládáme, že prvotní zástavba zde\nvznikla na přelomu středověku a novověku. Domy se vázaly přímo na komunikaci, která byla\npostupně vyvyšována až o několik metrů nad záplavové území. Zástavba se zahustila téměř do\ndnešní podoby již v průběhu 16. a 17. století, jak dokládají zprávy o majetkových poměrech\nzprostředkovaných J. V. Šimákem (1904, 347-367).\n3. Metodika výzkumu a popis nálezové situace\nPo oznámení stavebního záměru jsme se dohodli se stavebníkem na provedení záchranného\narcheologického výzkumu, který probíhal podle postupu zemních prací formou dohledů\nprovedených ve dnech: 13/03, 14/03, 15/03, 19/03, 20/03, 23/03, 26/03, 28/03, 29/03, 04/04,\n06/04, 09/04, 10/04, 11/04, 16/04 a 24/04/2018.\nZemní práce realizovány v předjaří za vlhkého počasí. Průběh ZAV byl limitován stavebním\nvýkopem zejména pro kanalizační stoku. Historické terény byly zjištěny v hlavním výkopu pro\nkanalizaci ve východní části stavby během dohledu mezi domy č. p. 175 a 190. Zastavili jsme\nzemní práce a provedli nezbytné začištění a dokumentaci. Poté jsme dozorovali další\npokračování výkopu, čímž došlo k dalšímu odhalení historických terénů a konstrukcí.\nPo realizaci hlavní části stavby byly podle potřeby přikládán vodovod a inženýrské sítě. Ostatní\nčást ulice byla odkryta kromě chodníků (ty byly realizovány po skončení hlavní stavby) pouze\nna nezbytnou hloubku, aby mohla být provedena rekonstrukce vozovky.\nBěhem výkopových prací byl získán drobný soubor novověké až recentní keramiky. Šlo o\njediné movité archeologické nálezy, vzorky na environmentální analýzy nebyly odebrány.\nPo provedení terénní části byla s odstupem času v r. 2022 vyhotovena tato nálezová zpráva. Při\njejím zpracování byla provedena heuristická část ZAV. Během ní byl prohledán archiv\nhistorických fotografií uložených v turnovském muzeu, který přinesl zjištění o podobě ulice\nještě v 19. a počátku 20. století. Důležitým zjištěním bylo, že zjištěné konstrukce při výzkumu\nz větší části souvisejí s opěrnou zdí, a nikoliv s předpokládaným vodním kanálem.\nZaměřené relikty zdí a zejména ty dokumentované a porovnané s historickými fotografiemi\nbyly následně zaneseny do prostředí GIS (zpracování proběhlo v programu QGIS verze 3.16).\nTam byly znázorněny v podobě polygonů a linií. Polygony výkopů na plánech byly odvozeny\nz projektové dokumentace, katastrální mapy a vzájemné dispozice budov (Obr. 6, 18-21). Pro\ntvorbu plánu bylo velmi nápomocné měření přímo v GIS a v Analýzách výškopisu (ČÚZK\n2021c). Zmapovány byly také proměny zástavby v průběhu 19. a 20. století. Půdorysy starších\ndomů znázorněné na obr. 18 byly zakresleny na základě provnání Šimákovy mapy se Stabilním\nkatastrem (Šimák 1904; ČÚZK 2021a).\n4. Interpretace nálezové situace\nV ulici byly dokumentovány tři typy historických terénů:\n1) Uloženiny související s komunikací,\n2) Recentní kanalizace a vkopy,\n3) Zděné konstrukce a jejich zásypové horizonty.\nŠlo o relikty zděných konstrukcí a souvztažných kulturních nebo zásypových vrstev, které lze\ndatovat do širšího intervalu raného až vrcholného novověku (16. – 18./19. stol.).\nJednotlivé relikty konstrukcí byly zkoumány v rámci terénního archeologického výzkumu,\nkterý navazoval na proběhnuvší výkopové práce. Historické terény byly standardně\ndokumentovány kresebně i fotograficky a část z nich byla geodeticky zaměřena (tj. východní\nčást ve výkopu u č. p. 175 (zaměření, výpočty a zpracování bylo provedeno v závazném\nreferenčním systému Jednotné trigonometrické sítě katastrální S-JTSK a výškového systému\nBalt po vyrovnání; viz Tab. 2, viz Obr. 18, 19 – zelené body = zaměření).\nStratigrafie ve stavbou dotčených terénech byla poměrně uniformní (viz dále). Podloží zde\ntvořil zejména náplavový říční sediment a ojedinělé ostrůvky spraše.\n4.1 Typologie zjištěných historických terénů a jejich lokalizace\n1) Uloženiny související s komunikací\nStratigrafie dokumentovaná v řezech hlavního výkopu: 1) povrch – asfalt, 2) kamenné kostky\n„kočičí hlavy“, 3) štěrk, 4) kamenný štět (čedič), 5) jíl, 6) tmavý okrový jíl, 7) štěrkopísek, 8)\nkamenné konstrukce – pískovcové zdivo (K 901–906), 2x klenba kolmo k průběhu ulice,\nrozrušeno výkopovými pracemi.\nZjištěné konstrukce, evidované při kresebné dokumentaci (další část byla dokumentována\npouze fotograficky), patří k archeologicky nejhodnotnějšímu zjištění. Jedná se o relikty\nseverního zpevnění vyvýšené komunikace.\nV terénu a následně při tvorbě Expertního listu pro investora jsme kamenné relikty původně\nmylně pokládali buď za pozůstatky někdejší zástavby, mostního pilíře nebo dokonce za vodní\nkanál k předpokládanému mlýnu nebo manufaktuře. Během heuristické části však bylo\nzjištěno, že zjištěné relikty jsou původní zpevnění komunikace. Odhalená zeď měla dvojí\nfunkci: zpevnění cesty a zejména její ochranu proti častým povodním.\n2) Recentní vkopy pro kanalizaci a inženýrské sítě\nNa více místech v hlavním výkopu byly pozorována rozrušená recentní keramická nebo\nplastová potrubí a vkopy pro ně, které narušovaly starší uloženiny popsané výše.\n3) Zděné konstrukce domu č. p. 179\nZákladové zdivo činžovního domu č. p. 179 vystavěného ke konci 19. stol., bohužel nebyly\ndokumentovány žádné konstrukce související s bývalou pazdernou s počátky snad již v 15. stol.\n(historické terény zřejmě zničeny při výstavbě činžovního domu).\nčíslo\nkontextu\npopis\ndatace\ninterpretace\n901\nzdivo z druhotně\npoužitých štuků\n18./19. stol. (?)\nopěrná zeď\nObr. 22-39; 76, 77\n902\nzdivo z druhotně\npoužitých štuků\n19. stol.\nopěrná zeď\nObr. 44-64; 78\n903\nzdivo z druhotně\npoužitých štuků\n19. stol.\nopěrná zeď\nObr. 44-64; 79, 80\n904\nzdivo tvořící valeně\nklenutou klenbu\n19. stol.\npovodňový propustek\nObr. 52-64; 80\n905\nzdivo z druhotně\npoužitých štuků\n19. stol.\nopěrná zeď\nObr. 10, 11; 65, 66; 81\n906\nzdivo tvořící valeně\nklenutou klenbu\n19. stol.\npovodňový propustek\nObr. 10, 11; 69, 70, 71; 82\nTab. 1. Turnov – ul. Palackého. Přehled stratigrafických jednotek.\n4.2 Situace před domem čp. 175\nŠlo o pozůstatek zdiva z pískovcových štuků, zřejmě z první poloviny 19. století, které byly\nzasypány po r. 1850 (S-JTSK: 683942,1/994719,46). Konstrukce (K 901) fungovala jako\nopěrná zeď. Velmi pravděpodobně se jedná o jedno ze statických zajištění a jednu ze stavebních\nfází vyvýšené komunikace mezi mosty. V odhalené nejnižší nivelitě výkopu, tj. hl. 2,5 m,\ndosahovalo zdivo šíře cca 1,2 m. Velmi zajímavé bylo druhotné nebo primární užití tří pečlivě\nopracovaných kamenů, které buď zde, nebo v případě druhotného užití fungovaly jako schody\n(viz obrazová příloha, Obr. 32-39).\n4.3 Situace mezi domy č. p. 189, 175 a 766 a dále před č. p. 185\nPozůstatky opěrné zdi s dvěma protipovodňovými propustky (linie S-JTSK: 1)\n683939,19/994715,82; 2) 684021,17/994715,45) vystavěné po r. 1850 a zasypané vytvořením\nnáspu ještě před rokem 1915. Po tomto roce došlo k rekonstrukci ulice a obnově poškozených\ndomů. Ve 20. letech 20. století byly na severní straně u malého mostu postaveny současné domy\nč. p. 766 a o pár let později současný dům č. p. 175 jako náhrada za bývalou barvírnu.\nID\ny\nx\npopis\n1\n-683932.6434,250.2067\n-994723.5065\nvýzkumný polygon\n2\n-683930.9920,249.7920\n-994718.7719\nvýzkumný polygon\n3\n-683937.0852,250.2098\n-994717.2415\nvýzkumný polygon\n4\n-683937.2682,250.1822\n-994722.5088\nvýzkumný polygon\n5\n-683938.7296,250.0434\n-994720.5673\nvýzkumný polygon\n6\n-683938.3274,248.3508\n-994719.1312\nzeď\n7\n-683932.2436,248.1985\n-994721.7356\nzeď\n8\n-683939.7415,249.0100\n-994718.7142\nzeď\n9\n-683939.2708,248.9730\n-994718.7479\nzeď\n10\n-683938.6278,249.3252\n-994719.0137\nštět-NI\n11\n-683939.9303,248.7166\n-994718.7238\nzeď\n12\n-683939.8192,248.7080\n-994718.0896\nzeď\nTab. 2. Turnov – ul. Palackého. Zaměření zkoumané části před č. p. 175.\n4.4 Situace před domy č. p. 184 a 526\nPozůstatky zbořeného domu č. p. 179 (střed S-JTSK: 684042,21/994716,82). Dům byl zbořen\npo r. 1959. Šlo o činžovní dům vystavěného na místě bývalé „pazderny“ v polovině 19. století\n(viz níže). Ve výkopu byly odhaleny relikty cihlového a základového kamenného zdiva se\nsvětlíky do sklepení (to nezkoumáno).\n4.5 Archeologické nálezy\nBěhem průběžných dohledů byl získán soubor nálezů. Jde o recentní keramiku ze zásypů.\nSoubor 1, získán před č. p. 175, parc. č.: 308/1, 308/8; Obr. 83:\n10 ks KE (3 kachle, 3 okraje, 1 zmetek, 1 ucho, 2 atyp); 2 BK (knoflík, spona/štítek?), 2 FE, 1\nkost.\nSoubor 2, získán před č. p. 184, parc. č.: 308/11, 308/1, 308/8; Obr. 84:\n2 ks KE nádob (nezdob, neglaz).\n5. Exkurs 1: Zaniklé domy v „mezimostí“\nMěstská část „mezimostí“, nebo též „mezi mosty“ se nachází mezi velkým mostem přes Jizeru\na mostem malým přes kanál Malou Jizerou. Mosty samotné byly původně dřevěné zastřešené.\nV druhé pol. 19. stol. je nahradily mosty nové bez zastřešení. Další obnova mostů probíhala na\nkonci 19. století (první mosty kovové konstrukce), v období 1. republiky, v 60. letech 20. stol.\na naposledy v letech 1999 (rekonstrukce velkého mostu) a r. 2018-2019 (rekonstrukce malého\nmostu). Sledovaný prostor je součást ulice zvané původně ul. Mostecká, od r. 1859 ul. Nádražní\na nyní ul. Palackého. Původně, nejméně již od 14. nebo 15. století, byla cesta mezi mosty\nvyvýšena nad záplavovou nivu Jizery. Ještě na historických snímcích (viz Příloha) je zřetelný\nvýškový rozdíl mezi komunikací a domy severně od ní. Tato část textu se věnuje právě jim 1 .\nČ. p. 175 (st. 263, barevna)\nJednalo se původně snad o barokní až rokokovou patrovou budovu s palovalbovou střechou,\ndům měl rozsáhlou zahradu a prošel nejméně dvěma stavebními etapami. Je možné, že dům\nměl nejprve zděné pouze přízemí a další části byly dřevěné. Na historických snímcích je však\njiž celý zděný a nese slohově empírové prvky (poč. 19. stol.). Funkčně dům sloužil jako\nbarevna, zbořen byl do r. 1925. Dnes na jeho místě stojí bývalá brusírna drahokamů Herman &\nPalma. Archeologicky nezachyceno, existují fotografie exteriéru (MČRT: Obr. 10, 11).\nHistorie domu (Šimák 1904, 347-349)\n1546, 27. srpna – Markéta barvířka zámostská připovídá se na peníze Jakuba malého Němce\npro dluh 1 k. 7. gr., půjčených jemu od neb. Jiříka barvíře.\n1558 – (1 O 1) - louka vedle struhy pod barvířem.\n1565, 4. července – (díl. ced.) - Hanuš barvíř (?).\n1569 – (reg. Sirotčí) - sirotci barvíře meziměstského.\n1571 – (kn. 2.; 114, 115) - Jan barvíř (?).\n1585 – (ou.) - Kryštof mandlíř.\n1587-1599 – (ou.) - Jakub mandlíř.\n1601 – (n. zel. 334, bl. 81) - Adam kolářův postoupil JMti pánu domu a barevny mezi mosty,\nkteréž držel z odkazu po neb. Jakubu Houbovi, mandlíři pláten.\n1606 – (ou.) - Martin Krauz, mandlíř.\n1636, 10. března – (st. 60) - Marek [Tázler], mandlíř, koupil dům, slove barevna, podle domce\nVáclava Dentulína, se zahradou při něm, mezi mosty, s rolí ornou i s osetím při Vesecku a na\nVohrazeništi ležící, od Doroty, tchýně své, vdovy po zemřelém Martinovi Krauzovi, mandlíři,\nza 300 k. Výměněk: svobodný byt s komorou a stravou a s vyživením jedné krávy.\n1663, 21. května – (st. 189) - Daniel Tázler, mandlíř, ujal barevnu mezi mosty s verštatem a\ns potřebami k řemeslu mandlířskému patřícími, jakož i rolí ornou mezi lesem Veseckem, od\nstarodávna k té barevně náležejícím, od Marka Tázlera, otce svého, za 250 k.; výměněk Marka\nTázlera se ženou: byt svobodný s komorou a chlévem, též s rolí Penčenkovskou.\n1 Historie domů je převzata z knihy J. V. Šimáka – Příběhy města Turnova na Jizerou (1904, 347-359).\n1700, 29. října – (bíl. 68) - Vavřinec Mehr z Hormrštorfu, mandlíř, koupil barevnu mezi mosty,\nse zahradou při ní, se třemi kusy role orné, k té barevně patřícími, u Vohrazenic, též čtvrtým\nkusem za lesem Veseckem, vedle cesty pěší, od Jana Strejčka z Vohrazenic vyhandlovaným,\ntéž s půl stodolou, od pana Daniele Tázlera, tchána svého, za 420 k. m. Výměnek Daniele\nTázlera: světnice nahoře se dvěma komorami do úmrtí.\n1741, 6. října – (požl. 8, 206) - František Meer, mandlíř, ujal dům neb barevnu se zahradou při\nní ležící, mezi mosty, vedle cesty průjizdné sousedské, též role, slove na Karlouště, pod 6\nstrychů, les u Vesecka pod 7 strychů, začnouc od silnice sychrovské a dobíhající až k lesu\ndesfourovskému se strany jedné a paní Anny Kobusové se strany druhé, dle průkazu kšaftu po\nzemřelém otci svém Vavčinci Meerovi za 150 zl. rýnských. Macecha jeho Terezie Meerová má\nv témž domě: „jednu světničku nahoře, s komorou, též půl stodoly a jeden chlív pro svůj\ndobytek, až do úmrtí neb jejího vdaní“.\n1746, 18. února – (zel. 36) - František Neuman, krejčí, koupil dům na obci, slove bývalou\nbarevnu, za malým mostkem, od Františka Meera, barvíře, za 316 zl. rýn. Vdova Terezie\nMeerová má v tom domě výměnek.\n1776, 16. ledna – (m. 394) - Josef Neuman koupil domek mezi mosty č. 263. s loukou, k němu\npřipojenou, se zahradou vedle cesty sousedské do luk jdoucí, od spoludědiců po Frant.\nNeumanovi, otci svém, za 300 zl. rýn.\n1816, 20. listopadu – (alb. 10) – Josef Neuman ujal se dědictví po otci Josefu bratru Aloisu,\ndomu v Mostecké ulici č. 263. st. 175. n.\n1854 – Josef Neuman.\n1857 – Josef a Helena Kroupovi.\n1883 – Josef Kroupa.\n1890 – Otilie Kroupová.\nChalupa zašlá mezi č. p. 175 a 176\nZcela zaniklý, zřejmě přízemní dřevěný dům zbořený do r. 1800. Dnes na jeho místě stojí\nbývalá Herman & Palma. Archeologicky nezachyceno, neexistují fotografie ani vyobrazení.\nHistorie domu (Šimák 1904, 349)\n1585 – (ou.) - Jakub Chodců platí 3 ½ gr. ouroku.\n1587-1594 – (ou.) - Jakub kolovrátník.\n1595-1606 – (ou.) - Anna kolovrátnice.\n1607 – (ou.) - Mikuláš Posselt, pekař.\n1608, 27. října – (bl. 117) - Jiřík Loveček koupil domec na obci za malým mostem, vedle\nbarevny Martina mandlíře a zahrádky Adama Suchana, od Mikuláše Poselta, pekaře, za 50 k.\nhot.\n1633 – (nz. 344) - Anna Lovečková.\n1634-1645 – (ou.) - Jakub Voskovaný.\n1673, 6. listopadu – (červ. 206) - Jiřík Tichej, jinak Voskovanej, ujal dům nápadem po\nMandelíně, matce své vlastní, v ulici za malým mostem k hrubému mostu, vedle domu Daniele\nTázlera, barvíře, se zahrádkou při témž domku, až k zahradě Dan. Hořičského dobíhající.\n1705 – (vyzn.) - pusté místo po Jakubu Voskovaném.\n1726 – (požl. 494) - Lorenc Meer přikoupil pusté místo k č. 177.\nČ. p. 177 (st. 264, zašlé)\nZcela zaniklý, zřejmě přízemní dřevěný dům zbořený do r. 1800. Archeologicky nezachyceno,\nneexistují fotografie ani vyobrazení.\nHistorie domu (Šimák 1904, 350-351)\n1585-1595 – (ou.) - Adam hajného platí 4 gr. ouroku.\n1595 – (ou.) - Matěj Žamberský.\n1606 – (ou.) - Zuzana Macháčková.\n1607-1610 – (ou.) - Šimon Střelecký.\n1614 – (ou.) - Samuel Macháčkův, jinak Žamberský.\n1618, 22. ledna – (nz. 130) - Simeon Chmel synu nejstaršímu Václavu z první manželky své\nDoroty koupil dům mezi mosty, vedle Martina Krauza, mandlíře a Sim. Fibikara, se zahradou,\nrámem, barevnou, prádlem, od Samuele Žamberského za 346 k.\n1629, 19. února – (nz. 765) - Šimon, syn neb., Šimona Chmele, soukeníka, koupil od Václava,\nbratra svého nejstaršího, za 140 k. Po něm dům koupil r. 1632, 21. června Václav Dentulin za\n135 k.\n1663 – (st. 189) - dům Jindřicha Millera.\n1665, 31. července – (č. 107) - Magdalena, vdova po Hen. Millerovi, soukeníku, ujala dům na\ngruntu mezi mosty v lukách, se zahradou a loukou, se stavem soukenickým a rámem, jehož ona\na syn její nevlastní do smrti užívati mají, od obce za 120 k.\n1666, 25. září – (č. 107) - Magdalena, vdova Millerová a již manželka Daniele Hořického,\npostupuje dům svůj manželu.\n1676, 25. září – Daniel Tázler koupil dům na gruntu mezi mosty, po neb. Dan. Hořickém, se\nzahradou a loukou při něm, vedle odhadu osob deputovaných za 110 k. m. Cestou, jdoucí týmž\ngruntem, smí projížděti jen ten, kdo v té straně grunty má, a to ještě musí se dřív ohlásiti.\n1700 – (bíl. 68) - dům Václava Tázlera.\n1705 – (vyzn.) - grunt pustý Hendrychovský Vavřinec Mér, mandlíř, drží.\n1712, 20. května – (bíl. 229) - Lorenc Meer, mandlíř, koupil zbořený grunt po neb. Dan.\nHořickém mezi mosty, od nápadníků po Danieli Konst. Tázlerovi za 150 k. m., s povinností\nstavěti.\n1726, 30. srpna – (požl. 494) - Lorec Meer koupil zahrádku slove Lovečovsko podle své\nzahrady od Jakuba Pusta za 14 k. m.\n1747, 30. června – (pom. 115) - Ant. Zíbr koupil grunt Hendrychovský v lukách, s pozemky,\nod Teresie, vdovy Meerovy, za 1100 k. gr.\n1768, 22. října – (m. 306) - Václav Vorel, řezník, ujal grunt Hendrychovský od Ant. Zíbra,\ntchána svého, za 1000 zl.\n1777, 18. března – (růž. 46) - Václav Vorel koupil dům č. 264. mezi mosty od otce svého\nVáclava za 500 zl.\n1779, 30. září – (růž. 81) - Václav Vorel ujal grunt Hendrychovský a to první polovici za 500\nzl., masný krám za 100 zl. a mobilie za 55 zl. 10 1 / kr. od dědiců po svém otci Václavu Vorlovi.\n2\nAntonín Vorel ujal druhou polovici gruntu za 859 zl. 10 1 / kr.\n2\n1792, 5. března – (vi. 133) - Václav Vorel prodal Antonínu Markovi a manželce jeho Josefě\nchalupu mezi mosty, tzv. grunt Hendrychovský, za 480 zl. Antonín Vorel prodal svou polovinu\nVáclavu Bičíkovi (vi. 182). Potom grunt zašel.\nČ. p. 176 (st. 265; nyní při č. 178)\nPůvodně skupina několika stavení, v 19. století rozšířeno a sjednoceno jako továrna na kartouny\nrodiny Weilů, součástí areálu byla atypická mohutná budova zvaná „henk“ s kamenným\npřízemím a patrem zajištěným opěrnými pilíři a vysokou dřevěnou nástavbou (zbořeno v letech\n1899-1901). Archeologicky nezachyceno, existuje několik fotografií exteriéru (MČRT).\nSoučástí areálu je také atypická mohutná budova zvaná „henk“ s kamenným přízemím a patrem\nzajištěným opěrnými pilíři a vysokou dřevěnou nástavbou (zbořeno v letech 1899-1901).\nArcheologicky nezachyceno, existuje několik fotografií exteriéru (MČRT).\nHistorie domu (Šimák 1904, 351-353)\n1585-1599 – (ou.) - Vávra kožišník platí 7 gr. ouroku a ½ gr. z kusu přidaného.\n1605 – (ou.) - Adam Suchan z rámu, koupeného od Simše Fabianova, platí 1 gr.\n1605, 5. prosince – (bl. 40) - Purkmistr a páni odevzdali Adamu Suchanovi kousek obce mezi\nmosty před okny jeho světnice pod plat, že po každém sv. Jiří a sv. Havlu 3 gr. platiti bude.\nVedle toho slíbil, že přes struhu, kteráž z dvoru jeho jde, 2 tesy položí, tak aby lidé přes ni volně\nchoditi mohli.\n1605, 5. prosince – (bl. 14) - Adam Suchan přijal od konšelů z poručení páně kus obce mezi\nmosty před okny konšelů z poručení páně kus obce mezi mosty před okny jeho světničnými\nblíž k oknům Prasátkovým za roční úrok 6 grošů k obci.\n1610, 15. listopadu – (bl. 173) - Šimeon, syn Václava Fibigara, koupil dům mezi mosty na obci,\nvedle domu Jiříka Prasátky a domu Jiříka Lovečka, se dvěma zahradami, od Adama Suchana,\nsoukeníka, za 220 k.\nR. 1612 koupila obec turnovská od Adama Suchana peněz gruntovních zbylých 132 k. za 40 k.\nhot.\n1633, 26. září – (n. zel. 343) - Jindřich Smichaeus koupil rám soukenický mezi mosty na obci,\nvedle domu Šim. Fibigara a domce Anny Lovečkovy, od Ondřeje Vejvody, Jana Špáty z Jičína,\nnápadníků nebožky Salomeny Suchanky, za 10 k. m.\n1640 – (ou.) - Šimon Fibigar.\n1642 – (ou.) - domec po Fibigarovi.\n1650, 10. října – (č. 65 b) - domec Jindřicha Rychtera pohodného.\n1665, 16. června – (žid. 890) – Daniel Richter, pohodný, kupuje domec Fibigarovský mezi\nmosty. Viz č. 181.\n1672, 14. října – (žid. 895) - Michal Holub, pohodlný a mistr popravní hradišťský, kupuje od\nDan. Richtra. Viz č. 181.\n1673, 20. října – (žid. 897) - Matěj Růžička, pohodlný. (Viz č. 181).\n1691, 23. července – (žl. 211) - Obec Turnovská koupila spáleniště na obci mezi mosty, se\nzahrádkou při něm, vedle zahrady Lovečkové a zahrady Hendrychovské, kterou Dan. Tázler\nnyní má, a domku Jana Krále, od Mandaleny, vdovy po neb. Matějovi Růžičkovi, pohodlném,\nza 40 k. m.\n1691, 3. prosince – (žl. 215) - Daniel Zikmund koupil domek na obci mezi mosty, se zahradou\npři něm, vedle zahrady Lovečkové a zahrady Hendrichovské a domku Jana Krále, od obce za\n40 k. Ouroku po 9 kr. 2 denárů. – „Poněvadž od starodávna tam poctiví lidé bydleli, až o\nnepřátelských vpádech se tam snížené lidé zdržovali, de nařízení poctivými lidmi se osazuje a\ntrestem se hrozí, kdo by nynější držitele utrhačným jazykem na poctivosti urážeti chtěl“.\n1765, 10 června – (pom. 132) - Joachim Durych koupil domek se zahradou mezi mosty od Jana\nBubáka a Antonína Zíbra, též dvě louky a mezi nimi kus role vorné za odhonem ležící, podle\ngruntů Jos. Zicha, Dan. Pacovského, mlynáře podkostelního, až k obec. gruntu dobíhající\nk Jizeře Malé, od Matěje Fridricha za 440 zl. r.\n1771, 30. ledna – (pom. 250) - František Danneberk koupil domek mezi mosty, se zahradou, od\nJáchyma Durycha, kamenáře, za 217 zl. r.\n1826, 31. ledna – (alb. 401) - Jan Černohouz koupil dům č. 265. od Marie Danneberkové.\n1830, 10. října – (fer. 183) - Jan Eisler prodal Josefu Pfeiferovi, obchodníku z Jablonce, dům č.\n176. mezi mosty.\n1834, 8. listopadu – (fer. 350,351) - Jan Eisler prodal domy č. 176. a č. 178. mezi mosty\nžidovské rodině Jáchyma Weila, majitele továrny na tisknutí kartonů, pro rozšíření závodu, za\n3200 zl. Ke kupu tomu Weil dostal 28. září 1834 cís. Svolení na revers, že užijte budov těch\njen k továrnímu provozování, a zanikne-li továrna, prodá hned stavení zase křesťanu.\n1859 – Františka Weilová.\n1889 – Arnošt a Rosa Weilovi.\nČ. 178 (st. 266)\nPůvodně skupina několika stavení, v 19. století rozšířeno a sjednoceno jako továrna na kartouny\nrodiny Weilů, součástí areálu byla atypická mohutná budova zvaná „henk“ s kamenným\npřízemím a patrem zajištěným opěrnými pilíři a vysokou dřevěnou nástavbou (zbořeno v letech\n1899-1901). Archeologicky nezachyceno, existuje několik fotografií exteriéru (MČRT).\nSoučástí areálu je také atypická mohutná budova zvaná „henk“ s kamenným přízemím a patrem\nzajištěným opěrnými pilíři a vysokou dřevěnou nástavbou (zbořeno v letech 1899-1901).\nArcheologicky nezachyceno, existuje několik fotografií exteriéru (MČRT).\nHistorie domu (Šimák 1904, 353-355)\n1585 – (ou.) - Valentin řezáč platí 3 gr. ouroku.\n1587-1618 – (ou.) - Jiřík Prasátko.\n1620 – (ou.) - Anna Prasátková, Šimon Ryba.\n1622, 24. ledna – (n. zel. 293) - Šimon Ryba ujal domec na obci mezi mosty, vedle domu\nŠimona Fibigkara a pazderny obecní, se zahrádkou, po tchánu svém Jiřím Prasátkovi, kšaftem\nsobě a manželce své Lidmile odkázaný, za 80 k.\n1622, 22. srpna – (n. zel. 326 b) - Pavel Valter, sítař, koupil dům na obci podle pazderny obecní\nod Šimona Ryby za 80 k. hotových.\n1633 – (ou.) - Pavel sítař.\n1637 – (ou.) - sítařka.\n1640, 24. září – (st. 34) - Jan Chloumecký koupil domec mezi mosty, zůstalý po zemřelém\nPavlu Valterovi, sítaři, se zahrádkou, od Jana Geblera a Marka mandlíře, poručníků sirotka Jana\nzůstalého za 32 k.\n1650, 10. října – (č. 65 b) - Jan Král, punčochář, koupil domec na obci mezi mosty, se\nzahrádkou, vdovy po Janu Chloumeckým, za 45 k. m. Anna Chloumecká a matka její mají\nv tom domě byt s komrou a v užívání 1 jabloň, 1 švestku. Jan Král má bezplatně vyučiti\nMikoláše Chloumeckého řemeslu punčochářskému.\n1692, 29. února – (žl. 222) - Jiřík Král koupil domec na obci mezi mosty, se zahrádkou při něm,\nod Jana Krále, otce svého, za 60 k. m. Výměnek Jana Krále s manželkou: byt svobodný ve\nsvětnici, s komorou a zahrádkou před okny, též 1 hrušku v zahradě, co slove Václavka větší, do\nsmrti.\n1720, 29. ledna – (požl. 149) - Šimon Král, punčochář, koupil domec na obci mezi mosty od\nKateřiny, vdovy s dětmi do vdaní nebo do smrti: malou světničku zadní, 4 švestkové stromy,\nhrušku jednu Václavku u síně, jabloň jednu vinnou pod hruškou pargamentkou, 2 záhony 6\nkroků dlouhé a 4 kroky široké, neb za výměnek 2 k. m. ročně.\n1757, 8. listopadu – (zel. 280) - Jan Cibulák, kolář, koupil domec na obci, blíž brány\nVelkomostské, po neb. Šimonu Královi za 235 k. m. hotov.; vdova Magdalena Králová má\ns hospodářem byt do smrti, 1 / ovoce, 3 mladé štípky, švestku před oknem a 2 záhony pro salát.\n3\n1777, 28. srpna – (m. 456) - Jiří Horna k ruce syna svého Jana koupil domec blíž brány\nVelkomostecký, se zahradou až k Hrubé Jizeře dobíhající, od Jana Bubáka za 150 zl. rýn.\n1790, 22. ledna – (viol. 67) - Jan Horna koupil od Jana Bubáka domek č. 266. blíž brány\nVelkomostský za 100 zl. se zahradou až k Hrubé Jizeře dobíhající.\n1798, 9. května – (j. zel. 83) - Václav Horna prodal Matěji Mlejnkovi z Konic Jiřího dům č.\n266., blíž brány Velkomostské.\n1823 – (fer. 170) - Jiří Mlejnek prodal Janu Eislerovi domek č. 178. za 420 zl.\n1834, 8. listopadu – (fer. 350, 351) - Jan Eisler prodal dům č. 178. Jáchymu Weilovi, židu, pro\nrozšíření továrny na kartouny (viz. č. 176).\n1859 – Františka Weilová.\n1889 – Arnošt a Rosa Weilovi.\nČ. p. 179 (st. 267)\nNa místě bývalé přízemní poloroubenky – tzv. pazderny. Na konci 19. stol. na jejím místě\nstavba činžovního domu, později nazývaný jako dům Dostrašilův. Novodobý dům prošel\ndvěma stavebními fázemi. Archeologicky zachyceno ve výkopu pro kanalizaci, existuje několik\nfotografií exteriéru (MČRT: Obr. 9, 14, 15).\nHistorie domu (Šimák 1904, 355-356)\nV XI. věku pazderna, dům v něm len trou (četné zápisy v kn. 1-4).\n1651, 9. ledna – (st. 91 b) - Jindřich Chloumecký koupil domec na obci mezi mosty, slove\npazderna, podle prošacování purkmistra a pánů za 40 k. se závazkem: „pánům sousedům té\ndobročinnosti a služebnosti proti předešlému platu obyčejnému bez překážky v té pazderně příti\na té kulně aneb podstájí před tou pazdernou nikdy nespouštěti bude povinen“.\n1688, 3. května – (žl. 157) - Jan Pecina, krejčí, koupil dům od Anny Chloumecký, tchýně své,\nza 80 k. m. Výměnek Anny Chloumecké: světničku s komůrkou, ovoce ze zahrady na polovic,\npak jednu jabloň vinnou, sladké jabloně ½, slívy sedmihradské blíž hrubého mostu 4, až do\nsmrti.\n1716, 4. prosince – (žl. 157) - Jan Pecina, kloboučník, ujal dům dle smlouvy s neb. Matkou a\nsestrami svými: Kateřinou, Dorotou, Alžbětou a Lidmilou za 90 k. m. hotov. Sestrám byt v tom\ndomě do vdaní neb do smrti.\n1756, 13. ledna – (zel. 263) - Alžběta Pecinová dostává od téhož manžela Jana Peciny, který\ndomec ten r. 1725, 16. února zapsaný má v ceně 90 k. m.\n1776, 16. dubna (m. 398) - Jiří Veska ujal dům č. 267. u velkého mostu od Jana Vesky, bratra\nsvého.\n1792, 30. října – (viol. 159) - Jiří Veska prodal Václ. Zunovi dům č. 267. za 415 zl.\n1807, 25. května – (jz. 163) – Václav Zuna prodal dům č. 267. st. 179. n. Josefu Jirovi\nz Ohrazenic.\n1826, 15. září – (žel. 11) - Kateřina, manželka Josefa Dostrašila, ujala se domu č. 267. s. 179.\nn. mezi mosty po otci Jos. Jírovi.\n1891 – Václav Dostrašil.\nČ. p. 183 (st. 1?)\nTj. „brána zrušená u mostu hrubého“. Jednalo se o dům, prve dřevěný, následně zřejmě\npřestavěný na kamenných základech (viz stabilní katastr) u zprve zastřešeného mostu přes\nJizeru a o dům, kde se vybíralo mýto.\nHistorie domu (Šimák 1904, 359)\n1850, 29. března – (II, 194) - v odhadu městského majetku píše se: „Domek pod číslem\ndomovním 183. u hrubého vodního mostu, nazvaný mostecká brána, ze dřeva vystaven,\nobsahuje jednu světničku. Cena tohoto domku i s místem na kterém stojí, udává se na 480 zl.“\nhistorických situací s historickými fotografickými snímky uložených v archivu turnovského\nmuzea (MČRT). Právě to nám napomohlo k přesné interpretaci odhalených konstrukcí, ohledně\nkterých jsme zprvu uvažovali zcela v jiném smyslu. První naše úvahy a představy počítaly s\nexistencí jakéhosi vodního kanálu k mlýnu či manufaktuře nebo dokonce interpretací zjištěných\nreliktů zdiva jako základů domů s připuštěním turbulentních změn zástavby v průběhu\npokročilého novověku.\nPo zhlédnutí dochovaných historických fotografií však vytkvěla zcela jiná představa o\ncharakteru této městské části v 18. a 19. století. Jednalo se o okrajovou městskou část, která\nměla po dlouhou dobu středověký charakter a začala se rozvíjet do dnešní podoby až v druhé\npol. 19. století. Na základě heusristického přístupu můžeme nyní potvrdit, že za velmi krátkou\ndobu se komunikace vedoucí skrze okrajovou městkou část proměnila v reprezentativní\nměstskou ulici. Došlo k tomu po záplavách v roce 1915, po nichž byl vystavěn dům nesoucí\nsoučasné č. p. 766. V souvislosti s tím došlo k následné rekonstrukci ulice, při níž zanikly\nprotipovodňové propustky a nedlouho poté došlo také k výstavbě funkcionalistické budovy\nbrusírny drahokamů Herman & Palma, tj. současné č. p. 175, v místech bývalé barvírny.\nArcheologický výzkum a následné porovnání s historickými fotografiemi dovolilo\npřipomenout, jaký charakter měla tato část města ještě v 19. a potažmo v 20. století. Na základě\ntěchto zjištění můžeme lépe uvažovat, jak komunikace a později ulice mohla vypadat ve\nstředověku.\n8. Prameny a literatura\nADČ 2017: Archeologická databáze Čech, k. ú. Turnov.\nČÚZK 2021a: Archiv. URL: <https://ags.cuzk.cz/archiv/>.\nČÚZK 2021b: Archiv LMS. URL: <https://ags.cuzk.cz/archiv/?start=lms>.\nČÚZK 2021c: Analýzy výškopisu. URL: <https://ags.cuzk.cz/av/>.\nMuzeum Českého ráje v Turnově, Sbírka fotografií.\nSchůze městského zastupitelstva Turnovského. In: Hlasy Pojizerské, roč. 37, č. 23, 4. červen\n1922, s. 2.\n– – –\nDemek - Mackovčin a kol. 2006: Zeměpisný lexikon ČR, Hory a nížiny. Praha.\nFilip, J. 1947: Dějinné počátky Českého ráje. Praha.\nMikyška, R. a kol., 1972: Geobotanická mapa ČSSR, Praha.\nNeuhäselová, Z. 2001: Mapa potenciální přirozené vegetace České republiky. Academia, Praha.\nProstředník, J. – Šída, P. 2010: Nejstarší dějiny Českého ráje a horního Pojizeří. Turnov.\nŠimák, J. V. 1904: Příběhy města Turnova nad Jizerou. Díl III. Místopis. Zprávy musea\nTurnovského V. za rok 1903–1904. Turnov.\nŠimák, J. V. 1909: Soupis památek historických a uměleckých v politickém okresu\nTurnovském. Praha.\n9. Seznam příloh\nTab. 1. Turnov – ul. Palackého. Přehled stratigrafických jednotek.\nTab. 2. Turnov – ul. Palackého. Zaměření zkoumané části před č. p. 175.\nObr. 1. Turnov – ul. Palackého. Úvodní foto – pohled na výkop mezi č. p. 190 a 175 , jde o\nzpevňující zeď komunikace (Foto P. Hartman 23. 3. 2018).\nObr. 2. Turnov – ul. Palackého. Výřez z mapy Stabilního katastru (ČÚZK 2021a).\nObr. 3. Turnov – ul. Palackého. Výřez z mapy J. V. Šimáka (MČRT).\nObr. 4. Turnov – ul. Palackého. Výřez z leteckého snímku z r. 1938 (ČÚZK 2021b).\nObr. 5. Turnov – ul. Palackého. Výřez z mapy stínovaného modelu terénu (ČÚZK 2021c).\nObr. 6. Turnov – ul. Palackého. Výřez z katastrální mapy, výzkumný polygon = stavba\nvodovodu a kanalizace (CorelDraw X8).\nObr. 7. Turnov – ul. Palackého. Veduta od ak. malíře pana M. Bělohlávka (MČRT).\nObr. 8. Turnov – ul. Palackého. Nejstarší fotografie Turnova z r. 1866 (MČRT).\nObr. 9. Turnov – ul. Palackého. Pohled na město z r. 1899 (MČRT).\nObr. 10. Turnov – ul. Palackého. Povodně v r. 1915 (MČRT).\nObr. 11. Turnov – ul. Palackého. Stav po povodni v r. 1915 (MČRT).\nObr. 12. Turnov – ul. Palackého. Ulice po rekonstrukci v r. 1925 (MČRT).\nObr. 13. Turnov – ul. Palackého. Bývalá barvírna č. p. 175 v r. 1925 (MČRT).\nObr. 14. Turnov – ul. Palackého. Most přes Malou Jizeru (tj. umělý kanál; MČRT).\nObr. 15. Turnov – ul. Palackého. Rozšíření ulice v 30. – 40. letech 20. stol. (MČRT).\nObr. 16. Turnov – ul. Palackého. Přestavba mostu a celková rekonstrukce ulice s objízdnou\ntrasou pro automobily okolo bývalé manufaktury přes luka v r. 1959 (MČRT).\nObr. 17. Turnov – ul. Palackého. Západní část „mezimostí“ a most přes Jizeru, vlevo\nodstavený letoun MiG-15, 60.-70. léta 20. stol. (MČRT).\nObr. 18. Turnov – ul. Palackého. GIS: celková situace (QGIS).\nObr. 19. Turnov – ul. Palackého. GIS: detail – východní část zkoumaného prostoru (QGIS).\nObr. 20. Turnov – ul. Palackého. GIS: detail – střední část zkoumaného prostoru (QGIS).\nObr. 21. Turnov – ul. Palackého. GIS: detail – západní část zkoumaného prostoru (QGIS).\nObr. 22. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 23. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 24. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 25. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 26. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 27. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 28-29. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 30. Turnov – ul. Palackého. Pokračování hloubení ve východní části výkopu po\nzdokumentování situace na snímku v popředí (Foto P. Hartman 15. 3. 2018).\nObr. 31-32. Turnov – ul. Palackého. Pokračování v odkryvu u č. p. 175 (Foto P. Hartman 15.\n3. 2018).\nObr. 33-34. Turnov – ul. Palackého. Fotodokumentace odkryté situace u domu č. p. 175 (Foto\nP. Hartman 15. 3. 2018).\nObr. 35. Turnov – ul. Palackého. Fotodokumentace situace u č. p. 175 (Foto P. Hartman 15. 3.\n2018).\nObr. 36-37. Turnov – ul. Palackého. Fotodokumentace situace před domem č. p. 175 (Foto P.\nHartman 15. 3. 2018).\nObr. 38-39. Turnov – ul. Palackého. Fotodokumentace situace (Foto P. Hartman 15. 3. 2018).\nObr. 40-41. Turnov – ul. Palackého. Fotodokumentace severního řezu výkopu u domu č. p.\n175 poblíž mostu přes Malou Jizeru (Foto P. Hartman 23. 3. 2018).\nObr. 42-43. Turnov – ul. Palackého. Fotodokumentace severního výkopu u domů č. p. 175\npoblíž mostu přes Malou Jizeru (Foto P. Hartman 23. 3. 2018).\nObr. 44-45. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190\n(Foto P. Hartman 23. 3. 2018).\nObr. 46-47. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 –\nseverní řez (Foto P. Hartman 23. 3. 2018).\nObr. 48-49. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 –\nseverní řez (Foto P. Hartman 23. 3. 2018).\nObr. 50. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 –\nseverní řez, propojení snímku nahoře východní část, dole západní (Foto P. Hartman 23. 3.\n2018).\nObr. 51-52. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 (Foto P.\nHartman 23. 3. 2018).\nObr. 53-54. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 (Foto P.\nHartman 23. 3. 2018).\nObr. 55-56. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\njižní řez výkopem (Foto P. Hartman 23. 3. 2018).\nObr. 57-58. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nseverní řez výkopem (Foto P. Hartman 23. 3. 2018).\nObr. 59. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nseverní řez výkopem (Foto P. Hartman 23. 3. 2018).\nObr. 60. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nzápadní konec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 61-62. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nzápadní konec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 63-64. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na\nzápadní konec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 65. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 766 a 187 – pohled na severní řez\nhlavního výkopu pro kanalizaci s nálezem kamenného zdiva (Foto P. Hartman 29. 3. 2018).\nObr. 66. Turnov – ul. Palackého. Část výkopu před domem č. p. 186 – pohled na severní řez hlavního\nvýkopu pro kanalizaci s nálezem kamenného zdiva (Foto P. Hartman 4. 4. 2018).\nObr. 67. Turnov – ul. Palackého. Výkop před domy č. p. 185-188 (Foto P. Hartman 5. 4. 2018).\nObr. 68. Turnov – ul. Palackého. Výkop před domy č. p. 188-185 (Foto P. Hartman 5. 4. 2018).\nObr. 69. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 9. 4. 2018).\nObr. 70. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 9. 4. 2018).\nObr. 71. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 6. 4. 2018).\nObr. 72. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 (Foto P. Hartman 11. 4. 2018).\nObr. 73. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 – relikty činžovního domu č. p. 179\nzbořeného po r. 1959 (Foto P. Hartman 11. 4. 2018).\nObr. 74. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 – relikty činžovního domu č. p. 179\nzbořeného po r. 1959 (Foto P. Hartman 11. 4. 2018).\nObr. 75. Turnov – ul. Palackého. Závěr výzkumného polygonu před domem č. p. 573 u velkého mostu\npřes Jizeru (Foto P. Hartman 13. 4. 2018).\nObr. 76. Turnov – ul. Palackého. Půdorys K901 dokumentované před domem č. p. 175.\nObr. 77. Turnov – ul. Palackého. Řez K901 dokumentované před domem č. p. 175.\nObr. 78. Turnov – ul. Palackého. Řez K902 dokumentované před domy č. p. 175 a 190.\nObr. 79. Turnov – ul. Palackého. Řez K903 dokumentované před domy č. p. 189 a 190.\nObr. 80. Turnov – ul. Palackého. Řez K903 a 904 dokumentované mezi domy č. p. 175, 766 a 190.\nObr. 81. Turnov – ul. Palackého. Řez K905 dokumentované mezi domem č. p. 766.\nObr. 82. Turnov – ul. Palackého. Řez K906 dokumentované mezi domem č. p. 185.¨\nObr. 83. Turnov – ul. Palackého. Získané nálezy, soubor 1, před č. p. 175.\nObr. 84. Turnov – ul. Palackého. Získané nálezy, soubor 2, před č. p. 184.\n10. Přílohy\nObr. 1. Turnov – ul. Palackého. Úvodní foto – pohled na výkop mezi domy č. p. 190 a 175, jde o\nzpevňující zeď komunikace (Foto P. Hartman 23. 3. 2018).\nObr. 2. Turnov – ul. Palackého. Výřez z mapy Stabilního katastru (ČÚZK 2021a).\nObr. 3. Turnov – ul. Palackého. Výřez z mapy J. V. Šimáka (MČRT).\nObr. 4. Turnov – ul. Palackého. Výřez z leteckého snímku z r. 1938 (ČÚZK 2021b).\nObr. 5. Turnov – ul. Palackého. Výřez z mapy stínovaného modelu terénu (ČÚZK 2021c).\nObr. 6. Turnov – ul. Palackého. Výzkumný polygon = stavba vodovodu a kanalizace.\nObr. 7. Turnov – ul. Palackého. Veduta od ak. malíře pana M. Bělohlávka (MČRT).\nObr. 8. Turnov – ul. Palackého. Nejstarší fotografie Turnova z r. 1866 (MČRT).\nObr. 9. Turnov – ul. Palackého. Pohled na město z r. 1899 (MČRT).\nObr. 10. Turnov – ul. Palackého. Povodně v r. 1915 (MČRT).\nObr. 11. Turnov – ul. Palackého. Stav po povodni v r. 1915 (MČRT).\nObr. 12. Turnov – ul. Palackého. Ulice po rekonstrukci v r. 1925 (MČRT).\nObr. 13. Turnov – ul. Palackého. Bývalá barvírna č. p. 175 v r. 1925 (MČRT).\nObr. 14. Turnov – ul. Palackého. Most přes Malou Jizeru (tj. umělý kanál; MČRT).\nObr. 15. Turnov – ul. Palackého. Rozšíření ulice v 30. – 40. letech 20. stol. (MČRT).\nObr. 16. Turnov – ul. Palackého. Přestavba mostu a celková rekonstrukce ulice s objízdnou trasou pro\nautomobily okolo bývalé manufaktury přes luka v r. 1959 (MČRT).\nObr. 17. Turnov – ul. Palackého. Západní část „mezimostí“ a most přes Jizeru, vlevo odstavený letoun MiG-15,\n60.-70. léta 20. stol. (MČRT).\nO\nb\nr\n.\n18\n.\nT\nu\nr\nnov\n–\nu\nl\n.\nP\na\nl\nac\nk\né\nho\n.\nG\nI\nS\n:\nce\nl\nkov\ná\ns\nit\n31 u\nace\n( QG\nI\nS\n)\n.\nO\nb\nr\n.\n19\n.\nT\nu\nr\nnov\n–\nu\nl\n.\nP\na\nl\nac\nk\né\nho\n.\nG\nI\nS\n:\nd\ne\nt\na\nil\n–\nvý\nc\n32\nhodn\ní\nčá\ns\nt\nz\nkou\nm\na\nn\né\nho\np\nr\no\ns\nt\no\nr\nu\n( QG\nI\nS\n)\n.\nO\nb\nr\n.\n20\n.\nT\nu\nr\nnov\n–\nu\nl\n.\nP\na\nl\nac\nk\né\nho\n.\nG\nI\nS\n:\nd\ne\nt\na\nil\n–\ns\nt\nř\ne\n33\ndn\ní\nčá\ns\nt\nz\nkou\nm\na\nn\né\nho\np\nr\no\ns\nt\no\nr\nu\n( QG\nI\nS\n)\n.\nO\nb\nr\n.\n21\n.\nT\nu\nr\nnov\n–\nu\nl\n.\nP\na\nl\nac\nk\né\nho\n.\nG\nI\nS\n:\nd\ne\nt\na\nil\n–\nzá\np\n34\na\ndn\ní\nčá\ns\nt\nz\nkou\nm\na\nn\né\nho\np\nr\no\ns\nt\no\nr\nu\n( QG\nI\nS\n)\n.\nObr. 22. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 23. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 24. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 25. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 13. 3. 2018).\nObr. 26. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 27. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 28-29. Turnov – ul. Palackého. Východní část výkopu (Foto P. Hartman 15. 3. 2018).\nObr. 30. Turnov – ul. Palackého. Pokračování hloubení ve východní části výkopu po zdokumentování\nsituace na snímku v popředí (Foto P. Hartman 15. 3. 2018).\nObr. 31-32. Turnov – ul. Palackého. Pokračování v odkryvu u č. p. 175 (Foto P. Hartman 15. 3. 2018).\nObr. 33-34. Turnov – ul. Palackého. Fotodokumentace odkryté situace u domu č. p. 175 (Foto P.\nHartman 15. 3. 2018).\nObr. 35. Turnov – ul. Palackého. Fotodokumentace situace u č. p. 175 (Foto P. Hartman 15. 3. 2018).\nObr. 36-37. Turnov – ul. Palackého. Fotodokumentace situace před domem č. p. 175 (Foto P. Hartman\n15. 3. 2018).\nObr. 38-39. Turnov – ul. Palackého. Fotodokumentace situace (Foto P. Hartman 15. 3. 2018).\nObr. 40-41. Turnov – ul. Palackého. Fotodokumentace severního řezu výkopu u domu č. p. 175 poblíž\nmostu přes Malou Jizeru (Foto P. Hartman 23. 3. 2018).\nObr. 42-43. Turnov – ul. Palackého. Fotodokumentace severního výkopu u domů č. p. 175 poblíž mostu\npřes Malou Jizeru (Foto P. Hartman 23. 3. 2018).\nObr. 44-45. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 (Foto P.\nHartman 23. 3. 2018).\nObr. 46-47. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 – severní řez\n(Foto P. Hartman 23. 3. 2018).\nObr. 48-49. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 – severní řez\n(Foto P. Hartman 23. 3. 2018).\nObr. 50. Turnov – ul. Palackého. Fotodokumentace výkopu mezi domy č. p. 175 a 190 – severní řez,\npropojení snímku nahoře východní část, dole západní (Foto P. Hartman 23. 3. 2018).\nObr. 51-52. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 (Foto P. Hartman 23.\n3. 2018).\nObr. 53-54. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 (Foto P. Hartman 23.\n3. 2018).\nObr. 55-56. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na jižní řez\nvýkopem (Foto P. Hartman 23. 3. 2018).\nObr. 57-58. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na severní\nřez výkopem (Foto P. Hartman 23. 3. 2018).\nObr. 59. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na severní řez\nvýkopem (Foto P. Hartman 23. 3. 2018).\nObr. 60. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na západní\nkonec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 61-62. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na západní\nkonec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 63-64. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 189, 175 a 766 – pohled na západní\nkonec výkopu v den dohledu (Foto P. Hartman 23. 3. 2018).\nObr. 65. Turnov – ul. Palackého. Část výkopu mezi domy č. p. 766 a 187 – pohled na severní řez\nhlavního výkopu pro kanalizaci s nálezem kamenného zdiva (Foto P. Hartman 29. 3. 2018).\nObr. 66. Turnov – ul. Palackého. Část výkopu před domem č. p. 186 – pohled na severní řez hlavního\nvýkopu pro kanalizaci s nálezem kamenného zdiva (Foto P. Hartman 4. 4. 2018).\nObr. 67. Turnov – ul. Palackého. Výkop před domy č. p. 185-188 (Foto P. Hartman 5. 4. 2018).\nObr. 68. Turnov – ul. Palackého. Výkop před domy č. p. 188-185 (Foto P. Hartman 5. 4. 2018).\nObr. 69. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 9. 4. 2018).\nObr. 70. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 9. 4. 2018).\nObr. 71. Turnov – ul. Palackého. Výkop před domem č. p. 185 (Foto P. Hartman 6. 4. 2018).\nObr. 72. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 (Foto P. Hartman 11. 4. 2018).\nObr. 73. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 – relikty činžovního domu č. p. 179\nzbořeného po r. 1959 (Foto P. Hartman 11. 4. 2018).\nObr. 74. Turnov – ul. Palackého. Výkop před domy č. p. 573-184 – relikty činžovního domu č. p. 179\nzbořeného po r. 1959 (Foto P. Hartman 11. 4. 2018).\nObr. 75. Turnov – ul. Palackého. Závěr výzkumného polygonu před domem č. p. 573 u velkého mostu\npřes Jizeru (Foto P. Hartman 13. 4. 2018).\nObr. 76. Turnov – ul. Palackého. Půdorys K901 dokumentované před domem č. p. 175.\nObr. 77. Turnov – ul. Palackého. Řez K901 dokumentované před domem č. p. 175.\nObr. 78. Turnov – ul. Palackého. Řez K902 dokumentované před domy č. p. 175 a 190.\nObr. 79. Turnov – ul. Palackého. Řez K903 dokumentované před domy č. p. 189 a 190.\nObr. 80. Turnov – ul. Palackého. Řez K903 a 904 dokumentované mezi domy č. p. 175, 766 a 190.\nObr. 81. Turnov – ul. Palackého. Řez K905 dokumentované mezi domem č. p. 766.\nObr. 82. Turnov – ul. Palackého. Řez K906 dokumentované mezi domem č. p. 185.\nObr. 83. Turnov – ul. Palackého. Získané nálezy, soubor 1, před č. p. 175.\nObr. 84. Turnov – ul. Palackého. Získané nálezy, soubor 2, před č. p. 184.",
     "reading_order": "layout"
   },
   "lines": [
@@ -1627,7 +1629,7 @@
     {
       "page": "4",
       "line": 2,
-      "text": "s opravou VH sítí a kompletní rekonstrukcí ulice Palackého v k. ú. Turnov (ID ZAV 24/2018 ,",
+      "text": "s opravou VH sítí a kompletní rekonstrukcí ulice Palackého v k. ú. Turnov (ID ZAV 24/2018,",
       "bbox": [
         70.824,
         106.664,
@@ -1640,7 +1642,7 @@
     {
       "page": "4",
       "line": 3,
-      "text": "projekt AMČR C-201800965 ). Stavba byla situována na pozemcích 308/1, 308/2, 308/3, 308/4,",
+      "text": "projekt AMČR C-201800965). Stavba byla situována na pozemcích 308/1, 308/2, 308/3, 308/4,",
       "bbox": [
         70.824,
         120.464,
@@ -1826,7 +1828,7 @@
     {
       "page": "4",
       "line": 17,
-      "text": "zprostředkovaných J. V. Šimákem ( 1904 , 347-367).",
+      "text": "zprostředkovaných J. V. Šimákem (1904, 347-367).",
       "bbox": [
         70.824,
         354.734,
@@ -2171,7 +2173,7 @@
     {
       "page": "5",
       "line": 2,
-      "text": "tvorbu plánu bylo velmi nápomocné měření přímo v GIS a v Analýzách výškopisu ( ČÚZK",
+      "text": "tvorbu plánu bylo velmi nápomocné měření přímo v GIS a v Analýzách výškopisu (ČÚZK",
       "bbox": [
         70.824,
         105.464,
@@ -2184,7 +2186,7 @@
     {
       "page": "5",
       "line": 3,
-      "text": "2021c ). Zmapovány byly také proměny zástavby v průběhu 19. a 20. století. Půdorysy starších",
+      "text": "2021c). Zmapovány byly také proměny zástavby v průběhu 19. a 20. století. Půdorysy starších",
       "bbox": [
         70.824,
         121.304,
@@ -2213,7 +2215,7 @@
     {
       "page": "5",
       "line": 5,
-      "text": "katastrem ( Šimák 1904 ; ČÚZK 2021a ).",
+      "text": "katastrem (Šimák 1904; ČÚZK 2021a).",
       "bbox": [
         70.824,
         153.104,
@@ -2588,7 +2590,7 @@
     {
       "page": "5",
       "line": 33,
-      "text": "zjištěno, že zjištěné relikty jsou původní zpevnění komunikace . Odhalená zeď měla dvojí",
+      "text": "zjištěno, že zjištěné relikty jsou původní zpevnění komunikace. Odhalená zeď měla dvojí",
       "bbox": [
         70.824,
         730.864,
@@ -4285,7 +4287,7 @@
     {
       "page": "7",
       "line": 60,
-      "text": "Soubor 1 , získán před č. p. 175, parc. č.: 308/1, 308/8; Obr. 83:",
+      "text": "Soubor 1, získán před č. p. 175, parc. č.: 308/1, 308/8; Obr. 83:",
       "bbox": [
         70.824,
         583.024,
@@ -4327,7 +4329,7 @@
     {
       "page": "7",
       "line": 63,
-      "text": "Soubor 2 , získán před č. p. 184, parc. č.: 308/11, 308/1, 308/8; Obr. 84:",
+      "text": "Soubor 2, získán před č. p. 184, parc. č.: 308/11, 308/1, 308/8; Obr. 84:",
       "bbox": [
         70.824,
         640.624,
@@ -4600,7 +4602,7 @@
     {
       "page": "8",
       "line": 14,
-      "text": "Historie domu ( Šimák 1904 , 347-349)",
+      "text": "Historie domu (Šimák 1904, 347-349)",
       "bbox": [
         70.824,
         316.214,
@@ -4863,7 +4865,7 @@
     {
       "page": "8",
       "line": 34,
-      "text": "1 Historie domů je převzata z knihy J. V. Šimáka – Příběhy města Turnova na Jizerou ( 1904 , 347-359).",
+      "text": "1 Historie domů je převzata z knihy J. V. Šimáka – Příběhy města Turnova na Jizerou (1904, 347-359).",
       "bbox": [
         70.824,
         760.989,
@@ -5204,7 +5206,7 @@
     {
       "page": "9",
       "line": 24,
-      "text": "Chalupa zašlá mezi č . p. 175 a 176",
+      "text": "Chalupa zašlá mezi č. p. 175 a 176",
       "bbox": [
         70.824,
         569.764,
@@ -5246,7 +5248,7 @@
     {
       "page": "9",
       "line": 27,
-      "text": "Historie domu ( Šimák 1904 , 349)",
+      "text": "Historie domu (Šimák 1904, 349)",
       "bbox": [
         70.824,
         628.384,
@@ -5502,7 +5504,7 @@
     {
       "page": "10",
       "line": 13,
-      "text": "Historie domu ( Šimák 1904 , 350-351)",
+      "text": "Historie domu (Šimák 1904, 350-351)",
       "bbox": [
         70.824,
         376.214,
@@ -6067,7 +6069,7 @@
     {
       "page": "11",
       "line": 24,
-      "text": "Č. p. 176 (st. 265; nyní při č. 17 8)",
+      "text": "Č. p. 176 (st. 265; nyní při č. 178)",
       "bbox": [
         70.824,
         548.014,
@@ -6174,7 +6176,7 @@
     {
       "page": "11",
       "line": 32,
-      "text": "Historie domu ( Šimák 1904 , 351-353)",
+      "text": "Historie domu (Šimák 1904, 351-353)",
       "bbox": [
         70.824,
         696.064,
@@ -6966,7 +6968,7 @@
     {
       "page": "13",
       "line": 19,
-      "text": "Historie domu ( Šimák 1904 , 353-355)",
+      "text": "Historie domu (Šimák 1904, 353-355)",
       "bbox": [
         70.824,
         481.474,
@@ -7602,7 +7604,7 @@
     {
       "page": "15",
       "line": 0,
-      "text": "Historie domu ( Šimák 1904 , 355-356)",
+      "text": "Historie domu (Šimák 1904, 355-356)",
       "bbox": [
         70.824,
         73.664,
@@ -7959,7 +7961,7 @@
     {
       "page": "15",
       "line": 27,
-      "text": "Historie domu ( Šimák 1904 , 359)",
+      "text": "Historie domu (Šimák 1904, 359)",
       "bbox": [
         70.824,
         648.424,
@@ -8030,7 +8032,7 @@
     {
       "page": "16",
       "line": 0,
-      "text": "(cid:25)(cid:17)(cid:3)(cid:40)(cid:91)(cid:78)(cid:88)(cid:85)(cid:86)(cid:3)(cid:21)(cid:29)(cid:3)(cid:61)(cid:83)(cid:85)(cid:105)(cid:89)(cid:68)(cid:3)(cid:78)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:3)(cid:254)(cid:17)(cid:3)(cid:83)(cid:17)(cid:3)(cid:20)(cid:27)(cid:28)(cid:3)",
+      "text": "�������������������������������������",
       "bbox": [
         70.824,
         73.665,
@@ -8038,400 +8040,432 @@
         87.705
       ],
       "group_id": "p16-0",
-      "quality_score": 1.0,
+      "categ": "Garbage",
+      "quality_score": 0.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 2
       }
     },
     {
       "page": "16",
       "line": 1,
-      "text": "(cid:43)(cid:76)(cid:86)(cid:87)(cid:82)(cid:85)(cid:76)(cid:72)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:3)(cid:77)(cid:72)(cid:3)(cid:85)(cid:82)(cid:89)(cid:81)(cid:268)(cid:229)(cid:3)(cid:83)(cid:82)(cid:83)(cid:86)(cid:105)(cid:81)(cid:68)(cid:3)(cid:89)(cid:3)(cid:78)(cid:81)(cid:76)(cid:93)(cid:72)(cid:3)(cid:45)(cid:17)(cid:3)(cid:57)(cid:17)(cid:3)(cid:226)(cid:76)(cid:80)(cid:105)(cid:78)(cid:68)(cid:3)(cid:11) (cid:20)(cid:28)(cid:19)(cid:23) (cid:15)(cid:3)(cid:22)(cid:25)(cid:24)(cid:16)(cid:22)(cid:25)(cid:25)(cid:12)(cid:15)(cid:3)(cid:81)(cid:76)(cid:70)(cid:80)(cid:112)(cid:81)(cid:268)(cid:3)(cid:89)(cid:93)(cid:75)(cid:79)(cid:72)(cid:71)(cid:72)(cid:80)(cid:3)",
+      "text": "���������������������������������������������������������������������������������������",
       "bbox": [
         70.824,
         92.432,
         527.438,
         104.432
       ],
-      "group_id": "p16-0",
-      "quality_score": 1.0
+      "group_id": "p16-1",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 2,
-      "text": "(cid:78)(cid:3)(cid:87)(cid:82)(cid:80)(cid:88)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:89)(cid:234)(cid:227)(cid:72)(cid:3)(cid:83)(cid:82)(cid:83)(cid:76)(cid:86)(cid:88)(cid:77)(cid:76)(cid:3)(cid:71)(cid:82)(cid:80)(cid:92)(cid:3)(cid:77)(cid:76)(cid:229)(cid:3)(cid:81)(cid:72)(cid:86)(cid:87)(cid:82)(cid:77)(cid:116)(cid:70)(cid:116)(cid:15)(cid:3)(cid:83)(cid:284)(cid:76)(cid:83)(cid:82)(cid:77)(cid:88)(cid:77)(cid:76)(cid:3)(cid:81)(cid:68)(cid:3)(cid:87)(cid:82)(cid:80)(cid:87)(cid:82)(cid:3)(cid:80)(cid:116)(cid:86)(cid:87)(cid:268)(cid:3)(cid:77)(cid:72)(cid:227)(cid:87)(cid:268)(cid:3)(cid:93)(cid:68)(cid:77)(cid:116)(cid:80)(cid:68)(cid:89)(cid:82)(cid:88)(cid:3)(cid:70)(cid:76)(cid:87)(cid:68)(cid:70)(cid:76)(cid:3)",
+      "text": "���������������������������������������������������������������������������������������������",
       "bbox": [
         70.824,
         108.272,
         527.174,
         120.272
       ],
-      "group_id": "p16-0",
-      "quality_score": 1.0
+      "group_id": "p16-1",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 3,
-      "text": "(cid:93)(cid:3)(cid:81)(cid:82)(cid:89)(cid:76)(cid:81)(cid:3)(cid:43)(cid:79)(cid:68)(cid:86)(cid:92)(cid:3)(cid:51)(cid:82)(cid:77)(cid:76)(cid:93)(cid:72)(cid:85)(cid:86)(cid:78)(cid:112)(cid:3)(cid:93)(cid:3)(cid:85)(cid:82)(cid:78)(cid:88)(cid:3)(cid:20)(cid:28)(cid:21)(cid:21)(cid:3)(cid:11)(cid:70)(cid:76)(cid:87)(cid:17)(cid:3) (cid:54)(cid:70)(cid:75)(cid:292)(cid:93)(cid:72)(cid:3)(cid:80)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:112)(cid:75)(cid:82)(cid:3)(cid:93)(cid:68)(cid:86)(cid:87)(cid:88)(cid:83)(cid:76)(cid:87)(cid:72)(cid:79)(cid:86)(cid:87)(cid:89)(cid:68)(cid:3)(cid:55)(cid:88)(cid:85)(cid:81)(cid:82)(cid:89)(cid:86)(cid:78)(cid:112)(cid:75)(cid:82) (cid:12)(cid:15)(cid:3)(cid:78)(cid:71)(cid:72)(cid:3)",
+      "text": "���������������������������������������������������������������������������������������������",
       "bbox": [
         70.824,
         124.112,
         527.477,
         136.112
       ],
-      "group_id": "p16-0",
-      "quality_score": 1.0
+      "group_id": "p16-1",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 4,
-      "text": "(cid:77)(cid:72)(cid:3) (cid:88)(cid:89)(cid:72)(cid:71)(cid:72)(cid:81)(cid:3) (cid:71)(cid:82)(cid:78)(cid:79)(cid:68)(cid:71)(cid:3) (cid:72)(cid:91)(cid:76)(cid:86)(cid:87)(cid:72)(cid:81)(cid:70)(cid:72)(cid:3) (cid:71)(cid:85)(cid:88)(cid:75)(cid:112)(cid:75)(cid:82)(cid:3) (cid:83)(cid:82)(cid:89)(cid:82)(cid:71)(cid:278)(cid:82)(cid:89)(cid:112)(cid:75)(cid:82)(cid:3) (cid:83)(cid:85)(cid:82)(cid:83)(cid:88)(cid:86)(cid:87)(cid:78)(cid:88)(cid:3) (cid:11)(cid:93)(cid:68)(cid:3) (cid:93)(cid:77)(cid:76)(cid:227)(cid:87)(cid:268)(cid:81)(cid:116)(cid:3) (cid:71)(cid:268)(cid:78)(cid:88)(cid:77)(cid:76)(cid:3) (cid:78)(cid:82)(cid:79)(cid:72)(cid:74)(cid:82)(cid:89)(cid:76)(cid:3)",
+      "text": "��� ������� ������� ���������� �������� ������������ ���������� ���� ��������� ������� ���������",
       "bbox": [
         70.825,
         139.952,
         527.183,
         151.952
       ],
-      "group_id": "p16-0",
-      "quality_score": 1.0
+      "group_id": "p16-1",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 5,
-      "text": "(cid:39)(cid:68)(cid:89)(cid:76)(cid:71)(cid:88)(cid:3)(cid:48)(cid:68)(cid:85)(cid:78)(cid:82)(cid:89)(cid:76)(cid:12)(cid:17)(cid:3)",
+      "text": "�����������������",
       "bbox": [
         70.825,
         155.912,
         160.466,
         167.912
       ],
-      "group_id": "p16-0",
-      "quality_score": 1.0
+      "group_id": "p16-1",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 6,
-      "text": "(cid:39)(cid:82)(cid:86)(cid:79)(cid:82)(cid:89)(cid:81)(cid:105)(cid:3)(cid:70)(cid:76)(cid:87)(cid:68)(cid:70)(cid:72)(cid:29)(cid:3)",
+      "text": "�����������������",
       "bbox": [
         70.825,
         181.712,
         154.058,
         193.712
       ],
-      "group_id": "p16-1",
-      "quality_score": 1.0
+      "group_id": "p16-2",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 7,
-      "text": "(cid:51)(cid:85)(cid:89)(cid:81)(cid:116)(cid:80)(cid:3)(cid:83)(cid:284)(cid:72)(cid:71)(cid:80)(cid:268)(cid:87)(cid:72)(cid:80)(cid:3)(cid:77)(cid:72)(cid:71)(cid:81)(cid:105)(cid:81)(cid:116)(cid:3)(cid:69)(cid:92)(cid:79)(cid:3)(cid:82)(cid:71)(cid:83)(cid:85)(cid:82)(cid:71)(cid:72)(cid:77)(cid:3)(cid:254)(cid:105)(cid:86)(cid:87)(cid:76)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:72)(cid:69)(cid:81)(cid:116)(cid:3)(cid:83)(cid:68)(cid:85)(cid:70)(cid:72)(cid:79)(cid:92)(cid:3)(cid:254)(cid:116)(cid:86)(cid:79)(cid:82)(cid:3)(cid:78)(cid:68)(cid:87)(cid:17)(cid:3)(cid:26)(cid:15)(cid:3)(cid:89)(cid:72)(cid:3)(cid:89)(cid:234)(cid:80)(cid:268)(cid:284)(cid:72)(cid:3)(cid:21)(cid:21)(cid:3)(cid:254)(cid:87)(cid:89)(cid:72)(cid:85)(cid:17)(cid:3)",
+      "text": "�����������������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         207.632,
         527.344,
         219.632
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 8,
-      "text": "(cid:54)(cid:105)(cid:75)(cid:292)(cid:3)(cid:80)(cid:68)(cid:81)(cid:229)(cid:72)(cid:79)(cid:292)(cid:80)(cid:3)(cid:41)(cid:85)(cid:68)(cid:81)(cid:87)(cid:76)(cid:227)(cid:78)(cid:88)(cid:3)(cid:68)(cid:3)(cid:53)(cid:292)(cid:229)(cid:72)(cid:81)(cid:268)(cid:3)(cid:228)(cid:263)(cid:105)(cid:85)(cid:86)(cid:78)(cid:234)(cid:80)(cid:17)(cid:3)(cid:53)(cid:72)(cid:73)(cid:72)(cid:85)(cid:72)(cid:81)(cid:87)(cid:3)(cid:83)(cid:17)(cid:3)(cid:81)(cid:105)(cid:80)(cid:268)(cid:86)(cid:87)(cid:72)(cid:78)(cid:3)(cid:45)(cid:17)(cid:3)(cid:228)(cid:105)(cid:78)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:3)(cid:81)(cid:105)(cid:80)(cid:268)(cid:86)(cid:87)(cid:72)(cid:78)(cid:3)",
+      "text": "�������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         223.472,
         527.176,
         235.472
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 9,
-      "text": "(cid:86)(cid:71)(cid:268)(cid:79)(cid:88)(cid:77)(cid:72)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:80)(cid:68)(cid:77)(cid:76)(cid:87)(cid:72)(cid:79)(cid:112)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:3)(cid:254)(cid:17)(cid:3)(cid:20)(cid:27)(cid:28)(cid:15)(cid:3)(cid:41)(cid:85)(cid:68)(cid:81)(cid:87)(cid:76)(cid:227)(cid:72)(cid:78)(cid:3)(cid:68)(cid:3)(cid:53)(cid:292)(cid:229)(cid:72)(cid:81)(cid:68)(cid:3)(cid:228)(cid:263)(cid:105)(cid:85)(cid:86)(cid:78)(cid:234)(cid:70)(cid:75)(cid:15)(cid:3)(cid:89)(cid:3)(cid:49)(cid:105)(cid:71)(cid:85)(cid:68)(cid:229)(cid:81)(cid:116)(cid:3)(cid:88)(cid:79)(cid:76)(cid:70)(cid:76)(cid:15)(cid:3)(cid:75)(cid:82)(cid:71)(cid:79)(cid:68)(cid:77)(cid:116)(cid:3)",
+      "text": "������������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         239.342,
         527.404,
         251.342
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 10,
-      "text": "(cid:88)(cid:78)(cid:82)(cid:88)(cid:83)(cid:76)(cid:87)(cid:76)(cid:3)(cid:93)(cid:68)(cid:3)(cid:83)(cid:284)(cid:116)(cid:254)(cid:76)(cid:81)(cid:82)(cid:88)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:92)(cid:3)(cid:68)(cid:3)(cid:85)(cid:82)(cid:93)(cid:227)(cid:116)(cid:284)(cid:72)(cid:81)(cid:116)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:15)(cid:3)(cid:254)(cid:105)(cid:86)(cid:87)(cid:3)(cid:83)(cid:82)(cid:93)(cid:72)(cid:80)(cid:78)(cid:88)(cid:3)(cid:89)(cid:72)(cid:3)(cid:89)(cid:234)(cid:80)(cid:268)(cid:284)(cid:72)(cid:3)(cid:21)(cid:21)(cid:3)(cid:254)(cid:87)(cid:89)(cid:72)(cid:85)(cid:17)(cid:3)(cid:54)(cid:105)(cid:75)(cid:292)(cid:15)(cid:3)(cid:87)(cid:68)(cid:78)(cid:229)(cid:72)(cid:3)(cid:69)(cid:92)(cid:3)",
+      "text": "����������������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         255.182,
         527.467,
         267.182
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 11,
-      "text": "(cid:93)(cid:71)(cid:72)(cid:3)(cid:81)(cid:68)(cid:71)(cid:3)(cid:78)(cid:68)(cid:81)(cid:105)(cid:79)(cid:72)(cid:80)(cid:3)(cid:93)(cid:68)(cid:86)(cid:87)(cid:68)(cid:89)(cid:72)(cid:81)(cid:82)(cid:3)(cid:69)(cid:92)(cid:79)(cid:82)(cid:3)(cid:83)(cid:85)(cid:105)(cid:93)(cid:71)(cid:81)(cid:112)(cid:3)(cid:80)(cid:116)(cid:86)(cid:87)(cid:82)(cid:3)(cid:68)(cid:3)(cid:88)(cid:85)(cid:82)(cid:89)(cid:81)(cid:68)(cid:79)(cid:68)(cid:3)(cid:86)(cid:72)(cid:3)(cid:88)(cid:79)(cid:76)(cid:254)(cid:81)(cid:116)(cid:3)(cid:73)(cid:85)(cid:82)(cid:81)(cid:87)(cid:68)(cid:3)(cid:71)(cid:89)(cid:82)(cid:88)(cid:3)(cid:86)(cid:82)(cid:88)(cid:86)(cid:72)(cid:71)(cid:81)(cid:116)(cid:70)(cid:75)(cid:3)",
+      "text": "�����������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         271.142,
         527.083,
         283.142
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 12,
-      "text": "(cid:71)(cid:82)(cid:80)(cid:292)(cid:17)(cid:3)(cid:48)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:105)(cid:3)(cid:85)(cid:68)(cid:71)(cid:68)(cid:3)(cid:89)(cid:72)(cid:3)(cid:86)(cid:89)(cid:112)(cid:3)(cid:86)(cid:70)(cid:75)(cid:292)(cid:93)(cid:76)(cid:15)(cid:3)(cid:71)(cid:81)(cid:72)(cid:3)(cid:20)(cid:24)(cid:17)(cid:3)(cid:71)(cid:88)(cid:69)(cid:81)(cid:68)(cid:3)(cid:78)(cid:82)(cid:81)(cid:68)(cid:81)(cid:112)(cid:15)(cid:3)(cid:88)(cid:86)(cid:81)(cid:72)(cid:86)(cid:79)(cid:68)(cid:3)(cid:86)(cid:72)(cid:3)(cid:229)(cid:105)(cid:71)(cid:82)(cid:86)(cid:87)(cid:76)(cid:3)(cid:87)(cid:112)(cid:3)(cid:89)(cid:92)(cid:75)(cid:82)(cid:89)(cid:268)(cid:87)(cid:76)(cid:15)(cid:3)(cid:85)(cid:82)(cid:89)(cid:81)(cid:268)(cid:229)(cid:3)",
+      "text": "�����������������������������������������������������������������������������������������������",
       "bbox": [
         70.824,
         286.982,
         527.221,
         298.982
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 13,
-      "text": "(cid:76)(cid:3)(cid:73)(cid:76)(cid:81)(cid:68)(cid:81)(cid:254)(cid:81)(cid:116)(cid:3)(cid:78)(cid:82)(cid:80)(cid:76)(cid:86)(cid:72)(cid:3)(cid:68)(cid:3)(cid:86)(cid:76)(cid:70)(cid:72)(cid:3)(cid:83)(cid:85)(cid:82)(cid:71)(cid:72)(cid:77)(cid:3)(cid:83)(cid:82)(cid:93)(cid:72)(cid:80)(cid:78)(cid:88)(cid:3)(cid:93)(cid:68)(cid:3)(cid:20)(cid:3)(cid:254)(cid:87)(cid:89)(cid:72)(cid:85)(cid:17)(cid:3)(cid:54)(cid:105)(cid:75)(cid:3)(cid:20)(cid:19)(cid:19)(cid:3)(cid:46)(cid:3)(cid:86)(cid:3)(cid:87)(cid:82)(cid:88)(cid:3)(cid:83)(cid:82)(cid:71)(cid:80)(cid:116)(cid:81)(cid:78)(cid:82)(cid:88)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:229)(cid:68)(cid:71)(cid:68)(cid:87)(cid:72)(cid:79)(cid:112)(cid:3)(cid:69)(cid:92)(cid:3)",
+      "text": "����������������������������������������������������������������������������������������������",
       "bbox": [
         70.824,
         302.822,
         527.38,
         314.822
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 14,
-      "text": "(cid:80)(cid:88)(cid:86)(cid:72)(cid:79)(cid:76)(cid:3)(cid:77)(cid:72)(cid:227)(cid:87)(cid:268)(cid:3)(cid:87)(cid:82)(cid:75)(cid:82)(cid:87)(cid:82)(cid:3)(cid:85)(cid:82)(cid:78)(cid:88)(cid:3)(cid:284)(cid:72)(cid:254)(cid:72)(cid:81)(cid:82)(cid:88)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:88)(cid:3)(cid:83)(cid:85)(cid:82)(cid:89)(cid:112)(cid:86)(cid:87)(cid:76)(cid:17)(cid:3)(cid:51)(cid:85)(cid:82)(cid:87)(cid:76)(cid:3)(cid:87)(cid:82)(cid:80)(cid:88)(cid:87)(cid:82)(cid:3)(cid:82)(cid:71)(cid:83)(cid:85)(cid:82)(cid:71)(cid:72)(cid:77)(cid:76)(cid:3)(cid:89)(cid:227)(cid:68)(cid:78)(cid:3)(cid:83)(cid:85)(cid:82)(cid:87)(cid:72)(cid:86)(cid:87)(cid:88)(cid:77)(cid:116)(cid:3)(cid:86)(cid:82)(cid:88)(cid:86)(cid:72)(cid:71)(cid:112)(cid:3)",
+      "text": "�������������������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         318.662,
         527.321,
         330.662
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 15,
-      "text": "(cid:76)(cid:3)(cid:81)(cid:268)(cid:78)(cid:87)(cid:72)(cid:284)(cid:116)(cid:3)(cid:89)(cid:93)(cid:71)(cid:105)(cid:79)(cid:72)(cid:81)(cid:268)(cid:77)(cid:227)(cid:116)(cid:3)(cid:80)(cid:68)(cid:77)(cid:76)(cid:87)(cid:72)(cid:79)(cid:112)(cid:3)(cid:71)(cid:82)(cid:80)(cid:292)(cid:15)(cid:3)(cid:83)(cid:82)(cid:88)(cid:78)(cid:68)(cid:93)(cid:88)(cid:77)(cid:116)(cid:70)(cid:72)(cid:3)(cid:81)(cid:68)(cid:3)(cid:87)(cid:82)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:69)(cid:92)(cid:3)(cid:93)(cid:85)(cid:88)(cid:227)(cid:72)(cid:81)(cid:116)(cid:80)(cid:3)(cid:78)(cid:68)(cid:81)(cid:105)(cid:79)(cid:88)(cid:3)(cid:89)(cid:3)(cid:83)(cid:105)(cid:71)(cid:88)(cid:3)(cid:83)(cid:82)(cid:89)(cid:82)(cid:71)(cid:81)(cid:268)(cid:3)",
+      "text": "���������������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         334.622,
         527.482,
         346.622
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 16,
-      "text": "(cid:81)(cid:72)(cid:69)(cid:92)(cid:79)(cid:3)(cid:229)(cid:105)(cid:71)(cid:81)(cid:234)(cid:3)(cid:82)(cid:71)(cid:87)(cid:82)(cid:78)(cid:3)(cid:89)(cid:82)(cid:71)(cid:92)(cid:3)(cid:68)(cid:3)(cid:81)(cid:105)(cid:86)(cid:79)(cid:72)(cid:71)(cid:78)(cid:72)(cid:80)(cid:3)(cid:87)(cid:82)(cid:75)(cid:82)(cid:3)(cid:69)(cid:92)(cid:79)(cid:76)(cid:3)(cid:69)(cid:92)(cid:3)(cid:81)(cid:68)(cid:3)(cid:86)(cid:89)(cid:112)(cid:80)(cid:3)(cid:80)(cid:68)(cid:77)(cid:72)(cid:87)(cid:78)(cid:88)(cid:3)(cid:82)(cid:75)(cid:85)(cid:82)(cid:229)(cid:72)(cid:81)(cid:76)(cid:3)(cid:68)(cid:3)(cid:93)(cid:81)(cid:68)(cid:254)(cid:81)(cid:112)(cid:3)(cid:227)(cid:78)(cid:82)(cid:71)(cid:92)(cid:3)",
+      "text": "����������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         350.462,
         527.228,
         362.462
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 17,
-      "text": "(cid:69)(cid:92)(cid:3)(cid:88)(cid:79)(cid:85)(cid:83)(cid:268)(cid:79)(cid:76)(cid:17)(cid:3)(cid:48)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:105)(cid:3)(cid:85)(cid:68)(cid:71)(cid:68)(cid:3)(cid:87)(cid:92)(cid:87)(cid:82)(cid:3)(cid:81)(cid:105)(cid:80)(cid:76)(cid:87)(cid:78)(cid:92)(cid:3)(cid:93)(cid:68)(cid:80)(cid:116)(cid:87)(cid:79)(cid:68)(cid:3)(cid:68)(cid:3)(cid:229)(cid:105)(cid:71)(cid:82)(cid:86)(cid:87)(cid:76)(cid:3)(cid:80)(cid:68)(cid:81)(cid:229)(cid:72)(cid:79)(cid:292)(cid:3)(cid:228)(cid:263)(cid:105)(cid:85)(cid:86)(cid:78)(cid:234)(cid:70)(cid:75)(cid:3)(cid:89)(cid:92)(cid:75)(cid:82)(cid:89)(cid:268)(cid:79)(cid:68)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:3)",
+      "text": "����������������������������������������������������������������������������������������",
       "bbox": [
         70.825,
         366.302,
         527.026,
         378.302
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 18,
-      "text": "(cid:47)(cid:76)(cid:81)(cid:78)(cid:68)(cid:3) (cid:71)(cid:82)(cid:83)(cid:82)(cid:85)(cid:88)(cid:254)(cid:88)(cid:77)(cid:72)(cid:15)(cid:3) (cid:68)(cid:69)(cid:92)(cid:3) (cid:83)(cid:284)(cid:76)(cid:3) (cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:268)(cid:3) (cid:85)(cid:82)(cid:93)(cid:227)(cid:116)(cid:284)(cid:72)(cid:81)(cid:112)(cid:75)(cid:82)(cid:3) (cid:71)(cid:82)(cid:80)(cid:88)(cid:3) (cid:83)(cid:68)(cid:80)(cid:68)(cid:87)(cid:82)(cid:89)(cid:105)(cid:81)(cid:82)(cid:3) (cid:69)(cid:92)(cid:79)(cid:82)(cid:3) (cid:81)(cid:68)(cid:3) (cid:89)(cid:82)(cid:79)(cid:81)(cid:234)(cid:3) (cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:3)",
+      "text": "������ ������������ ���� ���� ������� ������������ ����� ����������� ����� ��� ������ ��������",
       "bbox": [
         70.826,
         382.142,
         527.182,
         394.142
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 19,
-      "text": "(cid:78)(cid:3)(cid:83)(cid:79)(cid:82)(cid:89)(cid:105)(cid:85)(cid:81)(cid:268)(cid:3)(cid:68)(cid:3)(cid:87)(cid:72)(cid:81)(cid:76)(cid:86)(cid:86)(cid:88)(cid:15)(cid:3)(cid:68)(cid:69)(cid:92)(cid:3)(cid:83)(cid:82)(cid:86)(cid:87)(cid:68)(cid:89)(cid:72)(cid:81)(cid:3)(cid:69)(cid:92)(cid:79)(cid:3)(cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:76)(cid:70)(cid:116)(cid:3)(cid:71)(cid:292)(cid:80)(cid:3)(cid:68)(cid:3)(cid:86)(cid:76)(cid:70)(cid:72)(cid:3)(cid:93)(cid:284)(cid:116)(cid:93)(cid:72)(cid:81)(cid:116)(cid:80)(cid:3)(cid:82)(cid:87)(cid:72)(cid:89)(cid:284)(cid:72)(cid:81)(cid:112)(cid:3)(cid:89)(cid:82)(cid:79)(cid:81)(cid:112)(cid:3)(cid:86)(cid:116)(cid:81)(cid:268)(cid:15)(cid:3)(cid:77)(cid:68)(cid:78)(cid:112)(cid:3)",
+      "text": "������������������������������������������������������������������������������������������������",
       "bbox": [
         70.826,
         398.102,
         527.352,
         410.102
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 20,
-      "text": "(cid:77)(cid:86)(cid:82)(cid:88)(cid:3)(cid:89)(cid:72)(cid:3)(cid:89)(cid:72)(cid:79)(cid:78)(cid:234)(cid:70)(cid:75)(cid:3)(cid:68)(cid:3)(cid:77)(cid:76)(cid:81)(cid:234)(cid:70)(cid:75)(cid:3)(cid:80)(cid:268)(cid:86)(cid:87)(cid:72)(cid:70)(cid:75)(cid:3)(cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:76)(cid:70)(cid:116)(cid:3)(cid:71)(cid:82)(cid:80)(cid:92)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:268)(cid:81)(cid:92)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:3)(cid:86)(cid:87)(cid:68)(cid:85)(cid:82)(cid:86)(cid:87)(cid:68)(cid:3)(cid:71)(cid:105)(cid:89)(cid:105)(cid:3)(cid:75)(cid:79)(cid:68)(cid:86)(cid:82)(cid:89)(cid:68)(cid:87)(cid:76)(cid:3)(cid:82)(cid:3)",
+      "text": "����������������������������������������������������������������������������������������",
       "bbox": [
         70.826,
         413.962,
         527.354,
         425.962
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 21,
-      "text": "(cid:81)(cid:105)(cid:89)(cid:85)(cid:75)(cid:88)(cid:3)(cid:80)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:112)(cid:3) (cid:85)(cid:68)(cid:71)(cid:92)(cid:3)(cid:93)(cid:68)(cid:3)(cid:82)(cid:71)(cid:83)(cid:85)(cid:82)(cid:71)(cid:105)(cid:81)(cid:116)(cid:3) (cid:83)(cid:82)(cid:93)(cid:72)(cid:80)(cid:78)(cid:88)(cid:3) (cid:68)(cid:3) (cid:86)(cid:76)(cid:70)(cid:72)(cid:3) (cid:21)(cid:21) (cid:15)(cid:3) (cid:77)(cid:72)(cid:71)(cid:72)(cid:81)(cid:3)(cid:86)(cid:105)(cid:75)(cid:3)(cid:93)(cid:68)(cid:3) (cid:20)(cid:19)(cid:19)(cid:3)(cid:46)(cid:15)(cid:3)(cid:86)(cid:3)(cid:87)(cid:82)(cid:81)(cid:3) (cid:89)(cid:227)(cid:68)(cid:78)(cid:3)",
+      "text": "��������������� ������������������ �������� �� ����� �� �� ������������� ������������� �����",
       "bbox": [
         70.826,
         429.802,
         527.478,
         441.802
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 22,
-      "text": "(cid:83)(cid:82)(cid:71)(cid:80)(cid:116)(cid:81)(cid:78)(cid:82)(cid:88)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:93)(cid:80)(cid:116)(cid:81)(cid:268)(cid:81)(cid:105)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:68)(cid:3)(cid:77)(cid:72)(cid:227)(cid:87)(cid:268)(cid:3)(cid:85)(cid:82)(cid:78)(cid:88)(cid:3)(cid:79)(cid:72)(cid:87)(cid:82)(cid:227)(cid:81)(cid:116)(cid:75)(cid:82)(cid:3)(cid:83)(cid:85)(cid:82)(cid:89)(cid:72)(cid:71)(cid:72)(cid:81)(cid:68)(cid:3)(cid:69)(cid:234)(cid:87)(cid:76)(cid:3)(cid:80)(cid:88)(cid:86)(cid:116)(cid:17)(cid:3)(cid:54)(cid:82)(cid:88)(cid:75)(cid:79)(cid:68)(cid:86)(cid:17)(cid:3)(cid:177)(cid:3)(cid:51)(cid:284)(cid:76)(cid:75)(cid:79)(cid:105)(cid:227)(cid:72)(cid:81)(cid:234)(cid:3)",
+      "text": "���������������������������������������������������������������������������������������������",
       "bbox": [
         70.826,
         445.642,
         527.506,
         457.642
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 23,
-      "text": "(cid:78)(cid:72)(cid:3)(cid:86)(cid:79)(cid:82)(cid:89)(cid:88)(cid:3)(cid:83)(cid:85)(cid:82)(cid:73)(cid:72)(cid:86)(cid:82)(cid:85)(cid:3)(cid:45)(cid:72)(cid:284)(cid:105)(cid:69)(cid:72)(cid:78)(cid:3)(cid:254)(cid:76)(cid:81)(cid:116)(cid:3)(cid:81)(cid:105)(cid:89)(cid:85)(cid:75)(cid:3)(cid:77)(cid:68)(cid:78)(cid:82)(cid:3)(cid:83)(cid:68)(cid:81)(cid:3)(cid:47)(cid:76)(cid:81)(cid:78)(cid:68)(cid:3)(cid:82)(cid:75)(cid:79)(cid:72)(cid:71)(cid:81)(cid:268)(cid:3)(cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:88)(cid:3)(cid:89)(cid:3)(cid:284)(cid:72)(cid:254)(cid:72)(cid:81)(cid:112)(cid:3)(cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:268)(cid:15)(cid:3)(cid:68)(cid:3)",
+      "text": "����������������������������������������������������������������������������������������",
       "bbox": [
         70.828,
         461.482,
         527.46,
         473.482
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 24,
-      "text": "(cid:71)(cid:82)(cid:83)(cid:82)(cid:85)(cid:88)(cid:254)(cid:88)(cid:77)(cid:72)(cid:15)(cid:3)(cid:68)(cid:69)(cid:92)(cid:3)(cid:83)(cid:85)(cid:292)(cid:70)(cid:75)(cid:82)(cid:71)(cid:3)(cid:87)(cid:82)(cid:75)(cid:82)(cid:87)(cid:82)(cid:3)(cid:71)(cid:82)(cid:80)(cid:88)(cid:3)(cid:69)(cid:92)(cid:79)(cid:3)(cid:81)(cid:105)(cid:78)(cid:79)(cid:68)(cid:71)(cid:72)(cid:80)(cid:3)(cid:82)(cid:69)(cid:70)(cid:72)(cid:3)(cid:89)(cid:72)(cid:254)(cid:72)(cid:85)(cid:3)(cid:68)(cid:3)(cid:89)(cid:3)(cid:81)(cid:82)(cid:70)(cid:76)(cid:3)(cid:82)(cid:86)(cid:89)(cid:268)(cid:87)(cid:79)(cid:82)(cid:89)(cid:105)(cid:81)(cid:17)(cid:3)(cid:49)(cid:105)(cid:89)(cid:85)(cid:75)(cid:3)",
+      "text": "���������������������������������������������������������������������������������������",
       "bbox": [
         70.828,
         477.442,
         527.453,
         489.442
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 25,
-      "text": "(cid:83)(cid:68)(cid:81)(cid:68)(cid:3)(cid:47)(cid:76)(cid:81)(cid:78)(cid:92)(cid:3)(cid:68)(cid:3)(cid:83)(cid:85)(cid:82)(cid:73)(cid:17)(cid:3)(cid:45)(cid:72)(cid:284)(cid:105)(cid:69)(cid:78)(cid:68)(cid:3)(cid:86)(cid:72)(cid:3)(cid:83)(cid:284)(cid:76)(cid:77)(cid:116)(cid:80)(cid:105)(cid:17)(cid:3)",
+      "text": "���������������������������������������",
       "bbox": [
         70.828,
         493.282,
         255.904,
         505.282
       ],
-      "group_id": "p16-2",
-      "quality_score": 1.0
+      "group_id": "p16-3",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 26,
-      "text": "(cid:61)(cid:3)(cid:83)(cid:284)(cid:72)(cid:71)(cid:79)(cid:82)(cid:229)(cid:72)(cid:81)(cid:112)(cid:75)(cid:82)(cid:3)(cid:87)(cid:72)(cid:91)(cid:87)(cid:88)(cid:3) (cid:77)(cid:72)(cid:3)(cid:83)(cid:68)(cid:87)(cid:85)(cid:81)(cid:112)(cid:15)(cid:3)(cid:229)(cid:72)(cid:3)(cid:82)(cid:78)(cid:82)(cid:79)(cid:81)(cid:116)(cid:3)(cid:86)(cid:82)(cid:88)(cid:86)(cid:72)(cid:71)(cid:112)(cid:3)(cid:86)(cid:72)(cid:3)(cid:82)(cid:69)(cid:105)(cid:89)(cid:68)(cid:79)(cid:92)(cid:3) (cid:83)(cid:82)(cid:89)(cid:82)(cid:71)(cid:81)(cid:116)(cid:3) (cid:81)(cid:68)(cid:87)(cid:82)(cid:79)(cid:76)(cid:78)(cid:15)(cid:3) (cid:229)(cid:72)(cid:3)(cid:89)(cid:93)(cid:81)(cid:72)(cid:86)(cid:79)(cid:76)(cid:3)",
+      "text": "��������������������� ���������������������������������������� �������� ��������� �����������",
       "bbox": [
         70.828,
         519.202,
         527.126,
         531.202
       ],
-      "group_id": "p16-3",
-      "quality_score": 1.0
+      "group_id": "p16-4",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 27,
-      "text": "(cid:81)(cid:105)(cid:80)(cid:76)(cid:87)(cid:78)(cid:92)(cid:3) (cid:89)(cid:292)(cid:254)(cid:76)(cid:3) (cid:86)(cid:87)(cid:68)(cid:89)(cid:69)(cid:268)(cid:15)(cid:3) (cid:83)(cid:284)(cid:76)(cid:3) (cid:78)(cid:87)(cid:72)(cid:85)(cid:112)(cid:3) (cid:80)(cid:268)(cid:79)(cid:3) (cid:69)(cid:234)(cid:87)(cid:3) (cid:83)(cid:85)(cid:82)(cid:83)(cid:88)(cid:86)(cid:87)(cid:72)(cid:78)(cid:3) (cid:93)(cid:68)(cid:86)(cid:92)(cid:83)(cid:105)(cid:81)(cid:17)(cid:3) (cid:55)(cid:116)(cid:80)(cid:87)(cid:82)(cid:3) (cid:80)(cid:105)(cid:80)(cid:72)(cid:3) (cid:77)(cid:72)(cid:75)(cid:82)(cid:3) (cid:72)(cid:91)(cid:76)(cid:86)(cid:87)(cid:72)(cid:81)(cid:70)(cid:76)(cid:3)",
+      "text": "�������� ����� �������� ���� ������ ���� ���� ���������� ��������� ������ ����� ����� ����������",
       "bbox": [
         70.828,
         535.042,
         527.06,
         547.042
       ],
-      "group_id": "p16-3",
-      "quality_score": 1.0
+      "group_id": "p16-4",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 28,
-      "text": "(cid:83)(cid:82)(cid:71)(cid:79)(cid:82)(cid:229)(cid:72)(cid:81)(cid:82)(cid:88)(cid:3)(cid:68)(cid:79)(cid:72)(cid:86)(cid:83)(cid:82)(cid:278)(cid:3)(cid:83)(cid:116)(cid:86)(cid:72)(cid:80)(cid:81)(cid:268)(cid:15)(cid:3)(cid:78)(cid:71)(cid:92)(cid:229)(cid:3)(cid:81)(cid:72)(cid:81)(cid:116)(cid:3)(cid:93)(cid:68)(cid:70)(cid:75)(cid:92)(cid:70)(cid:72)(cid:81)(cid:3)(cid:81)(cid:68)(cid:3)(cid:229)(cid:105)(cid:71)(cid:81)(cid:112)(cid:3)(cid:75)(cid:76)(cid:86)(cid:87)(cid:82)(cid:85)(cid:76)(cid:70)(cid:78)(cid:112)(cid:3)(cid:73)(cid:82)(cid:87)(cid:82)(cid:74)(cid:85)(cid:68)(cid:73)(cid:76)(cid:76)(cid:3)(cid:77)(cid:68)(cid:78)(cid:82)(cid:3)(cid:83)(cid:85)(cid:82)(cid:83)(cid:88)(cid:86)(cid:87)(cid:72)(cid:78)(cid:3)",
+      "text": "���������������������������������������������������������������������������������������������",
       "bbox": [
         70.828,
         550.882,
         527.37,
         562.882
       ],
-      "group_id": "p16-3",
-      "quality_score": 1.0
+      "group_id": "p16-4",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 29,
-      "text": "(cid:93)(cid:105)(cid:83)(cid:68)(cid:71)(cid:81)(cid:116)(cid:17)(cid:3)",
+      "text": "���������",
       "bbox": [
         70.828,
         566.752,
         114.148,
         578.752
       ],
-      "group_id": "p16-3",
-      "quality_score": 1.0
+      "group_id": "p16-4",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 30,
-      "text": "(cid:26)(cid:17)(cid:3)(cid:61)(cid:105)(cid:89)(cid:268)(cid:85)(cid:3)",
+      "text": "���������",
       "bbox": [
         70.824,
         595.145,
         124.137,
         609.185
       ],
-      "group_id": "p16-4",
-      "quality_score": 1.0,
+      "group_id": "p16-5",
+      "categ": "Garbage",
+      "quality_score": 0.0,
       "style": {
         "bold": true,
         "heading_level": 2
@@ -8440,145 +8474,156 @@
     {
       "page": "16",
       "line": 31,
-      "text": "(cid:61)(cid:105)(cid:70)(cid:75)(cid:85)(cid:68)(cid:81)(cid:81)(cid:234)(cid:3) (cid:68)(cid:85)(cid:70)(cid:75)(cid:72)(cid:82)(cid:79)(cid:82)(cid:74)(cid:76)(cid:70)(cid:78)(cid:234)(cid:3) (cid:89)(cid:234)(cid:93)(cid:78)(cid:88)(cid:80)(cid:3) (cid:83)(cid:85)(cid:82)(cid:69)(cid:116)(cid:75)(cid:68)(cid:79)(cid:3) (cid:81)(cid:68)(cid:3) (cid:77)(cid:68)(cid:284)(cid:72)(cid:3) (cid:89)(cid:3)(cid:85)(cid:82)(cid:70)(cid:72)(cid:3) (cid:21)(cid:19)(cid:20)(cid:27)(cid:3) (cid:68)(cid:3) (cid:86)(cid:82)(cid:88)(cid:89)(cid:76)(cid:86)(cid:72)(cid:79)(cid:3) (cid:86)(cid:3)(cid:70)(cid:72)(cid:79)(cid:78)(cid:82)(cid:89)(cid:82)(cid:88)(cid:3)",
+      "text": "���������� �������������� ������� ��������� ��� ����� ������� ����� �� ��������� �����������",
       "bbox": [
         70.824,
         613.792,
         527.513,
         625.792
       ],
-      "group_id": "p16-5",
-      "quality_score": 1.0
+      "group_id": "p16-6",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 32,
-      "text": "(cid:85)(cid:72)(cid:78)(cid:82)(cid:81)(cid:86)(cid:87)(cid:85)(cid:88)(cid:78)(cid:70)(cid:72)(cid:3) (cid:88)(cid:79)(cid:76)(cid:70)(cid:72)(cid:3) (cid:51)(cid:68)(cid:79)(cid:68)(cid:70)(cid:78)(cid:112)(cid:75)(cid:82)(cid:17)(cid:3) (cid:51)(cid:284)(cid:76)(cid:3) (cid:61)(cid:36)(cid:57)(cid:3) (cid:69)(cid:92)(cid:79)(cid:92)(cid:3) (cid:93)(cid:77)(cid:76)(cid:227)(cid:87)(cid:268)(cid:81)(cid:92)(cid:3) (cid:68)(cid:3) (cid:71)(cid:82)(cid:78)(cid:88)(cid:80)(cid:72)(cid:81)(cid:87)(cid:82)(cid:89)(cid:105)(cid:81)(cid:92)(cid:3) (cid:75)(cid:76)(cid:86)(cid:87)(cid:82)(cid:85)(cid:76)(cid:70)(cid:78)(cid:112)(cid:3) (cid:87)(cid:72)(cid:85)(cid:112)(cid:81)(cid:92)(cid:3)",
+      "text": "������������� ������ ����������� ���� ���� ����� ��������� �� �������������� ����������� �������",
       "bbox": [
         70.824,
         629.632,
         527.444,
         641.632
       ],
-      "group_id": "p16-5",
-      "quality_score": 1.0
+      "group_id": "p16-6",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 33,
-      "text": "(cid:86)(cid:82)(cid:88)(cid:89)(cid:76)(cid:86)(cid:72)(cid:77)(cid:116)(cid:70)(cid:116)(cid:3)(cid:86)(cid:3)(cid:89)(cid:234)(cid:89)(cid:82)(cid:77)(cid:72)(cid:80)(cid:3)(cid:80)(cid:268)(cid:86)(cid:87)(cid:86)(cid:78)(cid:112)(cid:3)(cid:254)(cid:105)(cid:86)(cid:87)(cid:76)(cid:3)(cid:196)(cid:80)(cid:72)(cid:93)(cid:76)(cid:80)(cid:82)(cid:86)(cid:87)(cid:116)(cid:179)(cid:17)(cid:3)(cid:61)(cid:36)(cid:57)(cid:3)(cid:83)(cid:85)(cid:82)(cid:69)(cid:116)(cid:75)(cid:68)(cid:79)(cid:3)(cid:73)(cid:82)(cid:85)(cid:80)(cid:82)(cid:88)(cid:3)(cid:71)(cid:82)(cid:75)(cid:79)(cid:72)(cid:71)(cid:88)(cid:3)(cid:81)(cid:68)(cid:71)(cid:3)(cid:93)(cid:72)(cid:80)(cid:81)(cid:116)(cid:80)(cid:76)(cid:3)",
+      "text": "�����������������������������������������������������������������������������������������",
       "bbox": [
         70.824,
         645.472,
         527.405,
         657.472
       ],
-      "group_id": "p16-5",
-      "quality_score": 1.0
+      "group_id": "p16-6",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 34,
-      "text": "(cid:83)(cid:85)(cid:68)(cid:70)(cid:72)(cid:80)(cid:76)(cid:15)(cid:3) (cid:78)(cid:87)(cid:72)(cid:85)(cid:112)(cid:3) (cid:86)(cid:83)(cid:82)(cid:254)(cid:116)(cid:89)(cid:68)(cid:79)(cid:92)(cid:3) (cid:93)(cid:72)(cid:77)(cid:80)(cid:112)(cid:81)(cid:68)(cid:3) (cid:86)(cid:3)(cid:73)(cid:82)(cid:87)(cid:82)(cid:71)(cid:82)(cid:78)(cid:88)(cid:80)(cid:72)(cid:81)(cid:87)(cid:68)(cid:70)(cid:116)(cid:3) (cid:89)(cid:92)(cid:75)(cid:79)(cid:82)(cid:88)(cid:69)(cid:72)(cid:81)(cid:112)(cid:75)(cid:82)(cid:3) (cid:75)(cid:79)(cid:68)(cid:89)(cid:81)(cid:116)(cid:75)(cid:82)(cid:3) (cid:89)(cid:234)(cid:78)(cid:82)(cid:83)(cid:88)(cid:3) (cid:83)(cid:85)(cid:82)(cid:3)",
+      "text": "��������� ������ ���������� �������� ������������������ ������������� ��������� ������� ����",
       "bbox": [
         70.824,
         661.312,
         527.441,
         673.312
       ],
-      "group_id": "p16-5",
-      "quality_score": 1.0
+      "group_id": "p16-6",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 35,
-      "text": "(cid:78)(cid:68)(cid:81)(cid:68)(cid:79)(cid:76)(cid:93)(cid:68)(cid:70)(cid:76)(cid:3)(cid:83)(cid:284)(cid:76)(cid:69)(cid:79)(cid:76)(cid:229)(cid:81)(cid:268)(cid:3)(cid:88)(cid:83)(cid:85)(cid:82)(cid:86)(cid:87)(cid:284)(cid:72)(cid:71)(cid:3)(cid:88)(cid:79)(cid:76)(cid:70)(cid:72)(cid:17)(cid:3)",
+      "text": "��������������������������������������",
       "bbox": [
         70.824,
         677.272,
         245.779,
         689.272
       ],
-      "group_id": "p16-5",
-      "quality_score": 1.0
+      "group_id": "p16-6",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 36,
-      "text": "(cid:37)(cid:92)(cid:79)(cid:92)(cid:3)(cid:71)(cid:82)(cid:78)(cid:88)(cid:80)(cid:72)(cid:81)(cid:87)(cid:82)(cid:89)(cid:105)(cid:81)(cid:92)(cid:3)(cid:87)(cid:284)(cid:76)(cid:3)(cid:87)(cid:92)(cid:83)(cid:92)(cid:3)(cid:75)(cid:76)(cid:86)(cid:87)(cid:82)(cid:85)(cid:76)(cid:70)(cid:78)(cid:234)(cid:70)(cid:75)(cid:3)(cid:87)(cid:72)(cid:85)(cid:112)(cid:81)(cid:292)(cid:29)(cid:3)(cid:20)(cid:12)(cid:3)(cid:83)(cid:85)(cid:89)(cid:78)(cid:92)(cid:3)(cid:86)(cid:82)(cid:88)(cid:89)(cid:76)(cid:86)(cid:72)(cid:77)(cid:116)(cid:70)(cid:116)(cid:3)(cid:83)(cid:284)(cid:116)(cid:80)(cid:82)(cid:3)(cid:86)(cid:3)(cid:78)(cid:82)(cid:80)(cid:88)(cid:81)(cid:76)(cid:78)(cid:68)(cid:70)(cid:116)(cid:3)(cid:11)(cid:87)(cid:77)(cid:17)(cid:3)",
+      "text": "����������������������������������������������������������������������������������������������",
       "bbox": [
         70.824,
         705.112,
         527.491,
         717.112
       ],
-      "group_id": "p16-6",
-      "quality_score": 1.0
+      "group_id": "p16-7",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 37,
-      "text": "(cid:93)(cid:72)(cid:80)(cid:76)(cid:87)(cid:112)(cid:3) (cid:88)(cid:79)(cid:82)(cid:229)(cid:72)(cid:81)(cid:76)(cid:81)(cid:92)(cid:15)(cid:3) (cid:86)(cid:87)(cid:68)(cid:69)(cid:76)(cid:79)(cid:76)(cid:93)(cid:68)(cid:254)(cid:81)(cid:116)(cid:3) (cid:78)(cid:68)(cid:80)(cid:72)(cid:81)(cid:81)(cid:112)(cid:3) (cid:93)(cid:71)(cid:76)(cid:3) (cid:68)(cid:3) (cid:83)(cid:82)(cid:89)(cid:82)(cid:71)(cid:278)(cid:82)(cid:89)(cid:112)(cid:3) (cid:83)(cid:85)(cid:82)(cid:83)(cid:88)(cid:86)(cid:87)(cid:78)(cid:92)(cid:12)(cid:30)(cid:3) (cid:21)(cid:12)(cid:3) (cid:83)(cid:85)(cid:89)(cid:78)(cid:92)(cid:3) (cid:86)(cid:82)(cid:88)(cid:89)(cid:76)(cid:86)(cid:72)(cid:77)(cid:116)(cid:70)(cid:116)(cid:3)",
+      "text": "������� ����������� ������������� �������� ���� �� ���������� ������������ ��� ������ ������������",
       "bbox": [
         70.824,
         720.952,
         527.411,
         732.952
       ],
-      "group_id": "p16-6",
-      "quality_score": 1.0
+      "group_id": "p16-7",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 38,
-      "text": "(cid:86)(cid:3)(cid:85)(cid:72)(cid:70)(cid:72)(cid:81)(cid:87)(cid:81)(cid:116)(cid:80)(cid:76)(cid:3)(cid:89)(cid:78)(cid:82)(cid:83)(cid:92)(cid:3)(cid:83)(cid:85)(cid:82)(cid:3)(cid:78)(cid:68)(cid:81)(cid:68)(cid:79)(cid:76)(cid:93)(cid:68)(cid:70)(cid:76)(cid:15)(cid:3)(cid:89)(cid:82)(cid:71)(cid:82)(cid:89)(cid:82)(cid:71)(cid:3)(cid:68)(cid:3)(cid:76)(cid:81)(cid:229)(cid:72)(cid:81)(cid:234)(cid:85)(cid:86)(cid:78)(cid:112)(cid:3)(cid:86)(cid:116)(cid:87)(cid:268)(cid:30)(cid:3)(cid:22)(cid:12)(cid:3)(cid:85)(cid:72)(cid:79)(cid:76)(cid:78)(cid:87)(cid:92)(cid:3)(cid:93)(cid:105)(cid:78)(cid:79)(cid:68)(cid:71)(cid:292)(cid:3)(cid:254)(cid:76)(cid:81)(cid:229)(cid:82)(cid:89)(cid:81)(cid:116)(cid:75)(cid:82)(cid:3)",
+      "text": "��������������������������������������������������������������������������������������������",
       "bbox": [
         70.824,
         736.812,
         527.386,
         748.812
       ],
-      "group_id": "p16-6",
-      "quality_score": 1.0
+      "group_id": "p16-7",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 39,
-      "text": "(cid:71)(cid:82)(cid:80)(cid:88)(cid:3) (cid:93)(cid:3)(cid:20)(cid:28)(cid:17)(cid:3) (cid:86)(cid:87)(cid:82)(cid:79)(cid:72)(cid:87)(cid:116)(cid:17)(cid:3) (cid:51)(cid:85)(cid:82)(cid:3) (cid:76)(cid:81)(cid:87)(cid:72)(cid:85)(cid:83)(cid:85)(cid:72)(cid:87)(cid:68)(cid:70)(cid:76)(cid:3) (cid:93)(cid:105)(cid:89)(cid:268)(cid:85)(cid:292)(cid:3) (cid:69)(cid:92)(cid:79)(cid:82)(cid:3) (cid:89)(cid:72)(cid:79)(cid:76)(cid:70)(cid:72)(cid:3) (cid:83)(cid:284)(cid:116)(cid:81)(cid:82)(cid:86)(cid:81)(cid:112)(cid:3) (cid:83)(cid:82)(cid:85)(cid:82)(cid:89)(cid:81)(cid:105)(cid:81)(cid:116)(cid:3) (cid:93)(cid:77)(cid:76)(cid:227)(cid:87)(cid:268)(cid:81)(cid:234)(cid:70)(cid:75)(cid:3)",
+      "text": "����� ������ ��������� ���� ������������� ������� ����� ������� ��������� ���������� �����������",
       "bbox": [
         70.824,
         752.772,
         527.35,
         764.772
       ],
-      "group_id": "p16-6",
-      "quality_score": 1.0
+      "group_id": "p16-7",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 40,
-      "text": "(cid:20)(cid:25)(cid:3)",
+      "text": "���",
       "bbox": [
         291.65,
         781.452,
         306.672,
         793.452
       ],
-      "group_id": "p16-7",
-      "quality_score": 1.0
+      "group_id": "p16-8",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "16",
       "line": 41,
-      "text": "(cid:3)",
+      "text": "�",
       "bbox": [
         70.824,
         795.252,
         73.824,
         807.252
       ],
-      "group_id": "p16-7",
-      "quality_score": 1.0
+      "group_id": "p16-8",
+      "categ": "Garbage",
+      "quality_score": 0.0
     },
     {
       "page": "17",
@@ -8596,7 +8641,7 @@
     {
       "page": "17",
       "line": 1,
-      "text": "muzea ( MČRT ). Právě to nám napomohlo k přesné interpretaci odhalených konstrukcí, ohledně",
+      "text": "muzea (MČRT). Právě to nám napomohlo k přesné interpretaci odhalených konstrukcí, ohledně",
       "bbox": [
         70.824,
         89.624,
@@ -8879,7 +8924,7 @@
     {
       "page": "18",
       "line": 2,
-      "text": "ČÚZK 2021a : Archiv. URL: <https://ags.cuzk.cz/archiv/>.",
+      "text": "ČÚZK 2021a: Archiv. URL: <https://ags.cuzk.cz/archiv/>.",
       "bbox": [
         70.824,
         128.624,
@@ -8895,7 +8940,7 @@
     {
       "page": "18",
       "line": 3,
-      "text": "ČÚZK 2021b : Archiv LMS. URL: <https://ags.cuzk.cz/archiv/?start=lms>.",
+      "text": "ČÚZK 2021b: Archiv LMS. URL: <https://ags.cuzk.cz/archiv/?start=lms>.",
       "bbox": [
         70.824,
         152.384,
@@ -8911,7 +8956,7 @@
     {
       "page": "18",
       "line": 4,
-      "text": "ČÚZK 2021c : Analýzy výškopisu. URL: <https://ags.cuzk.cz/av/>.",
+      "text": "ČÚZK 2021c: Analýzy výškopisu. URL: <https://ags.cuzk.cz/av/>.",
       "bbox": [
         70.824,
         176.264,
@@ -8927,7 +8972,7 @@
     {
       "page": "18",
       "line": 5,
-      "text": "Muzeum Českého ráje v Turnově , Sbírka fotografií.",
+      "text": "Muzeum Českého ráje v Turnově, Sbírka fotografií.",
       "bbox": [
         70.824,
         200.024,
@@ -8943,7 +8988,7 @@
     {
       "page": "18",
       "line": 6,
-      "text": "Schůze městského zastupitelstva Turnovského . In: Hlasy Pojizerské, roč. 37, č. 23, 4. červen",
+      "text": "Schůze městského zastupitelstva Turnovského. In: Hlasy Pojizerské, roč. 37, č. 23, 4. červen",
       "bbox": [
         70.824,
         223.784,
@@ -8985,7 +9030,7 @@
     {
       "page": "18",
       "line": 9,
-      "text": "Demek - Mackovčin a kol. 2006 : Zeměpisný lexikon ČR, Hory a nížiny. Praha.",
+      "text": "Demek - Mackovčin a kol. 2006: Zeměpisný lexikon ČR, Hory a nížiny. Praha.",
       "bbox": [
         70.824,
         285.254,
@@ -9001,7 +9046,7 @@
     {
       "page": "18",
       "line": 10,
-      "text": "Filip, J. 1947 : Dějinné počátky Českého ráje. Praha.",
+      "text": "Filip, J. 1947: Dějinné počátky Českého ráje. Praha.",
       "bbox": [
         70.824,
         309.014,
@@ -9017,7 +9062,7 @@
     {
       "page": "18",
       "line": 11,
-      "text": "Mikyška, R. a kol., 1972 : Geobotanická mapa ČSSR, Praha.",
+      "text": "Mikyška, R. a kol., 1972: Geobotanická mapa ČSSR, Praha.",
       "bbox": [
         70.824,
         332.774,
@@ -9033,7 +9078,7 @@
     {
       "page": "18",
       "line": 12,
-      "text": "Neuhäselová, Z. 2001 : Mapa potenciální přirozené vegetace České republiky. Academia, Praha.",
+      "text": "Neuhäselová, Z. 2001: Mapa potenciální přirozené vegetace České republiky. Academia, Praha.",
       "bbox": [
         70.824,
         356.654,
@@ -9049,7 +9094,7 @@
     {
       "page": "18",
       "line": 13,
-      "text": "Prostředník, J. – Šída, P. 2010 : Nejstarší dějiny Českého ráje a horního Pojizeří. Turnov.",
+      "text": "Prostředník, J. – Šída, P. 2010: Nejstarší dějiny Českého ráje a horního Pojizeří. Turnov.",
       "bbox": [
         70.824,
         380.414,
@@ -9065,7 +9110,7 @@
     {
       "page": "18",
       "line": 14,
-      "text": "Šimák, J. V. 1904 : Příběhy města Turnova nad Jizerou. Díl III. Místopis. Zprávy musea",
+      "text": "Šimák, J. V. 1904: Příběhy města Turnova nad Jizerou. Díl III. Místopis. Zprávy musea",
       "bbox": [
         70.824,
         404.194,
@@ -9094,7 +9139,7 @@
     {
       "page": "18",
       "line": 16,
-      "text": "Šimák, J. V. 1909 : Soupis památek historických a uměleckých v politickém okresu",
+      "text": "Šimák, J. V. 1909: Soupis památek historických a uměleckých v politickém okresu",
       "bbox": [
         70.824,
         441.874,
@@ -9192,7 +9237,7 @@
     {
       "page": "18",
       "line": 23,
-      "text": "Obr. 2. Turnov – ul. Palackého. Výřez z mapy Stabilního katastru ( ČÚZK 2021a ).",
+      "text": "Obr. 2. Turnov – ul. Palackého. Výřez z mapy Stabilního katastru (ČÚZK 2021a).",
       "bbox": [
         70.824,
         616.504,
@@ -9218,7 +9263,7 @@
     {
       "page": "18",
       "line": 25,
-      "text": "Obr. 4. Turnov – ul. Palackého. Výřez z leteckého snímku z r. 1938 ( ČÚZK 2021b ).",
+      "text": "Obr. 4. Turnov – ul. Palackého. Výřez z leteckého snímku z r. 1938 (ČÚZK 2021b).",
       "bbox": [
         70.824,
         668.224,
@@ -9231,7 +9276,7 @@
     {
       "page": "18",
       "line": 26,
-      "text": "Obr. 5. Turnov – ul. Palackého. Výřez z mapy stínovaného modelu terénu ( ČÚZK 2021c ).",
+      "text": "Obr. 5. Turnov – ul. Palackého. Výřez z mapy stínovaného modelu terénu (ČÚZK 2021c).",
       "bbox": [
         70.824,
         694.144,
@@ -10534,7 +10579,7 @@
     {
       "page": "22",
       "line": 3,
-      "text": "Obr. 2. Turnov – ul. Palackého. Výřez z mapy Stabilního katastru ( ČÚZK 2021a ).",
+      "text": "Obr. 2. Turnov – ul. Palackého. Výřez z mapy Stabilního katastru (ČÚZK 2021a).",
       "bbox": [
         70.824,
         724.089,
@@ -10576,7 +10621,7 @@
     {
       "page": "23",
       "line": 1,
-      "text": "Obr. 4. Turnov – ul. Palackého. Výřez z leteckého snímku z r. 1938 ( ČÚZK 2021b ).",
+      "text": "Obr. 4. Turnov – ul. Palackého. Výřez z leteckého snímku z r. 1938 (ČÚZK 2021b).",
       "bbox": [
         70.824,
         756.149,
@@ -10605,7 +10650,7 @@
     {
       "page": "24",
       "line": 0,
-      "text": "Obr. 5. Turnov – ul. Palackého. Výřez z mapy stínovaného modelu terénu ( ČÚZK 2021c ).",
+      "text": "Obr. 5. Turnov – ul. Palackého. Výřez z mapy stínovaného modelu terénu (ČÚZK 2021c).",
       "bbox": [
         70.824,
         287.359,

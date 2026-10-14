@@ -55,11 +55,11 @@
     "contributors": [
       {
         "program": "digital-convert",
-        "run_id": "261009-191619",
-        "run_uuid": "urn:uuid:5ee7075a-54d9-4136-b9d4-3240eca40058",
-        "paradata_ref": "261009-191619_digital-convert.json",
+        "run_id": "261014-084043",
+        "run_uuid": "urn:uuid:5f5ed7ed-ede1-4d19-bac7-ba84bd04708d",
+        "paradata_ref": "261014-084043_digital-convert.json",
         "blocks": "pages,lines,content,tables",
-        "at": "2026-10-09T19:16:22.754467+00:00"
+        "at": "2026-10-14T08:40:51.447207+00:00"
       }
     ]
   },
@@ -67,31 +67,31 @@
     "blocks": {
       "pages": {
         "program": "digital-convert",
-        "run_id": "261009-191619",
-        "run_uuid": "urn:uuid:5ee7075a-54d9-4136-b9d4-3240eca40058",
-        "paradata_ref": "261009-191619_digital-convert.json",
-        "updated_at": "2026-10-09T19:16:22.626410+00:00"
+        "run_id": "261014-084043",
+        "run_uuid": "urn:uuid:5f5ed7ed-ede1-4d19-bac7-ba84bd04708d",
+        "paradata_ref": "261014-084043_digital-convert.json",
+        "updated_at": "2026-10-14T08:40:51.229246+00:00"
       },
       "lines": {
         "program": "digital-convert",
-        "run_id": "261009-191619",
-        "run_uuid": "urn:uuid:5ee7075a-54d9-4136-b9d4-3240eca40058",
-        "paradata_ref": "261009-191619_digital-convert.json",
-        "updated_at": "2026-10-09T19:16:22.629823+00:00"
+        "run_id": "261014-084043",
+        "run_uuid": "urn:uuid:5f5ed7ed-ede1-4d19-bac7-ba84bd04708d",
+        "paradata_ref": "261014-084043_digital-convert.json",
+        "updated_at": "2026-10-14T08:40:51.235247+00:00"
       },
       "content": {
         "program": "digital-convert",
-        "run_id": "261009-191619",
-        "run_uuid": "urn:uuid:5ee7075a-54d9-4136-b9d4-3240eca40058",
-        "paradata_ref": "261009-191619_digital-convert.json",
-        "updated_at": "2026-10-09T19:16:22.629948+00:00"
+        "run_id": "261014-084043",
+        "run_uuid": "urn:uuid:5f5ed7ed-ede1-4d19-bac7-ba84bd04708d",
+        "paradata_ref": "261014-084043_digital-convert.json",
+        "updated_at": "2026-10-14T08:40:51.235493+00:00"
       },
       "tables": {
         "program": "digital-convert",
-        "run_id": "261009-191619",
-        "run_uuid": "urn:uuid:5ee7075a-54d9-4136-b9d4-3240eca40058",
-        "paradata_ref": "261009-191619_digital-convert.json",
-        "updated_at": "2026-10-09T19:16:22.629998+00:00"
+        "run_id": "261014-084043",
+        "run_uuid": "urn:uuid:5f5ed7ed-ede1-4d19-bac7-ba84bd04708d",
+        "paradata_ref": "261014-084043_digital-convert.json",
+        "updated_at": "2026-10-14T08:40:51.235562+00:00"
       }
     },
     "had_baseline": false,
@@ -329,7 +329,7 @@
     {
       "page": "20",
       "page_index": 20,
-      "quality_score": 0.9819,
+      "quality_score": 0.9806,
       "quality_band": "Clear",
       "canvas": {
         "width": 595.276,
@@ -357,7 +357,7 @@
     {
       "page": "22",
       "page_index": 22,
-      "quality_score": 0.9895,
+      "quality_score": 0.989,
       "quality_band": "Clear",
       "canvas": {
         "width": 595.276,
@@ -371,7 +371,7 @@
     {
       "page": "23",
       "page_index": 23,
-      "quality_score": 0.9909,
+      "quality_score": 0.991,
       "quality_band": "Clear",
       "canvas": {
         "width": 595.276,
@@ -526,7 +526,7 @@
     }
   ],
   "content": {
-    "text": "nálezová zpráva\nzáchranný archeologický výzkum NPÚ ú. o. p. v Praze\nČ. j. NPÚ:\nČ. př. ARÚ:\n2017/43\nPRAHA 1 – MALÁ STRANA\nVítězná čp. 550/III\nJan Havrda,\nPraha 2017\nObsah\n1. Lokalizace a okolnosti výzkumu ........................................................................................4\n1.1. Lokalizace ...................................................................................................................4\n1.2. Okolnosti výzkumu ......................................................................................................5\n2. Metoda a postup výzkumu ..................................................................................................5\n2.1. Metoda výzkumu .........................................................................................................5\n2.2. Složení pracovního týmu ..............................................................................................5\n3. Technická zpráva o zaměření výzkumu (J. Hlavatý) ...........................................................5\n4. Přírodní prostředí ................................................................................................................6\n4.1. Geomorfologické poměry ............................................................................................6\n4.2. Geologické poměry ......................................................................................................7\n5. Historie lokality ..................................................................................................................8\n5.1. Historie lokality známá z archeologických pramenů .....................................................8\n5.2. Historie lokality známá z písemných pramenů ........................................................... 10\n6. Popis terénní situace ......................................................................................................... 11\n7. Nálezy .............................................................................................................................. 12\n8. Vyhodnocení .................................................................................................................... 13\n9. Výsledky zjišťovacího výzkumu vzhledem k budoucímu plošnému archeologického\nzáchranného výzkumu. ......................................................................................................... 13\n10. Literatura a prameny ....................................................................................................... 14\nPŘÍLOHY\nSeznam a popis kontextů\nPlány\nFotodokumentace\nTato práce, která vznikla tvůrčím zpracováním výsledků archeologického výzkumu, je\nchráněna autorským právem podle zákona 247/90 Sb.\nVe smyslu tohoto zákona jsou chráněny i jednotlivé části této práce, jako jsou náčrtky, plány,\nzávěry apod. Části práce nebo celou práci lze uveřejnit pouze se svolením autorů\n1. Lokalizace a okolnosti výzkumu\n1.1. Lokalizace\nV rámci plánované rekonstrukce byly v Praze 1 – Malé Straně, na dvoře domu čp. 550/III,\nparc. č. 801, ulice Vítězná zdokumentovány statické sondy vykopané ve stávajícím 2.\nsuterénu domu. Prohlédnuty byly i dva výkopy na dvoře domu.\nObr. 1. Situace výzkumu, černě zjišťovací sondy.\n1.2. Okolnosti výzkumu\nZjišťovací archeologický výzkum byl objednán architektonickým ateliérem P6PA+Architects,\ns.r.o. Umístění čtyř zjišťovacích sond zvolil architekt, tak aby byly odhaleny základové\nkonstrukce objektu. Terénní práce probíhaly v říjnu 2017.\n2. Metoda a postup výzkumu\n2.1. Metoda výzkumu\nVýzkum byl prováděn standardními odbornými postupy používanými při archeologických\nvýzkumech NPÚ ú. o. p. v Praze. Postupoval archeologickou metodou důsledně respektující\nvertikální statigrafii nadloží. Makroskopicky rozlišitelné části nadloží, odrážejí přírodní a\nantropogenní aktivity, bývají označovány jako stratigrafické jednotky (s. j.). Podle charakteru\nbylo možné rozeznat uloženiny, výkopy (V) a stavební konstrukce (Z).\nZjišťovací archeologické sondy S1 a S2 byly geodeticky zaměřeny. Sypké novověké\nnásypové uloženiny byly rozebrány krumpáčem pracovníky stavby. Kresebně a fotograficky\nbyly zdokumentovány svislé profily (stěny sond). V sondě S1 byl nakreslen řez R1, v sondě\nS2 byly zdokumentovány 2 profily (R2 a R3). Odkryté situace byly zachyceny i půdorysně.\nFotograficky byly dokumentovány i dva výkopy vyhloubené na dvoře domu.\nPlány byly kresleny v měřítku 1 : 20. Vrstvy byly popsány, vyfotografovány a následně\ndůkladně vyvzorkovány. Sondy měly velikost 1 x 1 m (S1) a 1,7 x 1,3 m (S2) a hloubku\n1,2m. V sondě S1 byla ověřena úroveň podloží pedologickými sondovacími tyčemi.\nDo tabulky Seznam a inventář nálezů byla vložena evidence sáčků s nálezy. Kromě lokalizace\nbyly rozepsány jednotlivé typy a množství nálezů. Celkem byl zaevidován pouze jeden sáček\ns nálezy.\n2.2. Složení pracovního týmu\nVedoucí výzkumu – autor zprávy: Mgr. Jan Havrda\nHlavní geodetické a dokumentační práce: Jakub Hlavatý, Michal Růžička\nVyhodnocení nálezů: Mgr. Jan Havrda\nFotodokumentace : Jakub Hlavatý\nPC zpracování plánové dokumentace: Jakub Hlavatý\n3. Technická zpráva o zaměření výzkumu (J. Hlavatý)\nk.ú. Malá Strana\n(Praha 1)\nčp. 550/III, parc. č. 801, ulice Vítězná\nSMO-5 : Praha 7-1/34; list mapy 1:1000 Praha 295\nsouřadnicový systém: JTSK\nvýškový systém: ČSJNS – Balt\nměřil: J. Hlavatý\nzobrazil: J. Hlavatý\nZjišťovací archeologický výzkumu si vyžádal dokumentaci dvou bodových zjišťovacích sond\nv 2. suterénu domu. Přesné geodetické výškové a prostorové zaměření řezů bylo provedeno\nelektronickou pulsní totální stanicí GPT-2006 a pětimetrovou teleskopickou latí. Výškové\nzaměření jednotlivých půdorysných plánů bylo provedeno technickou nivelací přístrojem\nSOKKIA C410 a pětimetrovou teleskopickou latí. Pro výškové zaměření byl využit pevný\nvýškový bod ČSJNS/Bpv osazený čp. 421/III ve Vítězné ulici. Pro potřeby výzkumu byl na\ndvoře domu osazen pomocný výškový bod.\nPro prostorové umístění řezů byl použit plán stavby zachycující stav domu před jeho\nrekonstrukcí. Získaná data byla zanesena do vektorizované katastrální mapy Malé Strany\n(program MicroStation V8; formát DGN).\nPo grafické úpravě byly vytvořeny tiskové výstupy v potřebném měřítku.\nMěřická data jsou uložena v archivu archeologického oddělení NPÚ.\n4. Přírodní prostředí\n4.1. Geomorfologické poměry\nMísto výzkumu se nachází v západní části Pražské kotliny, která zaujímá nejnižší části údolí\nVltavy a náleží do celku Pražské plošiny. Je tedy součástí Brdské oblasti Poberounské\nsubprovincie České vysočiny ( Balatka 2001, 15). Geomorfologie lokality byla ovlivněna\ngeologickými erozními a akumulačními procesy (zaniklé koryto Vltavy) a později byla\nutvářena i činností člověka (navážky). Plocha výzkumu byla situována v nadmořské výšce\n192,38 m n. m. (severní část dvora) až 191,95 m n. m. (jižní část dvora).\nV prostoru domu se patrně nacházel rovinatý terén. Jeho výška byla zaměřena:\nDvůr domu čp. 550: 189,57 m n. m. Bpv (3,76 o dlažby Vítězné ul.)\nPodlaha sklepa domu čp. 550: 187,52 m n. m. Bpv ( 5,81 m o dlažby Vítězné ul.)\nPovrch vozovky Vítězné ulice před domem čp. 550: 193,33 m n. m. Bpv\nPodlaha přízemí domu čp. 550: 195,27 m n. m. Bpv (+- 0 m)\nObr. 2. Výřez z podrobné inženýrsko-geologické mapy v měř. 1 : 5000, list mapy Praha 7-1 (Šimek\n1970).\n4.2. Geologické poměry\nZ inženýrsko-geologické mapy 1:5000, list mapy Praha 7-1 ( Šimek 1970 ) vyplývá, že skalní\npodklad lokality vytvářejí vrstvy ordoviku zastoupené břidlicemi. Překrývají je písčité štěrky\nnáležící poslednímu (würmskému) glaciálu. Na říční sedimenty pak nasedají svahové\nuloženiny a sedimenty výplavových kuželů reprezentované heterogenními zvrstvenými\nsedimenty tvořenými polohami štěrkovitého písku s četnými omletými zrny a střípky opuky\nšedookrovými písčitými až jílovitými hlínami. Svrchní partie svahových sedimentů se na\nlokalitě vyskytuje ve formě okrové jílovitoprachovité hlíny. Ta tvoří matečný substrát\npůdního typu blízkého degradované černozemi. Nejsvrchnější poloha je patrně v druhotném\nuložení a je možné ji označit za půdní sediment.\n5. Historie lokality\n5.1. Historie lokality známá z archeologických pramenů\nZ hlediska archeologického poznání lze konstatovat, že parcela domu čp. 550/III nalézající se v jižní\nčásti katastru Malé Strany, nedaleko od kostela sv. Jana Křtitele Na prádle se nachází v území\ns archeologickými nálezy. V raném a na počátku vrcholného středověku se u kostela sv. Jana Křtitele\nNa prádle nalézala osada Újezd. Dosud stojící chrám byl postaven patrně po polovině 13. století. Při\ndokumentaci v sondách, v inženýrských rýhách ve Všehrdově ulici, situovaných jižně a východně od\nkostela, byly v roce 2014 nalezeny doklady svědčící o středověkém osídlení a pohřbívání. Nejstarším\nnálezem byl fragment keramické nádoby z 2. pol. 11. až 1. pol. 12. stol. Středověké a raně novověké\nsituace byly zaznamenány i při záchranných archeologických výzkumech vyvolaných rekonstrukcemi\ndomů čp. 562/III v roce 2007 a čp. 455/III v letech 2011 – 2012, které leží v těsném severním\nsousedství domu čp. 550/III. Zmíněný kostel se nalézá pouze 50 m severně od domu čp. 550.\nV okolí referované lokality proběhlo v minulých letech několik archeologických výzkumů\nNPÚ ú.o.p. v Praze.\nNejvýznamnější archeologické výzkumy v okolí\nVŠEHRDOVA ČP. 445/III\nPrůzkum východní, nepodsklepené části domu, adaptované v březnu až květnu 2012 na podzemní garáže\nv zásadě potvrdil dosavadní předpoklady o historické podobě prostoru jižně od kostela sv. Jana Na Prádle. O\ntrvalém osídlení lze díky početným nálezům, byť v sekundárních polohách, a v souladu s dostupnou ikonografií,\nuvažovat od 17. století. Intaktní archeologické situace pocházely až z druhé poloviny 18. a především z 19.\nstoletí a přímo souvisely se změnami zástavby parcely (vrstvy navážek, zbytky ohradních zdí, dláždění či\nnejmladší suťové zvýšení terénu). Antropogenní aktivity dosahovaly mocnosti 2,80 až 3 m (povrch před\nzahájením výzkumu 189,80 m n. m.). Níže je střídal sled povodňových a nivních sedimentů v rozsahu minimálně\n1,20 m (hladina spodní vody 185,89 m - niveleta ukončení výzkumu).\nVeronika Staňková, Všehrdova čp. 445/III. In Dragoun a kol. Archeologický výzkum v Praze v letech 2011 a\n2012, Pražský sborník historický 41/2013.\nŘíční čp. 445/III (Všehrdova čp. 445/III)\nV lednu 2011 proběhl zjišťovací archeologický výzkum formou dokumentace svislých profilů v sondách, které\nbyly vykopány stavbou v rámci příprav rekonstrukce domu stojícímu na rohu Všehrdovy a Říční ulice.\nV interiérech domu bylo vyhloubeno pět nevelkých statických sond, jedna v nepodsklepeném přízemí objektu,\nzbylé čtyři v suterénu. Při výzkumu se podařilo získat informace o archeologickém nadloží a též upřesnit\ngeologické znalosti lokality. Sondy, které dosáhly podloží, se nalézaly pouze v severní, podsklepené části domu.\nStarší geologické mapy zobrazují v prostoru objektu svahové sedimenty ve formě hlín a hlinitých sutí, které\npřekrývají štěrkovou akumulaci – újezdskou terasu. Na základě provedené dokumentace je možno konstatovat,\nže se na parcele domu nalézá svah zmíněné terasy svažující se od severozápadu k jihovýchodu (z nivelety 187,00\nke kótě 184,00 m). Hranu terasy překrývají poměrně stejnorodé nivní sedimenty v podobě měkkých, slabě\npísčitých jílů. Jejich mocnost se zvětšuje směrem k jihovýchodu. V severovýchodní části sklepa nebyly\narcheologické situace zastiženy. V části jihozápadní bylo dokumentováno torzo vrcholně či pozdně středověkého\nobjektu, ten byl narušen mladším objektem novověkým (17. – 18. století). V nejzápadnější sondě byl\ndokumentován druhotně (antropogenně?) přemístěný půdní typ. V jižní nepodsklepené části domu byla položena\npouze jedna sonda, ta však nedosáhla úrovně podloží. Doloženy zde byly obtížně datovatelné situace dokládající\nzvyšování terénu patrně v posledních staletích. Ze zjišťovacího výzkumu vyplývá, že při stavbě sklepa dnešního\ndomu byly zničeny patrně veškeré nadložní situace. Pod podlahou suterénu zůstávají dochovány pouze objekty\nzahloubené do podloží. V jižní a jihovýchodní části domu je nadložní stratigrafie dochována. Při výzkumu\nnebyly nalezeny situace mající vztah k blízkému kostelu sv. Jana Na Prádle (pohřební areál), nalezeny nebyly\nani pozůstatky stavebních předchůdců dnešního domu, které jsou známy z ikonografie a starých plánů. Ty se\nvšak mohou nalézat pod nepodsklepenou jižní částí domu. Tam se též mohou nacházet pozůstatky barokního\nopevnění Malé Strany, které snad dosahovalo až do tohoto prostoru.\nJan Havrda (nepubl.)\nVšehrdova ulice čp. 562/III\nV části nepodsklepeného přízemí domu na rohu ulic Všehrdova a Říční byl proveden výzkum před plánovanou\nvýstavbou podzemních garáží. Protože hloubka výkopů nedosáhla raně středověkých úrovní, je základním\nzjištěním dokumentace povodňových sedimentů, jejichž horní hranice dosahuje úrovně téměř 187 m.n.m. Tento\nsediment obsahoval nečetný keramický materiál 14. a 15. století s důrazem na období mladší. Ve skladbě vyšších\npoloh nadloží se střídají násypové vrstvy a povodně 17. a 18. století. Nejmladší dokumentovaná povodeň měla\nniveletu 188,30 m.\nMichal Tryml, Všehrdova ulice čp. 562/III, In Dragoun a kol. Archeologický výzkum v Praze v letech 2007 a\n2008, Pražský sborník historický 37/2009\nVšehrdova, Říční, Šeříková – výzkum při opravě vodovodu\nZáchranný archeologický výzkum vyvolaný obnovou vodovodního řadu proběhl od října 2013 do podzimu 2014.\nVýkopové práce byly prováděny stavební firmou ve staré trase pro vodovodní potrubí, proto se výzkum omezil\nna dokumentaci vertikální stratigrafie historického nadloží dochované na některých úsecích stěn výkopů.\nCelková délka výkopů měřila 286 m, dokumentováno bylo celkem 180 m vertikálních profilů o průměrné výšce\n2,3 m. Na významné části stěn výkopu se historická stratigrafie nedochovala, neboť byla zničena při budování\ndalších inženýrských sítí pod vozovkami ulic. Části nové trasy vodovodního řadu byly navíc realizovány\nhorizontálním vrtem (protlakem), tzn. že některé úseky nebyly při výměně vodovodního potrubí odkrývány od\nshora.\nPři výzkumu byla ověřena úroveň povrchu terénu před počátkem osídlení lokality. Podloží bylo reprezentováno\nna severu půdním typem vyvinutým na svahových hlínách, na jihu fluviálními sedimenty. Bylo zjištěno, že\npůvodní sklon svahu byl v severním 80 m dlouhém rovnoběžníkovém úseku Všehrdovy ulice výrazně vyšší.\nPovrch půdního typu u křižovatky s ulicí Újezd je v hloubce 0,85 m od dnešního povrchu, v ohybu Všehrdovy\nulice před čp. 436 se nalézá v hloubce 3,1 m od dnešní vozovky. Od ohybu ulice směrem ke kostelu sv. Jana se\nmocnost antropogenního nadloží naopak snižuje až na 1,3 m, ovšem dále k jihovýchodu od kostela mocnost opět\nstoupá (deset metrů jihovýchodně od presbytáře bylo podloží zjištěno v hl. 2,6 m). Je tedy možno konstatovat, že\nkostel byl postaven na mírné vyvýšenině viditelně se projevující jak od pohledu od řeky, tak i při pohledu od jihu\na patrně i od severu.\nV raném a na počátku vrcholného středověku se u kostela sv. Jana Křtitele Na prádle nalézala osada Újezd.\nDosud stojící chrám byl postaven patrně po polovině 13. století.\nPři dokumentaci v sondách situovaných jižně a východně od kostela nebyly v roce 2014 nalezeny doklady\nsvědčící o intenzivním raně středověkém osídlení či pohřbívání. Do raného středověku je možno eventuelně\ndatovat pouze jeden mělký objekt, v jehož výplni byl nalezen fragment nádoby s archaicky zduřelým okrajem,\ndatovatelné do 2. pol. 11 až 1. pol. 12. stol. Tento objekt - snad hrob - se nalézal při západní straně Všehrdovy\nulice, 20 m severně od kostela sv. Jana. Absence středověkých sídlištních situací starších než 14. století však\nmůže být ovlivněna značným narušením nadloží v trase vodovodu a tím, že archeologická dokumentace mohla\nbýt prováděna pouze na vertikálních řezech.\nK nejstarším sídlištním vrstvám, které datovala keramika 14. století, patří dlažba z opuky a říčních valounů\nnalezená v hloubce 2,3 m v Říční ulici, 11 m JJV od kostela sv. Jana. Tato dlažba neležela na podloží, ale\npřekryla sídlištní souvrství či objekty neznámého stáří. V jižní části Všehrdovy ulice se na podloží nalézala\npoloha říčních valounů, snad úprava pochozího povrchu. Východně a severovýchodně od kostela sv. Jana,\nuprostřed Všehrdovy ulice, reprezentovaly nejstarší datovatelnou partii nadloží vrstvy s nálezy lidských kostí a s\nkeramikou 14. století. Jedná se buď o vrcholně středověkou navážku či spíše o hřbitovní horizont - terén\nněkdejšího farního hřbitova. Hřbitov snad původně sahal až za východní stranu Všehrdovy ulice, na parcelu\n321/7, kde byly v roce 1968 při výzkumu V. Humla objeveny tři kostrové hroby z období 14. až první poloviny\n15. století. Pohřebiště se tak nalézalo i v prostoru někdejší nivy. Na počátku vrcholného středověku zde však byl\nterén zvýšen navážkami. Někdy v průběhu vrcholného středověku byl hřbitov zmenšen a ohraničen zdí z opuky\npojené hlínou, která byla nalezena uprostřed jižního úseku Všehrdovy ulice. K dalšímu zmenšení došlo patrně až\nv raném novověku, kdy na starší zdi byla postavena cihlovo-opuková zeď, která má rozhraní základového a\nnadzemního zdiva 0,5 m pod dnešní vozovkou. Mezi ohradní zdí a kostelem se nalézala pouze jedna sonda. V\ntéto sondě se přímo pod ohradní zdí nalézal mělký objekt - dokumentovaný pouze na řezu - v jehož výplni se\nnacházely lidské kosti a při dně místy i zbytky dřeva. Nelze vyloučit, že se jedná o narušenou spodní partii\nhrobové jámy. Zde je možno poznamenat, že při výzkumu Ivana Borkovského v roce 1938 bylo u západního\nprůčelí stavby nalezeno celkem 85 hrobů, z nichž nejstarší byl datován do 16. století. Středověké hroby byly při\nvýzkumech Muzea hl. m. Prahy v minulosti objeveny i dále na západ od kostela, v parčíku v Besední ulici a též\nseverovýchodně od chrámu na parcele č. 321. V roce 2014 nebyly v sondách jižně, severně a východně od\nobjevené ohradní zdi žádné hroby nalezeny.\nZmíněná ohradní zeď je vyznačena i na Huberově plánu Prahy z r. 1769. Protože na Hergetově plánu z roku\n1791 se už nenachází, muselo dojít k rozšíření Všehrdovy i Říční ulice na úkor hřbitova někdy před tímto rokem.\nStalo se tak patrně v roce 1784, kdy byl kostelík prodán a adaptován na prádelnu a dílnu a současně došlo i ke\nzrušení hřbitova u něj.\nV severním a středním úseku Všehrdovy ulice bylo historické nadloží tvořeno převážně navážkovým souvrstvím\no průměrné mocnosti 1,5 až 2,5 m. Na několika místech bylo v hloubce 0,7 m až 2,1 m od dnešní vozovky\ndochováno až 5 úrovní dlažeb. Nejmladší křemencová, v hloubce 0,7 m pod dnešním terénem, náleží patrně 18.\nstoletí. Starší, převážně opukové, jsou datovány keramikou 16. - 17. století a byly odkryty v hloubce 1 až 2,3 m.\nV Říční ulici jižně od kostela sv. Jana na Prádle byla kromě novověkého navážkového souvrství zaznamenána\npůvodní uliční fronta tvořená ohradní zdí a někdejšími klasicistními a barokními domy (pův. č. 443, 444 a 445),\nkteré byly zbourány ve 40. letech 19. století.\nVe třech sondách v Šeříkové ulici byly pod sypkými navážkovými vrstvami zaznamenány raně novověké až\nvrcholně středověké situace, včetně zahloubených objektů. Pro absenci artefaktů nebylo možné odkryté situace\nlépe datovat.\nJan Havrda Všehrdova, Říční, Šeříková, In Dragoun a kol. Archeologický výzkum v Praze v letech 2013 a\n2014, P ražský sborník historický 43/2015.\nLokalizace starších akcí v oblasti je vyznačena v Mapě archeologických dokumentačních\nbodů na území Pražské památkové rezervace v měř. 1: 1000. Mapa Praha 7 - 1 ( Hrdlička\n1996 ; Hrdlička 200 5). Součástí této mapy, která je průběžně aktualizována, je databáze bodů\nse seznamem literatury. Naposled byla zmíněná mapa publikována v přehledovém článku o\nstavu archeologického výzkumu na katastru Malé Strany v roce 2008 ( Čiháková – Havrda\n2007 ).\n5.2. Historie lokality známá z písemných pramenů\nLokalita se nalézá na jižním okraji Malé Strany, původně Menšího Města pražského, a to od\npoloviny 14. století v jeho hradbách, nedaleko od Újezdské brány. O středověkém osídlení\nparcely se nedochovaly žádné písemné prameny. Dům 550/III se nalézá nedaleko od kostela\nsv. Jana Na prádle, který byl farním kostelem osady Újezd. Pozemek, kde dnes stojí objekt čp.\n550/III, se nalézal nedaleko od severní strany kurtiny barokního opevnění Prahy.\nObr. 3. Malostranská rampa řetězového mostu císaře Františka I. se nalézá pod vozovkou Vítězné ulice\njižně od domu čp. 550. Hnědě – barokní bastionové opevnění Prahy zrušené v 1. pol. 19. století. Podle\nSemerád–Havrda 2016 , 54, obr. 3.\nV roce 1839 došlo k demolici starší zástavby a byla vytyčena nová komunikace – dnešní ulice\nVítězná a současně byl postaven most přes Vltavu. Zahrady a pozemky na baště a za baštou\nbarokního opevnění byly rozparcelovány na stavební parcely, na kterých byly vybudovány\nčinžovní domy. Dnešní nájemní dům čp. 550/III byl postaven v druhé pol. 19. století ( Vlček a\nkol. 1999 ).\n6. Popis terénní situace\nSonda S1\nSonda byla umístěna v severozápadní rohové místnosti sklepa. Pod dnešním povrchem\nsuterénu – valounovou dlažbou (kóta 187,51 m n. m.), se nalézá souvrství o mocnosti 45 cm\n(suť tvořená střípky opuky, mírně střípky cihel, malty: vel. 3–6 cm, ojediněle 15 cm, ojediněle\nproplástky hlíny), jehož geneze je spjata s výstavbou dnešního domu. Suťová vrstva překryla\nrozšířený předzáklad (186,9 m) obvodové zdi domu z lomové opuky na vápennou maltu.\nPředzáklad předstupoval před zmíněnou zeď o 45 cm. Základová spára zdi byla zjištěna na\nkótě 186,4m, tj. v hloubce 1,1 m pod podlahou sklepa. Navážky z 19. století překryly\nzahloubený objekt, z kterého se dochovalo mísovité dno (jeden rozměr 40 cm, hloubka 13\ncm). Ve výplni objektu (tmavě šedá, béžově melírovaná, tuhá až kyprá prachovitá hlína, 20\n% světle šedého popela, nahodile uhlík až 1 cm, porfyr) byla nalezena keramika z 2. pol. 13.\naž 14. století. Objekt byl zahlouben do tmavě šedohnědé tuhé jílovité hlíny (podloží –\nhumózní náplav nebo půdní typ). Pod touto vrstvou se objevila okrová tuhá až měkká jílovitá\nhlína, slídnatá, bez příměsí, při bázi výrazně jemnozrnně písčitá (patrně fluviální sediment).\nSonda S2\nSonda byla umístěna v JV rohové místnosti sklepa. Pod dnešním povrchem suterénu –\nvalounovou dlažbou (kóta 187,53 m n. m.), se nalézá souvrství o mocnosti 60 cm (suť tvořená\nstřípky opuky, mírně střípky cihel, malty: vel. 3–6 cm, ojediněle 15 cm, ojediněle proplástky\nhlíny), jehož svrchní poloha vznikla až po výstavbě domu čp. 550, spodní partie je též patrně\nspjata s výstavbou dnešního domu. Svrchní vrstva překryla rozšířený předzáklad (186,9 m)\nobvodové zdi domu z lomové opuky na vápennou maltu. Předzáklad předstupoval před\nzmíněnou zeď o 80 cm. Základová spára zdi byla zjištěna na kótě 186,48 m, tj. v hloubce 1 m\npod podlahou sklepa. Povrch podloží byl zjištěn ve výšce 186,9 m, tj. 60 cm pod podlahou\nsklepa. Jeho svrchní partii reprezentovala tmavě šedohnědá tuhé jílovitá hlína (humózní\nnáplav nebo půdní typ). Pod touto vrstvou se objevila okrová tuhá až měkká jílovitá hlína,\nslídnatá, bez příměsí, při bázi výrazně jemnozrnně písčitá (patrně fluviální sediment).\n7. Nálezy\nZa dobu terénní části výzkumu byl získán malý soubor archeologických nálezů (úlomky stolní\na kuchyňské keramiky), které následně byly umyty a zaevidovány.\nVe vrstvě 8 v sondě S1, ve výplni objektu V2 bylo z profilu S1-R1 vyvzorkováno celkem 5\nfragmentů režné středověké keramiky. Soubor obsahoval 4 zlomky z těla nádob a jeden okraj.\nJedná se o fragment pokličky šedé barvy s jemnozrnným ostřivem. Ten, je možné zařadit do\n2. pol. 13. – 14. století.\n8. Vyhodnocení\nPo archeologickém vyhodnocení zjišťovacích sond je možno konstatovat, že přímo pod\nsoučasnou podlahou sklepa (187, 52 m) se nalézá vrstva, kterou je možno spojit s výstavbou\ndnešního domu. Její mocnost se pohybuje od 0,4 do 0,6 m. Tato vrstva překryla i poměrně\nširoký předzáklad obvodových zdí stavby. Základová spára zdí byla odhalena na niveletě\n186,38 – 186,48 m. Na základě dvou zjišťovacích sond se zdá, že při hloubení sklepa došlo\nk odstranění podstatné části historického nadloží a patrně i svrchní partie geologického\npodloží, jehož mírně snížený povrch byl ověřen na niveletě 186,9 v sondě S2 v JV rohu\nparcely a 187,1 m v sondě S1 v SZ rohu parcely. Při výzkumu bylo ověřeno, že pod podlahou\nzůstávají zachovány spodní části zahloubených objektů a eventuálně i starší zděné konstrukce.\n9. Výsledky zjišťovacího výzkumu vzhledem k budoucímu plošnému archeologického\nzáchranného výzkumu.\nZjišťovacím archeologickým výzkumem realizovaným v roce 2017 na parcele domu čp.\n550/III v Praze na Malé Straně byla ověřena existence archeologických památek.\nZ dokumentace pořízené při zjišťovacím archeologickém výzkumu vyplývá, že pod podlahou\nzůstávají zachovány spodní části zahloubených objektů (např. studní, jímek, výrobních\nobjektů a pod.) a eventuálně i starší zděné konstrukce. Parcela domu se nalézá pouze 50 m\njižně od kostela sv. Jana Na Prádle, duchovního centra středověké osady Újezd, proto lze na\nploše parcely očekávat nálezy spojené se středověkou zástavbou včetně pozůstatků sídelních\nobjektů.\nNadloží i nejsvrchnější část podloží v místě dnešních sklepů bylo sice zničeno při výstavbě\nsklepa domu v 19. století. Pod podlahou sklepů jsou jak ukázal zjišťovací výzkum zachovány\nnejspodnější partie archeologických objektů. Více zachovalých archeologických situací lze\nočekávat pod dlažbou dvora, který je oproti sklepu o\nV případě jakýchkoli zemních prací na parcelách domů je nezbytné po odstranění navážky\nz 19. století mocné ca 0,5 m, kterou je nutné realizovat za archeologického dohledu, provést\nodborné začištění celé plochy a v případě nálezů středověkých či pravěkých objektů provést\nzáchranný archeologický výzkum.\nObr. 4. Řez domem čp. 550 ve směru sever – jih, pohled od západu. Vlevo vyznačen povrch Vítězné ulice.\nV obou sondách vyznačen předzáklad a v sondě S1 patrný mísovitý středověký do geologického podloží\nzahloubený objekt.\n10. Literatura a prameny\nBalatka, B. 2001 : Geomorfologické poměry a členění reliéfu. In: Kovanda, J. a spol. 2001:\nNeživá příroda Prahy a jejího okolí. Praha, 11-17.\nČiháková, J. – Havrda, J. 2008 : Malá Strana v raném středověku. Stav výzkumu a\nrekapitulace poznání, Archeologické rozhledy 60, 187-228.\nHavrda, J. 2015: Všehrdova, Říční, Šeříková, In Dragoun a kol. Archeologický výzkum\nv Praze v letech 2013 a 2014, Pražský sborník historický 43/2015.\nHrdlička, L. 2005 : Praha. Podrobná mapa archeologických dokumentačních bodů na území\nměstské památkové rezervace. Praha.\nHuml, V. 1969a : 185. Praha 1 - Malá Strana h) Besední ulice, parčík před pův. špitálem (čp.\n323/l), Bulletin záchranného oddělení 6/1968, 110.\nHuml, V. 1969b : 185. Praha 1 - Malá Strana ch) nároží Všehrdovy a Říční ulice, východně od\nkostela, nezastavěná prostora mezi parcelou 321 a 320, Bulletin záchranného oddělení\n6/1968, 110.\nHuml, V. 1971 : Výsledky archeologického výzkumu osady Újezda (K dějinám\npředkolonizační zástavby Prahy). In: Zaniklé středověké vesnice v ČSSR ve světle\narcheologických výzkumů 1., Uherské Hradiště, 39-46.\nHuml, V. 1973 : Osada Újezd na Malé Straně, Staletá Praha 6, 77-89, 224.\nHuml, V 1988: Újezd. In: Archeologický výzkum v Praze v roce 1983 - 1986, Pražský sborník\nhistorický 21, 186.\nHuml, V. 1989 : Archeologický výzkum v areálu bývalé osady Újezd v Praze 1, Malé Straně\n(Předběžná zpráva o výzkumu ve dvoře čp. 425-III), Archaeologia historica 14, 109-\n122.\nHuml, V 1989a: Újezd. In: Archeologický výzkum v Praze v roce 1987, Pražský sborník\nhistorický 22, 176.\nHuml, V 1991: Újezd. In: Archeologický výzkum v Praze v letech 1988 - 1989, Pražský\nsborník historický 24, 197.\nStaňková, V. 2013: Všehrdova čp. 445/III. In Dragoun a kol. Archeologický výzkum v Praze\nv letech 2011 a 2012, Pražský sborník historický 41/2013.\nŠimek, R. 1970 : Podrobná inženýrsko-geologická mapa v měř. 1 : 5000, list mapy Praha 7-1.\nPÚDIS Praha.\nTryml, M. 2009: Všehrdova ulice čp. 562/III. In Dragoun a kol. Archeologický výzkum\nv Praze v letech 2007 a 2008, Pražský sborník historický 37/2009.\nTryml, M. – Zavřel, J. 1988 : Říční ulice. In: Archeologický výzkum v Praze v letech 1983 -\n1986, Pražský sborník historický 21, 185.\nTryml, M. - Zavřel, J. - 1992 : K počátkům středověkého osídlení jižní části Malé Strany,\nStaletá Praha 22, 109-126 .\nVlček, Pavel a kol. 1999 : Umělecké památky Prahy – Malá Strana. Praha.\nZavřel, J. 1995 : Praha 1 - Malá Strana, Újezd čp. 423/III, Pražský sborník historický 28, 232.\nzjišťovací archeologický výzkum NPÚ ú. o. p. v Praze\n2017/43\nPRAHA 1 – MALÁ STRANA\nVítězná ulice čp. 550, ppč. 801\nVedoucí výzkumu: Mgr. Jan Havrda\nPlánová dokumentace\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nSeznam plánů\nSeznam plánů\nTyp plánu Sonda\nČíslo plánu Plán\n1\n2\n3\n4\n5\n6\n7\nM01\nM02\nP01\nP02\nR01\nR02\nR03\npůdorys\npůdorys\npůdorys\npůdorys\nřez\nřez\nřez\nMěřítko\n1:100\n1:20\nS01\n1:20\nRůžička M., Hlavatý J.\nS02\n1:20\nRůžička M., Hlavatý J.\nS01\n1:20\nRůžička M., Hlavatý J.\nS02\n1:20\nRůžička M., Hlavatý J.\nS03\n1:20\nRůžička M., Hlavatý J.\nMěřil, Kreslil\nDatum\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\nPopis\nSituace výzkumu.\nSituace sond a řezů.\nSituace sondy S01 a základové zdi Z01.\nSituace sondy S02 a základové zdi Z01.\nVýchodní řez sondy S01.\nZápadní řez sondy S02.\nSeverní řez sondy S02.\nDigitalizoval\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nStránka 1 z 1\nPlán č. 1\n6. - 9. října 2017\nPlán č. 2\n6. - 9. října 2017\nZ01\nZ01\nZ01\nV01\n186,90\nR01\nvr. 5\n(ŁÆsteŁnì\nodebrÆna)\n186,75\nR01\n0\nPlán č. 3\n1 m\n2017 /\nz jiı š ov\nN Æ r odn í p a m Æ t kový œ s t a v\n43 œ ze m n í odbo r n Ø p r ac ov iıtì v P r aze\nP R AHA 1 , M a l Æ S t r a n a\nac í V ítì z n Æ Ł p . 55 0 , p . p . Ł . 801\na r c h e o l og i c ký vý z ku m 2 . P P - S Z m í s t n o s t\nS ond a : S 01 L ok a li zace : 2 . PP\nM M . R ø ž i Ł k a , J . P 0 1\nìł i l , k r e s li l : H l a v a t ý P ødo r y s :\nP op i s : J . H a v r d a M ìłít ko : 1 : 20\nD i g it a li z ov a l: J . H l a v a t ý D a t u m : 6 . + 9 . 10 . 2017\nV e d o u c í v ý z k u m u : M g r . J . H a v r d a V ý ı kov ý s y s t Ø m : – S J N S / B p v\n,\nR03\nR02\nV01\n186,90\nZ01\n186,92\nZ01\nVítìznÆ ulice\n0\n2017 / 43\nz jiı š ov ac í\na r c h e o l og i c ký vý z ku m\nS ond a : S 01 L ok a li zace :\nPlán č. 4\nZ01\n1 m\nN Æ r odn í p a m Æ t kový œ s t a v\nœ ze m n í odbo r n Ø p r ac ov iıtì v P r aze\nP R AHA 1 , M a l Æ S t r a n a ,\nV ítì z n Æ Ł p . 55 0 , p . p . Ł . 801\n2 . P P - S Z m í s t n o s t\n2 . PP\nP 0 1\n. R ø ž i Ł k a , J . H l a v a t ý P ødo r y s :\nìłil , k r e s lil:\nP op i s :\nD i g it a li z ov a l:\nV e d o u c í v ý z k u m u :\nJ . H a v r d a M ìłít ko :\n1 : 20\nJ . H l a v a t ý D a t u m :\n6 . + 9 . 10 . 2017\nM g r . J . H a v r d a V ý ı k o v ý s y s t Ø m : – S J N S / B p v\n188,00\n187,00\n186,00\n185,00\n184,00\npodlaha sklepa\nop.\n1\nseverní\nobvodovÆ zeï\ndomu Łp. 550\n2\nZ01\nop.\n3\n8\n4\n5\nZ01\n6\nV01\n7\n0\nPlán č. 5\n188,00\nV02\npopel\n187,00\n186,00\n185,00\n184,00\n1\n1,24 m\n2017 / 43\nz jiı š ov ac\nN Æ r odn í p a m Æ t kový œ s t a v\nœ ze m n í odbo r n Ø p r ac ov iıtì v P r aze\nP R AHA 1 , M a l Æ S t r a n a\ní V ítì z n Æ Ł p . 550 , p . p . Ł . 801\na r c h e o l og i c ký vý z ku m 2 . PP - S Z m í s t no s t\nS ond a : S 01 L ok a li zace : 2 . PP\nM M . R ø ž i Ł k a , J . H l a v a t ý Ø R 01\nìłil , k r e s lil: ez :\nP op i s : J . H a v r d a M ìłít ko : 1 : 20\nD i g it a li z ov a l: J . H l a v a t ý D a t u m : 6 . + 9 . 10 . 2017\nV e dou c í vý z ku m u : M g r . J . H a v r d a V ý ı kový s y s t Ø m : – S J N S / B pv\n,\n188,00\njižní\nobvodovÆ zeï\npodlaha sklepa\ndomu Łp. 550\nZ01\n3\n187,00\nZ01\nV01\n186,00\n185,00\n184,00\n0\nPlán č. 6\n188,00\nR03\n1\n2\nop.\n9\nV04\n187,00\n5\n6\n7\n186,00\n185,00\n184,00\n1\n1,8 m\np a m Æ t kový œ s t a v\n2017\nz jiı\nN Æ r odn í\n/ 43 œ ze m n í odbo r n Ø p r\nP R AHA\nš ov ac í V ítì z n Æ Ł p .\na r c h e o l og i c ký vý z ku m 2 . PP\nS ond a : S 02 L ok a li zace : 2 . PP\nM ìłil , k r e s lil: M . R ø ž i Ł k a , J . H l a v a t ý Ø ez :\nP op i s : J . H a v r d a M ìłít ko :\nD i g it a li z ov a l: J . H l a v a t ý D a t u m :\nV e dou c í vý z ku m u : M g r . J . H a v r d a V ý ı kový s y s t Ø\nac ov iıtì v P r aze\n1 , M a l Æ S t r a n a ,\n550 , p . p . Ł . 801\n- J V m í s t no s t\nR 02\n1 : 20\n9 . 10 . 2017\nm : – S J N S / B pv\n188,00\nR02\npodlaha sklepa\n1\n2\n10\nV03\nV04\n9\n187,00\n5\n6\n186,00\n185,00\n184,00\n0\n1\n2017 / 43\nz jiı š ov ac í\na r c h e o l og i c ký vý z ku m\nS ond a : S 02 L ok a li zace :\nìł il , k r e s l il:\nP op i s :\nD i g it a li z ov a l:\nV e do u c í vý z k u m u :\nPlán č. 7\n188,00\nvýchodní\nobvodovÆ zeï\ndomu Łp. 550\nZ01\n187,00\n186,00\n185,00\n184,00\n1,8 m\nN Æ r odn í p a m Æ t kový œ s t a v\nœ ze m n í odbo r n Ø p r ac ov iıtì v P r aze\nP R AHA 1 , M a l Æ S t r a n a ,\nV ítì z n Æ Ł p . 550 , p . p . Ł . 801\n2 . PP - J V m í s t no s t\n2 . PP\nR 03\nM . R ø ž i Ł k a , J . H l a v a t ý Ø\ne z :\nJ . H a v r d a M ìłít ko :\n1 : 20\nJ . H l a v a t ý D a t u m :\n9 . 10 . 2017\nM g r . J . H a v r d a V ý ı kový s y s t Ø m : – S J N S / B pv\nzjišťovací archeologický výzkum NPÚ ú. o. p. v Praze\n2017/43\nPRAHA 1 – MALÁ STRANA\nVítězná ulice čp. 550, ppč. 801\nVedoucí výzkumu: Mgr. Jan Havrda\nPopis stratigrafických\njednotek\n- uloženin (vrstev), výkopů a zdí\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPopis uloženin\nPopis uloženin\nSJ\nUloženina\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\nPopis\nInterpretace\nSonda\nS01, S02 křemencové kameny v písčitém loži; dlažba sklepa\nhnědá silně písčitá hlína, úlomky malty, cihel, opuky; navážka\nsuť tvořená střípky opuky, mírně střípky cihel, malty (vel. 3–6 cm, ojediněle 15\ncm), ojediněle proplástky hlíny\nhnědá hlína, četné úlomky opuky až 8 cm, heterogenní\ntmavě šedohnědá tuhá jílovitá hlína, vzácně valounek 3 cm; podloží – humózní\nnáplav nebo půdní typ\npozvolný přechod mezi vrstvami 5 a7\nokrová tuhá až měkká jílovitá hlína, slídnatá, bez příměsí, při bázi výrazně\njemnozrnně písčitá; podloží – náplav\ntmavě šedá, béžově melírovaná, tuhá až kyprá prachovitá hlína, 20 % světle\nšedého popela, nahodile uhlík až 1 cm; keramika 13. - 14. století; výplň objektu\nV02\nokrově hnědá hlína s polohami (15%) tmavší šedé hlíny, tuhá, místy opuka 20\ncm, vzácně hrudka malty a popela; druhotně přemístěné podloží – fluviální\nsediment s příměsí půdního typu; na řezu 3 při povrchu větší koncentrace\nkamenů pískovce\nokrově šedý, místy pouze šedý, zahliněný písek, četné polohy písku, malty,\nmísty opuka; výplň výkopu V03\nČ. sáčku\nPlány\nPoznámka\nR03\nR02\nR01\nR03\nR02\nR01\nR02\nR01\nR01\nR03\nR02\nR01\nP01\nR03\nR02\nR01\nR02\nR01\nR01\nR03\nR02\nR03\nZapsal\nDatum\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nStránka 1 z 1\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPopis výkopů\nPopis výkopů\nSJ\nV01\nV02\nV03\nV04\nSonda\nS01, S02\nS01\nS02\nS02\nInterpretace\nPopis\nVýkop pro stávající zdivo domu (Z01).\nMělký výkop vyplněný vrstvou s příměsí\nšedého polela\nRozměrný výkop vyplněný stavební sutí.\nVýkop s rovným dnem; patrně dno stavební\njámy z doby vzniku stávajícího domu čp. 550.\nVýplň\nRozměry\nZ01, 3\n8\n10\n9\nPlány\nDatace\nRozsah odkryvu\nR02\nR01\nP02\nP01\nR03\nR02\nZapsal\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nDatum\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nStránka 1 z 1\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPopis zdí (konstrukcí)\nPopis zdí (konstrukcí)\nSJ\nSonda\nZ01\nS01, S02 Kategorie:\nZeď stávajícího domu čp. 550. Opukové zdivo na vápennou maltu s výrazně rozšířeným předzákladem pod úrovní podlahy. V\nPopis:\nnadzemní partii zdiva místy použita cihla, v základové pak četně valoun.\nInterpretace:\nDatování:\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPlány\nP01\nR03\nR02\nR01\nP02\nZapsal\nHlavatý J.\nDatum\n9.10.2017\nStránka 1 z 1\nzjišťovací archeologický výzkum NPÚ ú. o. p. v Praze\n2017/43\nPRAHA 1 – MALÁ STRANA\nVítězná ulice čp. 550, ppč. 801\nVedoucí výzkumu: Mgr. Jan Havrda\nTerénní\nfotodokumentace\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPopis fotografií\nPopis fotografií\nFoto\nF01\nF02\nF03\nSonda\nS01\nS01\nS01\nKategorie\nsituační\npůdorys\nřez\nPopis\nSituace sondy S01 před rozšířením k jihu.\nPředzáklad obvodové zdi Z01 v sondě S01.\nŘez R01 v sondě S01 před rozšířením sondy k jihu.\nOrientace\npohled od jihu\npohled od jihu\npohled od západu\nPlány\nP01\nP01\nR01\nFotil\nHlavatý J.\nHlavatý J.\nHlavatý J.\nDatum\n6.10.2017\n6.10.2017\n6.10.2017\npohled od severozápadu R01\nF04\nF05\nF06\nS01\nS01\nS01\nkombinace\npůdorys\nřez\nJižní část řezu R01 v sondě S01 před rozšířením sondy k jihu.\nZáklad obvodové zdi (Z01) domu v sondě S01\nŘez R01 v sondě S01 po rozšíření sondy k jihu.\npohled od jihu\npohled od západu\nP01\nR01\nP01\nHlavatý J.\nHlavatý J.\nHlavatý J.\n6.10.2017\n6.10.2017\n9.10.2017\ncelkový záběr Situace sondy S01 po rozšíření k jihu.\nF07\nF08\nF09\nS01\nS01\nS02\nřez\nsituační\nJižní část řezu R01 v sondě S01 po rozšíření sondy k jihu.\nSituace sondy S02.\npohled od jihu\npohled od západu\npohled od severu\nR01\nP02\nP02\nHlavatý J.\nHlavatý J.\nHlavatý J.\n9.10.2017\n9.10.2017\n9.10.2017\ncelkový záběr Řez R02 v sondě S02.\nF10\nF11\nF12\nS02\nS02\nS02\nřez\nřez\nSeverní část řezu R02 v sondě S02.\nŘez R03 v sondě S02.\npohled od východu\npohled od východu\npohled od jihu\nR02\nR02\nR03\nHlavatý J.\nHlavatý J.\nHlavatý J.\n9.10.2017\n9.10.2017\n9.10.2017\npohled od jihovýchodu R02\nF13\nŽánr01\nS02\nS01\nřez\nžánr\nŘezy R02 a R03 v sondě S02.\nArcheologové nad sondou S01 (žánrová fotografie).\npohled od jihu\nR03\nHlavatý J.\nHlavatý J.\n9.10.2017\n6.10.2017\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nStránka 1 z 1\nF O T O D O K U M E N T A C E\nF 0 1 - sit u ac e s o n dy S 0 1 př e d r ozšíř e ní m k ji h u\nF 0 3 - ř ez R 0 1 v s o n d ě S 0 1 př e d r ozšíř e ní m s o n d y kji h u\nF 0 2 - př e dz ákl a d o bv o d o v é z di Z 0 1 v s o n d ě S 0 1\nF 0 4 -již ní č á st ř ez u R 0 1 v s o n d ě S 0 1 př e d r ozšíř e ní m s o n d y kji h u\nF O T O D O K U M E N T A C E\nF 0 5 - z á kl a d o b v o d o v é z di ( Z 0 1) d o m u v s o n d ě S 0 1\nF 0 7 - sit u a c e s o n d y S 0 1 p o r o zšíř e ní kji h u\nF 0 6 - ř e z R 0 1 v s o n d ě S 0 1 p o r ozšíř e ní s o n d y kji h u\nF 0 8 -již ní č á st ř ez u R 0 1 v s o n d ě S 0 1 p o r ozšíř e ní s o n d y kji h u\nF O T O D O K U M E N T A C E\nF 0 9 - sit u a c e s o n dy S 0 2\nF 11 - s e v er ní č ást ř ez u R 0 2 v s o n d ě S 0 2\nF 1 0 - ř ez R 0 2 v s o n d ě S 0 2\nF 1 2 - ř ez R 0 3 v s o n d ě S 0 2\nF O T O D O K U M E N T A C E\nF 1 3 - ř e zy R 0 2 a R 0 3 v s o n d ě S 0 2\nŽ á nr 0 1 - ar c h e ol o g ov é n a d s o n d o u S 0 1 ( ž á nr o v á f ot o gr afi e)",
+    "text": "nálezová zpráva\nzáchranný archeologický výzkum NPÚ ú. o. p. v Praze\nČ. j. NPÚ:\nČ. př. ARÚ:\n2017/43\nPRAHA 1 – MALÁ STRANA\nVítězná čp. 550/III\nJan Havrda,\nPraha 2017\nObsah\n1. Lokalizace a okolnosti výzkumu ........................................................................................4\n1.1. Lokalizace ...................................................................................................................4\n1.2. Okolnosti výzkumu ......................................................................................................5\n2. Metoda a postup výzkumu ..................................................................................................5\n2.1. Metoda výzkumu .........................................................................................................5\n2.2. Složení pracovního týmu ..............................................................................................5\n3. Technická zpráva o zaměření výzkumu (J. Hlavatý) ...........................................................5\n4. Přírodní prostředí ................................................................................................................6\n4.1. Geomorfologické poměry ............................................................................................6\n4.2. Geologické poměry ......................................................................................................7\n5. Historie lokality ..................................................................................................................8\n5.1. Historie lokality známá z archeologických pramenů .....................................................8\n5.2. Historie lokality známá z písemných pramenů ........................................................... 10\n6. Popis terénní situace ......................................................................................................... 11\n7. Nálezy .............................................................................................................................. 12\n8. Vyhodnocení .................................................................................................................... 13\n9. Výsledky zjišťovacího výzkumu vzhledem k budoucímu plošnému archeologického\nzáchranného výzkumu. ......................................................................................................... 13\n10. Literatura a prameny ....................................................................................................... 14\nPŘÍLOHY\nSeznam a popis kontextů\nPlány\nFotodokumentace\nTato práce, která vznikla tvůrčím zpracováním výsledků archeologického výzkumu, je\nchráněna autorským právem podle zákona 247/90 Sb.\nVe smyslu tohoto zákona jsou chráněny i jednotlivé části této práce, jako jsou náčrtky, plány,\nzávěry apod. Části práce nebo celou práci lze uveřejnit pouze se svolením autorů\n1. Lokalizace a okolnosti výzkumu\n1.1. Lokalizace\nV rámci plánované rekonstrukce byly v Praze 1 – Malé Straně, na dvoře domu čp. 550/III,\nparc. č. 801, ulice Vítězná zdokumentovány statické sondy vykopané ve stávajícím 2.\nsuterénu domu. Prohlédnuty byly i dva výkopy na dvoře domu.\nObr. 1. Situace výzkumu, černě zjišťovací sondy.\n1.2. Okolnosti výzkumu\nZjišťovací archeologický výzkum byl objednán architektonickým ateliérem P6PA+Architects,\ns.r.o. Umístění čtyř zjišťovacích sond zvolil architekt, tak aby byly odhaleny základové\nkonstrukce objektu. Terénní práce probíhaly v říjnu 2017.\n2. Metoda a postup výzkumu\n2.1. Metoda výzkumu\nVýzkum byl prováděn standardními odbornými postupy používanými při archeologických\nvýzkumech NPÚ ú. o. p. v Praze. Postupoval archeologickou metodou důsledně respektující\nvertikální statigrafii nadloží. Makroskopicky rozlišitelné části nadloží, odrážejí přírodní a\nantropogenní aktivity, bývají označovány jako stratigrafické jednotky (s. j.). Podle charakteru\nbylo možné rozeznat uloženiny, výkopy (V) a stavební konstrukce (Z).\nZjišťovací archeologické sondy S1 a S2 byly geodeticky zaměřeny. Sypké novověké\nnásypové uloženiny byly rozebrány krumpáčem pracovníky stavby. Kresebně a fotograficky\nbyly zdokumentovány svislé profily (stěny sond). V sondě S1 byl nakreslen řez R1, v sondě\nS2 byly zdokumentovány 2 profily (R2 a R3). Odkryté situace byly zachyceny i půdorysně.\nFotograficky byly dokumentovány i dva výkopy vyhloubené na dvoře domu.\nPlány byly kresleny v měřítku 1 : 20. Vrstvy byly popsány, vyfotografovány a následně\ndůkladně vyvzorkovány. Sondy měly velikost 1 x 1 m (S1) a 1,7 x 1,3 m (S2) a hloubku\n1,2m. V sondě S1 byla ověřena úroveň podloží pedologickými sondovacími tyčemi.\nDo tabulky Seznam a inventář nálezů byla vložena evidence sáčků s nálezy. Kromě lokalizace\nbyly rozepsány jednotlivé typy a množství nálezů. Celkem byl zaevidován pouze jeden sáček\ns nálezy.\n2.2. Složení pracovního týmu\nVedoucí výzkumu – autor zprávy: Mgr. Jan Havrda\nHlavní geodetické a dokumentační práce: Jakub Hlavatý, Michal Růžička\nVyhodnocení nálezů: Mgr. Jan Havrda\nFotodokumentace: Jakub Hlavatý\nPC zpracování plánové dokumentace: Jakub Hlavatý\n3. Technická zpráva o zaměření výzkumu (J. Hlavatý)\nk.ú. Malá Strana\n(Praha 1)\nčp. 550/III, parc. č. 801, ulice Vítězná\nSMO-5 : Praha 7-1/34; list mapy 1:1000 Praha 295\nsouřadnicový systém: JTSK\nvýškový systém: ČSJNS – Balt\nměřil: J. Hlavatý\nzobrazil: J. Hlavatý\nZjišťovací archeologický výzkumu si vyžádal dokumentaci dvou bodových zjišťovacích sond\nv 2. suterénu domu. Přesné geodetické výškové a prostorové zaměření řezů bylo provedeno\nelektronickou pulsní totální stanicí GPT-2006 a pětimetrovou teleskopickou latí. Výškové\nzaměření jednotlivých půdorysných plánů bylo provedeno technickou nivelací přístrojem\nSOKKIA C410 a pětimetrovou teleskopickou latí. Pro výškové zaměření byl využit pevný\nvýškový bod ČSJNS/Bpv osazený čp. 421/III ve Vítězné ulici. Pro potřeby výzkumu byl na\ndvoře domu osazen pomocný výškový bod.\nPro prostorové umístění řezů byl použit plán stavby zachycující stav domu před jeho\nrekonstrukcí. Získaná data byla zanesena do vektorizované katastrální mapy Malé Strany\n(program MicroStation V8; formát DGN).\nPo grafické úpravě byly vytvořeny tiskové výstupy v potřebném měřítku.\nMěřická data jsou uložena v archivu archeologického oddělení NPÚ.\n4. Přírodní prostředí\n4.1. Geomorfologické poměry\nMísto výzkumu se nachází v západní části Pražské kotliny, která zaujímá nejnižší části údolí\nVltavy a náleží do celku Pražské plošiny. Je tedy součástí Brdské oblasti Poberounské\nsubprovincie České vysočiny (Balatka 2001, 15). Geomorfologie lokality byla ovlivněna\ngeologickými erozními a akumulačními procesy (zaniklé koryto Vltavy) a později byla\nutvářena i činností člověka (navážky). Plocha výzkumu byla situována v nadmořské výšce\n192,38 m n. m. (severní část dvora) až 191,95 m n. m. (jižní část dvora).\nV prostoru domu se patrně nacházel rovinatý terén. Jeho výška byla zaměřena:\nDvůr domu čp. 550: 189,57 m n. m. Bpv (3,76 o dlažby Vítězné ul.)\nPodlaha sklepa domu čp. 550: 187,52 m n. m. Bpv ( 5,81 m o dlažby Vítězné ul.)\nPovrch vozovky Vítězné ulice před domem čp. 550: 193,33 m n. m. Bpv\nPodlaha přízemí domu čp. 550: 195,27 m n. m. Bpv (+- 0 m)\nObr. 2. Výřez z podrobné inženýrsko-geologické mapy v měř. 1 : 5000, list mapy Praha 7-1 (Šimek\n1970).\n4.2. Geologické poměry\nZ inženýrsko-geologické mapy 1:5000, list mapy Praha 7-1 (Šimek 1970) vyplývá, že skalní\npodklad lokality vytvářejí vrstvy ordoviku zastoupené břidlicemi. Překrývají je písčité štěrky\nnáležící poslednímu (würmskému) glaciálu. Na říční sedimenty pak nasedají svahové\nuloženiny a sedimenty výplavových kuželů reprezentované heterogenními zvrstvenými\nsedimenty tvořenými polohami štěrkovitého písku s četnými omletými zrny a střípky opuky\nšedookrovými písčitými až jílovitými hlínami. Svrchní partie svahových sedimentů se na\nlokalitě vyskytuje ve formě okrové jílovitoprachovité hlíny. Ta tvoří matečný substrát\npůdního typu blízkého degradované černozemi. Nejsvrchnější poloha je patrně v druhotném\nuložení a je možné ji označit za půdní sediment.\n5. Historie lokality\n5.1. Historie lokality známá z archeologických pramenů\nZ hlediska archeologického poznání lze konstatovat, že parcela domu čp. 550/III nalézající se v jižní\nčásti katastru Malé Strany, nedaleko od kostela sv. Jana Křtitele Na prádle se nachází v území\ns archeologickými nálezy. V raném a na počátku vrcholného středověku se u kostela sv. Jana Křtitele\nNa prádle nalézala osada Újezd. Dosud stojící chrám byl postaven patrně po polovině 13. století. Při\ndokumentaci v sondách, v inženýrských rýhách ve Všehrdově ulici, situovaných jižně a východně od\nkostela, byly v roce 2014 nalezeny doklady svědčící o středověkém osídlení a pohřbívání. Nejstarším\nnálezem byl fragment keramické nádoby z 2. pol. 11. až 1. pol. 12. stol. Středověké a raně novověké\nsituace byly zaznamenány i při záchranných archeologických výzkumech vyvolaných rekonstrukcemi\ndomů čp. 562/III v roce 2007 a čp. 455/III v letech 2011 – 2012, které leží v těsném severním\nsousedství domu čp. 550/III. Zmíněný kostel se nalézá pouze 50 m severně od domu čp. 550.\nV okolí referované lokality proběhlo v minulých letech několik archeologických výzkumů\nNPÚ ú.o.p. v Praze.\nNejvýznamnější archeologické výzkumy v okolí\nVŠEHRDOVA ČP. 445/III\nPrůzkum východní, nepodsklepené části domu, adaptované v březnu až květnu 2012 na podzemní garáže\nv zásadě potvrdil dosavadní předpoklady o historické podobě prostoru jižně od kostela sv. Jana Na Prádle. O\ntrvalém osídlení lze díky početným nálezům, byť v sekundárních polohách, a v souladu s dostupnou ikonografií,\nuvažovat od 17. století. Intaktní archeologické situace pocházely až z druhé poloviny 18. a především z 19.\nstoletí a přímo souvisely se změnami zástavby parcely (vrstvy navážek, zbytky ohradních zdí, dláždění či\nnejmladší suťové zvýšení terénu). Antropogenní aktivity dosahovaly mocnosti 2,80 až 3 m (povrch před\nzahájením výzkumu 189,80 m n. m.). Níže je střídal sled povodňových a nivních sedimentů v rozsahu minimálně\n1,20 m (hladina spodní vody 185,89 m - niveleta ukončení výzkumu).\nVeronika Staňková, Všehrdova čp. 445/III. In Dragoun a kol. Archeologický výzkum v Praze v letech 2011 a\n2012, Pražský sborník historický 41/2013.\nŘíční čp. 445/III (Všehrdova čp. 445/III)\nV lednu 2011 proběhl zjišťovací archeologický výzkum formou dokumentace svislých profilů v sondách, které\nbyly vykopány stavbou v rámci příprav rekonstrukce domu stojícímu na rohu Všehrdovy a Říční ulice.\nV interiérech domu bylo vyhloubeno pět nevelkých statických sond, jedna v nepodsklepeném přízemí objektu,\nzbylé čtyři v suterénu. Při výzkumu se podařilo získat informace o archeologickém nadloží a též upřesnit\ngeologické znalosti lokality. Sondy, které dosáhly podloží, se nalézaly pouze v severní, podsklepené části domu.\nStarší geologické mapy zobrazují v prostoru objektu svahové sedimenty ve formě hlín a hlinitých sutí, které\npřekrývají štěrkovou akumulaci – újezdskou terasu. Na základě provedené dokumentace je možno konstatovat,\nže se na parcele domu nalézá svah zmíněné terasy svažující se od severozápadu k jihovýchodu (z nivelety 187,00\nke kótě 184,00 m). Hranu terasy překrývají poměrně stejnorodé nivní sedimenty v podobě měkkých, slabě\npísčitých jílů. Jejich mocnost se zvětšuje směrem k jihovýchodu. V severovýchodní části sklepa nebyly\narcheologické situace zastiženy. V části jihozápadní bylo dokumentováno torzo vrcholně či pozdně středověkého\nobjektu, ten byl narušen mladším objektem novověkým (17. – 18. století). V nejzápadnější sondě byl\ndokumentován druhotně (antropogenně?) přemístěný půdní typ. V jižní nepodsklepené části domu byla položena\npouze jedna sonda, ta však nedosáhla úrovně podloží. Doloženy zde byly obtížně datovatelné situace dokládající\nzvyšování terénu patrně v posledních staletích. Ze zjišťovacího výzkumu vyplývá, že při stavbě sklepa dnešního\ndomu byly zničeny patrně veškeré nadložní situace. Pod podlahou suterénu zůstávají dochovány pouze objekty\nzahloubené do podloží. V jižní a jihovýchodní části domu je nadložní stratigrafie dochována. Při výzkumu\nnebyly nalezeny situace mající vztah k blízkému kostelu sv. Jana Na Prádle (pohřební areál), nalezeny nebyly\nani pozůstatky stavebních předchůdců dnešního domu, které jsou známy z ikonografie a starých plánů. Ty se\nvšak mohou nalézat pod nepodsklepenou jižní částí domu. Tam se též mohou nacházet pozůstatky barokního\nopevnění Malé Strany, které snad dosahovalo až do tohoto prostoru.\nJan Havrda (nepubl.)\nVšehrdova ulice čp. 562/III\nV části nepodsklepeného přízemí domu na rohu ulic Všehrdova a Říční byl proveden výzkum před plánovanou\nvýstavbou podzemních garáží. Protože hloubka výkopů nedosáhla raně středověkých úrovní, je základním\nzjištěním dokumentace povodňových sedimentů, jejichž horní hranice dosahuje úrovně téměř 187 m.n.m. Tento\nsediment obsahoval nečetný keramický materiál 14. a 15. století s důrazem na období mladší. Ve skladbě vyšších\npoloh nadloží se střídají násypové vrstvy a povodně 17. a 18. století. Nejmladší dokumentovaná povodeň měla\nniveletu 188,30 m.\nMichal Tryml, Všehrdova ulice čp. 562/III, In Dragoun a kol. Archeologický výzkum v Praze v letech 2007 a\n2008, Pražský sborník historický 37/2009\nVšehrdova, Říční, Šeříková – výzkum při opravě vodovodu\nZáchranný archeologický výzkum vyvolaný obnovou vodovodního řadu proběhl od října 2013 do podzimu 2014.\nVýkopové práce byly prováděny stavební firmou ve staré trase pro vodovodní potrubí, proto se výzkum omezil\nna dokumentaci vertikální stratigrafie historického nadloží dochované na některých úsecích stěn výkopů.\nCelková délka výkopů měřila 286 m, dokumentováno bylo celkem 180 m vertikálních profilů o průměrné výšce\n2,3 m. Na významné části stěn výkopu se historická stratigrafie nedochovala, neboť byla zničena při budování\ndalších inženýrských sítí pod vozovkami ulic. Části nové trasy vodovodního řadu byly navíc realizovány\nhorizontálním vrtem (protlakem), tzn. že některé úseky nebyly při výměně vodovodního potrubí odkrývány od\nshora.\nPři výzkumu byla ověřena úroveň povrchu terénu před počátkem osídlení lokality. Podloží bylo reprezentováno\nna severu půdním typem vyvinutým na svahových hlínách, na jihu fluviálními sedimenty. Bylo zjištěno, že\npůvodní sklon svahu byl v severním 80 m dlouhém rovnoběžníkovém úseku Všehrdovy ulice výrazně vyšší.\nPovrch půdního typu u křižovatky s ulicí Újezd je v hloubce 0,85 m od dnešního povrchu, v ohybu Všehrdovy\nulice před čp. 436 se nalézá v hloubce 3,1 m od dnešní vozovky. Od ohybu ulice směrem ke kostelu sv. Jana se\nmocnost antropogenního nadloží naopak snižuje až na 1,3 m, ovšem dále k jihovýchodu od kostela mocnost opět\nstoupá (deset metrů jihovýchodně od presbytáře bylo podloží zjištěno v hl. 2,6 m). Je tedy možno konstatovat, že\nkostel byl postaven na mírné vyvýšenině viditelně se projevující jak od pohledu od řeky, tak i při pohledu od jihu\na patrně i od severu.\nV raném a na počátku vrcholného středověku se u kostela sv. Jana Křtitele Na prádle nalézala osada Újezd.\nDosud stojící chrám byl postaven patrně po polovině 13. století.\nPři dokumentaci v sondách situovaných jižně a východně od kostela nebyly v roce 2014 nalezeny doklady\nsvědčící o intenzivním raně středověkém osídlení či pohřbívání. Do raného středověku je možno eventuelně\ndatovat pouze jeden mělký objekt, v jehož výplni byl nalezen fragment nádoby s archaicky zduřelým okrajem,\ndatovatelné do 2. pol. 11 až 1. pol. 12. stol. Tento objekt - snad hrob - se nalézal při západní straně Všehrdovy\nulice, 20 m severně od kostela sv. Jana. Absence středověkých sídlištních situací starších než 14. století však\nmůže být ovlivněna značným narušením nadloží v trase vodovodu a tím, že archeologická dokumentace mohla\nbýt prováděna pouze na vertikálních řezech.\nK nejstarším sídlištním vrstvám, které datovala keramika 14. století, patří dlažba z opuky a říčních valounů\nnalezená v hloubce 2,3 m v Říční ulici, 11 m JJV od kostela sv. Jana. Tato dlažba neležela na podloží, ale\npřekryla sídlištní souvrství či objekty neznámého stáří. V jižní části Všehrdovy ulice se na podloží nalézala\npoloha říčních valounů, snad úprava pochozího povrchu. Východně a severovýchodně od kostela sv. Jana,\nuprostřed Všehrdovy ulice, reprezentovaly nejstarší datovatelnou partii nadloží vrstvy s nálezy lidských kostí a s\nkeramikou 14. století. Jedná se buď o vrcholně středověkou navážku či spíše o hřbitovní horizont - terén\nněkdejšího farního hřbitova. Hřbitov snad původně sahal až za východní stranu Všehrdovy ulice, na parcelu\n321/7, kde byly v roce 1968 při výzkumu V. Humla objeveny tři kostrové hroby z období 14. až první poloviny\n15. století. Pohřebiště se tak nalézalo i v prostoru někdejší nivy. Na počátku vrcholného středověku zde však byl\nterén zvýšen navážkami. Někdy v průběhu vrcholného středověku byl hřbitov zmenšen a ohraničen zdí z opuky\npojené hlínou, která byla nalezena uprostřed jižního úseku Všehrdovy ulice. K dalšímu zmenšení došlo patrně až\nv raném novověku, kdy na starší zdi byla postavena cihlovo-opuková zeď, která má rozhraní základového a\nnadzemního zdiva 0,5 m pod dnešní vozovkou. Mezi ohradní zdí a kostelem se nalézala pouze jedna sonda. V\ntéto sondě se přímo pod ohradní zdí nalézal mělký objekt - dokumentovaný pouze na řezu - v jehož výplni se\nnacházely lidské kosti a při dně místy i zbytky dřeva. Nelze vyloučit, že se jedná o narušenou spodní partii\nhrobové jámy. Zde je možno poznamenat, že při výzkumu Ivana Borkovského v roce 1938 bylo u západního\nprůčelí stavby nalezeno celkem 85 hrobů, z nichž nejstarší byl datován do 16. století. Středověké hroby byly při\nvýzkumech Muzea hl. m. Prahy v minulosti objeveny i dále na západ od kostela, v parčíku v Besední ulici a též\nseverovýchodně od chrámu na parcele č. 321. V roce 2014 nebyly v sondách jižně, severně a východně od\nobjevené ohradní zdi žádné hroby nalezeny.\nZmíněná ohradní zeď je vyznačena i na Huberově plánu Prahy z r. 1769. Protože na Hergetově plánu z roku\n1791 se už nenachází, muselo dojít k rozšíření Všehrdovy i Říční ulice na úkor hřbitova někdy před tímto rokem.\nStalo se tak patrně v roce 1784, kdy byl kostelík prodán a adaptován na prádelnu a dílnu a současně došlo i ke\nzrušení hřbitova u něj.\nV severním a středním úseku Všehrdovy ulice bylo historické nadloží tvořeno převážně navážkovým souvrstvím\no průměrné mocnosti 1,5 až 2,5 m. Na několika místech bylo v hloubce 0,7 m až 2,1 m od dnešní vozovky\ndochováno až 5 úrovní dlažeb. Nejmladší křemencová, v hloubce 0,7 m pod dnešním terénem, náleží patrně 18.\nstoletí. Starší, převážně opukové, jsou datovány keramikou 16. - 17. století a byly odkryty v hloubce 1 až 2,3 m.\nV Říční ulici jižně od kostela sv. Jana na Prádle byla kromě novověkého navážkového souvrství zaznamenána\npůvodní uliční fronta tvořená ohradní zdí a někdejšími klasicistními a barokními domy (pův. č. 443, 444 a 445),\nkteré byly zbourány ve 40. letech 19. století.\nVe třech sondách v Šeříkové ulici byly pod sypkými navážkovými vrstvami zaznamenány raně novověké až\nvrcholně středověké situace, včetně zahloubených objektů. Pro absenci artefaktů nebylo možné odkryté situace\nlépe datovat.\nJan Havrda Všehrdova, Říční, Šeříková, In Dragoun a kol. Archeologický výzkum v Praze v letech 2013 a\n2014, P ražský sborník historický 43/2015.\nLokalizace starších akcí v oblasti je vyznačena v Mapě archeologických dokumentačních\nbodů na území Pražské památkové rezervace v měř. 1: 1000. Mapa Praha 7 - 1 (Hrdlička\n1996; Hrdlička 2005). Součástí této mapy, která je průběžně aktualizována, je databáze bodů\nse seznamem literatury. Naposled byla zmíněná mapa publikována v přehledovém článku o\nstavu archeologického výzkumu na katastru Malé Strany v roce 2008 (Čiháková – Havrda\n2007).\n5.2. Historie lokality známá z písemných pramenů\nLokalita se nalézá na jižním okraji Malé Strany, původně Menšího Města pražského, a to od\npoloviny 14. století v jeho hradbách, nedaleko od Újezdské brány. O středověkém osídlení\nparcely se nedochovaly žádné písemné prameny. Dům 550/III se nalézá nedaleko od kostela\nsv. Jana Na prádle, který byl farním kostelem osady Újezd. Pozemek, kde dnes stojí objekt čp.\n550/III, se nalézal nedaleko od severní strany kurtiny barokního opevnění Prahy.\nObr. 3. Malostranská rampa řetězového mostu císaře Františka I. se nalézá pod vozovkou Vítězné ulice\njižně od domu čp. 550. Hnědě – barokní bastionové opevnění Prahy zrušené v 1. pol. 19. století. Podle\nSemerád–Havrda 2016, 54, obr. 3.\nV roce 1839 došlo k demolici starší zástavby a byla vytyčena nová komunikace – dnešní ulice\nVítězná a současně byl postaven most přes Vltavu. Zahrady a pozemky na baště a za baštou\nbarokního opevnění byly rozparcelovány na stavební parcely, na kterých byly vybudovány\nčinžovní domy. Dnešní nájemní dům čp. 550/III byl postaven v druhé pol. 19. století (Vlček a\nkol. 1999).\n6. Popis terénní situace\nSonda S1\nSonda byla umístěna v severozápadní rohové místnosti sklepa. Pod dnešním povrchem\nsuterénu – valounovou dlažbou (kóta 187,51 m n. m.), se nalézá souvrství o mocnosti 45 cm\n(suť tvořená střípky opuky, mírně střípky cihel, malty: vel. 3–6 cm, ojediněle 15 cm, ojediněle\nproplástky hlíny), jehož geneze je spjata s výstavbou dnešního domu. Suťová vrstva překryla\nrozšířený předzáklad (186,9 m) obvodové zdi domu z lomové opuky na vápennou maltu.\nPředzáklad předstupoval před zmíněnou zeď o 45 cm. Základová spára zdi byla zjištěna na\nkótě 186,4m, tj. v hloubce 1,1 m pod podlahou sklepa. Navážky z 19. století překryly\nzahloubený objekt, z kterého se dochovalo mísovité dno (jeden rozměr 40 cm, hloubka 13\ncm). Ve výplni objektu (tmavě šedá, béžově melírovaná, tuhá až kyprá prachovitá hlína, 20\n% světle šedého popela, nahodile uhlík až 1 cm, porfyr) byla nalezena keramika z 2. pol. 13.\naž 14. století. Objekt byl zahlouben do tmavě šedohnědé tuhé jílovité hlíny (podloží –\nhumózní náplav nebo půdní typ). Pod touto vrstvou se objevila okrová tuhá až měkká jílovitá\nhlína, slídnatá, bez příměsí, při bázi výrazně jemnozrnně písčitá (patrně fluviální sediment).\nSonda S2\nSonda byla umístěna v JV rohové místnosti sklepa. Pod dnešním povrchem suterénu –\nvalounovou dlažbou (kóta 187,53 m n. m.), se nalézá souvrství o mocnosti 60 cm (suť tvořená\nstřípky opuky, mírně střípky cihel, malty: vel. 3–6 cm, ojediněle 15 cm, ojediněle proplástky\nhlíny), jehož svrchní poloha vznikla až po výstavbě domu čp. 550, spodní partie je též patrně\nspjata s výstavbou dnešního domu. Svrchní vrstva překryla rozšířený předzáklad (186,9 m)\nobvodové zdi domu z lomové opuky na vápennou maltu. Předzáklad předstupoval před\nzmíněnou zeď o 80 cm. Základová spára zdi byla zjištěna na kótě 186,48 m, tj. v hloubce 1 m\npod podlahou sklepa. Povrch podloží byl zjištěn ve výšce 186,9 m, tj. 60 cm pod podlahou\nsklepa. Jeho svrchní partii reprezentovala tmavě šedohnědá tuhé jílovitá hlína (humózní\nnáplav nebo půdní typ). Pod touto vrstvou se objevila okrová tuhá až měkká jílovitá hlína,\nslídnatá, bez příměsí, při bázi výrazně jemnozrnně písčitá (patrně fluviální sediment).\n7. Nálezy\nZa dobu terénní části výzkumu byl získán malý soubor archeologických nálezů (úlomky stolní\na kuchyňské keramiky), které následně byly umyty a zaevidovány.\nVe vrstvě 8 v sondě S1, ve výplni objektu V2 bylo z profilu S1-R1 vyvzorkováno celkem 5\nfragmentů režné středověké keramiky. Soubor obsahoval 4 zlomky z těla nádob a jeden okraj.\nJedná se o fragment pokličky šedé barvy s jemnozrnným ostřivem. Ten, je možné zařadit do\n2. pol. 13. – 14. století.\n8. Vyhodnocení\nPo archeologickém vyhodnocení zjišťovacích sond je možno konstatovat, že přímo pod\nsoučasnou podlahou sklepa (187, 52 m) se nalézá vrstva, kterou je možno spojit s výstavbou\ndnešního domu. Její mocnost se pohybuje od 0,4 do 0,6 m. Tato vrstva překryla i poměrně\nširoký předzáklad obvodových zdí stavby. Základová spára zdí byla odhalena na niveletě\n186,38 – 186,48 m. Na základě dvou zjišťovacích sond se zdá, že při hloubení sklepa došlo\nk odstranění podstatné části historického nadloží a patrně i svrchní partie geologického\npodloží, jehož mírně snížený povrch byl ověřen na niveletě 186,9 v sondě S2 v JV rohu\nparcely a 187,1 m v sondě S1 v SZ rohu parcely. Při výzkumu bylo ověřeno, že pod podlahou\nzůstávají zachovány spodní části zahloubených objektů a eventuálně i starší zděné konstrukce.\n9. Výsledky zjišťovacího výzkumu vzhledem k budoucímu plošnému archeologického\nzáchranného výzkumu.\nZjišťovacím archeologickým výzkumem realizovaným v roce 2017 na parcele domu čp.\n550/III v Praze na Malé Straně byla ověřena existence archeologických památek.\nZ dokumentace pořízené při zjišťovacím archeologickém výzkumu vyplývá, že pod podlahou\nzůstávají zachovány spodní části zahloubených objektů (např. studní, jímek, výrobních\nobjektů a pod.) a eventuálně i starší zděné konstrukce. Parcela domu se nalézá pouze 50 m\njižně od kostela sv. Jana Na Prádle, duchovního centra středověké osady Újezd, proto lze na\nploše parcely očekávat nálezy spojené se středověkou zástavbou včetně pozůstatků sídelních\nobjektů.\nNadloží i nejsvrchnější část podloží v místě dnešních sklepů bylo sice zničeno při výstavbě\nsklepa domu v 19. století. Pod podlahou sklepů jsou jak ukázal zjišťovací výzkum zachovány\nnejspodnější partie archeologických objektů. Více zachovalých archeologických situací lze\nočekávat pod dlažbou dvora, který je oproti sklepu o\nV případě jakýchkoli zemních prací na parcelách domů je nezbytné po odstranění navážky\nz 19. století mocné ca 0,5 m, kterou je nutné realizovat za archeologického dohledu, provést\nodborné začištění celé plochy a v případě nálezů středověkých či pravěkých objektů provést\nzáchranný archeologický výzkum.\nObr. 4. Řez domem čp. 550 ve směru sever – jih, pohled od západu. Vlevo vyznačen povrch Vítězné ulice.\nV obou sondách vyznačen předzáklad a v sondě S1 patrný mísovitý středověký do geologického podloží\nzahloubený objekt.\n10. Literatura a prameny\nBalatka, B. 2001: Geomorfologické poměry a členění reliéfu. In: Kovanda, J. a spol. 2001:\nNeživá příroda Prahy a jejího okolí. Praha, 11-17.\nČiháková, J. – Havrda, J. 2008: Malá Strana v raném středověku. Stav výzkumu a\nrekapitulace poznání, Archeologické rozhledy 60, 187-228.\nHavrda, J. 2015: Všehrdova, Říční, Šeříková, In Dragoun a kol. Archeologický výzkum\nv Praze v letech 2013 a 2014, Pražský sborník historický 43/2015.\nHrdlička, L. 2005: Praha. Podrobná mapa archeologických dokumentačních bodů na území\nměstské památkové rezervace. Praha.\nHuml, V. 1969a: 185. Praha 1 - Malá Strana h) Besední ulice, parčík před pův. špitálem (čp.\n323/l), Bulletin záchranného oddělení 6/1968, 110.\nHuml, V. 1969b: 185. Praha 1 - Malá Strana ch) nároží Všehrdovy a Říční ulice, východně od\nkostela, nezastavěná prostora mezi parcelou 321 a 320, Bulletin záchranného oddělení\n6/1968, 110.\nHuml, V. 1971: Výsledky archeologického výzkumu osady Újezda (K dějinám\npředkolonizační zástavby Prahy). In: Zaniklé středověké vesnice v ČSSR ve světle\narcheologických výzkumů 1., Uherské Hradiště, 39-46.\nHuml, V. 1973: Osada Újezd na Malé Straně, Staletá Praha 6, 77-89, 224.\nHuml, V 1988: Újezd. In: Archeologický výzkum v Praze v roce 1983 - 1986, Pražský sborník\nhistorický 21, 186.\nHuml, V. 1989: Archeologický výzkum v areálu bývalé osady Újezd v Praze 1, Malé Straně\n(Předběžná zpráva o výzkumu ve dvoře čp. 425-III), Archaeologia historica 14, 109-\n122.\nHuml, V 1989a: Újezd. In: Archeologický výzkum v Praze v roce 1987, Pražský sborník\nhistorický 22, 176.\nHuml, V 1991: Újezd. In: Archeologický výzkum v Praze v letech 1988 - 1989, Pražský\nsborník historický 24, 197.\nStaňková, V. 2013: Všehrdova čp. 445/III. In Dragoun a kol. Archeologický výzkum v Praze\nv letech 2011 a 2012, Pražský sborník historický 41/2013.\nŠimek, R. 1970: Podrobná inženýrsko-geologická mapa v měř. 1 : 5000, list mapy Praha 7-1.\nPÚDIS Praha.\nTryml, M. 2009: Všehrdova ulice čp. 562/III. In Dragoun a kol. Archeologický výzkum\nv Praze v letech 2007 a 2008, Pražský sborník historický 37/2009.\nTryml, M. – Zavřel, J. 1988: Říční ulice. In: Archeologický výzkum v Praze v letech 1983 -\n1986, Pražský sborník historický 21, 185.\nTryml, M. - Zavřel, J. - 1992: K počátkům středověkého osídlení jižní části Malé Strany,\nStaletá Praha 22, 109-126.\nVlček, Pavel a kol. 1999: Umělecké památky Prahy – Malá Strana. Praha.\nZavřel, J. 1995: Praha 1 - Malá Strana, Újezd čp. 423/III, Pražský sborník historický 28, 232.\nzjišťovací archeologický výzkum NPÚ ú. o. p. v Praze\n2017/43\nPRAHA 1 – MALÁ STRANA\nVítězná ulice čp. 550, ppč. 801\nVedoucí výzkumu: Mgr. Jan Havrda\nPlánová dokumentace\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nSeznam plánů\nSeznam plánů\nTyp plánu Sonda\nČíslo plánu Plán\n1\n2\n3\n4\n5\n6\n7\nM01\nM02\nP01\nP02\nR01\nR02\nR03\npůdorys\npůdorys\npůdorys\npůdorys\nřez\nřez\nřez\nMěřítko\n1:100\n1:20\nS01\n1:20\nRůžička M., Hlavatý J.\nS02\n1:20\nRůžička M., Hlavatý J.\nS01\n1:20\nRůžička M., Hlavatý J.\nS02\n1:20\nRůžička M., Hlavatý J.\nS03\n1:20\nRůžička M., Hlavatý J.\nMěřil, Kreslil\nDatum\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\nPopis\nSituace výzkumu.\nSituace sond a řezů.\nSituace sondy S01 a základové zdi Z01.\nSituace sondy S02 a základové zdi Z01.\nVýchodní řez sondy S01.\nZápadní řez sondy S02.\nSeverní řez sondy S02.\nDigitalizoval\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nStránka 1 z 1\nPlán č. 1\n6. - 9. října 2017\nPlán č. 2\n6. - 9. října 2017\nZ01\nZ01\nZ01\nV01\n186,90\nR01\nvr. 5\n(ŁÆsteŁnì\nodebrÆna)\n186,75\nR01\n0\nPlán č. 3\n1 m\n2017 /\nzjiıšovací\nNÆrodní pamÆ tkový œstav\n43 œzemní odbornØ p racoviıtì v Praze\nPRAHA 1, MalÆ Str ana,\nVítì znÆ Łp. 550, p.p.Ł. 801\nar cheologický výzku m 2.PP - SZ místnost\nSonda: S01 Lokalizace: 2.PP\nM M . R øž iŁka, J. P01\nìłil, k r e slil: H lavatý Pødorys:\nPop i s : J. H avr da M ìłít ko : 1:20\nD i g it a li zova l: J. H lava tý D at um : 6. + 9. 10. 2017\nVedoucí výzku m u: M gr. J. H avrda Výıkový s ystØm: –SJNS/Bpv\nR03\nR02\nV01\n186,90\nZ01\n186,92\nZ01\nVítìznÆ ulice\n0\n2017 / 43\nzjiıšovací\narcheolog ický výzku m\nSonda: S 01 Lokalizace:\nPlán č. 4\nZ01\n1 m\nNÆrodní pamÆtkový œ stav\nœzemní odbornØ pracoviıtì v Praze\nPRAHA 1, MalÆ Strana,\nVítìznÆ Ł p. 550, p.p.Ł. 801\n2.PP - SZ místnost\n2.PP\nP01\n. R øžiŁka, J . H lavatý Pødorys:\nìłil, k r e slil:\nPop i s :\nD i g it a li zov a l:\nVedoucí výzku m u:\nJ. H avrda M ìłít ko :\n1:20\nJ. H lavatý D a t um :\n6. + 9. 10. 2017\nM g r. J. H avrda Výıkový systØm : –SJN S/Bpv\n188,00\n187,00\n186,00\n185,00\n184,00\npodlaha sklepa\nop.\n1\nseverní\nobvodovÆ zeï\ndomu Łp. 550\n2\nZ01\nop.\n3\n8\n4\n5\nZ01\n6\nV01\n7\n0\nPlán č. 5\n188,00\nV02\npopel\n187,00\n186,00\n185,00\n184,00\n1\n1,24 m\n2017/ 43\nzjiı šovací\nNÆrodní pamÆtkový œ stav\nœzemní odbornØ pracoviıtì v Praze\nPRAHA 1, Ma lÆ Strana,\nVítìznÆ Łp. 550 , p.p.Ł. 801\narcheolog ický výzku m 2.PP - SZ mís tnost\nSond a: S01 Lokali zace: 2.PP\nM M . R øžiŁka, J. Hlavatý Øez: R 01\nìłil, kreslil:\nPop is : J. H avrda M ìłítko: 1:20\nD igitalizoval: J. H lavatý D atu m : 6. + 9. 10. 2017\nVedoucí výzkumu: M gr. J. H avrda Výıkový systØ m: –SJNS/Bpv\n188,00\njižní\nobvodovÆ zeï\npodlaha sklepa\ndomu Łp. 550\nZ01\n3\n187,00\nZ01\nV01\n186,00\n185,00\n184,00\n0\nPlán č. 6\n188,00\nR03\n1\n2\nop.\n9\nV04\n187,00\n5\n6\n7\n186,00\n185,00\n184,00\n1\n1,8 m\npa mÆtkový œstav\n2017\nNÆrodní\n/43 œzemní odbornØ\nPRAHA\nzjiıšovací Vítìzn Æ Łp.\narcheologický výzku m 2.PP\nSonda: S02 Lokalizace: 2.PP\nM ìłil, kres lil: M . RøžiŁka, J. Hla vatý Øez:\nPop is: J. H a vrda M ìłítko:\nD igitali zoval: J. H lavatý D atu m :\nV edoucí výzkumu: M gr. J. H avrda Výıkový systØm:\npracoviıtì v Praze\n1, MalÆ Strana,\n550, p.p.Ł. 801\n- JV místnost\nR 02\n1:20\n9. 10 . 2017\n–SJN S/Bpv\n188,00\n187,00\n186,00\n185,00\n184,00\n0\nR02\npodlaha sklepa\n1\n2\n10\nV03\nV04\n9\n5\n6\n1\n2017/43\nzjiıš ovací\narcheolog ický výzku m\nSonda: S02 Lokalizace :\nPlán č. 7\n188,00\nvýchodní\nobvodovÆ zeï\ndomu Łp. 550\nZ01\n187,00\n186,00\n185,00\n184,00\n1,8 m\nNÆrodní pamÆtkový œs tav\nœzemní odbo rnØ pracoviıtì v Praze\nPRAHA 1, MalÆ Strana,\nVítìznÆ Łp. 550 , p.p.Ł. 801\n2.PP - JV místno st\n2.PP\nR 03\nM . Rø žiŁka, J. Hlavatý Øez:\nìłil, kreslil:\nPop is:\nD igitalizoval:\nVedoucí vý zkumu:\nJ. H avrda M ìłítko:\n1:20\nJ. H lavatý D atu m :\n9. 10. 2017\nM gr. J. H av rda Výıkový systØm : –SJNS/Bpv\nzjišťovací archeologický výzkum NPÚ ú. o. p. v Praze\n2017/43\nPRAHA 1 – MALÁ STRANA\nVítězná ulice čp. 550, ppč. 801\nVedoucí výzkumu: Mgr. Jan Havrda\nPopis stratigrafických\njednotek\n- uloženin (vrstev), výkopů a zdí\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPopis uloženin\nPopis uloženin\nSJ\nUloženina\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\nPopis\nInterpretace\nSonda\nS01, S02 křemencové kameny v písčitém loži; dlažba sklepa\nhnědá silně písčitá hlína, úlomky malty, cihel, opuky; navážka\nsuť tvořená střípky opuky, mírně střípky cihel, malty (vel. 3–6 cm, ojediněle 15\ncm), ojediněle proplástky hlíny\nhnědá hlína, četné úlomky opuky až 8 cm, heterogenní\ntmavě šedohnědá tuhá jílovitá hlína, vzácně valounek 3 cm; podloží – humózní\nnáplav nebo půdní typ\npozvolný přechod mezi vrstvami 5 a7\nokrová tuhá až měkká jílovitá hlína, slídnatá, bez příměsí, při bázi výrazně\njemnozrnně písčitá; podloží – náplav\ntmavě šedá, béžově melírovaná, tuhá až kyprá prachovitá hlína, 20 % světle\nšedého popela, nahodile uhlík až 1 cm; keramika 13. - 14. století; výplň objektu\nV02\nokrově hnědá hlína s polohami (15%) tmavší šedé hlíny, tuhá, místy opuka 20\ncm, vzácně hrudka malty a popela; druhotně přemístěné podloží – fluviální\nsediment s příměsí půdního typu; na řezu 3 při povrchu větší koncentrace\nkamenů pískovce\nokrově šedý, místy pouze šedý, zahliněný písek, četné polohy písku, malty,\nmísty opuka; výplň výkopu V03\nČ. sáčku\nPlány\nPoznámka\nR03\nR02\nR01\nR03\nR02\nR01\nR02\nR01\nR01\nR03\nR02\nR01\nP01\nR03\nR02\nR01\nR02\nR01\nR01\nR03\nR02\nR03\nZapsal\nDatum\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nHavrda J. 9.10.2017\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nStránka 1 z 1\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPopis výkopů\nPopis výkopů\nSJ\nV01\nV02\nV03\nV04\nSonda\nS01, S02\nS01\nS02\nS02\nInterpretace\nPopis\nVýkop pro stávající zdivo domu (Z01).\nMělký výkop vyplněný vrstvou s příměsí\nšedého polela\nRozměrný výkop vyplněný stavební sutí.\nVýkop s rovným dnem; patrně dno stavební\njámy z doby vzniku stávajícího domu čp. 550.\nVýplň\nRozměry\nZ01, 3\n8\n10\n9\nPlány\nDatace\nRozsah odkryvu\nR02\nR01\nP02\nP01\nR03\nR02\nZapsal\nHlavatý J.\nHlavatý J.\nHlavatý J.\nHlavatý J.\nDatum\n9.10.2017\n9.10.2017\n9.10.2017\n9.10.2017\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nStránka 1 z 1\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPopis zdí (konstrukcí)\nPopis zdí (konstrukcí)\nSJ\nSonda\nZ01\nS01, S02 Kategorie:\nZeď stávajícího domu čp. 550. Opukové zdivo na vápennou maltu s výrazně rozšířeným předzákladem pod úrovní podlahy. V\nPopis:\nnadzemní partii zdiva místy použita cihla, v základové pak četně valoun.\nInterpretace:\nDatování:\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPlány\nP01\nR03\nR02\nR01\nP02\nZapsal\nHlavatý J.\nDatum\n9.10.2017\nStránka 1 z 1\nzjišťovací archeologický výzkum NPÚ ú. o. p. v Praze\n2017/43\nPRAHA 1 – MALÁ STRANA\nVítězná ulice čp. 550, ppč. 801\nVedoucí výzkumu: Mgr. Jan Havrda\nTerénní\nfotodokumentace\nvýzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nPopis fotografií\nPopis fotografií\nFoto\nF01\nF02\nF03\nSonda\nS01\nS01\nS01\nKategorie\nsituační\npůdorys\nřez\nPopis\nSituace sondy S01 před rozšířením k jihu.\nPředzáklad obvodové zdi Z01 v sondě S01.\nŘez R01 v sondě S01 před rozšířením sondy k jihu.\nOrientace\npohled od jihu\npohled od jihu\npohled od západu\nPlány\nP01\nP01\nR01\nFotil\nHlavatý J.\nHlavatý J.\nHlavatý J.\nDatum\n6.10.2017\n6.10.2017\n6.10.2017\npohled od severozápadu R01\nF04\nF05\nF06\nS01\nS01\nS01\nkombinace\npůdorys\nřez\nJižní část řezu R01 v sondě S01 před rozšířením sondy k jihu.\nZáklad obvodové zdi (Z01) domu v sondě S01\nŘez R01 v sondě S01 po rozšíření sondy k jihu.\npohled od jihu\npohled od západu\nP01\nR01\nP01\nHlavatý J.\nHlavatý J.\nHlavatý J.\n6.10.2017\n6.10.2017\n9.10.2017\ncelkový záběr Situace sondy S01 po rozšíření k jihu.\nF07\nF08\nF09\nS01\nS01\nS02\nřez\nsituační\nJižní část řezu R01 v sondě S01 po rozšíření sondy k jihu.\nSituace sondy S02.\npohled od jihu\npohled od západu\npohled od severu\nR01\nP02\nP02\nHlavatý J.\nHlavatý J.\nHlavatý J.\n9.10.2017\n9.10.2017\n9.10.2017\ncelkový záběr Řez R02 v sondě S02.\nF10\nF11\nF12\nS02\nS02\nS02\nřez\nřez\nSeverní část řezu R02 v sondě S02.\nŘez R03 v sondě S02.\npohled od východu\npohled od východu\npohled od jihu\nR02\nR02\nR03\nHlavatý J.\nHlavatý J.\nHlavatý J.\n9.10.2017\n9.10.2017\n9.10.2017\npohled od jihovýchodu R02\nF13\nŽánr01\nS02\nS01\nřez\nžánr\nŘezy R02 a R03 v sondě S02.\nArcheologové nad sondou S01 (žánrová fotografie).\npohled od jihu\nR03\nHlavatý J.\nHlavatý J.\n9.10.2017\n6.10.2017\nArcheologický výzkum č. 2017/43 - Vítězná ulice čp. 550, ppč. 801\nStránka 1 z 1\nF O T O D O K U M E N T A C E\nF 0 1 - sit u ac e s o n dy S 0 1 př e d r ozšíř e ní m k ji h u\nF 0 3 - ř ez R 0 1 v s o n d ě S 0 1 př e d r ozšíř e ní m s o n d y kji h u\nF 0 2 - př e dz ákl a d o bv o d o v é z di Z 0 1 v s o n d ě S 0 1\nF 0 4 -již ní č á st ř ez u R 0 1 v s o n d ě S 0 1 př e d r ozšíř e ní m s o n d y kji h u\nF O T O D O K U M E N T A C E\nF 0 5 - z á kl a d o b v o d o v é z di ( Z 0 1) d o m u v s o n d ě S 0 1\nF 0 7 - sit u a c e s o n d y S 0 1 p o r o zšíř e ní kji h u\nF 0 6 - ř e z R 0 1 v s o n d ě S 0 1 p o r ozšíř e ní s o n d y kji h u\nF 0 8 -již ní č á st ř ez u R 0 1 v s o n d ě S 0 1 p o r ozšíř e ní s o n d y kji h u\nF O T O D O K U M E N T A C E\nF 0 9 - sit u a c e s o n dy S 0 2\nF 11 - s e v er ní č ást ř ez u R 0 2 v s o n d ě S 0 2\nF 1 0 - ř ez R 0 2 v s o n d ě S 0 2\nF 1 2 - ř ez R 0 3 v s o n d ě S 0 2\nF O T O D O K U M E N T A C E\nF 1 3 - ř e zy R 0 2 a R 0 3 v s o n d ě S 0 2\nŽ á nr 0 1 - ar c h e ol o g ov é n a d s o n d o u S 0 1 ( ž á nr o v á f ot o gr afi e)",
     "reading_order": "layout"
   },
   "lines": [
@@ -1519,7 +1519,7 @@
     {
       "page": "5",
       "line": 26,
-      "text": "Fotodokumentace : Jakub Hlavatý",
+      "text": "Fotodokumentace: Jakub Hlavatý",
       "bbox": [
         70.8,
         659.844,
@@ -1895,7 +1895,7 @@
     {
       "page": "6",
       "line": 23,
-      "text": "subprovincie České vysočiny ( Balatka 2001, 15). Geomorfologie lokality byla ovlivněna",
+      "text": "subprovincie České vysočiny (Balatka 2001, 15). Geomorfologie lokality byla ovlivněna",
       "bbox": [
         70.8,
         625.284,
@@ -2070,7 +2070,7 @@
     {
       "page": "7",
       "line": 5,
-      "text": "Z inženýrsko-geologické mapy 1:5000, list mapy Praha 7-1 ( Šimek 1970 ) vyplývá, že skalní",
+      "text": "Z inženýrsko-geologické mapy 1:5000, list mapy Praha 7-1 (Šimek 1970) vyplývá, že skalní",
       "bbox": [
         70.8,
         727.044,
@@ -3851,7 +3851,7 @@
     {
       "page": "10",
       "line": 33,
-      "text": "bodů na území Pražské památkové rezervace v měř. 1: 1000. Mapa Praha 7 - 1 ( Hrdlička",
+      "text": "bodů na území Pražské památkové rezervace v měř. 1: 1000. Mapa Praha 7 - 1 (Hrdlička",
       "bbox": [
         70.8,
         510.324,
@@ -3864,7 +3864,7 @@
     {
       "page": "10",
       "line": 34,
-      "text": "1996 ; Hrdlička 200 5). Součástí této mapy, která je průběžně aktualizována, je databáze bodů",
+      "text": "1996; Hrdlička 2005). Součástí této mapy, která je průběžně aktualizována, je databáze bodů",
       "bbox": [
         70.8,
         530.964,
@@ -3893,7 +3893,7 @@
     {
       "page": "10",
       "line": 36,
-      "text": "stavu archeologického výzkumu na katastru Malé Strany v roce 2008 ( Čiháková – Havrda",
+      "text": "stavu archeologického výzkumu na katastru Malé Strany v roce 2008 (Čiháková – Havrda",
       "bbox": [
         70.8,
         572.244,
@@ -3906,7 +3906,7 @@
     {
       "page": "10",
       "line": 37,
-      "text": "2007 ).",
+      "text": "2007).",
       "bbox": [
         70.8,
         593.124,
@@ -4042,7 +4042,7 @@
     {
       "page": "11",
       "line": 4,
-      "text": "Semerád–Havrda 2016 , 54, obr. 3.",
+      "text": "Semerád–Havrda 2016, 54, obr. 3.",
       "bbox": [
         70.8,
         401.157,
@@ -4097,7 +4097,7 @@
     {
       "page": "11",
       "line": 8,
-      "text": "činžovní domy. Dnešní nájemní dům čp. 550/III byl postaven v druhé pol. 19. století ( Vlček a",
+      "text": "činžovní domy. Dnešní nájemní dům čp. 550/III byl postaven v druhé pol. 19. století (Vlček a",
       "bbox": [
         70.8,
         517.284,
@@ -4110,7 +4110,7 @@
     {
       "page": "11",
       "line": 9,
-      "text": "kol. 1999 ).",
+      "text": "kol. 1999).",
       "bbox": [
         70.8,
         537.924,
@@ -5056,7 +5056,7 @@
     {
       "page": "14",
       "line": 4,
-      "text": "Balatka, B. 2001 : Geomorfologické poměry a členění reliéfu. In: Kovanda, J. a spol. 2001:",
+      "text": "Balatka, B. 2001: Geomorfologické poměry a členění reliéfu. In: Kovanda, J. a spol. 2001:",
       "bbox": [
         70.8,
         497.124,
@@ -5085,7 +5085,7 @@
     {
       "page": "14",
       "line": 6,
-      "text": "Čiháková, J. – Havrda, J. 2008 : Malá Strana v raném středověku. Stav výzkumu a",
+      "text": "Čiháková, J. – Havrda, J. 2008: Malá Strana v raném středověku. Stav výzkumu a",
       "bbox": [
         70.8,
         538.404,
@@ -5146,7 +5146,7 @@
     {
       "page": "14",
       "line": 10,
-      "text": "Hrdlička, L. 2005 : Praha. Podrobná mapa archeologických dokumentačních bodů na území",
+      "text": "Hrdlička, L. 2005: Praha. Podrobná mapa archeologických dokumentačních bodů na území",
       "bbox": [
         70.788,
         607.524,
@@ -5175,7 +5175,7 @@
     {
       "page": "14",
       "line": 12,
-      "text": "Huml, V. 1969a : 185. Praha 1 - Malá Strana h) Besední ulice, parčík před pův. špitálem (čp.",
+      "text": "Huml, V. 1969a: 185. Praha 1 - Malá Strana h) Besední ulice, parčík před pův. špitálem (čp.",
       "bbox": [
         70.788,
         648.804,
@@ -5204,7 +5204,7 @@
     {
       "page": "14",
       "line": 14,
-      "text": "Huml, V. 1969b : 185. Praha 1 - Malá Strana ch) nároží Všehrdovy a Říční ulice, východně od",
+      "text": "Huml, V. 1969b: 185. Praha 1 - Malá Strana ch) nároží Všehrdovy a Říční ulice, východně od",
       "bbox": [
         70.788,
         690.324,
@@ -5262,7 +5262,7 @@
     {
       "page": "15",
       "line": 0,
-      "text": "Huml, V. 1971 : Výsledky archeologického výzkumu osady Újezda (K dějinám",
+      "text": "Huml, V. 1971: Výsledky archeologického výzkumu osady Újezda (K dějinám",
       "bbox": [
         70.8,
         73.284,
@@ -5304,7 +5304,7 @@
     {
       "page": "15",
       "line": 3,
-      "text": "Huml, V. 1973 : Osada Újezd na Malé Straně, Staletá Praha 6, 77-89, 224.",
+      "text": "Huml, V. 1973: Osada Újezd na Malé Straně, Staletá Praha 6, 77-89, 224.",
       "bbox": [
         70.8,
         135.444,
@@ -5349,7 +5349,7 @@
     {
       "page": "15",
       "line": 6,
-      "text": "Huml, V. 1989 : Archeologický výzkum v areálu bývalé osady Újezd v Praze 1, Malé Straně",
+      "text": "Huml, V. 1989: Archeologický výzkum v areálu bývalé osady Újezd v Praze 1, Malé Straně",
       "bbox": [
         70.8,
         197.604,
@@ -5478,7 +5478,7 @@
     {
       "page": "15",
       "line": 15,
-      "text": "Šimek, R. 1970 : Podrobná inženýrsko-geologická mapa v měř. 1 : 5000, list mapy Praha 7-1.",
+      "text": "Šimek, R. 1970: Podrobná inženýrsko-geologická mapa v měř. 1 : 5000, list mapy Praha 7-1.",
       "bbox": [
         70.812,
         380.004,
@@ -5536,7 +5536,7 @@
     {
       "page": "15",
       "line": 19,
-      "text": "Tryml, M. – Zavřel, J. 1988 : Říční ulice. In: Archeologický výzkum v Praze v letech 1983 -",
+      "text": "Tryml, M. – Zavřel, J. 1988: Říční ulice. In: Archeologický výzkum v Praze v letech 1983 -",
       "bbox": [
         70.812,
         458.964,
@@ -5565,7 +5565,7 @@
     {
       "page": "15",
       "line": 21,
-      "text": "Tryml, M. - Zavřel, J. - 1992 : K počátkům středověkého osídlení jižní části Malé Strany,",
+      "text": "Tryml, M. - Zavřel, J. - 1992: K počátkům středověkého osídlení jižní části Malé Strany,",
       "bbox": [
         70.812,
         500.244,
@@ -5581,7 +5581,7 @@
     {
       "page": "15",
       "line": 22,
-      "text": "Staletá Praha 22, 109-126 .",
+      "text": "Staletá Praha 22, 109-126.",
       "bbox": [
         99.139,
         521.124,
@@ -5594,7 +5594,7 @@
     {
       "page": "15",
       "line": 23,
-      "text": "Vlček, Pavel a kol. 1999 : Umělecké památky Prahy – Malá Strana. Praha.",
+      "text": "Vlček, Pavel a kol. 1999: Umělecké památky Prahy – Malá Strana. Praha.",
       "bbox": [
         70.824,
         541.764,
@@ -5610,7 +5610,7 @@
     {
       "page": "15",
       "line": 24,
-      "text": "Zavřel, J. 1995 : Praha 1 - Malá Strana, Újezd čp. 423/III, Pražský sborník historický 28, 232.",
+      "text": "Zavřel, J. 1995: Praha 1 - Malá Strana, Újezd čp. 423/III, Pražský sborník historický 28, 232.",
       "bbox": [
         70.824,
         562.404,
@@ -6989,12 +6989,12 @@
     {
       "page": "20",
       "line": 15,
-      "text": "z jiı š ov",
+      "text": "zjiıšovací",
       "bbox": [
         386.715,
         746.859,
-        409.366,
-        752.561
+        419.265,
+        752.576
       ],
       "group_id": "tbl0-r0c0",
       "quality_score": 1.0
@@ -7002,7 +7002,7 @@
     {
       "page": "20",
       "line": 16,
-      "text": "N Æ r odn í p a m Æ t kový œ s t a v",
+      "text": "NÆrodní pamÆ tkový œstav",
       "bbox": [
         504.736,
         725.037,
@@ -7015,7 +7015,7 @@
     {
       "page": "20",
       "line": 17,
-      "text": "43 œ ze m n í odbo r n Ø p r ac ov iıtì v P r aze",
+      "text": "43 œzemní odbornØ p racoviıtì v Praze",
       "bbox": [
         404.616,
         731.03,
@@ -7028,12 +7028,12 @@
     {
       "page": "20",
       "line": 18,
-      "text": "P R AHA 1 , M a l Æ S t r a n a",
+      "text": "PRAHA 1, MalÆ Str ana,",
       "bbox": [
         501.868,
         739.415,
-        574.77,
-        744.912
+        576.602,
+        744.915
       ],
       "group_id": "tbl0-r0c1",
       "quality_score": 1.0
@@ -7041,20 +7041,20 @@
     {
       "page": "20",
       "line": 19,
-      "text": "ac í V ítì z n Æ Ł p . 55 0 , p . p . Ł . 801",
+      "text": "Vítì znÆ Łp. 550, p.p.Ł. 801",
       "bbox": [
-        409.357,
+        490.473,
         746.292,
         575.076,
-        752.576
+        751.81
       ],
       "group_id": "tbl0-r0c1",
-      "quality_score": 0.9333
+      "quality_score": 0.9167
     },
     {
       "page": "20",
       "line": 20,
-      "text": "a r c h e o l og i c ký vý z ku m 2 . P P - S Z m í s t n o s t",
+      "text": "ar cheologický výzku m 2.PP - SZ místnost",
       "bbox": [
         343.654,
         753.115,
@@ -7067,7 +7067,7 @@
     {
       "page": "20",
       "line": 21,
-      "text": "S ond a : S 01 L ok a li zace : 2 . PP",
+      "text": "Sonda: S01 Lokalizace: 2.PP",
       "bbox": [
         336.516,
         764.101,
@@ -7080,7 +7080,7 @@
     {
       "page": "20",
       "line": 22,
-      "text": "M M . R ø ž i Ł k a , J . P 0 1",
+      "text": "M M . R øž iŁka, J. P01",
       "bbox": [
         336.807,
         772.421,
@@ -7093,7 +7093,7 @@
     {
       "page": "20",
       "line": 23,
-      "text": "ìł i l , k r e s li l : H l a v a t ý P ødo r y s :",
+      "text": "ìłil, k r e slil: H lavatý Pødorys:",
       "bbox": [
         343.324,
         775.253,
@@ -7106,7 +7106,7 @@
     {
       "page": "20",
       "line": 24,
-      "text": "P op i s : J . H a v r d a M ìłít ko : 1 : 20",
+      "text": "Pop i s : J. H avr da M ìłít ko : 1:20",
       "bbox": [
         336.958,
         786.233,
@@ -7119,7 +7119,7 @@
     {
       "page": "20",
       "line": 25,
-      "text": "D i g it a li z ov a l: J . H l a v a t ý D a t u m : 6 . + 9 . 10 . 2017",
+      "text": "D i g it a li zova l: J. H lava tý D at um : 6. + 9. 10. 2017",
       "bbox": [
         336.18,
         797.344,
@@ -7132,7 +7132,7 @@
     {
       "page": "20",
       "line": 26,
-      "text": "V e d o u c í v ý z k u m u : M g r . J . H a v r d a V ý ı kov ý s y s t Ø m : – S J N S / B p v",
+      "text": "Vedoucí výzku m u: M gr. J. H avrda Výıkový s ystØm: –SJNS/Bpv",
       "bbox": [
         335.85,
         808.676,
@@ -7141,19 +7141,6 @@
       ],
       "group_id": "tbl0-r1c0",
       "quality_score": 0.9773
-    },
-    {
-      "page": "20",
-      "line": 27,
-      "text": ",",
-      "bbox": [
-        574.761,
-        739.528,
-        576.602,
-        744.915
-      ],
-      "group_id": "p20-10",
-      "quality_score": 1.0
     },
     {
       "page": "21",
@@ -7288,7 +7275,7 @@
     {
       "page": "21",
       "line": 10,
-      "text": "z jiı š ov ac í",
+      "text": "zjiıšovací",
       "bbox": [
         386.875,
         745.428,
@@ -7301,7 +7288,7 @@
     {
       "page": "21",
       "line": 11,
-      "text": "a r c h e o l og i c ký vý z ku m",
+      "text": "archeolog ický výzku m",
       "bbox": [
         343.814,
         751.877,
@@ -7314,7 +7301,7 @@
     {
       "page": "21",
       "line": 12,
-      "text": "S ond a : S 01 L ok a li zace :",
+      "text": "Sonda: S 01 Lokalizace:",
       "bbox": [
         336.675,
         762.732,
@@ -7369,7 +7356,7 @@
     {
       "page": "21",
       "line": 16,
-      "text": "N Æ r odn í p a m Æ t kový œ s t a v",
+      "text": "NÆrodní pamÆtkový œ stav",
       "bbox": [
         504.895,
         723.607,
@@ -7382,7 +7369,7 @@
     {
       "page": "21",
       "line": 17,
-      "text": "œ ze m n í odbo r n Ø p r ac ov iıtì v P r aze",
+      "text": "œzemní odbornØ pracoviıtì v Praze",
       "bbox": [
         480.019,
         729.599,
@@ -7395,7 +7382,7 @@
     {
       "page": "21",
       "line": 18,
-      "text": "P R AHA 1 , M a l Æ S t r a n a ,",
+      "text": "PRAHA 1, MalÆ Strana,",
       "bbox": [
         502.028,
         737.985,
@@ -7408,7 +7395,7 @@
     {
       "page": "21",
       "line": 19,
-      "text": "V ítì z n Æ Ł p . 55 0 , p . p . Ł . 801",
+      "text": "VítìznÆ Ł p. 550, p.p.Ł. 801",
       "bbox": [
         490.632,
         744.861,
@@ -7421,7 +7408,7 @@
     {
       "page": "21",
       "line": 20,
-      "text": "2 . P P - S Z m í s t n o s t",
+      "text": "2.PP - SZ místnost",
       "bbox": [
         515.552,
         751.684,
@@ -7434,7 +7421,7 @@
     {
       "page": "21",
       "line": 21,
-      "text": "2 . PP",
+      "text": "2.PP",
       "bbox": [
         461.158,
         762.67,
@@ -7447,7 +7434,7 @@
     {
       "page": "21",
       "line": 22,
-      "text": "P 0 1",
+      "text": "P01",
       "bbox": [
         551.802,
         770.99,
@@ -7460,7 +7447,7 @@
     {
       "page": "21",
       "line": 23,
-      "text": ". R ø ž i Ł k a , J . H l a v a t ý P ødo r y s :",
+      "text": ". R øžiŁka, J . H lavatý Pødorys:",
       "bbox": [
         412.027,
         773.756,
@@ -7473,7 +7460,7 @@
     {
       "page": "21",
       "line": 24,
-      "text": "ìłil , k r e s lil:",
+      "text": "ìłil, k r e slil:",
       "bbox": [
         343.484,
         773.83,
@@ -7486,7 +7473,7 @@
     {
       "page": "21",
       "line": 25,
-      "text": "P op i s :",
+      "text": "Pop i s :",
       "bbox": [
         337.117,
         784.914,
@@ -7499,7 +7486,7 @@
     {
       "page": "21",
       "line": 26,
-      "text": "D i g it a li z ov a l:",
+      "text": "D i g it a li zov a l:",
       "bbox": [
         336.34,
         796.675,
@@ -7512,7 +7499,7 @@
     {
       "page": "21",
       "line": 27,
-      "text": "V e d o u c í v ý z k u m u :",
+      "text": "Vedoucí výzku m u:",
       "bbox": [
         336.009,
         807.245,
@@ -7525,7 +7512,7 @@
     {
       "page": "21",
       "line": 28,
-      "text": "J . H a v r d a M ìłít ko :",
+      "text": "J. H avrda M ìłít ko :",
       "bbox": [
         446.137,
         784.802,
@@ -7538,7 +7525,7 @@
     {
       "page": "21",
       "line": 29,
-      "text": "1 : 20",
+      "text": "1:20",
       "bbox": [
         559.414,
         785.844,
@@ -7551,7 +7538,7 @@
     {
       "page": "21",
       "line": 30,
-      "text": "J . H l a v a t ý D a t u m :",
+      "text": "J. H lavatý D a t um :",
       "bbox": [
         444.864,
         795.913,
@@ -7564,7 +7551,7 @@
     {
       "page": "21",
       "line": 31,
-      "text": "6 . + 9 . 10 . 2017",
+      "text": "6. + 9. 10. 2017",
       "bbox": [
         523.05,
         796.434,
@@ -7577,7 +7564,7 @@
     {
       "page": "21",
       "line": 32,
-      "text": "M g r . J . H a v r d a V ý ı k o v ý s y s t Ø m : – S J N S / B p v",
+      "text": "M g r. J. H avrda Výıkový systØm : –SJN S/Bpv",
       "bbox": [
         429.027,
         807.3,
@@ -8054,7 +8041,7 @@
     {
       "page": "22",
       "line": 33,
-      "text": "2017 / 43",
+      "text": "2017/ 43",
       "bbox": [
         368.988,
         730.535,
@@ -8067,12 +8054,12 @@
     {
       "page": "22",
       "line": 34,
-      "text": "z jiı š ov ac",
+      "text": "zjiı šovací",
       "bbox": [
         389.675,
         743.103,
-        419.866,
-        748.813
+        422.226,
+        748.816
       ],
       "group_id": "tbl1-r0c0",
       "quality_score": 1.0
@@ -8080,7 +8067,7 @@
     {
       "page": "22",
       "line": 35,
-      "text": "N Æ r odn í p a m Æ t kový œ s t a v",
+      "text": "NÆrodní pamÆtkový œ stav",
       "bbox": [
         507.687,
         721.222,
@@ -8093,7 +8080,7 @@
     {
       "page": "22",
       "line": 36,
-      "text": "œ ze m n í odbo r n Ø p r ac ov iıtì v P r aze",
+      "text": "œzemní odbornØ pracoviıtì v Praze",
       "bbox": [
         482.895,
         727.172,
@@ -8106,12 +8093,12 @@
     {
       "page": "22",
       "line": 37,
-      "text": "P R AHA 1 , M a l Æ S t r a n a",
+      "text": "PRAHA 1, Ma lÆ Strana,",
       "bbox": [
         504.853,
         735.65,
-        577.74,
-        741.135
+        579.572,
+        741.137
       ],
       "group_id": "tbl1-r0c1",
       "quality_score": 1.0
@@ -8119,20 +8106,20 @@
     {
       "page": "22",
       "line": 38,
-      "text": "í V ítì z n Æ Ł p . 550 , p . p . Ł . 801",
+      "text": "VítìznÆ Łp. 550 , p.p.Ł. 801",
       "bbox": [
-        419.858,
+        493.52,
         742.45,
         578.112,
-        748.816
+        747.949
       ],
       "group_id": "tbl1-r0c1",
-      "quality_score": 0.9231
+      "quality_score": 0.9167
     },
     {
       "page": "22",
       "line": 39,
-      "text": "a r c h e o l og i c ký vý z ku m 2 . PP - S Z m í s t no s t",
+      "text": "archeolog ický výzku m 2.PP - SZ mís tnost",
       "bbox": [
         346.749,
         749.25,
@@ -8145,7 +8132,7 @@
     {
       "page": "22",
       "line": 40,
-      "text": "S ond a : S 01 L ok a li zace : 2 . PP",
+      "text": "Sond a: S01 Lokali zace: 2.PP",
       "bbox": [
         339.523,
         760.246,
@@ -8158,7 +8145,7 @@
     {
       "page": "22",
       "line": 41,
-      "text": "M M . R ø ž i Ł k a , J . H l a v a t ý Ø R 01",
+      "text": "M M . R øžiŁka, J. Hlavatý Øez: R 01",
       "bbox": [
         339.807,
         768.623,
@@ -8166,25 +8153,25 @@
         779.003
       ],
       "group_id": "tbl1-r1c0",
-      "quality_score": 0.8947
+      "quality_score": 0.9048
     },
     {
       "page": "22",
       "line": 42,
-      "text": "ìłil , k r e s lil: ez :",
+      "text": "ìłil, kreslil:",
       "bbox": [
         346.323,
-        771.457,
-        503.924,
+        771.459,
+        378.507,
         777.153
       ],
       "group_id": "tbl1-r1c0",
-      "quality_score": 0.9231
+      "quality_score": 0.9091
     },
     {
       "page": "22",
       "line": 43,
-      "text": "P op i s : J . H a v r d a M ìłít ko : 1 : 20",
+      "text": "Pop is : J. H avrda M ìłítko: 1:20",
       "bbox": [
         339.948,
         782.359,
@@ -8197,7 +8184,7 @@
     {
       "page": "22",
       "line": 44,
-      "text": "D i g it a li z ov a l: J . H l a v a t ý D a t u m : 6 . + 9 . 10 . 2017",
+      "text": "D igitalizoval: J. H lavatý D atu m : 6. + 9. 10. 2017",
       "bbox": [
         339.24,
         793.551,
@@ -8210,7 +8197,7 @@
     {
       "page": "22",
       "line": 45,
-      "text": "V e dou c í vý z ku m u : M g r . J . H a v r d a V ý ı kový s y s t Ø m : – S J N S / B pv",
+      "text": "Vedoucí výzkumu: M gr. J. H avrda Výıkový systØ m: –SJNS/Bpv",
       "bbox": [
         338.957,
         804.872,
@@ -8219,19 +8206,6 @@
       ],
       "group_id": "tbl1-r1c0",
       "quality_score": 0.9773
-    },
-    {
-      "page": "22",
-      "line": 46,
-      "text": ",",
-      "bbox": [
-        577.732,
-        735.752,
-        579.572,
-        741.137
-      ],
-      "group_id": "p22-15",
-      "quality_score": 1.0
     },
     {
       "page": "23",
@@ -8642,7 +8616,7 @@
     {
       "page": "23",
       "line": 31,
-      "text": "p a m Æ t kový œ s t a v",
+      "text": "pa mÆtkový œstav",
       "bbox": [
         531.184,
         721.493,
@@ -8668,20 +8642,7 @@
     {
       "page": "23",
       "line": 33,
-      "text": "z jiı",
-      "bbox": [
-        389.335,
-        743.341,
-        400.194,
-        749.023
-      ],
-      "group_id": "tbl2-r0c0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "23",
-      "line": 34,
-      "text": "N Æ r odn í",
+      "text": "NÆrodní",
       "bbox": [
         507.342,
         721.461,
@@ -8693,21 +8654,21 @@
     },
     {
       "page": "23",
-      "line": 35,
-      "text": "/ 43 œ ze m n í odbo r n Ø p r",
+      "line": 34,
+      "text": "/43 œzemní odbornØ",
       "bbox": [
         402.525,
         727.41,
-        532.311,
+        525.621,
         742.184
       ],
       "group_id": "tbl2-r0c1",
-      "quality_score": 0.9333
+      "quality_score": 0.9231
     },
     {
       "page": "23",
-      "line": 36,
-      "text": "P R AHA",
+      "line": 35,
+      "text": "PRAHA",
       "bbox": [
         504.508,
         735.888,
@@ -8719,21 +8680,21 @@
     },
     {
       "page": "23",
-      "line": 37,
-      "text": "š ov ac í V ítì z n Æ Ł p .",
+      "line": 36,
+      "text": "zjiıšovací Vítìzn Æ Łp.",
       "bbox": [
-        400.186,
+        389.335,
         742.688,
         530.409,
         749.053
       ],
       "group_id": "tbl2-r0c1",
-      "quality_score": 0.9333
+      "quality_score": 0.9474
     },
     {
       "page": "23",
-      "line": 38,
-      "text": "a r c h e o l og i c ký vý z ku m 2 . PP",
+      "line": 37,
+      "text": "archeologický výzku m 2.PP",
       "bbox": [
         346.411,
         749.487,
@@ -8745,8 +8706,8 @@
     },
     {
       "page": "23",
-      "line": 39,
-      "text": "S ond a : S 02 L ok a li zace : 2 . PP",
+      "line": 38,
+      "text": "Sonda: S02 Lokalizace: 2.PP",
       "bbox": [
         339.187,
         760.482,
@@ -8758,8 +8719,8 @@
     },
     {
       "page": "23",
-      "line": 40,
-      "text": "M ìłil , k r e s lil: M . R ø ž i Ł k a , J . H l a v a t ý Ø ez :",
+      "line": 39,
+      "text": "M ìłil, kres lil: M . RøžiŁka, J. Hla vatý Øez:",
       "bbox": [
         339.47,
         771.532,
@@ -8771,8 +8732,8 @@
     },
     {
       "page": "23",
-      "line": 41,
-      "text": "P op i s : J . H a v r d a M ìłít ko :",
+      "line": 40,
+      "text": "Pop is: J. H a vrda M ìłítko:",
       "bbox": [
         339.612,
         782.594,
@@ -8784,8 +8745,8 @@
     },
     {
       "page": "23",
-      "line": 42,
-      "text": "D i g it a li z ov a l: J . H l a v a t ý D a t u m :",
+      "line": 41,
+      "text": "D igitali zoval: J. H lavatý D atu m :",
       "bbox": [
         338.903,
         793.787,
@@ -8797,34 +8758,34 @@
     },
     {
       "page": "23",
-      "line": 43,
-      "text": "V e dou c í vý z ku m u : M g r . J . H a v r d a V ý ı kový s y s t Ø",
+      "line": 42,
+      "text": "V edoucí výzkumu: M gr. J. H avrda Výıkový systØm:",
       "bbox": [
         338.62,
         805.106,
-        529.712,
-        811.117
+        537.898,
+        811.128
       ],
       "group_id": "tbl2-r1c0",
-      "quality_score": 0.9722
+      "quality_score": 0.973
     },
     {
       "page": "23",
-      "line": 44,
-      "text": "ac ov iıtì v P r aze",
+      "line": 43,
+      "text": "pracoviıtì v Praze",
       "bbox": [
-        532.305,
-        727.48,
+        527.159,
+        727.473,
         570.742,
         732.066
       ],
       "group_id": "p23-18",
-      "quality_score": 0.9286
+      "quality_score": 0.9375
     },
     {
       "page": "23",
-      "line": 45,
-      "text": "1 , M a l Æ S t r a n a ,",
+      "line": 44,
+      "text": "1, MalÆ Strana,",
       "bbox": [
         531.178,
         735.925,
@@ -8836,8 +8797,8 @@
     },
     {
       "page": "23",
-      "line": 46,
-      "text": "550 , p . p . Ł . 801",
+      "line": 45,
+      "text": "550, p.p.Ł. 801",
       "bbox": [
         532.262,
         742.741,
@@ -8849,8 +8810,8 @@
     },
     {
       "page": "23",
-      "line": 47,
-      "text": "- J V m í s t no s t",
+      "line": 46,
+      "text": "- JV místnost",
       "bbox": [
         534.873,
         749.509,
@@ -8862,7 +8823,7 @@
     },
     {
       "page": "23",
-      "line": 48,
+      "line": 47,
       "text": "R 02",
       "bbox": [
         553.663,
@@ -8875,8 +8836,8 @@
     },
     {
       "page": "23",
-      "line": 49,
-      "text": "1 : 20",
+      "line": 48,
+      "text": "1:20",
       "bbox": [
         561.882,
         783.725,
@@ -8888,8 +8849,8 @@
     },
     {
       "page": "23",
-      "line": 50,
-      "text": "9 . 10 . 2017",
+      "line": 49,
+      "text": "9. 10 . 2017",
       "bbox": [
         540.207,
         794.198,
@@ -8901,13 +8862,13 @@
     },
     {
       "page": "23",
-      "line": 51,
-      "text": "m : – S J N S / B pv",
+      "line": 50,
+      "text": "–SJN S/Bpv",
       "bbox": [
-        529.704,
+        539.782,
         805.399,
         577.106,
-        811.128
+        811.105
       ],
       "group_id": "p23-19",
       "quality_score": 1.0
@@ -8928,110 +8889,6 @@
     {
       "page": "24",
       "line": 1,
-      "text": "R02",
-      "bbox": [
-        229.825,
-        166.596,
-        250.203,
-        175.096
-      ],
-      "group_id": "p24-1",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 2,
-      "text": "podlaha sklepa",
-      "bbox": [
-        313.406,
-        189.451,
-        351.815,
-        194.409
-      ],
-      "group_id": "p24-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 3,
-      "text": "1",
-      "bbox": [
-        263.682,
-        208.009,
-        268.64,
-        212.967
-      ],
-      "group_id": "p24-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 4,
-      "text": "2",
-      "bbox": [
-        250.791,
-        236.908,
-        255.749,
-        241.866
-      ],
-      "group_id": "p24-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 5,
-      "text": "10",
-      "bbox": [
-        287.482,
-        249.091,
-        295.454,
-        254.049
-      ],
-      "group_id": "p24-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 6,
-      "text": "V03",
-      "bbox": [
-        311.706,
-        250.158,
-        324.953,
-        255.825
-      ],
-      "group_id": "p24-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 7,
-      "text": "V04",
-      "bbox": [
-        222.033,
-        270.416,
-        235.28,
-        276.083
-      ],
-      "group_id": "p24-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 8,
-      "text": "9",
-      "bbox": [
-        250.083,
-        270.907,
-        255.041,
-        275.865
-      ],
-      "group_id": "p24-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 9,
       "text": "187,00",
       "bbox": [
         41.696,
@@ -9039,38 +8896,12 @@
         59.195,
         277.914
       ],
-      "group_id": "p24-5",
+      "group_id": "p24-1",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 10,
-      "text": "5",
-      "bbox": [
-        238.75,
-        291.307,
-        243.708,
-        296.265
-      ],
-      "group_id": "p24-6",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 11,
-      "text": "6",
-      "bbox": [
-        240.166,
-        297.823,
-        245.124,
-        302.781
-      ],
-      "group_id": "p24-6",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 12,
+      "line": 2,
       "text": "186,00",
       "bbox": [
         41.554,
@@ -9078,12 +8909,12 @@
         59.255,
         419.153
       ],
-      "group_id": "p24-7",
+      "group_id": "p24-2",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 13,
+      "line": 3,
       "text": "185,00",
       "bbox": [
         41.554,
@@ -9091,12 +8922,12 @@
         59.49,
         561.383
       ],
-      "group_id": "p24-8",
+      "group_id": "p24-3",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 14,
+      "line": 4,
       "text": "184,00",
       "bbox": [
         41.554,
@@ -9104,12 +8935,12 @@
         59.255,
         702.48
       ],
-      "group_id": "p24-9",
+      "group_id": "p24-4",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 15,
+      "line": 5,
       "text": "0",
       "bbox": [
         185.768,
@@ -9117,7 +8948,137 @@
         192.851,
         717.233
       ],
+      "group_id": "p24-5",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 6,
+      "text": "R02",
+      "bbox": [
+        229.825,
+        166.596,
+        250.203,
+        175.096
+      ],
+      "group_id": "p24-6",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 7,
+      "text": "podlaha sklepa",
+      "bbox": [
+        313.406,
+        189.451,
+        351.815,
+        194.409
+      ],
+      "group_id": "p24-7",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 8,
+      "text": "1",
+      "bbox": [
+        263.682,
+        208.009,
+        268.64,
+        212.967
+      ],
+      "group_id": "p24-8",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 9,
+      "text": "2",
+      "bbox": [
+        250.791,
+        236.908,
+        255.749,
+        241.866
+      ],
       "group_id": "p24-9",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 10,
+      "text": "10",
+      "bbox": [
+        287.482,
+        249.091,
+        295.454,
+        254.049
+      ],
+      "group_id": "p24-10",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 11,
+      "text": "V03",
+      "bbox": [
+        311.706,
+        250.158,
+        324.953,
+        255.825
+      ],
+      "group_id": "p24-10",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 12,
+      "text": "V04",
+      "bbox": [
+        222.033,
+        270.416,
+        235.28,
+        276.083
+      ],
+      "group_id": "p24-11",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 13,
+      "text": "9",
+      "bbox": [
+        250.083,
+        270.907,
+        255.041,
+        275.865
+      ],
+      "group_id": "p24-11",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 14,
+      "text": "5",
+      "bbox": [
+        238.75,
+        291.307,
+        243.708,
+        296.265
+      ],
+      "group_id": "p24-12",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 15,
+      "text": "6",
+      "bbox": [
+        240.166,
+        297.823,
+        245.124,
+        302.781
+      ],
+      "group_id": "p24-12",
       "quality_score": 1.0
     },
     {
@@ -9130,116 +9091,64 @@
         334.372,
         717.233
       ],
-      "group_id": "p24-9",
+      "group_id": "p24-13",
       "quality_score": 1.0
     },
     {
       "page": "24",
       "line": 17,
-      "text": "2017 / 43",
+      "text": "2017/43",
       "bbox": [
         368.65,
         733.129,
         424.186,
         744.54
       ],
-      "group_id": "p24-10",
+      "group_id": "p24-14",
       "quality_score": 1.0
     },
     {
       "page": "24",
       "line": 18,
-      "text": "z jiı š ov ac í",
+      "text": "zjiıš ovací",
       "bbox": [
         389.336,
         745.697,
         421.887,
         751.409
       ],
-      "group_id": "p24-10",
+      "group_id": "p24-14",
       "quality_score": 1.0
     },
     {
       "page": "24",
       "line": 19,
-      "text": "a r c h e o l og i c ký vý z ku m",
+      "text": "archeolog ický výzku m",
       "bbox": [
         346.411,
         752.072,
         416.492,
         757.837
       ],
-      "group_id": "p24-10",
+      "group_id": "p24-14",
       "quality_score": 1.0
     },
     {
       "page": "24",
       "line": 20,
-      "text": "S ond a : S 02 L ok a li zace :",
+      "text": "Sonda: S02 Lokalizace :",
       "bbox": [
         339.187,
         762.98,
         421.203,
         768.698
       ],
-      "group_id": "p24-10",
+      "group_id": "p24-14",
       "quality_score": 1.0
     },
     {
       "page": "24",
       "line": 21,
-      "text": "ìł il , k r e s l il:",
-      "bbox": [
-        345.986,
-        774.051,
-        378.171,
-        779.745
-      ],
-      "group_id": "p24-10",
-      "quality_score": 0.9091
-    },
-    {
-      "page": "24",
-      "line": 22,
-      "text": "P op i s :",
-      "bbox": [
-        339.612,
-        785.092,
-        363.401,
-        790.773
-      ],
-      "group_id": "p24-10",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 23,
-      "text": "D i g it a li z ov a l:",
-      "bbox": [
-        338.903,
-        796.85,
-        384.26,
-        802.561
-      ],
-      "group_id": "p24-10",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 24,
-      "text": "V e do u c í vý z k u m u :",
-      "bbox": [
-        338.62,
-        807.47,
-        399.644,
-        813.212
-      ],
-      "group_id": "p24-10",
-      "quality_score": 1.0
-    },
-    {
-      "page": "24",
-      "line": 25,
       "text": "Plán č. 7",
       "bbox": [
         516.055,
@@ -9247,7 +9156,7 @@
         560.693,
         36.954
       ],
-      "group_id": "p24-11",
+      "group_id": "p24-15",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -9255,7 +9164,7 @@
     },
     {
       "page": "24",
-      "line": 26,
+      "line": 22,
       "text": "188,00",
       "bbox": [
         541.06,
@@ -9263,12 +9172,12 @@
         558.895,
         136.251
       ],
-      "group_id": "p24-12",
+      "group_id": "p24-16",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 27,
+      "line": 23,
       "text": "východní",
       "bbox": [
         457.053,
@@ -9276,12 +9185,12 @@
         480.135,
         168.626
       ],
-      "group_id": "p24-13",
+      "group_id": "p24-17",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 28,
+      "line": 24,
       "text": "obvodovÆ zeï",
       "bbox": [
         450.82,
@@ -9289,12 +9198,12 @@
         485.849,
         175.001
       ],
-      "group_id": "p24-13",
+      "group_id": "p24-17",
       "quality_score": 0.9091
     },
     {
       "page": "24",
-      "line": 29,
+      "line": 25,
       "text": "domu Łp. 550",
       "bbox": [
         451.528,
@@ -9302,12 +9211,12 @@
         488.503,
         181.376
       ],
-      "group_id": "p24-13",
+      "group_id": "p24-17",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 30,
+      "line": 26,
       "text": "Z01",
       "bbox": [
         463.145,
@@ -9315,12 +9224,12 @@
         476.043,
         196.751
       ],
-      "group_id": "p24-14",
+      "group_id": "p24-18",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 31,
+      "line": 27,
       "text": "187,00",
       "bbox": [
         541.201,
@@ -9328,12 +9237,12 @@
         558.701,
         277.914
       ],
-      "group_id": "p24-15",
+      "group_id": "p24-19",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 32,
+      "line": 28,
       "text": "186,00",
       "bbox": [
         541.06,
@@ -9341,12 +9250,12 @@
         558.76,
         419.153
       ],
-      "group_id": "p24-16",
+      "group_id": "p24-20",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 33,
+      "line": 29,
       "text": "185,00",
       "bbox": [
         541.06,
@@ -9354,12 +9263,12 @@
         558.995,
         561.383
       ],
-      "group_id": "p24-17",
+      "group_id": "p24-21",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 34,
+      "line": 30,
       "text": "184,00",
       "bbox": [
         541.06,
@@ -9367,12 +9276,12 @@
         558.76,
         702.48
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-22",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 35,
+      "line": 31,
       "text": "1,8 m",
       "bbox": [
         437.929,
@@ -9380,90 +9289,90 @@
         459.664,
         717.233
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-23",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 36,
-      "text": "N Æ r odn í p a m Æ t kový œ s t a v",
+      "line": 32,
+      "text": "NÆrodní pamÆtkový œs tav",
       "bbox": [
         507.342,
         723.817,
         576.042,
         728.443
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-23",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 37,
-      "text": "œ ze m n í odbo r n Ø p r ac ov iıtì v P r aze",
+      "line": 33,
+      "text": "œzemní odbo rnØ pracoviıtì v Praze",
       "bbox": [
         482.551,
         729.766,
         570.742,
         734.422
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-23",
       "quality_score": 0.931
     },
     {
       "page": "24",
-      "line": 38,
-      "text": "P R AHA 1 , M a l Æ S t r a n a ,",
+      "line": 34,
+      "text": "PRAHA 1, MalÆ Strana,",
       "bbox": [
         504.508,
         738.244,
         579.227,
         743.731
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-23",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 39,
-      "text": "V ítì z n Æ Ł p . 550 , p . p . Ł . 801",
+      "line": 35,
+      "text": "VítìznÆ Łp. 550 , p.p.Ł. 801",
       "bbox": [
         493.175,
         745.044,
         577.768,
         750.543
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-23",
       "quality_score": 0.9167
     },
     {
       "page": "24",
-      "line": 40,
-      "text": "2 . PP - J V m í s t no s t",
+      "line": 36,
+      "text": "2.PP - JV místno st",
       "bbox": [
         518.958,
         751.843,
         575.076,
         757.303
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-23",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 41,
-      "text": "2 . PP",
+      "line": 37,
+      "text": "2.PP",
       "bbox": [
         463.709,
         762.838,
         480.179,
         768.528
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-23",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 42,
+      "line": 38,
       "text": "R 03",
       "bbox": [
         553.521,
@@ -9471,103 +9380,142 @@
         580.551,
         781.595
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-23",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 39,
+      "text": "M . Rø žiŁka, J. Hlavatý Øez:",
+      "bbox": [
+        407.61,
+        773.888,
+        503.576,
+        779.719
+      ],
+      "group_id": "p24-24",
+      "quality_score": 0.8947
+    },
+    {
+      "page": "24",
+      "line": 40,
+      "text": "ìłil, kreslil:",
+      "bbox": [
+        345.986,
+        774.051,
+        378.171,
+        779.745
+      ],
+      "group_id": "p24-25",
+      "quality_score": 0.9091
+    },
+    {
+      "page": "24",
+      "line": 41,
+      "text": "Pop is:",
+      "bbox": [
+        339.612,
+        785.092,
+        363.401,
+        790.773
+      ],
+      "group_id": "p24-25",
+      "quality_score": 1.0
+    },
+    {
+      "page": "24",
+      "line": 42,
+      "text": "D igitalizoval:",
+      "bbox": [
+        338.903,
+        796.85,
+        384.26,
+        802.561
+      ],
+      "group_id": "p24-25",
       "quality_score": 1.0
     },
     {
       "page": "24",
       "line": 43,
-      "text": "M . R ø ž i Ł k a , J . H l a v a t ý Ø",
+      "text": "Vedoucí vý zkumu:",
       "bbox": [
-        407.61,
-        773.888,
-        491.471,
-        779.702
+        338.62,
+        807.47,
+        399.644,
+        813.212
       ],
-      "group_id": "p24-18",
-      "quality_score": 0.8824
-    },
-    {
-      "page": "24",
-      "line": 44,
-      "text": "e z :",
-      "bbox": [
-        491.463,
-        774.049,
-        503.576,
-        779.719
-      ],
-      "group_id": "p24-18",
+      "group_id": "p24-25",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 45,
-      "text": "J . H a v r d a M ìłít ko :",
+      "line": 44,
+      "text": "J. H avrda M ìłítko:",
       "bbox": [
         448.693,
         784.95,
         506.714,
         791.358
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-26",
       "quality_score": 0.9286
     },
     {
       "page": "24",
-      "line": 46,
-      "text": "1 : 20",
+      "line": 45,
+      "text": "1:20",
       "bbox": [
         561.882,
         786.081,
         577.897,
         791.756
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-26",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 47,
-      "text": "J . H l a v a t ý D a t u m :",
+      "line": 46,
+      "text": "J. H lavatý D atu m :",
       "bbox": [
         447.418,
         796.143,
         513.82,
         802.409
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-26",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 48,
-      "text": "9 . 10 . 2017",
+      "line": 47,
+      "text": "9. 10. 2017",
       "bbox": [
         540.207,
         796.554,
         577.177,
         802.272
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-26",
       "quality_score": 1.0
     },
     {
       "page": "24",
-      "line": 49,
-      "text": "M g r . J . H a v r d a V ý ı kový s y s t Ø m : – S J N S / B pv",
+      "line": 48,
+      "text": "M gr. J. H av rda Výıkový systØm : –SJNS/Bpv",
       "bbox": [
         431.551,
         807.462,
         577.106,
         813.484
       ],
-      "group_id": "p24-18",
+      "group_id": "p24-26",
       "quality_score": 0.9667
     },
     {
       "page": "24",
-      "line": 50,
+      "line": 49,
       "text": "M",
       "bbox": [
         339.47,
@@ -9575,7 +9523,7 @@
         345.994,
         779.7
       ],
-      "group_id": "p24-19",
+      "group_id": "p24-27",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
