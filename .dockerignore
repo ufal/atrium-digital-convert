@@ -45,3 +45,8 @@ TEMP/
 # tests/fixtures/digital/ are 1-4 KB and are produced deterministically by
 # make_fixtures.py, so nothing needs the big samples at runtime.
 digital_born/
+
+# #5: the converted AMČR samples (records, /describe reports, Markdown; about 92 MB of JSON),
+# committed for review on the issue. Results of a run, not runtime data: nothing in an image
+# reads them, and `COPY . .` was baking them into every image built from `test` since 3156ca8.
+data_samples/

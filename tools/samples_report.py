@@ -32,11 +32,10 @@ The run directory; every stage is optional and one that did not run shows as "�
     61_describe_stages/<doc>.*            `/describe` with page-classification and ocr-postprocess
     62_describe_all/<doc>.*               `/describe stages=page-classification classify_pages=all`
 
-Image coverage is the share of a page's crop box under the union of its image objects. They are
-read with pypdfium2 down to the Form XObject depth of `api_util/digital_pdf._census`; a nested
-object's box (PDFium gives it in its form's space) is carried to the page through its
-containers' matrices; the union is rasterised on a 256 × 256 grid by cell centres. Standard
-library, pypdfium2 and Pillow (pdfplumber's dependency): all in `requirements_digital.txt`.
+Image coverage is the share of a page's crop box under the union of its image objects, measured
+by `api_util/pdf_coverage.py`: the same helper the light engine applies to a page whose only text
+is its running header or footer. Standard library, pypdfium2 and Pillow (pdfplumber's
+dependency): all in `requirements_digital.txt`.
 """
 
 from __future__ import annotations
@@ -56,17 +55,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+#: The repository root, for `api_util` (this file runs as a script from `tools/`).
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+# The coverage helpers are the light engine's own (its furniture-only rule uses them), so the
+# report measures every page exactly as the converter measures the pages it decides on.
+from api_util.pdf_coverage import image_boxes, page_frame, union_share  # noqa: E402
+
 #: page-classification renders a PDF page at this resolution and refuses the whole call when a
 #: page would exceed this many pixels (its PDF_RENDER_DPI and MAX_IMAGE_PIXELS, v1.9.3-beta).
 PC_RENDER_DPI = 300
 PC_MAX_IMAGE_PIXELS = 178_956_970
-#: The other defaults the limits table compares with (each service's tool_limits.py).
-DEFAULTS = {"upload": 50, "pages": 2000, "stage_timeout": 120, "pc_upload": 10, "pc_pages": 50}
+#: The other defaults the limits table compares with (each service's tool_limits.py). This
+#: repository's upload default is 200 since the #5 run (50 before).
+DEFAULTS = {"upload": 200, "pages": 2000, "stage_timeout": 120, "pc_upload": 10, "pc_pages": 50}
 OP_UPLOAD_DEFAULT = 25
-
-GRID = 256  # raster side for the coverage union
-FORM_DEPTH = 4  # digital_pdf._census
-IMAGE_CAP = 20_000  # image objects of one page put on the raster (the reader's PDF_OBJECT_CAP)
 
 #: The candidate rule measured, and the grid of alternatives reported beside it.
 COVERAGE_MIN = 0.85
@@ -75,6 +80,17 @@ COVERAGE_STEPS = (0.5, 0.7, 0.85, 0.95)
 BODY_CHARS_STEPS = (0, 50, 200, 500, 1000)
 MAX_THUMBS = 300
 THUMB_DPI = 40
+
+#: Czech letters outside WinAnsi: a producer that sets them in a second font subset made the
+#: light engine split every word at them before #5 ("Ji č ín"). A token that is one of these
+#: letters alone is that split; Czech has no one-letter word among them.
+SPLIT_LETTERS = frozenset("čďěňřťůČĎĚŇŘŤŮ")
+#: A glyph without a Unicode mapping: U+FFFD in a record since #5, `(cid:N)` before it.
+_UNMAPPED_GLYPH = re.compile(r"\ufffd|\(cid:\d+\)")
+#: A page where at least this share of its lines (and 10 or more) are 1-2 characters long is
+#: mostly rotated text read one character per line (captions along a landscape page's edge,
+#: chart axes), or a column of numbers.
+SHORT_LINE_SHARE = 0.5
 
 MIB = 1024 * 1024
 DASH = "—"
@@ -108,11 +124,13 @@ SUMMARY_COLUMNS = (
     "reformat_reason reformat_s server_peak_mb server_growth_mb parity none_http none_reason "
     "none_s none_routes none_doc_route stages_http stages_reason stages_s stages_routes "
     "stages_doc_route stages_pc stages_op stages_bands stages_categories all_http all_reason "
-    "all_s all_pc all_categories high_coverage_digital candidates"
+    "all_s all_pc all_categories high_coverage_digital candidates split_letters unmapped_glyphs "
+    "unmapped_pages short_line_pages stamped_scans"
 ).split()
 SIGNAL_COLUMNS = (
     "doc page_index page text_layer needs_ocr lines body_chars furniture_chars "
-    "text_area_share images image_coverage category category_confidence route candidate thumbnail"
+    "text_area_share images image_coverage category category_confidence route candidate thumbnail "
+    "split_letters unmapped_glyphs short_line_share"
 ).split()
 
 
@@ -305,73 +323,6 @@ def measure(command: Sequence[str], out: Path, timeout: float = 0.0) -> int:
     return rc
 
 
-# ── image coverage ──────────────────────────────────────────────────────────────────────────
-
-Box = Tuple[float, float, float, float]
-
-
-def union_share(boxes: Iterable[Box], frame: Box, grid: int = GRID) -> float:
-    """Share of `frame` under the union of `boxes`, all `(x0, y0, x1, y1)`.
-
-    Rasterised on `grid` × `grid` cells; a cell counts when its centre is inside a box, so the
-    error is at most half a cell along each edge of the union.
-    """
-    fx0, fy0, fx1, fy1 = frame
-    width, height = fx1 - fx0, fy1 - fy0
-    if width <= 0 or height <= 0:
-        return 0.0
-
-    def span(lo: float, hi: float, origin: float, size: float) -> Tuple[int, int]:
-        first = math.ceil((min(lo, hi) - origin) / size * grid - 0.5)
-        last = math.ceil((max(lo, hi) - origin) / size * grid - 0.5)
-        return max(first, 0), min(last, grid)
-
-    rows = [bytearray(grid) for _ in range(grid)]
-    for x0, y0, x1, y1 in boxes:
-        (c0, c1), (r0, r1) = span(x0, x1, fx0, width), span(y0, y1, fy0, height)
-        ones = b"\x01" * max(c1 - c0, 0)
-        for r in range(r0, r1):
-            rows[r][c0:c1] = ones
-    return sum(row.count(1) for row in rows) / (grid * grid)
-
-
-def _transform(matrix: Sequence[float], box: Box) -> Box:
-    a, b, c, d, e, f = matrix
-    corners = ((box[0], box[1]), (box[2], box[1]), (box[0], box[3]), (box[2], box[3]))
-    xs = [a * x + c * y + e for x, y in corners]
-    ys = [b * x + d * y + f for x, y in corners]
-    return min(xs), min(ys), max(xs), max(ys)
-
-
-def image_boxes(page: Any) -> List[Box]:
-    """Page-space boxes of a pypdfium2 page's image objects, those inside forms included."""
-    import pypdfium2.raw as pdfium_c  # noqa: PLC0415
-
-    boxes: List[Box] = []
-    for obj in page.get_objects(filter=(pdfium_c.FPDF_PAGEOBJ_IMAGE,), max_depth=FORM_DEPTH):
-        if len(boxes) >= IMAGE_CAP:
-            break
-        try:
-            bounds = getattr(obj, "get_bounds", None) or obj.get_pos  # pypdfium2 5.x / 4.x
-            box: Box = tuple(bounds())  # type: ignore[assignment]
-            container = obj.container
-            while container is not None:
-                box = _transform(container.get_matrix().get(), box)
-                container = container.container
-        except Exception:
-            continue
-        boxes.append(box)
-    return boxes
-
-
-def page_frame(page: Any) -> Box:
-    try:
-        return tuple(page.get_cropbox())  # type: ignore[return-value]
-    except Exception:
-        width, height = page.get_size()
-        return 0.0, 0.0, width, height
-
-
 # ── reading the run ─────────────────────────────────────────────────────────────────────────
 
 _CLI_REASON = re.compile(r"\[digital-convert\] ([a-z_]+):")
@@ -391,6 +342,16 @@ def cli_reason(err: Path, meta: Mapping[str, Any]) -> str:
     found = _CLI_REASON.findall(text)
     if found:
         return found[-1]
+    # Exit 2 is any RuntimeError: a missing dependency, but also Docling failing on the file
+    # ("Docling could not convert X (OSError: …)"), which all 15 PDFs of the #5 run did. Its
+    # own words say which; "dependency_missing" only when there are none.
+    said = [
+        line.split("[digital-convert]", 1)[1].strip()
+        for line in text.splitlines()
+        if "[digital-convert]" in line
+    ]
+    if said:
+        return said[-1][:160]
     last = [line.strip() for line in text.splitlines() if line.strip()]
     return "dependency_missing" if rc == 2 else (last[-1] if last else f"exit {rc}")[:120]
 
@@ -405,6 +366,7 @@ def reason_kind(reason: str) -> str:
         ("embedded text layer does not decode", "mojibake"),
         ("garbled text layer", "undecodable characters"),
         ("the text layer is a prior OCR run", "prior OCR layer"),
+        ("no text layer under the page furniture", "page number over a scan"),
     ):
         if reason.startswith(prefix):
             return kind
@@ -435,6 +397,19 @@ def record_facts(record: Mapping[str, Any], prefix: str = "") -> Dict[str, Any]:
     # The size of the record part `/describe` sends a stage (service/stages.py `_record_part`).
     facts["record_mb"] = round(len(json.dumps(record, ensure_ascii=False).encode()) / MIB, 2)
     return facts
+
+
+def text_defects(lines: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    """The #5 text defects in one page's lines: split letters, unmapped glyphs, short lines."""
+    texts = [str(line.get("text") or "") for line in lines]
+    short = sum(1 for text in texts if len(text.strip()) <= 2)
+    return {
+        "split_letters": sum(
+            1 for text in texts for token in text.split() if token in SPLIT_LETTERS
+        ),
+        "unmapped_glyphs": sum(len(_UNMAPPED_GLYPH.findall(text)) for text in texts),
+        "short_line_share": round(short / len(texts), 3) if len(texts) >= 10 else "",
+    }
 
 
 def plane(record: Mapping[str, Any]) -> Dict[str, list]:
@@ -610,6 +585,7 @@ def page_signals(
                 "category_confidence": _r(_num(category.get("confidence")), 3),
                 "route": routes.get(index),
                 "candidate": 0,
+                **text_defects(lines),
             }
             page = pdf[index - 1] if pdf is not None and 1 <= index <= len(pdf) else None
             if page is not None:
@@ -731,6 +707,13 @@ def document_row(
         thumbs = out / "thumbs" if budget[1] else None
         signals = page_signals(doc, run.pdf(inv), record, categories, routes, rule, thumbs, budget)
         row["candidates"] = sum(s["candidate"] for s in signals)
+        row["split_letters"] = sum(s["split_letters"] for s in signals)
+        row["unmapped_glyphs"] = sum(s["unmapped_glyphs"] for s in signals)
+        row["unmapped_pages"] = sum(1 for s in signals if s["unmapped_glyphs"])
+        row["stamped_scans"] = sum(1 for s in signals if s["text_layer"] == "none" and s["lines"])
+        row["short_line_pages"] = sum(
+            1 for s in signals if (_num(s["short_line_share"]) or 0) >= SHORT_LINE_SHARE
+        )
         row["high_coverage_digital"] = sum(
             1
             for s in signals
@@ -876,23 +859,30 @@ def limits_md(run: Run, rows: Sequence[Mapping[str, Any]]) -> str:
         "",
         _md_table(("service", "setting", "default", "suggested", "why"), table),
     ]
-    # Below ~10 MB the server's fixed overhead dominates the ratio; measure it on large files.
-    measured = [r for r in rows if r.get("server_growth_mb") not in (None, "")]
-    floor = 10 if any((_num(r.get("mb")) or 0) >= 10 for r in measured) else 1
-    growth = [
-        (_num(r.get("server_growth_mb")) or 0) / (_num(r.get("mb")) or 1)
-        for r in measured
-        if (_num(r.get("mb")) or 0) >= floor
-    ]
-    if growth:
-        ratio = max(growth)
+    # Per job, not per MB of file: the #5 run showed a conversion's peak following the text it
+    # reads (a 4.8 MB, 178-page report peaked highest), so a ratio to the file size misleads.
+    peaks = [r for r in rows if _num(r.get("server_peak_mb")) or _num(r.get("cli_peak_mb"))]
+    if peaks:
+        key = (
+            "server_peak_mb" if any(_num(r.get("server_peak_mb")) for r in peaks) else "cli_peak_mb"
+        )
+        worst = max(peaks, key=lambda r: _num(r.get(key)) or 0)
+        biggest = max(peaks, key=lambda r: _num(r.get("mb")) or 0)
+        peak = _num(worst.get(key)) or 0
+        budget = math.ceil(peak / 512) / 2
+        where = (
+            "the server's peak (a fresh server per document)"
+            if key == "server_peak_mb"
+            else "the command line's peak"
+        )
         text += [
             "",
-            f"**Memory.** On files of {floor} MB or more, one `/reformat` raised the server's peak "
-            f"by up to {ratio:.1f} × the file's size (a fresh server per document; the highest "
-            f"peak {top('server_peak_mb', rows):,.0f} MB). Budget about {math.ceil(ratio)} × the "
-            f"largest file per concurrent job (`MAX_CONCURRENT_JOBS`): "
-            f"{math.ceil(ratio) * upload:,} MB at the suggested upload limit.",
+            f"**Memory.** The highest was {where}: {peak:,.0f} MB, for {worst.get('doc')} "
+            f"({worst.get('mb')} MB, {worst.get('pages')} pages, {worst.get('lines') or '?'} lines). "
+            f"The largest file, {biggest.get('doc')} ({biggest.get('mb')} MB), peaked at "
+            f"{_num(biggest.get(key)) or 0:,.0f} MB: memory follows the text a document holds, not "
+            f"its size. Budget about {budget:g} GB plus the upload limit per concurrent job "
+            f"(`MAX_CONCURRENT_JOBS`).",
         ]
     if timed_out:
         text += [
@@ -912,6 +902,14 @@ SECTIONS: Tuple[Tuple[str, str, Tuple[Tuple[str, str], ...]], ...] = (
          ("exit", "cli_exit"), ("s", "cli_s"), ("peak MB", "cli_peak_mb"),
          ("digital", "tl_digital"), ("garbled", "tl_garbled"), ("ocr", "tl_ocr"),
          ("none", "tl_none"), ("needs_ocr pages", "needs_ocr_pages"), ("why", "needs_ocr_kinds")),
+    ),
+    (
+        "Text defects (command line, light engine)",
+        "cli_rc",
+        (("document", "doc"), ("split letters", "split_letters"),
+         ("unmapped glyphs", "unmapped_glyphs"), ("pages with them", "unmapped_pages"),
+         ("garbled pages", "tl_garbled"), ("page number over a scan", "stamped_scans"),
+         ("pages of 1-2 character lines", "short_line_pages")),
     ),
     (
         "Light engine / Docling",
@@ -1027,6 +1025,11 @@ def summary_md(
             r.get(f"{p}_http") not in (None, "", 200) for p in ("reformat", "none", "stages", "all")
         )
     ]
+    docling_failed = Counter(
+        str(r.get("docling_reason") or f"exit {r.get('docling_rc')}")
+        for r in rows
+        if r.get("docling_rc") not in (None, "", 0)
+    )
     out += [
         "",
         "## A little text over a full-page image",
@@ -1045,6 +1048,13 @@ def summary_md(
     ]
     if failed:
         out += ["", f"**Refused or failed somewhere:** {', '.join(failed)}."]
+    if docling_failed:
+        out += [
+            "",
+            f"**Docling wrote no record for {sum(docling_failed.values())} document(s):** "
+            + "; ".join(f"{reason} ×{n}" for reason, n in docling_failed.most_common())
+            + ".",
+        ]
     return "\n".join(out) + "\n"
 
 

@@ -46,6 +46,7 @@ from api_util.digital_ir import (
     DigitalTable,
     missing_dependency,
     renumber_lines,
+    unmapped_to_replacement,
 )
 
 ARTIFACTS_ENV = "DOCLING_ARTIFACTS_PATH"
@@ -224,7 +225,7 @@ def _table(
             claimed = _claim(pool, box)
         else:
             claimed = []
-        text = str(cell.get("text") or "").strip()
+        text = unmapped_to_replacement(str(cell.get("text") or "").strip())
         if not claimed and text:
             claimed = [DigitalLine(page=page.page, line=0, text=text, bbox=box)]
         for line in claimed:
@@ -283,7 +284,7 @@ def docling_to_digital(ir: Dict[str, Any], light: DigitalDocument) -> DigitalDoc
                 span = prov.get("charspan")
                 if span and len(item.get("prov") or []) > 1:
                     text = text[int(span[0]) : int(span[1])]
-                text = " ".join(text.split())
+                text = unmapped_to_replacement(" ".join(text.split()))
                 if not text:
                     continue
                 claimed = [DigitalLine(page=page.page, line=0, text=text, bbox=box)]

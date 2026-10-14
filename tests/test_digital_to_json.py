@@ -1010,3 +1010,139 @@ def test_docx_table_without_a_grid_and_a_bad_outline_level_survive(tmp_path):
     assert [ln.text for ln in doc.all_lines()] == ["A", "B", "x"]
     assert [(t.n_rows, t.n_cols) for t in doc.pages[0].tables] == [(1, 2)]
     assert doc.all_lines()[-1].heading_level is None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# The AMČR sample run (atrium-digital-convert#5, 2026-10-14)
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# Three findings on the 15 real PDFs, each with its fixture in make_fixtures.py: words split at
+# a font switch, pdfminer's `(cid:N)` for unmapped glyphs passing as text, and a page number
+# over a scan passing as a text page.
+
+
+def _char(text, x0, width, size=12.000000000000007, font="AAAAAA+Times", top=100.0, base=700.0):
+    """A pdfplumber character (sizes with pdfminer's float noise; `base` is its baseline)."""
+    return {
+        "text": text,
+        "x0": x0,
+        "x1": x0 + width,
+        "top": top,
+        "bottom": top + size,
+        "doctop": top,
+        "upright": True,
+        "size": size,
+        "fontname": font,
+        "matrix": (1, 0, 0, 1, x0, base),
+    }
+
+
+class _CharsPage:
+    """Just enough of a pdfplumber page for `digital_pdf._extract_words`."""
+
+    def __init__(self, chars):
+        self.chars = chars
+
+    def extract_words(self, **kwargs):
+        from pdfplumber.utils import extract_words
+
+        return extract_words(self.chars, **kwargs)
+
+
+def test_a_word_set_in_two_fonts_is_one_word_and_takes_its_majority_font():
+    """Distiller's second subset for ě č ř ů: `Ji` + `č` + `ín`, the `č` in another font, at a
+    size that differs by float noise and with a `top` 3.5 pt off (another descent), on the same
+    baseline. One word, in the font most of it is set in; a word after a real space stays."""
+    pytest.importorskip("pdfplumber")
+    from api_util import digital_pdf
+
+    chars = [
+        _char("J", 0, 5),
+        _char("i", 5, 3),
+        _char("č", 8, 5, size=12.0, font="BBBBBB+Times", top=103.5),
+        _char("í", 13, 3),
+        _char("n", 16, 6),
+        _char("o", 30, 6),
+        _char("k", 36, 6),
+    ]
+    words = digital_pdf._extract_words(_CharsPage(chars))
+    assert sorted(w["text"] for w in words) == ["Jičín", "ok"]
+    jicin = next(w for w in words if w["text"] == "Jičín")
+    assert jicin["fontname"] == "AAAAAA+Times" and "chars" not in jicin
+    assert jicin["inverted"] is False
+
+
+def test_a_real_size_change_or_a_same_font_gap_still_starts_a_new_word():
+    """A superscript (another size, raised) and a gap of a quarter em in one font stay apart."""
+    pytest.importorskip("pdfplumber")
+    from api_util import digital_pdf
+
+    chars = [_char(c, 6 * i, 6) for i, c in enumerate("slova")]
+    chars.append(_char("1", 30, 4, size=7.0, top=98.0, base=704.0))
+    chars += [_char("a", 37.5, 6), _char("b", 43.5, 6)]
+    texts = [w["text"] for w in digital_pdf._extract_words(_CharsPage(chars))]
+    assert sorted(texts) == ["1", "ab", "slova"]
+
+
+def test_unmapped_glyph_placeholders_become_one_replacement_character_each():
+    from api_util.digital_ir import unmapped_to_replacement
+
+    assert unmapped_to_replacement("poh(cid:3)ební (cid:12)(cid:7)") == "poh\ufffdební \ufffd\ufffd"
+    assert unmapped_to_replacement("GLYPH<c=3,font=/AAAAAB+Arial>eská") == "\ufffdeská"
+    assert unmapped_to_replacement("Zpráva (cid) o cid:3") == "Zpráva (cid) o cid:3"
+
+
+def test_a_few_unmapped_glyphs_do_not_condemn_a_line_and_mostly_unmapped_ones_do():
+    """The share rule (GARBLE_CHAR_SHARE) decides, as for U+FFFD from any other source."""
+    few = d2j.decode_sanity("Zprava o sond� cislo 3, vrstva m�la mocnost 30 cm.")
+    assert few.bad == 2 and not few.is_garbage
+    many = d2j.decode_sanity("����eská")
+    assert many.is_undecodable and many.is_garbage
+
+
+def test_unmapped_pdf_is_garbled_on_page_one_and_digital_with_replacements_on_page_two(
+    digital_fixtures,
+):
+    pytest.importorskip("pdfplumber")
+    record = d2j.build_record(str(digital_fixtures / "unmapped.pdf"))
+    assert [p["text_layer"] for p in record["pages"]] == ["garbled", "digital"]
+    assert "over 15% glyphs without a Unicode mapping" in record["pages"][0]["needs_ocr_reason"]
+    assert not any("(cid:" in line["text"] for line in record["lines"])
+    assert record["lines"][1]["text"] == "Zprava o sond� cislo 3, vrstva m�la mocnost 30 cm."
+
+
+def test_a_page_number_over_a_full_page_image_is_none_and_flagged(digital_fixtures):
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("pdfplumber")
+    record = d2j.build_record(str(digital_fixtures / "stamped_scan.pdf"))
+    pages = record["pages"]
+    assert [p["text_layer"] for p in pages] == ["none", "digital", "digital"]
+    assert pages[0]["needs_ocr"] is True and "quality_band" not in pages[0]
+    assert pages[0]["needs_ocr_reason"].startswith(
+        "no text layer under the page furniture: images cover 100% of the page"
+    )
+    assert "'7'" in pages[0]["needs_ocr_reason"]
+    assert not pages[1].get("needs_ocr") and not pages[2].get("needs_ocr")
+    # The page number stays in the record, as furniture.
+    assert [(ln["page"], ln["text"]) for ln in record["lines"] if ln["page"] == "1"] == [("1", "7")]
+
+
+def test_the_coverage_threshold_is_the_setting(digital_fixtures, monkeypatch):
+    """FURNITURE_ONLY_IMAGE_COVERAGE (tool_limits.py): lowered, the half-covered page is a scan."""
+    pytest.importorskip("pypdfium2")
+    pytest.importorskip("pdfplumber")
+    monkeypatch.setenv("FURNITURE_ONLY_IMAGE_COVERAGE", "0.4")
+    record = d2j.build_record(str(digital_fixtures / "stamped_scan.pdf"))
+    assert [p["text_layer"] for p in record["pages"]] == ["none", "digital", "none"]
+    assert "images cover 50% of the page" in record["pages"][2]["needs_ocr_reason"]
+
+
+def test_a_none_page_with_furniture_lines_is_flagged_by_layer_b():
+    """The invariant `none` ⇔ `needs_ocr` holds for a page that keeps its page number."""
+    page = d2j.DigitalPage(page="3", page_index=3, text_layer=d2j.TEXT_LAYER_NONE, images=1)
+    page.image_coverage = 0.97
+    page.lines = [d2j.DigitalLine(page="3", line=0, text="3", region=d2j.REGION_FOOTER)]
+    d2j.assess_page(page)
+    assert page.needs_ocr and page.quality_score is None and page.quality_band is None
+    assert "images cover 97% of the page" in page.needs_ocr_reason
+    assert d2j.text_layer_of(page) == d2j.TEXT_LAYER_NONE

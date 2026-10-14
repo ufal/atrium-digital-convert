@@ -9,6 +9,11 @@
     "note": "1 page, diacritic-free Czech archaeology — the LLM stage's input",
     "sha256": "fc521f4359df8c7b7a56eb4e758cbe0f493813eff852a416982c9c0cd2218483"
   },
+  "font_switch.pdf": {
+    "bytes": 1675,
+    "note": "Czech letters from a second font subset mid-word; a Ts superscript (#5)",
+    "sha256": "b9a984245d6b9d5087110347a8a25d03da4f8edc03683a0d80af8c35bcf60a08"
+  },
   "garbled.pdf": {
     "bytes": 722,
     "note": "WinAnsi declared over cp1250, no /ToUnicode — must trip decode-sanity",
@@ -39,6 +44,11 @@
     "note": "title/localized headings, ins/del, footnote, text box, header/footer, 4 pages",
     "sha256": "80bbacf81970663749bb8ead8ad9ccec3b2e944b0b29b643250f9b69a2156477"
   },
+  "stamped_scan.pdf": {
+    "bytes": 1623,
+    "note": "page number over a full-page image → none; text page; half-page image (#5)",
+    "sha256": "4c9034e892e83e7c3192088ce22b17438251b59450e3ab79d335476a0f187cb6"
+  },
   "table.pdf": {
     "bytes": 1391,
     "note": "ruled 3x2 table between two paragraphs",
@@ -48,5 +58,10 @@
     "bytes": 1976,
     "note": "2 pages, 2 columns, title, running header, page-number footer, roman labels",
     "sha256": "a9c19d72c8a13ab5f5c8761beb39cd88c6d8abba80f566ee57f11361de107310"
+  },
+  "unmapped.pdf": {
+    "bytes": 912,
+    "note": "codes StandardEncoding leaves undefined → (cid:N) → U+FFFD; garbled + digital (#5)",
+    "sha256": "7ceecd3ee2e2821404d2398f399be4d25e24525ceaf55b64274091731177b470"
   }
 }

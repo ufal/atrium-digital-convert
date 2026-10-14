@@ -193,17 +193,33 @@ which variable sets it and whether the value came from the environment or the de
 malformed value stops the service at startup, naming the variable. `tests/test_limits_contract.py`
 checks this table against `tool_limits.py` and `.env.example`.
 
-| Key (`/info`)              | Variable                            | Default | Unit    | Over the limit                                                                                                              |
-|----------------------------|-------------------------------------|---------|---------|-----------------------------------------------------------------------------------------------------------------------------|
-| `max_upload_mb`            | `MAX_UPLOAD_MB`                     | 50      | MB      | 413 `limit_exceeded` — per part (the file, `document_json`)                                                                 |
-| `max_pages`                | `MAX_PAGES`                         | 2000    | pages   | 422 `limit_exceeded` — split the document                                                                                   |
-| `max_concurrent_jobs`      | `MAX_CONCURRENT_JOBS`               | 2       | jobs    | 429 `busy` with `Retry-After`                                                                                               |
-| `libreoffice_timeout_s`    | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — a DOC/XLS LibreOffice did not convert in time                                                        |
-| `stage_timeout_s`          | `STAGE_TIMEOUT_S`                   | 120     | s       | `/describe`: the stage is reported `unavailable`; the request still succeeds                                                |
-| `ocr_layer_document_share` | `OCR_LAYER_DOCUMENT_SHARE`          | 0.5     | share   | policy: at or above it a PDF with prior-OCR pages is refused (422 `ocr_text_layer`); below it those pages carry `needs_ocr` |
-| `route_trash_share`        | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its lines `Trash` |
-| `odf_repeat_cap`           | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                     |
-| `pdf_object_cap`           | `ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP` | 20000   | objects | the shared reader judges a PDF page's text layer on its first N objects                                                     |
+| Key (`/info`)                   | Variable                            | Default | Unit    | Over the limit                                                                                                                    |
+|---------------------------------|-------------------------------------|---------|---------|-----------------------------------------------------------------------------------------------------------------------------------|
+| `max_upload_mb`                 | `MAX_UPLOAD_MB`                     | 200     | MB      | 413 `limit_exceeded` — per part (the file, `document_json`)                                                                       |
+| `max_pages`                     | `MAX_PAGES`                         | 2000    | pages   | 422 `limit_exceeded` — split the document                                                                                         |
+| `max_concurrent_jobs`           | `MAX_CONCURRENT_JOBS`               | 2       | jobs    | 429 `busy` with `Retry-After`                                                                                                     |
+| `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — a DOC/XLS LibreOffice did not convert in time                                                              |
+| `stage_timeout_s`               | `STAGE_TIMEOUT_S`                   | 120     | s       | `/describe`: the stage is reported `unavailable`; the request still succeeds                                                      |
+| `ocr_layer_document_share`      | `OCR_LAYER_DOCUMENT_SHARE`          | 0.5     | share   | policy: at or above it a PDF with prior-OCR pages is refused (422 `ocr_text_layer`); below it those pages carry `needs_ocr`       |
+| `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its lines `Trash`       |
+| `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needs_ocr`) when its images cover this share of it |
+| `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                           |
+| `pdf_object_cap`                | `ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP` | 20000   | objects | the shared reader judges a PDF page's text layer on its first N objects                                                           |
+
+**Large documents** (measured on the 15 AMČR samples of
+[#5](https://github.com/ufal/atrium-digital-convert/issues/5): up to 156 MB and 529 pages):
+
+* **Upload.** The upload is held in memory, so the 200 MB default accepts every sample.
+* **Memory and time follow the text, not the file size.** `/reformat` took 1–38 s, and the
+  server's peak reached 1.9 GB for a 4.8 MB, 178-page report. Those figures predate the light
+  engine closing each page after reading it; a synthetic 180-page text PDF fell from 2.7 GB to
+  0.2 GB with that change. Budget about 2 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot
+  until the samples are measured again.
+* **The stages' own limits decide `/describe` first.** The record part `/describe` sends a stage
+  reached 14 MB compact. Page-classification also receives the whole PDF, and takes 10 MB per
+  part and 50 pages per call by default. ocr-postprocess takes a 25 MB record. A stage that
+  refuses a part (413) is that document's stage `error`; the request still answers 200. Set the
+  stages' limits together with this service's.
 
 ## How it works
 

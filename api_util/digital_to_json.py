@@ -77,7 +77,9 @@ Detection feeds two outputs, and deliberately not a third:
 The same hand-off carries three more page verdicts (Issue #18, 2026-09-25 — the #10 §9 gap
 register): a page with no text layer but an image or vector paths on it (a scanned plate,
 text drawn as curves), a text layer of U+FFFD/control characters (a subset font without
-/ToUnicode), and a text layer that is a prior OCR run's invisible text over a page image.
+/ToUnicode; pdfminer's `(cid:N)` placeholders count, #5), and a text layer that is a prior OCR
+run's invisible text over a page image. A page whose only text is its running header or footer,
+over images that cover it, has no text layer either (#5).
 When OCR-layer pages are at least half of the text-bearing pages, the document is not
 born-digital at all and is refused (exit 3): its originator is alto-postprocess, as
 `ocr:pdf-text-layer` — the rule atrium-alto-postprocess `default_source_origin` applies.
@@ -267,6 +269,10 @@ GARBAGE_MIN_HITS = 2
 #: unassigned code points above which the text layer does not decode at all — a subset font
 #: without /ToUnicode. The threshold legacy `pdf_to_md` and alto-postprocess #31 use; the
 #: JSON route had no such check, so switching the auto-convert to it would have regressed.
+#: A glyph pdfminer cannot map arrives here as U+FFFD: the light engine turns its `(cid:N)`
+#: placeholder into one (`digital_ir.unmapped_to_replacement`, #5), so a line whose glyphs are
+#: mostly unmapped is `Garbage`, and a line with a few (the letters outside WinAnsi of a font
+#: without /ToUnicode) keeps them visible as U+FFFD without condemning its page.
 GARBLE_CHAR_SHARE = 0.15
 
 #: The mojibake verdict needs positive evidence the line is Czech read through the wrong
@@ -523,6 +529,18 @@ def _reason_no_text(page: DigitalPage) -> str:
     )
 
 
+def _reason_furniture_only(page: DigitalPage) -> str:
+    furniture = " / ".join(line.text for line in page.lines)
+    if len(furniture) > 60:
+        furniture = furniture[:59] + "…"
+    coverage = f"{page.image_coverage:.0%}" if page.image_coverage is not None else "most"
+    return (
+        f"no text layer under the page furniture: images cover {coverage} of the page and its "
+        f"only text is its running header or footer ({furniture!r}) — a scanned page that the "
+        f"PDF's producer numbered or stamped"
+    )
+
+
 def assess_page(page: DigitalPage) -> None:
     """Fill in `quality_score`, `quality_band`, `needs_ocr` and its reason, in place.
 
@@ -538,7 +556,9 @@ def assess_page(page: DigitalPage) -> None:
     a row) is not — there is no page image for an OCR engine to read. A prior OCR layer is
     flagged whether or not any of its text became a line (a page whose words are all table
     cells has none), so the flag is exactly the `garbled`, `ocr` and `none` pages of
-    `pages[].text_layer` (`digital_ir.text_layer_of`).
+    `pages[].text_layer` (`digital_ir.text_layer_of`). That includes a `none` page that HAS lines:
+    its only text is its running header or footer, over images that cover the page
+    (`digital_pdf._mark_furniture_only`, #5); its lines are scored like any other.
     """
     reasons: List[str] = []
     if not page.lines:
@@ -568,10 +588,17 @@ def assess_page(page: DigitalPage) -> None:
             )
         if undecodable:
             reasons.append(
-                f"garbled text layer: {len(undecodable)} of {len(page.lines)} lines are mostly "
-                f"U+FFFD or control characters (a subset font without /ToUnicode?). The page "
-                f"has a text layer; it does not decode."
+                f"garbled text layer: {len(undecodable)} of {len(page.lines)} lines are over "
+                f"{GARBLE_CHAR_SHARE:.0%} glyphs without a Unicode mapping (U+FFFD) or control "
+                f"characters (a font without /ToUnicode?). The page has a text layer; it does "
+                f"not decode."
             )
+        if page.text_layer == TEXT_LAYER_NONE:
+            # The page's content has no text layer; its lines are a page number or a running
+            # header. Scoring them would call a scan `Clear`, so the page carries no score.
+            reasons.append(_reason_furniture_only(page))
+            page.quality_score = None
+            page.quality_band = None
     if page.text_layer == TEXT_LAYER_OCR:
         reasons.append(
             f"the text layer is a prior OCR run: {page.invisible_text_objects} of "

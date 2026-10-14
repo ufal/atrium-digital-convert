@@ -702,6 +702,51 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-14 — #5: what the AMČR samples show, fixed in the converter
+* **Read:** the 10-10 comment (the cluster job's log) and the draft results in `data_samples/`.
+  * All 15 documents converted. 10 of them mix `digital` with `none` or `ocr` pages.
+  * Two defects passed as `digital`/Clear text, and the decode check never fired on any document:
+    * **Split words:** words split at the Czech letters outside WinAnsi (ě č ř ů ň ť ď). Nearly 24,000 letters, almost all in 5 documents. Acrobat Distiller sets those letters in a second font subset, and `extract_words(extra_attrs=["fontname","size"])` ended a word at each font switch. Reproduced with pdfplumber 0.11.10; grouping by size alone splits them too, on float noise.
+    * **Unmapped glyphs:** pdfminer writes `(cid:N)` for a glyph without a Unicode mapping. 87 pages in 3 documents, some 89–100 %.
+* **`api_util/digital_pdf.py`:**
+  * `_merge_split_words` joins neighbouring words on one baseline that a font switch split. A superscript, a space and a same-font overprint stay apart.
+  * Pages are closed after reading, and words keep no character dicts. A synthetic 180-page, 1.3-million-character PDF peaked at 0.2 GB instead of 2.7 GB (51 s instead of 68 s), with the same lines. On `digital_born/sample.pdf` the lines and layout are the same; 56 lines differ in whitespace only.
+* **`api_util/digital_ir.py` `unmapped_to_replacement`:** `(cid:N)` (and docling-parse's `GLYPH<…>`) become U+FFFD, in the light engine and on Docling's own text. The 0.15 share rule then makes 18 pages `garbled`. Partly unmapped pages stay `digital` (K4TEL: share rule only).
+* **A page number over a scan:**
+  * `none` with `needs_ocr`, when a page's only text is its running header or footer and its images cover at least `FURNITURE_ONLY_IMAGE_COVERAGE` (new POLICY limit, 0.85). In the samples that is CTX201703695 pp. 67–68.
+  * The page keeps its page number in `lines[]` and carries no score.
+  * Coverage comes from `api_util/pdf_coverage.py`, moved from `tools/samples_report.py`.
+  * K4TEL chose the record mark; the design review would have waited, because the schema calls `none` "no text layer".
+* **`MAX_UPLOAD_MB` default: 50 → 200** (K4TEL). Changed in `tool_limits.py`, `.env.example`, both READMEs' tables, and the memory note.
+* **`.dockerignore` excludes `data_samples/`,** which had put 92 MB into every image built since `3156ca8`.
+* **`service/openapi.json`:** the `PageReport.text_layer` description, regenerated.
+* **`tools/samples_report.py`:**
+  * a "Text defects" table and per-page signals, which reproduce the measurement on the committed samples;
+  * Docling's own failure text instead of `dependency_missing`;
+  * memory per job;
+  * the 200 MB default.
+* **Fixtures** (generated; existing bytes unchanged):
+  * `font_switch.pdf`: a second subset with a deeper descent, and a `Ts` superscript;
+  * `unmapped.pdf`;
+  * `stamped_scan.pdf`.
+
+  Parity rows, unit and report tests added.
+* **The cluster run's own failures:**
+  * `01_tests`: a stale `../atrium-nlp-enrich`;
+  * page-classification did not start (`v1.8.0-beta` checkout, no `fastapi` in its venv), so stage 62 never ran;
+  * the job's arithmetic on an empty value (line 587);
+  * Docling exited 2 on all 15. Its live test skips on failure, so "passed" was unproven.
+
+  The job's fixes and Docling's cause wait for the run files asked for in chat.
+* **Docs:**
+  * README: a new section, "Born-digital PDFs in practice (the AMČR samples)", and `garbled`/`none` in the per-page assessment;
+  * `service/README.md`: large documents and the stages' limits;
+  * `data_samples/README.md`: the draft's known defects.
+* **Checks:** 860 passed, 3 skipped. Ruff clean; fixtures and spec current.
+* **Dev logs:** `digests/5.digest.md` rewritten around the run; `plans/5.plan.md` re-phased (R done; C re-run, B review, D limits, E delivery).
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

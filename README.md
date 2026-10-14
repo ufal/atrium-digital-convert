@@ -54,6 +54,7 @@ No OCR, no model, no network.
 - [What the record holds](#what-the-record-holds)
 - [The service: `/reformat` and `/describe`](#the-service-reformat-and-describe)
 - [The per-page assessment](#the-per-page-assessment)
+- [Born-digital PDFs in practice (the AMČR samples)](#born-digital-pdfs-in-practice-the-amčr-samples)
 - [Record → annotated Markdown](#record--annotated-markdown)
 - [Configuration](#configuration)
 - [🐳 Docker](#-docker)
@@ -197,7 +198,7 @@ upload is read as what it is.
 | Footnotes                 | — (Docling engine: yes)                                    | footnotes and endnotes                                   | —                     | —                     | `lines[].style.region = footnote`              |
 | Tables                    | ruled tables (Docling engine: any)                         | tables, merged cells                                     | cells as lines        | — (follow-up)         | `tables[]` + `cells[].group_id`                |
 | Bounding boxes, page size | exact, points, top-left origin                             | none                                                     | none                  | none                  | `lines[].bbox`, `pages[].canvas`               |
-| Untrustworthy text        | mojibake, replacement characters, no text layer, prior OCR | the same decode check                                    | the same decode check | the same decode check | `lines[].categ = Garbage`, `pages[].needs_ocr` |
+| Untrustworthy text        | mojibake, unmapped glyphs, no text layer, prior OCR        | the same decode check                                    | the same decode check | the same decode check | `lines[].categ = Garbage`, `pages[].needs_ocr` |
 
 * **Engines.**
   * `--engine light` (default) uses `requirements_digital.txt`: permissive licences, no models, no
@@ -274,9 +275,13 @@ into mojibake), with no stage configured:
 * **Text layer** (`text_layer`), from the converter; the record carries the same value in
   `pages[].text_layer`:
   * `digital`: the layer decodes;
-  * `garbled`: a layer that does not decode;
+  * `garbled`: a layer that does not decode: mojibake, or lines that are over 15 % glyphs without a
+    Unicode mapping (shown as U+FFFD; a font without /ToUnicode);
   * `ocr`: a prior OCR run;
-  * `none`: no text layer;
+  * `none`: no text layer: a scan, text drawn as curves, a page that draws nothing; also a page
+    whose only text is its running header or footer over images covering at least
+    `FURNITURE_ONLY_IMAGE_COVERAGE` (0.85) of it, a scan the PDF's producer numbered. Its page
+    number stays in `lines[]`; the page carries no quality score;
   * `blank`: an empty page of a format without page images.
 * **Page type** (`category`): page-classification's label, confidence and top-N. It is asked about
   the `needs_ocr` pages by default, or about every page with `classify_pages=all`. PDF only.
@@ -318,6 +323,54 @@ into mojibake), with no stage configured:
   stages: `docker compose --profile stub up`, or
   `python tools/stage_stub.py --port 8090` with `PAGE_CLASSIFICATION_URL=OCR_POSTPROCESS_URL=http://127.0.0.1:8090`.
   It is never part of an image.
+
+## Born-digital PDFs in practice (the AMČR samples)
+
+[#5](https://github.com/ufal/atrium-digital-convert/issues/5) ran 15 excavation reports from AMČR
+(ARUP/ARUB, 2008–2022, 2.1–156 MB, 34–529 pages; 2,514 pages, 525 MB) through every stage on the
+cluster. What they show about the collection, and what the converter does about it:
+
+* **Most are assembled documents.** Text written in Word, exported, then combined in Acrobat with
+  scanned or drawn parts: plans, photographs, forms, older reports. 10 of the 15 are mixed: 8 have
+  `none` pages among `digital` ones (from 1 to 157 per document), 2 have `ocr` pages. Routing is
+  per page, never per document.
+  * Two carry a prior OCR layer on some pages (Acrobat Paper Capture, PDFTron). It is below
+    `OCR_LAYER_DOCUMENT_SHARE`, so those pages are `ocr` and the document is converted.
+  * One has 23 pages that draw only vector paths: plans, or text drawn as curves. They are `none`.
+* **A font switch inside a word.** Acrobat Distiller sets the Czech letters outside WinAnsi
+  (ě č ř ů ň ť ď) in a second subset of the font. Until #5 the light engine split every word at
+  them ("Ji č ín"): nearly 24,000 letters, almost all in 5 of the 15 documents, on pages that read
+  `digital` and Clear. Words are now joined across a font switch on one baseline (`digital_pdf._merge_split_words`).
+* **Glyphs without a Unicode mapping.** A font without /ToUnicode gives pdfminer no character,
+  and it wrote `(cid:N)` instead, which passed as text: 3 documents, 87 pages, some 89–100 %
+  unmapped. Each such glyph is now U+FFFD; a line over 15 % of them is `Garbage` and its page
+  `garbled` (18 pages in the samples). A page with a few keeps them visible as U+FFFD and stays
+  `digital`: one report loses every ř, ě, č and ů that way on 68 pages.
+* **A page number over a scan.** A scanned page that Acrobat numbered has a text layer, the
+  number. Such a page is `none` when its only text is furniture and its images cover at least
+  `FURNITURE_ONLY_IMAGE_COVERAGE` of it (2 pages in the samples).
+* **Known, not handled:** doubled glyphs on cover pages ("ARC CHEOLO GICKÝ"), captions rotated
+  along a landscape page's edge read one character per line, unruled tables read column by
+  column, and the big type of a cover form taken for headings. Docling (`--engine docling`) is
+  the route for the last two.
+* **Resources.** Time and memory follow the text a document holds, not its size:
+  * the light engine took 1–35 s per document;
+  * the service's peak reached 1.9 GB for a 4.8 MB, 178-page report, and 1.4 GB for the 156 MB one.
+
+  The engine kept every page's parse until the end. It now closes each page and keeps no
+  per-character data: a synthetic 180-page, 1.3-million-character PDF fell from 2.7 GB to 0.2 GB
+  (and from 68 s to 51 s). Until a re-run measures the samples again, budget about 2 GB plus the
+  upload limit per `MAX_CONCURRENT_JOBS` slot. `MAX_UPLOAD_MB` is 200 by default since #5.
+* **What the stages receive.** The compact record that `/describe` sends to a stage reached 14 MB.
+  Page-classification also gets the whole PDF, and its default is 10 MB per part. A stage that
+  refuses a part reports `error` for that document. Set the stages' limits with this service's
+  (`service/README.md` § Limits).
+* **For a model.** The Markdown runs up to about 290k tokens at `full` and 150k at `minimal` for
+  a 400–530-page report, so a model stage downstream has to chunk it.
+
+`tools/samples_report.py` measures all of this on a run. Its `summary.md` has a "Text defects"
+table (split letters, unmapped glyphs, garbled pages, page numbers over scans, pages of
+one-character lines) that a re-run of the samples compares with.
 
 ## Record → annotated Markdown
 
@@ -397,9 +450,10 @@ Every setting is an environment variable. [`.env.example`](.env.example) 📎 is
 
 | Variable                                                  | Default                 | Meaning                                                                       |
 |-----------------------------------------------------------|-------------------------|-------------------------------------------------------------------------------|
-| `MAX_UPLOAD_MB`, `MAX_PAGES`, `MAX_CONCURRENT_JOBS`       | 50, 2000, 2             | service limits                                                                |
+| `MAX_UPLOAD_MB`, `MAX_PAGES`, `MAX_CONCURRENT_JOBS`       | 200, 2000, 2            | service limits                                                                |
 | `OCR_LAYER_DOCUMENT_SHARE`                                | 0.5                     | at or above this share of prior-OCR pages a PDF is refused (`ocr_text_layer`) |
 | `ROUTE_TRASH_SHARE`                                       | 0.5                     | `/describe`: a decoding page with more `Trash` lines than this goes to `ocr`  |
+| `FURNITURE_ONLY_IMAGE_COVERAGE`                           | 0.85                    | a page with only header/footer text over images covering this much is `none`  |
 | `LIBREOFFICE_BIN`, `LIBREOFFICE_TIMEOUT_S`                | `soffice`, 120 s        | DOC/XLS conversion                                                            |
 | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`          | unset                   | `/describe`'s stages; unset → `not_configured`                                |
 | `STAGE_TIMEOUT_S`                                         | 120 s                   | per stage call; over it the stage is `unavailable`                            |

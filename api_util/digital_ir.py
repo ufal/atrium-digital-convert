@@ -15,6 +15,7 @@ No optional dependency is imported here.
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -95,6 +96,30 @@ class DigitalInputError(ValueError):
     @property
     def exit_code(self) -> int:
         return self.EXIT_CODES.get(self.reason, 3)
+
+
+#: What an unmapped glyph becomes in a line (#5): one replacement character per glyph.
+REPLACEMENT_CHAR = "\ufffd"
+
+#: Parsers' placeholders for a glyph without a Unicode mapping: pdfminer (under pdfplumber, the
+#: light engine) writes `(cid:236)`; docling-parse writes `GLYPH<…>` (not seen here yet: the
+#: Docling run of #5 failed, so its form is taken from Docling's issue tracker).
+_UNMAPPED_GLYPH = re.compile(r"\(cid:\d+\)|GLYPH<[^<>]{0,80}>")
+
+
+def unmapped_to_replacement(text: str) -> str:
+    """A parser's placeholder for a glyph without a Unicode mapping, as U+FFFD (#5).
+
+    A font without /ToUnicode (and without an encoding the parser can map) gives no character for
+    a glyph, and pdfminer writes the seven characters `(cid:236)` in its place. They are ASCII,
+    so the decode check never counted them, and whole AMČR pages of them (89–100 % unmapped)
+    passed as `digital` text. One glyph becomes one replacement character, which is what it is:
+    a character the layer does not give. `digital_to_json.decode_sanity` counts it, and a line
+    whose glyphs are more than GARBLE_CHAR_SHARE unmapped is `Garbage`, its page `garbled`.
+    """
+    if "(cid:" not in text and "GLYPH<" not in text:
+        return text
+    return _UNMAPPED_GLYPH.sub(REPLACEMENT_CHAR, text)
 
 
 def missing_dependency(
@@ -204,6 +229,9 @@ class DigitalPage:
     vector_paths: int = 0
     text_objects: int = 0
     invisible_text_objects: int = 0
+    #: Share of the page under its images, measured only for a page whose only text is its
+    #: running header or footer (`digital_pdf._mark_furniture_only`); None when not measured.
+    image_coverage: Optional[float] = None
 
     @property
     def has_geometry(self) -> bool:

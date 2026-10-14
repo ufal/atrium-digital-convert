@@ -10,9 +10,10 @@ startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.exampl
 checks that they agree.
 
 What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
-beside it. Two entries are POLICY thresholds rather than size caps (``OCR_LAYER_DOCUMENT_SHARE``,
-``ROUTE_TRASH_SHARE``): they are declared here all the same, because a value a deployment may
-change and a client must be able to read back is exactly what ``/info`` ``limits`` is for.
+beside it. Three entries are POLICY thresholds rather than size caps
+(``OCR_LAYER_DOCUMENT_SHARE``, ``ROUTE_TRASH_SHARE``, ``FURNITURE_ONLY_IMAGE_COVERAGE``): they
+are declared here all the same, because a value a deployment may change and a client must be
+able to read back is exactly what ``/info`` ``limits`` is for.
 
 Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
 CLI converter imports this too.
@@ -23,8 +24,13 @@ from __future__ import annotations
 from atrium_limits import LimitSet, limit, upload_limit
 
 #: §4.5 upload limit, per uploaded part (the file, `document_json`). Over it → 413
-#: ``limit_exceeded``. Born-digital PDFs with embedded images run larger than OCR text.
-MAX_UPLOAD = upload_limit(50)
+#: ``limit_exceeded``. Born-digital PDFs with embedded images run larger than OCR text: the AMČR
+#: samples of atrium-digital-convert#5 reach 156 MB (200 since then; 50 before). The upload is
+#: held in memory, and a conversion's own peak follows the document's text, not its size: up to
+#: 1.9 GB measured on the samples (a 4.8 MB, 178-page report), before the light engine stopped
+#: holding every page's parse. Budget about 2 GB plus the upload per ``MAX_CONCURRENT_JOBS`` slot
+#: until the samples are measured again.
+MAX_UPLOAD = upload_limit(200)
 
 #: Pages one document may have. Counted before the text is read (a PDF's page tree; a DOCX,
 #: ODT or spreadsheet after reading). Over it → 422 ``limit_exceeded``: split the document.
@@ -58,6 +64,14 @@ OCR_LAYER_DOCUMENT_SHARE = limit(
 #: ``Trash``; then the page is routed to OCR instead. Lines without a verdict do not count.
 ROUTE_TRASH_SHARE = limit("ROUTE_TRASH_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1)
 
+#: POLICY. A PDF page whose only text is its running header or footer (a page number, a stamp)
+#: is ``none`` — no text layer under the furniture, ``needs_ocr`` — when its images cover at
+#: least this share of the page: a scan the PDF's producer numbered (atrium-digital-convert#5).
+#: Below it the page stays ``digital``. Measured only on such pages (``api_util/pdf_coverage.py``).
+FURNITURE_ONLY_IMAGE_COVERAGE = limit(
+    "FURNITURE_ONLY_IMAGE_COVERAGE", 0.85, unit="share", kind=float, minimum=0, maximum=1
+)
+
 # ── the vendored reader's own caps (text_formats.py, from atrium-ocr-postprocess) ────────────
 #: Same variable names, units and defaults as atrium-ocr-postprocess's tool_limits.py: the reader
 #: module is byte-identical there and here (tests/test_vendored_reader_parity.py), and imports
@@ -80,6 +94,7 @@ LIMITS = LimitSet(
     STAGE_TIMEOUT_S,
     OCR_LAYER_DOCUMENT_SHARE,
     ROUTE_TRASH_SHARE,
+    FURNITURE_ONLY_IMAGE_COVERAGE,
     ODF_REPEAT_CAP,
     PDF_OBJECT_CAP,
 )

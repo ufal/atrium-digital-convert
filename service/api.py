@@ -265,7 +265,7 @@ class PageReport(BaseModel):
     page: str = Field(description="The page label (`pages[].page` in the record).")
     page_index: int = Field(description="1-based physical position.")
     text_layer: str = Field(
-        description="`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer), `blank` (an empty page without a page image): the record's `pages[].text_layer`."
+        description="`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer, or only a running header or footer over a full-page image), `blank` (an empty page without a page image): the record's `pages[].text_layer`."
     )
     needs_ocr: bool
     needs_ocr_reason: Optional[str]

@@ -73,6 +73,16 @@ the measurement found on the JSON route:
 
 The four fixtures above keep their bytes (and their hub-pinned sha256s): the new PDFs use
 `_build_pdf_ex`, and `_build_pdf` is unchanged except for sharing `_serialize_pdf`.
+
+Added 2026-10-14 for the AMČR sample run (atrium-digital-convert#5), one fixture per finding on
+the real files; every earlier fixture keeps its bytes:
+
+    font_switch.pdf   Czech letters drawn from a second font subset inside words — "Jičín",
+                      "Přílohy", not "Ji č ín"; a raised 7 pt superscript stays a word of its own.
+    unmapped.pdf      glyphs without a Unicode mapping (pdfminer's `(cid:N)`): a page of them is
+                      `garbled`; two in an ASCII line show as U+FFFD and leave it `digital`.
+    stamped_scan.pdf  a page number over a full-page image (`none`), a text page, and a page
+                      number over a half-page image (`digital`).
 """
 
 from __future__ import annotations
@@ -254,7 +264,8 @@ def enrichable_pdf() -> bytes:
         "Zpráva o sondě číslo 3."  ->  'ZprÆva o sond(cid:236) Ł(cid:237)slo 3.'
 
     and decode-sanity does NOT flag it (needs_ocr stayed False), so such a fixture would
-    quietly break the happy-path contract instead of failing loudly. Diacritic-free Czech
+    quietly break the happy-path contract instead of failing loudly. (Since #5 the two
+    `(cid:N)` come out as U+FFFD, and the line is still under GARBLE_CHAR_SHARE: unflagged.) Diacritic-free Czech
     is what the corpus's own legacy digitisations look like anyway, it round-trips
     byte-exactly through StandardEncoding, and it keeps the vocabulary in the language the
     TEATER/AMCR terms are actually written in. Getting diacritics in here needs a
@@ -353,14 +364,20 @@ def _text_at(
     return b"\n".join(parts)
 
 
-def _build_pdf_ex(pages: List[bytes], page_labels: bytes = b"") -> bytes:
+def _build_pdf_ex(
+    pages: List[bytes], page_labels: bytes = b"", fonts: Dict[str, bytes] | None = None
+) -> bytes:
     """Like `_build_pdf`, with two fonts (/F1 Helvetica, /F2 Helvetica-Bold), one image
     (/Im1) available on every page, and an optional /PageLabels number tree.
 
-    Object layout: 1 catalog, 2 page tree, (page, contents) per page, then F1, F2, Im1.
+    `fonts` adds more, by resource name, after Im1 (#5's second font subset). Without it the
+    bytes are exactly what they were before the parameter existed.
+
+    Object layout: 1 catalog, 2 page tree, (page, contents) per page, then F1, F2, Im1, fonts.
     """
     n_pages = len(pages)
     f1, f2, im = 3 + 2 * n_pages, 4 + 2 * n_pages, 5 + 2 * n_pages
+    extra = {name: im + 1 + i for i, name in enumerate(fonts or {})}
     kids = b" ".join(f"{3 + 2 * i} 0 R".encode("ascii") for i in range(n_pages))
     catalog = b"<< /Type /Catalog /Pages 2 0 R" + (
         b" /PageLabels " + page_labels if page_labels else b""
@@ -372,8 +389,11 @@ def _build_pdf_ex(pages: List[bytes], page_labels: bytes = b"") -> bytes:
         f2: FONT_BOLD,
         im: IMAGE_XOBJECT,
     }
+    for name, number in extra.items():
+        objects[number] = (fonts or {})[name]
+    more = "".join(f" /{name} {number} 0 R" for name, number in extra.items())
     resources = (
-        f"/Resources << /Font << /F1 {f1} 0 R /F2 {f2} 0 R >> /XObject << /Im1 {im} 0 R >> >>"
+        f"/Resources << /Font << /F1 {f1} 0 R /F2 {f2} 0 R{more} >> /XObject << /Im1 {im} 0 R >> >>"
     )
     for i, stream in enumerate(pages):
         page_num = 3 + 2 * i
@@ -488,6 +508,97 @@ def table_pdf() -> bytes:
         ]
     )
     return _build_pdf_ex([page])
+
+
+# ── PDF: the AMČR sample run's findings (atrium-digital-convert#5, 2026-10-14) ─────────────
+
+
+#: #5's real construction, Czech letters in a second font. /F3 is WinAnsi Helvetica (the
+#: letters Latin-1 has: í, á, é); /F4 is a "second subset" that holds only the Czech letters
+#: WinAnsi lacks, mapped by glyph name, with its own widths and a deeper descent, so its
+#: characters sit a few points off the line pdfplumber clusters /F3's on.
+FONT_WINANSI = b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"
+FONT_CZECH_SUBSET = (
+    b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+CzechSubset /FirstChar 128 /LastChar 131 "
+    b"/Widths [500 556 333 556] "
+    b"/Encoding << /Type /Encoding /Differences [128 /ccaron /ecaron /rcaron /uring] >> "
+    b"/FontDescriptor << /Type /FontDescriptor /FontName /ABCDEF+CzechSubset /Flags 32 "
+    b"/FontBBox [0 -500 1000 1000] /ItalicAngle 0 /Ascent 718 /Descent -500 /CapHeight 718 "
+    b"/StemV 80 >> >>"
+)
+
+
+def font_switch_pdf() -> bytes:
+    """Words set in two fonts must stay words; a superscript must stay apart.
+
+    Acrobat Distiller puts the Czech letters outside WinAnsi (ě č ř ů ň ť ď) in a second subset
+    of the face, so the font changes INSIDE "Jičín", and pdfplumber, which groups characters by
+    font before it looks at spacing, split every such word ("Ji č ín": 12,029 letters in one
+    AMČR report). Line 1 is that construction at 11 pt: "Jičín, Přílohy", the `č` and `ř` from
+    /F4, whose deeper descent puts them 3.2 pt below the line pdfplumber clusters /F3's letters
+    on, so they are joined by baseline. Line 2 has a 7 pt superscript raised by `Ts`, which
+    stays its own word.
+    The title is all /F2 (Helvetica-Bold), so bold is still read from a word's font.
+    """
+    body = b"\n".join(
+        [
+            b"BT",
+            b"/F3 11 Tf",
+            b"1 0 0 1 72 650 Tm",
+            b"(Ji) Tj /F4 11 Tf <80> Tj /F3 11 Tf (\xedn, P) Tj /F4 11 Tf <82> Tj",
+            b"/F3 11 Tf (\xedlohy) Tj",
+            b"ET",
+            b"BT",
+            b"/F3 12 Tf",
+            b"72 600 Td",
+            b"(Nalezy viz slova) Tj /F3 7 Tf 4 Ts (1) Tj 0 Ts /F3 12 Tf ( a dalsi.) Tj",
+            b"ET",
+        ]
+    )
+    return _build_pdf_ex(
+        [_text_at(72, 730, [b"Nalezova zprava"], font="F2") + b"\n" + body],
+        fonts={"F3": FONT_WINANSI, "F4": FONT_CZECH_SUBSET},
+    )
+
+
+def unmapped_pdf() -> bytes:
+    """Glyphs without a Unicode mapping: pdfminer's `(cid:N)` text must not pass as text.
+
+    FONT_CLEAN is base-14 Helvetica with no /Encoding and no /ToUnicode, so a code
+    StandardEncoding leaves undefined has no character, and pdfminer writes `(cid:N)` for it
+    (see `enrichable_pdf`). Page 1 is one line of such codes (0x80-0x8F), the shape of an AMČR
+    report's pages that are 89-100 % unmapped: `garbled`, `needs_ocr`. Page 2 is ASCII with
+    two `ě` in cp1250 bytes (0xEC, undefined there), under GARBLE_CHAR_SHARE: it stays
+    `digital`, the two glyphs shown as U+FFFD.
+    """
+    return _build_pdf(
+        [
+            _text_block(72, 720, [bytes(range(0x80, 0x90))]),
+            _text_block(72, 720, [b"Zprava o sond\xec cislo 3, vrstva m\xecla mocnost 30 cm."]),
+        ],
+        FONT_CLEAN,
+    )
+
+
+def stamped_scan_pdf() -> bytes:
+    """A page number over a full-page image is a scan, not a text page.
+
+    Page 1 is the AMČR construction: a scanned page inserted into a report, and the page
+    number Acrobat added over it. Its only text is furniture and its image covers the page:
+    `none`, `needs_ocr`. Page 2 is a text page with a page number: `digital`. Page 3 has a
+    page number over an image covering half the page, under FURNITURE_ONLY_IMAGE_COVERAGE:
+    `digital`.
+    """
+    half_page_image = f"q {PAGE_W} 0 0 {PAGE_H // 2} 0 0 cm /Im1 Do Q".encode("ascii")
+    return _build_pdf_ex(
+        [
+            FULL_PAGE_IMAGE + b"\n" + _text_at(300, 30, [b"7"]),
+            _text_at(72, 720, [b"Zprava o vyzkumu, textova strana."])
+            + b"\n"
+            + _text_at(300, 30, [b"8"]),
+            half_page_image + b"\n" + _text_at(300, 30, [b"9"]),
+        ]
+    )
 
 
 # ── DOCX ─────────────────────────────────────────────────────────────────────
@@ -806,6 +917,9 @@ BUILDERS = {
     "table.pdf": table_pdf,
     "rich.docx": rich_docx,
     "bare.docx": bare_docx,
+    "font_switch.pdf": font_switch_pdf,
+    "unmapped.pdf": unmapped_pdf,
+    "stamped_scan.pdf": stamped_scan_pdf,
 }
 
 NOTES = {
@@ -819,6 +933,9 @@ NOTES = {
     "table.pdf": "ruled 3x2 table between two paragraphs",
     "rich.docx": "title/localized headings, ins/del, footnote, text box, header/footer, 4 pages",
     "bare.docx": "minimal.docx without the document.xml Override — G4 lenient open",
+    "font_switch.pdf": "Czech letters from a second font subset mid-word; a Ts superscript (#5)",
+    "unmapped.pdf": "codes StandardEncoding leaves undefined → (cid:N) → U+FFFD; garbled + digital (#5)",
+    "stamped_scan.pdf": "page number over a full-page image → none; text page; half-page image (#5)",
 }
 
 

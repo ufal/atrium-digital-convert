@@ -131,6 +131,9 @@ def test_reason_kinds_and_page_ranges():
     )
     assert sr.reason_kind("embedded text layer does not decode: 3 of 3 lines…") == "mojibake"
     assert sr.reason_kind("the text layer is a prior OCR run: 4 of 4…") == "prior OCR layer"
+    assert sr.reason_kind("no text layer under the page furniture: images cover 100%…") == (
+        "page number over a scan"
+    )
     assert sr._ranges([7, 1, 2, 3, 9, 10]) == "1-3,7,9-10"
 
 
@@ -152,7 +155,7 @@ def test_inventory_and_report_on_a_small_run(tmp_path):
     inventory = run / sr.INVENTORY / "inventory.tsv"
     assert sr.main(["inventory", "--samples", str(samples), "--out", str(inventory)]) == 0
     env = dict(line.split("=", 1) for line in inventory.with_suffix(".env").read_text().split())
-    assert env["N_DOCS"] == "2" and env["UPLOAD_MB"] == "50" and env["MAX_DOC_PAGES"] == "2"
+    assert env["N_DOCS"] == "2" and env["UPLOAD_MB"] == "200" and env["MAX_DOC_PAGES"] == "2"
 
     cli = run / sr.CLI
     cli.mkdir()
@@ -161,6 +164,12 @@ def test_inventory_and_report_on_a_small_run(tmp_path):
     (cli / "CTX1.run.json").write_text('{"rc": 0, "wall_s": 1.5, "peak_rss_mb": 60.2}')
     (cli / "CTX2.run.json").write_text('{"rc": 3, "wall_s": 0.4, "peak_rss_mb": 40.0}')
     (cli / "CTX2.err").write_text("[digital-convert] ocr_text_layer: 2 of 2 text-bearing pages…\n")
+    docling = run / sr.DOCLING
+    docling.mkdir()
+    (docling / "CTX1.run.json").write_text('{"rc": 2, "wall_s": 9.0, "peak_rss_mb": 900.0}')
+    (docling / "CTX1.err").write_text(
+        "[digital-convert] Docling could not convert CTX1.pdf (OSError: no layout model). Its…\n"
+    )
 
     summary = sr.build_report(run, samples, thumbnails=True)
     with (run / "report" / "summary.csv").open(encoding="utf-8") as handle:
@@ -170,14 +179,39 @@ def test_inventory_and_report_on_a_small_run(tmp_path):
     assert rows["CTX1"]["reformat_http"] == ""  # a stage that did not run stays empty
 
     text = summary.read_text(encoding="utf-8")
-    assert "## Light engine / Docling\n\nNot run." in text
+    assert rows["CTX1"]["docling_reason"].startswith("Docling could not convert CTX1.pdf (OSError")
+    assert "**Docling wrote no record for 1 document(s):** Docling could not convert" in text
+    assert "## Text defects (command line, light engine)" in text
+    assert (rows["CTX1"]["split_letters"], rows["CTX1"]["unmapped_glyphs"]) == ("0", "0")
     assert "1 of 2 `digital` pages" in text
     candidates = (run / "report" / "candidates.md").read_text(encoding="utf-8")
     assert "![](thumbs/CTX1_p1.png)" in candidates
     assert (run / "report" / "thumbs" / "CTX1_p1.png").is_file()
-    assert "| digital-convert | MAX_UPLOAD_MB | 50 | 50 |" in (
+    assert "| digital-convert | MAX_UPLOAD_MB | 200 | 200 |" in (
         run / "report" / "limits.md"
     ).read_text(encoding="utf-8")
     delivered = run / "report" / "deliver"
     assert json.loads((delivered / "CTX1.document.json").read_text())["doc_id"] == record["doc_id"]
     assert not (delivered / "CTX2.document.json").exists()
+
+
+def test_text_defects_count_split_letters_unmapped_glyphs_and_short_lines():
+    """#5's signals: a lone ě/č/ř/ů token is a split word, U+FFFD and (cid:N) are unmapped."""
+    lines = [{"text": "Ji č ín a Oprávn ě ná"}, {"text": "poh(cid:3)ební poh\ufffdební"}]
+    assert sr.text_defects(lines) == {
+        "split_letters": 2,
+        "unmapped_glyphs": 2,
+        "short_line_share": "",
+    }
+    rotated = [{"text": c} for c in "Obr.18Turnov"]
+    assert sr.text_defects(rotated)["short_line_share"] == 1.0
+
+
+def test_a_docling_failure_is_named_not_called_a_missing_dependency(tmp_path):
+    err = tmp_path / "x.err"
+    err.write_text("[digital-convert] Docling could not convert X.pdf (RuntimeError: CUDA)\n")
+    assert sr.cli_reason(err, {"rc": 2}) == "Docling could not convert X.pdf (RuntimeError: CUDA)"
+    err.write_text("[digital-convert] limit_exceeded: The PDF has 529 pages\n")
+    assert sr.cli_reason(err, {"rc": 4}) == "limit_exceeded"
+    err.write_text("")
+    assert sr.cli_reason(err, {"rc": 2}) == "dependency_missing"

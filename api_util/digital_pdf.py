@@ -54,12 +54,26 @@ from api_util.digital_ir import (
     missing_dependency,
     renumber_lines,
     sha256_file,
+    unmapped_to_replacement,
 )
+from api_util.pdf_coverage import image_coverage
 
 #: A gap wider than this share of the font size starts a new word. pdfplumber's default is
 #: an absolute 3 pt, which glues words set with tight justification in small type and
 #: splits letter-spaced headings in large type; a ratio holds across sizes.
 WORD_GAP_RATIO = 0.2
+
+#: The default of `FURNITURE_ONLY_IMAGE_COVERAGE` (tool_limits.py): the share of a page its
+#: images must cover for a page whose only text is its running header or footer to be `none`.
+#: Measured on the AMČR samples (#5): it catches the two pages there that are a page number over
+#: a scan, and none of the 36 pages of one report that carry a running header over two figures.
+FURNITURE_ONLY_IMAGE_COVERAGE = 0.85
+
+#: Two neighbouring words on one baseline are one word set in two fonts (see
+#: `_merge_split_words`) when the gap between them is at most this share of the font size —
+#: the word-gap tolerance itself — and they overlap by at most `MERGE_OVERLAP_RATIO` of it.
+FONT_SWITCH_GAP_RATIO = WORD_GAP_RATIO
+MERGE_OVERLAP_RATIO = 0.25
 
 #: A gap wider than this many font sizes splits a line into segments — a column gutter, a
 #: tab stop. Word gaps, even in loosely justified text, stay well under one em.
@@ -118,6 +132,109 @@ class _Unit:
 
 
 # ── words, lines, segments ────────────────────────────────────────────────────
+
+
+def _extract_words(page: Any) -> List[Dict[str, Any]]:
+    """The page's words, a word set in two fonts joined, each word's characters dropped.
+
+    pdfplumber groups a page's characters by `extra_attrs` before it looks at their spacing, so
+    a font switch ends a word. PDF producers switch font INSIDE words: Acrobat Distiller sets the
+    Czech letters outside WinAnsi (ě č ř ů ň ť ď) in a second subset of the face, and "Jičín"
+    came out "Ji č ín" (#5: 12,029 such letters in one AMČR report, nearly 24,000 in fifteen).
+    Grouping by size alone splits them as well, because pdfminer derives a character's size
+    from its font's descent and two fonts at one point size differ by float noise
+    (12.000000000000007 against 12.0). So the grouping stays as it was — font and size still
+    decide bold, italic and headings — and `_merge_split_words` joins what a font switch split.
+
+    Each word then keeps only what the engine reads (`_finish_word`): its majority font, an
+    `inverted` flag, and its text with unmapped glyphs as U+FFFD. Dropping the per-character
+    dicts, and closing each page after use (`extract_pdf`), keeps the memory of a long document
+    from growing with its character count.
+    """
+    words = page.extract_words(
+        x_tolerance_ratio=WORD_GAP_RATIO,
+        extra_attrs=["fontname", "size"],
+        return_chars=True,
+    )
+    return [_finish_word(word) for word in _merge_split_words(words)]
+
+
+def _baseline(word: Dict[str, Any]) -> float:
+    """The word's baseline in PDF user space (its first character's text matrix)."""
+    chars = word.get("chars") or [{}]
+    matrix = chars[0].get("matrix")
+    if matrix and len(matrix) == 6:
+        return round(float(matrix[5]), 1)
+    return round(float(word.get("bottom") or 0.0), 1)
+
+
+def _split_by_font(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+    """Whether `right` continues `left`: one word that a font switch split.
+
+    Same size (to float noise), next to each other within the word-gap tolerance, and the
+    characters at the seam differ in font or in raw size — the only reason pdfplumber split
+    them. A superscript (another size, another baseline), a word after a space (a gap of a
+    quarter em or more) and an overprinted duplicate in the same font all stay apart.
+    """
+    size = float(left.get("size") or 0.0)
+    if not size or round(size, 2) != round(float(right.get("size") or 0.0), 2):
+        return False
+    gap = float(right["x0"]) - float(left["x1"])
+    if not -MERGE_OVERLAP_RATIO * size <= gap <= FONT_SWITCH_GAP_RATIO * size:
+        return False
+    last, first = (left.get("chars") or [{}])[-1], (right.get("chars") or [{}])[0]
+    return last.get("fontname") != first.get("fontname") or last.get("size") != first.get("size")
+
+
+def _merge_split_words(words: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Join the words a font switch split (`_split_by_font`), per baseline, left to right.
+
+    By baseline, not by pdfplumber's line clustering: a second font with another descent puts
+    its letters' `top` a few points off the line (`ř` in "Přílohy"), and pdfplumber then
+    clusters them into a line of their own. Rotated words are left as they are.
+    """
+    rows: Dict[float, List[Dict[str, Any]]] = {}
+    merged: List[Dict[str, Any]] = []
+    for word in words:
+        if word.get("upright", True):
+            rows.setdefault(_baseline(word), []).append(word)
+        else:
+            merged.append(word)
+    for row in rows.values():
+        row.sort(key=lambda w: float(w["x0"]))
+        current = row[0]
+        for word in row[1:]:
+            if _split_by_font(current, word):
+                current = {
+                    **current,
+                    "text": str(current["text"]) + str(word["text"]),
+                    "x0": min(float(current["x0"]), float(word["x0"])),
+                    "x1": max(float(current["x1"]), float(word["x1"])),
+                    "top": min(float(current["top"]), float(word["top"])),
+                    "bottom": max(float(current["bottom"]), float(word["bottom"])),
+                    "chars": list(current.get("chars") or []) + list(word.get("chars") or []),
+                }
+            else:
+                merged.append(current)
+                current = word
+        merged.append(current)
+    return merged
+
+
+def _finish_word(word: Dict[str, Any]) -> Dict[str, Any]:
+    """Keep what the engine reads of a word, in place: majority font, `inverted`, the text.
+
+    A word set in two fonts takes the font most of its characters carry ("Jičín" with its `č`
+    in a second subset is in the first font, and bold only if most of it is). Its size stays
+    pdfplumber's, the first character's. The characters themselves are dropped.
+    """
+    chars = word.pop("chars", None) or []
+    fonts = Counter(str(char.get("fontname") or "") for char in chars)
+    if fonts:
+        word["fontname"] = fonts.most_common(1)[0][0]
+    word["inverted"] = any(is_inverted(char.get("matrix")) for char in chars)
+    word["text"] = unmapped_to_replacement(str(word.get("text", "")))
+    return word
 
 
 def _cluster_lines(words: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
@@ -219,7 +336,6 @@ def _reading_order(units: List[_Unit], gutters: List[Tuple[float, float]]) -> Li
 
 
 def _line_from_words(words: List[Dict[str, Any]], page_label: str) -> DigitalLine:
-    chars = [c for w in words for c in (w.get("chars") or [])]
     sizes = Counter(round(float(w.get("size") or 0.0), 1) for w in words)
     fontname = str(words[0].get("fontname", ""))
     bold, italic = font_flags(fontname)
@@ -237,7 +353,7 @@ def _line_from_words(words: List[Dict[str, Any]], page_label: str) -> DigitalLin
         size=sizes.most_common(1)[0][0] if sizes else 0.0,
         bold=bold,
         italic=italic,
-        inverted=any(is_inverted(c.get("matrix")) for c in chars),
+        inverted=any(w.get("inverted") for w in words),
     )
 
 
@@ -467,6 +583,65 @@ def _mark_furniture(pages: List[Tuple[DigitalPage, List[_Unit]]]) -> None:
                 unit.region = band
 
 
+def furniture_only_image_coverage() -> float:
+    """The effective `FURNITURE_ONLY_IMAGE_COVERAGE` (the setting, else the module default)."""
+    try:
+        import tool_limits  # noqa: PLC0415  (repo root)
+    except ImportError:  # pragma: no cover - the repo root is on sys.path when the CLI runs
+        return FURNITURE_ONLY_IMAGE_COVERAGE
+    return float(tool_limits.FURNITURE_ONLY_IMAGE_COVERAGE.get())
+
+
+def _mark_furniture_only(path: str, pages: List[Tuple[DigitalPage, List[_Unit]]]) -> None:
+    """A page whose only text is its running header or footer, over images: `none` (#5).
+
+    A scanned page inserted into a born-digital report and then numbered or stamped by the
+    PDF's producer (Acrobat's "Add Header & Footer", Bates numbers) has a text layer: the page
+    number. It used to be `digital` and went to NLP with nothing to read, while its content,
+    the scan, was never offered to OCR. When every text unit of a `digital` page is furniture
+    (no body text, no table) and its images cover at least `FURNITURE_ONLY_IMAGE_COVERAGE` of
+    the page, the page's content has no text layer: it is `none`, and Layer B flags it with a
+    reason that says so (`digital_to_json._reason_furniture_only`). Its furniture lines stay.
+
+    Coverage is measured only for such pages (`api_util/pdf_coverage.py`, the measurement
+    `tools/samples_report.py` reports for every page). Without pypdfium2 nothing changes.
+    """
+    candidates = [
+        page
+        for page, units in pages
+        if page.text_layer == TEXT_LAYER_DIGITAL
+        and units
+        and all(unit.table is None and unit.region for unit in units)
+    ]
+    if not candidates:
+        return
+    try:
+        import pypdfium2 as pdfium  # noqa: PLC0415  (optional dependency, imported on use)
+
+        pdf = pdfium.PdfDocument(path)
+    except Exception:
+        return
+    threshold = furniture_only_image_coverage()
+    try:
+        for page in candidates:
+            if not 1 <= page.page_index <= len(pdf):
+                continue
+            handle = None
+            try:
+                handle = pdf[page.page_index - 1]
+                _, coverage = image_coverage(handle)
+            except Exception:  # one unreadable page keeps its verdict, not a failed PDF
+                continue
+            finally:
+                if handle is not None:
+                    handle.close()
+            page.image_coverage = round(coverage, 4)
+            if coverage >= threshold:
+                page.text_layer = TEXT_LAYER_NONE
+    finally:
+        pdf.close()
+
+
 def _band(unit: _Unit, height: float) -> Optional[str]:
     if unit.bottom <= MARGIN_BAND * height:
         return REGION_HEADER
@@ -554,11 +729,7 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
             )
             current.text_objects, current.invisible_text_objects = counts[index]
             try:
-                words = page.extract_words(
-                    x_tolerance_ratio=WORD_GAP_RATIO,
-                    extra_attrs=["fontname", "size"],
-                    return_chars=True,
-                )
+                words = _extract_words(page)
                 current.images = len(page.images)
                 current.vector_paths = len(page.curves) + len(page.lines) + len(page.rects)
             except Exception as exc:
@@ -573,6 +744,7 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
                 # call while missing a scanned one loses its text. The reason tells them apart.
                 current.text_layer = TEXT_LAYER_NONE
                 staged.append((current, []))
+                page.close()
                 continue
             n_text, n_invisible = counts[index]
             if n_text and n_invisible / n_text >= OCR_LAYER_MIN_RATIO:
@@ -583,8 +755,12 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
             table_units, words = _extract_tables(page, words, label, table_counter)
             units = table_units + [seg for line in _cluster_lines(words) for seg in _segments(line)]
             staged.append((current, units))
+            # pdfplumber keeps a page's layout and character dicts until the page is closed, and
+            # the words no longer point at them: a 500-page report no longer holds every page.
+            page.close()
 
     _mark_furniture(staged)
+    _mark_furniture_only(path, staged)
 
     for page, units in staged:
         headers = sorted(

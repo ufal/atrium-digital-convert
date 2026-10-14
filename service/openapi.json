@@ -2727,7 +2727,7 @@
           "text_layer": {
             "type": "string",
             "title": "Text Layer",
-            "description": "`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer), `blank` (an empty page without a page image): the record's `pages[].text_layer`."
+            "description": "`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer, or only a running header or footer over a full-page image), `blank` (an empty page without a page image): the record's `pages[].text_layer`."
           },
           "needs_ocr": {
             "type": "boolean",

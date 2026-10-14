@@ -94,6 +94,34 @@ CASES = [
         [],
     ),
     (
+        "#5 words set in two fonts stay words; a superscript stays apart",
+        "font_switch.pdf",
+        ["**Nalezova zprava**", "Jičín, Přílohy", "Nalezy viz slova 1 a dalsi."],
+        ["Ji č", "P ř", "slova1", "**Jičín"],
+    ),
+    (
+        "#5 unmapped glyphs: a page of them flagged, a few shown as U+FFFD, never (cid:N)",
+        "unmapped.pdf",
+        [
+            "NEEDS_OCR: pg_1 (garbled text layer: 1 of 1 lines are over 15% glyphs without a "
+            "Unicode mapping",
+            "## Page 2",
+            "Zprava o sond\ufffd cislo 3, vrstva m\ufffdla mocnost 30 cm.",
+        ],
+        ["(cid:", "NEEDS_OCR: pg_2"],
+    ),
+    (
+        "#5 a page number over a full-page image is a scan; text and half-covered pages are not",
+        "stamped_scan.pdf",
+        [
+            "NEEDS_OCR: pg_1 (no text layer under the page furniture: images cover 100% of the page",
+            "## Page 2",
+            "Zprava o vyzkumu, textova strana.",
+            "## Page 3",
+        ],
+        ["NEEDS_OCR: pg_2", "NEEDS_OCR: pg_3"],
+    ),
+    (
         "G4 package without the main-part Override",
         "bare.docx",
         ["### Zpráva o sondě", "## Page 2"],

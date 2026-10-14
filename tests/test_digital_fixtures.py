@@ -189,6 +189,9 @@ def test_canonical_manifest_path_is_independent_of_outdir(make_fixtures, tmp_pat
         "two_column.pdf",
         "ocr_layer.pdf",
         "table.pdf",
+        "font_switch.pdf",
+        "unmapped.pdf",
+        "stamped_scan.pdf",
     ],
 )
 def test_pdf_xref_offsets_resolve(blobs, name):
@@ -228,8 +231,8 @@ def test_enrichable_pdf_carries_archaeology_and_no_diacritics(blobs):
 
     ASCII is not a stylistic preference here. FONT_CLEAN is base-14 Helvetica with no
     /Encoding override and no /ToUnicode, so a byte above 0x7F decodes through
-    StandardEncoding and comes back as mojibake — and decode-sanity does NOT flag it, so
-    the damage would be silent. A non-ASCII byte in this fixture is therefore a bug, not
+    StandardEncoding and comes back as mojibake or as unmapped glyphs (U+FFFD since #5) —
+    and decode-sanity does not flag a line with a few of them, so the damage would be silent. A non-ASCII byte in this fixture is therefore a bug, not
     a translation.
 
     The content assertion is the other half: this fixture exists BECAUSE minimal.pdf has
@@ -304,6 +307,20 @@ def test_parity_pdfs_carry_the_constructions_they_are_named_for(blobs):
     ocr_layer = blobs["ocr_layer.pdf"]
     assert ocr_layer.count(b"3 Tr") == 2 and ocr_layer.count(b"/Im1 Do") == 2
     assert blobs["table.pdf"].count(b" l S") == 7, "3 horizontal + 4 vertical rules"
+
+
+def test_sample_run_pdfs_carry_the_constructions_they_are_named_for(blobs):
+    """#5's three fixtures: the font switch inside a word, the undefined codes, the stamp."""
+    font_switch = blobs["font_switch.pdf"]
+    assert b"(Ji) Tj /F4 11 Tf <80> Tj /F3 11 Tf" in font_switch, "a font switch mid-word"
+    assert b"/Differences [128 /ccaron /ecaron /rcaron /uring]" in font_switch
+    assert b"/Descent -500" in font_switch and b"4 Ts (1) Tj" in font_switch
+    unmapped = blobs["unmapped.pdf"]
+    assert bytes(range(0x80, 0x90)) in unmapped and b"/Encoding" not in unmapped
+    assert unmapped.count(b"\xec") == 2, "two codes StandardEncoding leaves undefined"
+    stamped = blobs["stamped_scan.pdf"]
+    assert b"/Count 3" in stamped and stamped.count(b"/Im1 Do") == 2
+    assert b"612 0 0 792 0 0 cm /Im1 Do" in stamped and b"612 0 0 396 0 0 cm /Im1 Do" in stamped
 
 
 def test_rich_docx_carries_the_documented_structure(blobs):
