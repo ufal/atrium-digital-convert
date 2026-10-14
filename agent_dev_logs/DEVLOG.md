@@ -737,7 +737,17 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   * the job's arithmetic on an empty value (line 587);
   * Docling exited 2 on all 15. Its live test skips on failure, so "passed" was unproven.
 
-  The job's fixes and Docling's cause wait for the run files asked for in chat.
+* **The job (`issue5_samples_job.sh`, cluster-side, delivered separately):**
+  * checkouts reported against their upstream, `PULL=1` to fast-forward them;
+  * each stage venv checked for its imports before the service starts;
+  * service logs read per start;
+  * `01_tests` with `-rs`, the sibling comparison as a warning;
+  * Docling probed on the smallest file, with its error printed;
+  * runs a re-submit can fix left undone;
+  * the contract check takes the default limit from `/info` and checks the 413 below the largest file.
+
+  Dry runs pass with the stage stub, and on the failure paths and a re-submit; shellcheck is clean. Docling's cause waits for the `.err`.
+* **CI:** `.github/production-image.json` declares `api_util/pdf_coverage.py`; the hub's `image_closure.py` failed `workflow-lint` without it, and passes locally now.
 * **Docs:**
   * README: a new section, "Born-digital PDFs in practice (the AMČR samples)", and `garbled`/`none` in the per-page assessment;
   * `service/README.md`: large documents and the stages' limits;
