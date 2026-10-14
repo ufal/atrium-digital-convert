@@ -253,7 +253,55 @@ def test_live_docling_conversion(tmp_path):
     (fixtures / "two_column.pdf").write_bytes(module.two_column_pdf())
     try:
         data = d2j.build_record(str(fixtures / "two_column.pdf"), engine="docling")
+    except dd.DoclingIncomplete:
+        raise  # Docling is installed without a module it needs (#5: cv2): a broken install
     except RuntimeError as exc:
         pytest.skip(f"Docling models unavailable here: {exc}")
     texts = [ln["text"] for ln in data["lines"]]
     assert "Sonda II odkryla val." in texts
+
+
+def test_a_module_docling_lacks_at_conversion_is_named_not_blamed_on_the_models(
+    monkeypatch, tmp_path
+):
+    """#5: on the cluster the models loaded, then every PDF failed on `cv2` (TableFormer's
+    OpenCV, an optional extra of docling-ibm-models) under advice about model weights."""
+    import sys
+    import types
+
+    class _Options:
+        pass
+
+    class _Converter:
+        def __init__(self, format_options):
+            pass
+
+        def convert(self, path, raises_on_error=True):
+            raise ModuleNotFoundError("No module named 'cv2'", name="cv2")
+
+    modules = {
+        "docling": types.ModuleType("docling"),
+        "docling.datamodel": types.ModuleType("docling.datamodel"),
+        "docling.datamodel.base_models": types.SimpleNamespace(
+            InputFormat=types.SimpleNamespace(PDF="pdf")
+        ),
+        "docling.datamodel.pipeline_options": types.SimpleNamespace(PdfPipelineOptions=_Options),
+        "docling.document_converter": types.SimpleNamespace(
+            DocumentConverter=_Converter, PdfFormatOption=lambda pipeline_options: None
+        ),
+    }
+    for name, module in modules.items():
+        monkeypatch.setitem(sys.modules, name, module)
+    with pytest.raises(dd.DoclingIncomplete) as caught:
+        dd.convert_with_docling(str(tmp_path / "X.pdf"))
+    message = str(caught.value)
+    assert "imports 'cv2'" in message and "opencv-python-headless" in message
+    assert "requirements_digital_docling.txt" in message and "weights" not in message
+    assert isinstance(caught.value, RuntimeError), (
+        "the CLI's exit 2 and the service's 501 still apply"
+    )
+
+
+def test_the_docling_requirements_carry_tableformers_opencv():
+    text = (REPO / "requirements_digital_docling.txt").read_text(encoding="utf-8")
+    assert "docling-ibm-models[opencv-python-headless]" in text

@@ -51,6 +51,17 @@ from api_util.digital_ir import (
 
 ARTIFACTS_ENV = "DOCLING_ARTIFACTS_PATH"
 
+#: The pip distribution of a module Docling imports only while it converts, for the advice
+#: (`cv2` is TableFormer's OpenCV, an optional extra of docling-ibm-models; #5).
+_DISTRIBUTION = {"cv2": "opencv-python-headless"}
+
+
+class DoclingIncomplete(RuntimeError):
+    """Docling is installed but a module it imports while converting is not (exit 2, like any
+    missing dependency). Unlike missing weights, no environment can convert then: the live test
+    fails on it instead of skipping."""
+
+
 #: `para_config.txt` components a Docling run adds to the light engine's.
 COMPONENTS: Tuple[str, ...] = (
     "docling",
@@ -90,6 +101,17 @@ def convert_with_docling(path: str) -> Dict[str, Any]:
             format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
         )
         result = converter.convert(path, raises_on_error=True)
+    except ImportError as exc:
+        # Docling imports parts of its stack only when a page needs them: on 2026-10-09 the
+        # models loaded and every PDF then failed on `cv2` (#5), under advice about models.
+        module = getattr(exc, "name", None) or str(exc)
+        package = _DISTRIBUTION.get(str(module), str(module))
+        raise DoclingIncomplete(
+            f"Docling could not convert {os.path.basename(path)}: it imports {module!r}, which "
+            f"is not installed ({type(exc).__name__}: {str(exc)[:200]}). Install the Docling "
+            f"stack again: pip install -r requirements_digital_docling.txt (it holds {package}), "
+            f"or use --engine light."
+        ) from exc
     except Exception as exc:
         # The light engine has already read this PDF, so a failure here is Docling's
         # environment, and in practice its model weights: without DOCLING_ARTIFACTS_PATH it

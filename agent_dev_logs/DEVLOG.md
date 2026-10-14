@@ -757,6 +757,23 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-14 (later) — #5: Docling's cause on the cluster
+* **The `.err` of `20_cli_docling`:** `ModuleNotFoundError: No module named 'cv2'`, after the models had loaded.
+  * `docling-slim[models-local]` brings `docling-ibm-models`, which imports OpenCV when it builds a table but declares it only as its own extra.
+  * The full `docling` gets OpenCV through its OCR extras, which our slim install leaves out.
+  * So Docling failed on all 15 PDFs. `convert_with_docling` called it a model problem, and `test_live_docling_conversion` skipped (the cluster's 9 skips).
+* **Fix:**
+  * `requirements_digital_docling.txt` adds `docling-ibm-models[opencv-python-headless]>=4.0.2,<5` (Apache-2.0; the record's licence stays MIT; the Dockerfile's `digital-docling` stage installs the same file).
+  * `api_util/digital_docling.py`: an `ImportError` during conversion is `DoclingIncomplete` (a `RuntimeError`, still exit 2), naming the module and its package.
+  * The live test fails on `DoclingIncomplete` instead of skipping.
+  * Two tests: the cluster's failure simulated without Docling, and the requirement pinned.
+* **Cluster side** (delivered separately):
+  * the job checks `docling`, `cv2` and `torch` before stage 20;
+  * `issue5_trash_lines.py` adds a count of lines with a word split at a Czech letter, by quality category, for the pages the quality model moved to OCR and the ones it kept.
+* **Checks:** 862 passed, 3 skipped; ruff clean; shellcheck clean.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

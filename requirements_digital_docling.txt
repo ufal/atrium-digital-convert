@@ -29,3 +29,12 @@
 -r requirements_digital.txt
 
 docling-slim[format-pdf,models-local,convert-core,cli]==2.130.0   # MIT
+
+# OpenCV for TableFormer. docling-ibm-models (under `models-local`) imports `cv2` when it builds a
+# table, yet declares OpenCV only as an extra of its own; the full `docling` gets it through its
+# OCR extras, which this slim install leaves out. Without it every PDF failed AFTER the models
+# loaded — "ModuleNotFoundError: No module named 'cv2'", exit 2 on all 15 AMČR samples
+# (atrium-digital-convert#5, 2026-10-09). Headless: no GUI libraries in an image. Apache-2.0
+# (OpenCV ≥ 4.5; the wheel's packaging is MIT); a library under TableFormer, not a component of
+# its own, so the record's licence stays MIT.
+docling-ibm-models[opencv-python-headless]>=4.0.2,<5
