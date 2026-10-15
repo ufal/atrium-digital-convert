@@ -831,6 +831,29 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-15 — #5: the clean re-run (C2) read, plans with labels in the image routed by page type
+* **Job 7104676** (10-14 evening, an A40 node, 1 h 36 min) ran every stage on `6ac7a3e`, `01_tests` included (903 passed). Its results replaced `data_samples/` (`691f04f`). Every expectation was met but one:
+  * quality moves 0; 29 lost-letter pages routed `ocr`; routes 1,952 / 434 / 128 as predicted;
+  * stages 61 and 62 agree on all 533 non-digital pages (21 differed before page-classification's fix);
+  * split letters 484 → 41; no small-caps split; CTX201703695's vertical headers whole (432 → 1);
+  * headings: the false ones gone (5,892 → 827), but bold body-size section titles are not headings (CTX201202683 19, Docling 192): a follow-up (K4TEL).
+* **What else it showed:**
+  * the 6 DRAW_L header-only pages of CTX202000362 are excavation plans whose labels and title block are part of the image, routed `nlp` with only the running header;
+  * ocr-postprocess peaks at 23.3 GB of GPU memory while scoring (`PPL_BATCH_LINES` 128, Qwen2.5-0.5B's vocabulary, logits copied up to three times), page-classification at 4.0 GB: over AMČR's shared 24 GB card;
+  * ocr-postprocess bands 625 of the 1,981 born-digital pages `Trash` (tables and captions).
+* **R3, plans with labels in the image (K4TEL: classify and OCR):**
+  * `digital_report.furniture_only`; `route_page` routes a `digital` page whose only text is a running header or footer by a page type that carries text (`ocr`, or `htr` for handwriting); the category mapping in `_route_by_category`;
+  * `/describe` asks page-classification about such pages by default (`service/api.py`; the spec's description);
+  * over C2's reports: 1,946 / 434 / 134, only the 6 plans change.
+* **Report and job:** `summary.md`'s Markdown columns say characters (`30_markdown` logs bytes); the near-miss text. The job's `OP_PPL_BATCH_LINES` sets ocr-postprocess's `PPL_BATCH_LINES`, to measure a smaller batch.
+* **Docs:** both READMEs' route tables; the AMČR section's figure pages and bold titles; `data_samples/README.md` rewritten for C2.
+* **Checks:** 924 passed, 3 skipped (11 new tests); ruff clean; fixtures and spec current; the job's dry runs with a stand-in ocr-postprocess.
+* **Dev logs:**
+  * `digests/5.digest.md`: a C2 section, the AMČR table updated, R3;
+  * `plans/5.plan.md`: C2 and R3 done; E the release next; F ocr-postprocess's GPU and band; G bold titles.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

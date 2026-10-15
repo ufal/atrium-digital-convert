@@ -226,3 +226,55 @@ def test_lost_letters_count_on_the_body_text_not_the_running_header():
     assert first["route"] == "nlp"
     assert (second["layout"]["words"], second["layout"]["damaged_words"]) == (12, 4)
     assert second["route"] == "ocr" and "4 of its 12 words" in second["route_reason"]
+
+
+def _furniture_page(index=1, images=1, vector_paths=0, body=False):
+    from api_util.digital_ir import REGION_HEADER, DigitalLine, DigitalPage
+
+    lines = [DigitalLine(page=str(index), line=0, text="Kolín 2012", region=REGION_HEADER)]
+    if body:
+        lines.append(DigitalLine(page=str(index), line=1, text="Objekt 22, sonda 3"))
+    return DigitalPage(
+        page=str(index), page_index=index, lines=lines, images=images, vector_paths=vector_paths
+    )
+
+
+def test_a_page_is_furniture_only_when_its_only_text_is_a_running_header_over_a_drawing():
+    assert R.furniture_only(_furniture_page())
+    assert R.furniture_only(_furniture_page(images=0, vector_paths=40))
+    assert not R.furniture_only(_furniture_page(images=0)), "nothing drawn: nothing to read"
+    assert not R.furniture_only(_furniture_page(body=True)), "body text is the page's own"
+
+
+@pytest.mark.parametrize(
+    "category, route",
+    [
+        ("DRAW_L", "ocr"),
+        ("PHOTO_L", "ocr"),
+        ("TEXT_P", "ocr"),
+        ("TEXT_HW", "htr"),
+        ("DRAW", "nlp"),
+        ("PHOTO", "nlp"),
+        (None, "nlp"),
+    ],
+)
+def test_a_furniture_only_digital_page_is_routed_by_a_page_type_that_carries_text(category, route):
+    """#5: excavation plans whose labels and title block are part of the image, under a running
+    header: page-classification's DRAW_L says the image holds text the text layer lacks."""
+    got, reason = R.route_page("digital", category, None, furniture_only=True)
+    assert got == route, reason
+    if route != "nlp":
+        assert "running header or footer" in reason and category in reason
+    # a page with body text of its own keeps it, whatever its type
+    assert R.route_page("digital", category, None, furniture_only=False)[0] == "nlp"
+
+
+def test_the_report_routes_a_furniture_only_page_by_its_page_type():
+    from api_util.digital_ir import DigitalDocument
+
+    document = DigitalDocument(doc_id="d", origin="digital-born-pdf", media_type="application/pdf")
+    document.pages = [_furniture_page(1), _furniture_page(2), _furniture_page(3, body=True)]
+    categories = {1: {"label": "DRAW_L"}, 2: {"label": "PHOTO"}, 3: {"label": "DRAW_L"}}
+    pages = R.build_report(document, categories=categories)["pages"]
+    assert [p["route"] for p in pages] == ["ocr", "nlp", "nlp"]
+    assert "in its image" in pages[0]["route_reason"]

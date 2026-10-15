@@ -1689,7 +1689,7 @@
               "all"
             ],
             "title": "Classify Pages",
-            "description": "Pages page-classification is asked about: those without a usable text layer (default), or all.",
+            "description": "Pages page-classification is asked about: those without a usable text layer and those whose only text is a running header or footer over an image (default), or all.",
             "default": "needs_ocr"
           },
           "include_text": {

@@ -1,8 +1,8 @@
 # AMČR samples: born-digital conversion
 
-The 15 PDFs, converted on 2026-10-14 by atrium-digital-convert (cluster job 7100515,
-[issue #5](https://github.com/ufal/atrium-digital-convert/issues/5)). The PDFs themselves are not
-here.
+The 15 PDFs, converted on 2026-10-14 by atrium-digital-convert `6ac7a3e` (cluster job 7104676,
+[issue #5](https://github.com/ufal/atrium-digital-convert/issues/5)), with page-classification's
+five models and ocr-postprocess's line-quality model. The PDFs themselves are not here.
 
 | Folder                                    | File per document     | What it is                                                                                                                                     |
 |-------------------------------------------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -23,20 +23,24 @@ here.
 
 **Routes** (`pages[].route` in the reports): `nlp` (use the text), `ocr` (re-acquire the page),
 `htr` (handwriting), `none` (a photograph or drawing: nothing to read); `summary.reacquire_pages`
-lists a document's `ocr` and `htr` pages. Of the 2,514 pages, 1,981
-use their own text; of the other 533, page-classification calls 434 photographs or drawings and 99
-text or tables (`reports/describe/all/`).
+lists a document's `ocr` and `htr` pages. Of the 2,514 pages, 1,981 have their own text; of the
+other 533, page-classification calls 434 photographs or drawings and 99 text or tables
+(`reports/describe/all/`). In `reports/describe/stages/` the routes are 1,952 `nlp`, 434 `none`
+and 128 `ocr`: the 99, and 29 pages of CTX202000362 that lose every ř, ě, č and ů (shown as `�`)
+in at least 5 % of their words. Those 29 stay `digital` in the records.
 
-**Known defects of these files** (fixed in the code since this run; a re-run replaces them):
-- **The quality check moved good pages.** In `reports/describe/stages/`, 612 `digital` pages go to
-  `ocr` because ocr-postprocess calls their table cells, codes, coordinates or table-of-contents
-  lines `Trash`. Their text is exact; the rule now counts running text only and moves none of them.
-- **Lost letters stay `nlp`.** CTX202000362 loses every ř, ě, č and ů (shown as `�`) on its
-  `digital` pages. `/describe` now sends the 29 where at least 5 % of the words are damaged to
-  `ocr`; the record keeps them `digital`.
-- **Page types from 2 of 5 models** in `reports/describe/stages/` (a page-classification bug on its
-  first start): 21 of the 533 routes there differ from `reports/describe/all/`, which used all 5.
-- **Small capitals split** ("O BRÁZEK", "T ABULKA", "N EGATIV"), in both engines.
-- **Vertical table headers read one letter per line** (CTX201703695: "K_číslo" as K / _ / č …).
-- **Paragraphs marked as headings** in table-heavy reports (CTX201202683, CTX201400303), so their
-  Markdown shows most paragraphs as `#####` lines (1,927 in CTX201202683).
+**Quality** (`pages[].quality` in `reports/describe/stages/`): ocr-postprocess's model judges
+running text. Its band says `Trash` for 625 `digital` pages, mostly tables and photo or drawing
+captions, whose text is nevertheless exact; the route counts running text only and keeps all of
+them `nlp`.
+
+**What these files still get wrong** (the first fixed in the code since):
+- **Plans whose labels are in the image.** CTX202000362 pp. 37, 41, 44, 45, 47 and 49 are
+  excavation plans (`DRAW_L`): their labels ("Objekt 22") and title block are part of the image,
+  and the text layer holds only the running header. They are routed `nlp` here; `/describe` now
+  sends such pages to `ocr`.
+- **Bold section titles are not headings.** A title set in bold body-size type ("1. Lokalizace a
+  okolnosti výzkumu") stays a paragraph in the light records and their Markdown: CTX201202683 has
+  19 headings, its Docling record 192.
+- **Letter-spaced captions** read with spaces inside words (CTX201900002), and doubled letters on
+  some title pages ("R REPUBLLIKY").

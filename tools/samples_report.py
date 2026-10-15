@@ -939,8 +939,9 @@ def candidates_md(rows: Sequence[Mapping[str, Any]], rule: Tuple[float, int]) ->
         f"**Flagged by that rule:** {len(flagged)} page(s).\n\n"
         + listing(flagged)
         + f"\n\n**Near misses, only furniture under the threshold:** {len(near)} `digital` page(s). "
-        "The page type says whether a scanned text hides under the header (then lower the "
-        "threshold) or a figure (then nothing is lost).\n\n"
+        "`/describe` asks page-classification about them too, and routes them by page type: a "
+        "type that carries text (a drawing with a legend, a page of text) sends the page to "
+        "OCR, a figure keeps its route.\n\n"
         + listing(near)
         + f"\n\n**A little text over a full-page image:** `text_layer = digital`, image coverage "
         f"≥ {rule[0]:g}, at most {rule[1]} body characters (the lines outside the running header "
@@ -1079,8 +1080,8 @@ SECTIONS: Tuple[Tuple[str, str, Tuple[Tuple[str, str], ...]], ...] = (
         "reformat_http",
         (("document", "doc"), ("http", "reformat_cell"), ("s", "reformat_s"),
          ("server peak MB", "server_peak_mb"), ("growth MB", "server_growth_mb"),
-         ("CLI = service", "parity"), ("record MB", "record_mb"), ("md full", "md_full_chars"),
-         ("md standard", "md_standard_chars"), ("md minimal", "md_minimal_chars"),
+         ("CLI = service", "parity"), ("record MB", "record_mb"), ("md full chars", "md_full_chars"),
+         ("md standard chars", "md_standard_chars"), ("md minimal chars", "md_minimal_chars"),
          ("NEEDS_OCR cues / flagged pages", "cues")),
     ),
     (
@@ -1223,7 +1224,7 @@ def summary_md(
         "",
         f"{flagged} page(s) are `none` by the furniture-only rule (their only text a running "
         f"header or footer over images covering ≥ {rule[0]:g} of the page); {near} `digital` "
-        "page(s) carry only furniture under that coverage; and "
+        "page(s) carry only furniture under that coverage (routed by their page type); and "
         f"{picked} of {digital} `digital` pages have image coverage ≥ {rule[0]:g} and at most "
         f"{rule[1]} body characters. [candidates.md](candidates.md) lists them with thumbnails, "
         "page type and route, and the counts under other thresholds; "

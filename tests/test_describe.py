@@ -134,6 +134,26 @@ def test_classify_pages_all_asks_about_every_page(both_stages):
     )
 
 
+@pytest.mark.parametrize("category, route", [("DRAW_L", "ocr"), ("PHOTO", "nlp")])
+def test_a_page_whose_only_text_is_its_page_number_is_classified_and_routed_by_type(
+    both_stages, monkeypatch, category, route
+):
+    """#5: stamped_scan.pdf's page 3 is a page number over a half-page image, `digital` under
+    FURNITURE_ONLY_IMAGE_COVERAGE. Its page type decides whether the image holds text: AMČR's
+    excavation plans (DRAW_L) carry their labels and title block in the image."""
+    monkeypatch.setenv("STUB_NEEDS_OCR_CATEGORY", "DRAW")
+    monkeypatch.setenv("STUB_PAGE_CATEGORY", category)
+    body = _describe("stamped_scan.pdf")
+    stage = {s["stage"]: s for s in body["stages"]}["page-classification"]
+    assert stage["status"] == "ok" and stage["pages"] == [1, 3], "page 2 has body text"
+    first, second, third = body["pages"]
+    assert (first["text_layer"], first["route"]) == ("none", "none")
+    assert (second["category"], second["route"]) == (None, "nlp")
+    assert third["text_layer"] == "digital" and third["category"]["label"] == category
+    assert third["route"] == route, third["route_reason"]
+    assert body["summary"]["reacquire_pages"] == ([3] if route == "ocr" else [])
+
+
 def test_a_docx_has_no_page_images_to_classify(both_stages):
     body = _describe("rich.docx")
     assert _status(body)["page-classification"] == "skipped"

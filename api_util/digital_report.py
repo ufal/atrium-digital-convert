@@ -26,6 +26,10 @@ For every page of a converted document it says, in one place:
     leader, and the page needs `MIN_PROSE_LINES` of them: the model is trained on running text,
     and on born-digital pages its Trash lines are table cells, codes, coordinates and tables of
     contents, whose text is exact (612 of 1,981 AMČR pages were moved for that before #5).
+    A `digital` page whose only text is its running header or footer (`furniture_only`) is
+    routed by its page type when page-classification gave one: a drawing with a legend or a
+    page of text carries its text in the image, which the text layer does not hold (#5: six
+    excavation plans whose labels nothing read).
   * **layout** and **text** — what the converter found on the page.
 
 Everything here is derived: from the converter's internal document, the record and the stages'
@@ -212,6 +216,20 @@ def summarize_quality(
     return summary
 
 
+def furniture_only(page: DigitalPage) -> bool:
+    """Whether a page's only text is its running header or footer, over something it draws.
+
+    Such a page's content is an image or a drawing: a figure page with a running header, or a
+    scan the PDF's producer numbered. Below `FURNITURE_ONLY_IMAGE_COVERAGE` it stays `digital`,
+    and only its page type tells whether the image holds text (`route_page`).
+    """
+    return (
+        bool(page.lines)
+        and all(line.region in (REGION_HEADER, REGION_FOOTER) for line in page.lines)
+        and bool(page.images or page.vector_paths)
+    )
+
+
 def _converter_quality(page: DigitalPage) -> Optional[Dict[str, Any]]:
     if not page.lines:
         return None
@@ -269,6 +287,30 @@ def _quality_route(
     )
 
 
+def _route_by_category(
+    category: str, collections: Optional[Mapping[str, frozenset]], lacking: str
+) -> Optional[Tuple[str, str]]:
+    """`(route, reason)` for a page whose text must come from its image, by its page type:
+    `htr` for handwriting only, `ocr` for printed, typed or tabular text, `none` for a drawing or
+    photo. None when the type is not in the registry."""
+    facets = collections or page_category_collections()
+    member_of = {name for name, members in facets.items() if category in members}
+    if not member_of:
+        return None
+    textual = member_of & {"printed", "typed", "handwritten", "tabular"}
+    if not textual:
+        return (
+            ROUTE_NONE,
+            f"{lacking}; page type {category} is graphical (a drawing or photo): no text to read",
+        )
+    if member_of & {"handwritten"} and not member_of & {"printed", "typed"}:
+        return ROUTE_HTR, f"{lacking}; page type {category} is handwritten: re-acquire with HTR"
+    return (
+        ROUTE_OCR,
+        f"{lacking}; page type {category} carries printed or typed text: re-acquire with ATR",
+    )
+
+
 def route_page(
     text_layer: str,
     category: Optional[str],
@@ -279,11 +321,14 @@ def route_page(
     damaged_words: Optional[Tuple[int, int]] = None,
     damaged_word_limit: float = 0.05,
     min_prose_lines: int = MIN_PROSE_LINES,
+    furniture_only: bool = False,
 ) -> tuple:
     """`(route, reason)` for one page. Deterministic; see the module docstring.
 
     `damaged_words` is the page's `count_damaged_words` (`(damaged, words)`): a `digital` page
     at or over `damaged_word_limit` goes to `ocr` whatever the quality model says.
+    `furniture_only` (the module's `furniture_only()`): a `digital` page whose only text is its
+    running header or footer goes where its page type says, when that type carries text.
     """
     if text_layer == TEXT_LAYER_BLANK:
         return ROUTE_NONE, "empty page; nothing to read"
@@ -295,6 +340,14 @@ def route_page(
                 "lose a letter to a glyph without a Unicode mapping (U+FFFD; "
                 f"ROUTE_DAMAGED_WORD_SHARE {damaged_word_limit:g}): re-acquire it"
             )
+        if furniture_only and category:
+            routed = _route_by_category(
+                category,
+                collections,
+                "the text layer holds only the page's running header or footer",
+            )
+            if routed and routed[0] in (ROUTE_OCR, ROUTE_HTR):
+                return routed[0], routed[1].replace(" text:", " text in its image:", 1)
         if quality and quality.get("source") == "ocr-postprocess":
             return _quality_route(quality, trash_share_limit, min_prose_lines)
         return ROUTE_NLP, "trustworthy text layer (decode check passed; quality model not run)"
@@ -312,25 +365,13 @@ def route_page(
             ROUTE_OCR,
             f"{lacking}; page type unknown (page-classification not run): default to ATR",
         )
-    facets = collections or page_category_collections()
-    member_of = {name for name, members in facets.items() if category in members}
-    if not member_of:
+    routed = _route_by_category(category, collections, lacking)
+    if routed is None:
         return (
             ROUTE_OCR,
             f"{lacking}; page type {category!r} is not in the registry: default to ATR",
         )
-    textual = member_of & {"printed", "typed", "handwritten", "tabular"}
-    if not textual:
-        return (
-            ROUTE_NONE,
-            f"{lacking}; page type {category} is graphical (a drawing or photo): no text to read",
-        )
-    if member_of & {"handwritten"} and not member_of & {"printed", "typed"}:
-        return ROUTE_HTR, f"{lacking}; page type {category} is handwritten: re-acquire with HTR"
-    return (
-        ROUTE_OCR,
-        f"{lacking}; page type {category} carries printed or typed text: re-acquire with ATR",
-    )
+    return routed
 
 
 def _layout(page: DigitalPage) -> Dict[str, Any]:
@@ -395,6 +436,7 @@ def build_report(
             drew_anything=bool(page.images or page.vector_paths or page.lines),
             damaged_words=(layout["damaged_words"], layout["words"]),
             damaged_word_limit=damaged_word_limit,
+            furniture_only=furniture_only(page),
         )
         entry: Dict[str, Any] = {
             "page": page.page,

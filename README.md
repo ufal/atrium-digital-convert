@@ -291,7 +291,8 @@ into mojibake), with no stage configured:
     number stays in `lines[]`; the page carries no quality score;
   * `blank`: an empty page of a format without page images.
 * **Page type** (`category`): page-classification's label, confidence and top-N. It is asked about
-  the `needs_ocr` pages by default, or about every page with `classify_pages=all`. PDF only.
+  the `needs_ocr` pages and the pages whose only text is a running header or footer over an image
+  by default, or about every page with `classify_pages=all`. PDF only.
 * **Readability** (`quality`):
   * with ocr-postprocess configured: its line-quality model (Clear / Noisy / Trash per line, the
     page band, the language);
@@ -299,14 +300,15 @@ into mojibake), with no stage configured:
     decode, not how the text reads.
 * **Route** (`route`), deterministic, with `route_reason`:
 
-  | The page                                           | Route                                                                                                |
-  |----------------------------------------------------|------------------------------------------------------------------------------------------------------|
-  | its text layer decodes                             | `nlp`, unless it loses letters or its prose reads as `Trash` (below) → `ocr`                         |
-  | no usable text, handwritten (`TEXT_HW`, `LINE_HW`) | `htr`                                                                                                |
-  | no usable text, printed, typed or tabular          | `ocr`                                                                                                |
-  | no usable text, graphical only (`DRAW`, `PHOTO`)   | `none`                                                                                               |
-  | no usable text, page type unknown                  | `ocr`                                                                                                |
-  | blank                                              | `none`                                                                                               |
+  | The page                                           | Route                                                                                              |
+  |----------------------------------------------------|----------------------------------------------------------------------------------------------------|
+  | its text layer decodes                             | `nlp`, unless it loses letters or its prose reads as `Trash` (below) → `ocr`                       |
+  | its only text is a running header or footer        | by its page type when that type carries text (`DRAW_L`, `PHOTO_L`, `TEXT_*`, `LINE_*`), else `nlp` |
+  | no usable text, handwritten (`TEXT_HW`, `LINE_HW`) | `htr`                                                                                              |
+  | no usable text, printed, typed or tabular          | `ocr`                                                                                              |
+  | no usable text, graphical only (`DRAW`, `PHOTO`)   | `none`                                                                                             |
+  | no usable text, page type unknown                  | `ocr`                                                                                              |
+  | blank                                              | `none`                                                                                             |
 
   The categories are read through the page-category facets of `atrium_vocab.COLLECTIONS`, so a
   category added to the vocabulary registry is routed without a code change.
@@ -377,15 +379,17 @@ does about it:
 * **A page number over a scan.** A scanned page that Acrobat numbered has a text layer, the number.
   It is `none` when its only text is furniture and its images cover at least
   `FURNITURE_ONLY_IMAGE_COVERAGE` of it (2 pages: a drawing and a photograph). 36 pages of another
-  report carry a running header over figures covering 58–64 % of them, and stay `digital`:
-  page-classification calls 30 of them photographs or drawings, and 6 drawings with a legend
-  (`DRAW_L`), which nothing reads if the legend is part of the image.
+  report carry a running header over figures covering 58–64 % of them, and stay `digital`.
+  page-classification calls 30 of them photographs or drawings, and 6 excavation plans with a
+  legend (`DRAW_L`) whose labels ("Objekt 22") and title block are part of the image: `/describe`
+  asks about such pages and sends a type that carries text to OCR, so these 6 are re-acquired.
 * **The quality model and born-digital text.** ocr-postprocess's line-quality model judges running
   text. On born-digital pages its `Trash` lines are table cells, codes, coordinates, photo IDs and
   table-of-contents leaders, whose text is exact: counted over every line, `ROUTE_TRASH_SHARE` sent
   612 of the 1,981 `digital` pages to OCR. It counts prose lines only now, and moves none of them.
 * **Known, not handled:** doubled glyphs on cover pages ("ARC CHEOLO GICKÝ"), letter-spaced captions
-  and map labels, and unruled tables read column by column.
+  and map labels, unruled tables read column by column, and section titles set in bold body-size
+  type, which are not marked as headings (one report has 19 where Docling finds 192).
 * **Resources** (10-14, an A40 node; times differ between nodes, memory does not):
   * the light engine: 3–50 s per document, a peak of at most 0.7 GB on the command line and 0.8 GB
     in the service (783 MB for a 282-page report; 560 MB for the 156 MB one). Memory follows the

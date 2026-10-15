@@ -92,7 +92,7 @@ The fields of `/reformat` (without `markdown`), plus:
 | Field            | Meaning                                                                                                                         |
 |------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | `stages`         | a comma-separated subset of `page-classification`, `ocr-postprocess`; empty → every configured one; `none` → none               |
-| `classify_pages` | `needs_ocr` (default): page-classification is asked about the pages without a usable text layer; `all`: about every page        |
+| `classify_pages` | `needs_ocr` (default): page-classification is asked about the pages without a usable text layer, and the pages whose only text is a running header or footer over an image; `all`: about every page |
 | `include_text`   | `false` to leave `pages[].text` out                                                                                             |
 
 The response is `/reformat`'s plus:
@@ -138,6 +138,12 @@ A page whose text layer decodes goes to `ocr` instead of `nlp` when either holds
   on born-digital pages its other `Trash` lines are table cells, codes, coordinates and contents
   pages, whose text is exact. Counted over every line, the rule sent 612 of 1,981 born-digital AMČR
   pages to OCR; counted over prose, none.
+
+A decoding page whose only text is its running header or footer, over an image or a drawing, goes
+where its page type sends it when that type carries text (`DRAW_L`, `PHOTO_L`, `TEXT_*`, `LINE_*`):
+the image holds text the layer lacks, such as an excavation plan's labels and title block. With a
+graphical or unknown type it keeps its route. page-classification is asked about these pages by
+default.
 
 **Stage statuses.** `ok`, `partial` (some pages failed), `not_configured` (its URL is unset),
 `not_requested`, `skipped` (nothing to do: not a PDF, no page needs classifying, no lines),

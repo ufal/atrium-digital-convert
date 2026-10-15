@@ -53,7 +53,7 @@ from pydantic import BaseModel, ConfigDict, Field
 import atrium_rocrate
 from api_util import digital_to_json as d2j
 from api_util.digital_ir import DigitalDocument, DigitalInputError
-from api_util.digital_report import build_report
+from api_util.digital_report import build_report, furniture_only
 from atrium_document import canonical_doc_id, validate_baseline, validate_document
 from atrium_limits import LimitExceeded
 from atrium_paradata import ParadataLogger
@@ -771,7 +771,10 @@ async def describe(
     ),
     classify_pages: Literal["needs_ocr", "all"] = Form(
         "needs_ocr",
-        description="Pages page-classification is asked about: those without a usable text layer (default), or all.",
+        description=(
+            "Pages page-classification is asked about: those without a usable text layer and those whose only "
+            "text is a running header or footer over an image (default), or all."
+        ),
     ),
     include_text: bool = Form(True, description="Include each page's text in `pages[].text`."),
     docx_page_breaks: Literal["auto", "explicit", "none"] = Form("auto", description=_BREAKS_HELP),
@@ -879,10 +882,12 @@ def _run_stages(
                     )
                 )
                 continue
+            # A page whose only text is its running header or footer is asked about too: its page
+            # type says whether its image holds text the text layer lacks (#5, plans with legends).
             wanted = [
                 page.page_index
                 for page in document.pages
-                if classify_pages == "all" or page.needs_ocr
+                if classify_pages == "all" or page.needs_ocr or furniture_only(page)
             ]
             if not wanted:
                 outcomes.append(
@@ -890,7 +895,7 @@ def _run_stages(
                         stage=stage,
                         status=stages.STATUS_SKIPPED,
                         url=base,
-                        detail="every page has a usable text layer (send classify_pages=all to classify them anyway)",
+                        detail="every page has usable body text (send classify_pages=all to classify them anyway)",
                     )
                 )
                 continue
