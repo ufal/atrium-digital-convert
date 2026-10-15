@@ -1,10 +1,12 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1). Open issues: **#1** (was llm-enrich#29, the repository's new role), **#2**
-> (was llm-enrich#28, `api-digital`), **#3** (was llm-enrich#11, DU inputs), **#4** (was llm-enrich#10, PDF/DOCX
-> inputs). Entries up to 2026-09-30 use the old numbers. Releases: **v1.0.0-beta** (2026-10-01, the transitional
-> snapshot of llm-enrich 0.9.0) · **v1.1.0-beta** on `test` since 2026-10-04 (`20dabd8`, `b1cbb0c`), not yet tagged._
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues (2026-10-15): **#3** (DU inputs; closes),
+> **#4** (PDF/DOCX inputs, W1–W6), **#5** (Dana's 15 AMČR PDFs), **#6** (forged cues; fixed on `test`, closes with
+> the next tag). #1 and #2 closed on 2026-10-07. Entries up to 2026-09-30 use the old llm-enrich numbers.
+> Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
+> **v1.1.1-beta** (2026-10-05, `fe494cd`). `test` = `6ac7a3e` (2026-10-14): #5's R and R2 and #6's escaping are on
+> it, not released; the next tag is `v1.1.2-beta`._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -813,7 +815,8 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   * `digests/5.digest.md`: the re-run, plus a table against AMČR's requirements;
   * `plans/5.plan.md`: R, C, B, R2 done; C2 a clean re-run; D limits; E delivery; F outside the repo.
 
-  Files delivered in chat.
+  Files delivered in chat. The maintainer pushed them as `c3eb0df` (14 October), with the fixture generator and
+  manifest in `6ac7a3e`; page-classification's part is its `f6c1aeb`.
 
 ## 2026-10-14 (evening) — #6: line text and labels can no longer forge cues
 * **Option (a), escaping, widened by the refresh:**
@@ -829,28 +832,30 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 * **Ordinary output:** 126 renders byte-identical, among them #5's 15 AMČR records at three profiles. None of their 188,264 lines holds cue syntax.
 * **Docs:** README "Text never forges a cue"; `digests/6.digest.md` and `plans/6.plan.md` refreshed.
 
-  Files delivered in chat.
+  Files delivered in chat; pushed with #5's R2 as `c3eb0df`.
 
-## 2026-10-15 — #5: the clean re-run (C2) read, plans with labels in the image routed by page type
-* **Job 7104676** (10-14 evening, an A40 node, 1 h 36 min) ran every stage on `6ac7a3e`, `01_tests` included (903 passed). Its results replaced `data_samples/` (`691f04f`). Every expectation was met but one:
-  * quality moves 0; 29 lost-letter pages routed `ocr`; routes 1,952 / 434 / 128 as predicted;
-  * stages 61 and 62 agree on all 533 non-digital pages (21 differed before page-classification's fix);
-  * split letters 484 → 41; no small-caps split; CTX201703695's vertical headers whole (432 → 1);
-  * headings: the false ones gone (5,892 → 827), but bold body-size section titles are not headings (CTX201202683 19, Docling 192): a follow-up (K4TEL).
-* **What else it showed:**
-  * the 6 DRAW_L header-only pages of CTX202000362 are excavation plans whose labels and title block are part of the image, routed `nlp` with only the running header;
-  * ocr-postprocess peaks at 23.3 GB of GPU memory while scoring (`PPL_BATCH_LINES` 128, Qwen2.5-0.5B's vocabulary, logits copied up to three times), page-classification at 4.0 GB: over AMČR's shared 24 GB card;
-  * ocr-postprocess bands 625 of the 1,981 born-digital pages `Trash` (tables and captions).
-* **R3, plans with labels in the image (K4TEL: classify and OCR):**
-  * `digital_report.furniture_only`; `route_page` routes a `digital` page whose only text is a running header or footer by a page type that carries text (`ocr`, or `htr` for handwriting); the category mapping in `_route_by_category`;
-  * `/describe` asks page-classification about such pages by default (`service/api.py`; the spec's description);
-  * over C2's reports: 1,946 / 434 / 134, only the 6 plans change.
-* **Report and job:** `summary.md`'s Markdown columns say characters (`30_markdown` logs bytes); the near-miss text. The job's `OP_PPL_BATCH_LINES` sets ocr-postprocess's `PPL_BATCH_LINES`, to measure a smaller batch.
-* **Docs:** both READMEs' route tables; the AMČR section's figure pages and bold titles; `data_samples/README.md` rewritten for C2.
-* **Checks:** 924 passed, 3 skipped (11 new tests); ruff clean; fixtures and spec current; the job's dry runs with a stand-in ocr-postprocess.
-* **Dev logs:**
-  * `digests/5.digest.md`: a C2 section, the AMČR table updated, R3;
-  * `plans/5.plan.md`: C2 and R3 done; E the release next; F ocr-postprocess's GPU and band; G bold titles.
+## 2026-10-15 — Issue logs after the push of 14 October
+* **On `test`:**
+  * `c3eb0df` carries #5's R2 and #6's escaping;
+  * `6ac7a3e` adds what `c3eb0df` lacked: `tests/fixtures/MANIFEST.json` and `make_fixtures.py` for the three new
+    fixtures (`headings.pdf`, `rotated.pdf`, `small_caps.pdf`). Without them, `build / test` failed 8 tests.
+
+  All seven workflows are green on `6ac7a3e`. Nothing is tagged since `v1.1.1-beta`.
+* **#3, closes.** The stress suite (`tests/test_md_stress.py`: 32 functions, 53 tests, with #6's) has been on `test`
+  since 10-08. Plan §12's criterion 6 is checked in keyword-extract: its whole-document clients read this renderer's
+  Markdown and pin `json_to_md@1.1` (`llm_client_shared.py:1126`), with no renderer of their own. #5's run supplies
+  the Docling evidence the 09-25 comment was missing. The empirical comparison is hub #22's. The pair is
+  consolidated to the closure and the invariants that stay binding.
+* **#5:** R2 marked as pushed. C2, the clean re-run of `6ac7a3e` + page-classification `f6c1aeb`, is next. The
+  pilot limits have been unanswered since 10-08.
+  * The sharing question (`data_samples/` holds the full text of the 15 documents; the two zips on the thread) went
+    to the data owner on hub #16. C2's results wait for that answer before they replace `data_samples/`.
+* **#6:** fixed on `test`, open until `v1.1.2-beta` (maintainer's call), with a closing comment drafted for the tag.
+  * New open point: whether `CONVERTER_ID` moves from `json_to_md@1.1`. Only lines that hold cue syntax render
+    differently, and keyword-extract pins the same id.
+* **Checked here:** `tests/test_md_stress.py` and `tests/test_layout_md.py`, 77 passed.
+* **Dev logs:** this header (the open issues, the releases, the `test` head); `digests/` and `plans/` of #3
+  (consolidated), #5 and #6 (status after the push).
 
   Files delivered in chat.
 
