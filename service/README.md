@@ -237,10 +237,17 @@ checks this table against `tool_limits.py` and `.env.example`.
 * **Memory follows the text, not the file size.** The server's peak reached 783 MB, for a 282-page
   report, and 560 MB for the 156 MB one (10-14, after the light engine stopped holding every page's
   parse; 1.9 GB before). Budget about 1 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot.
+* **The stages' GPU.** This service needs none. Page-classification takes 4.0 GB with its five
+  models. ocr-postprocess's line-quality model peaked at 9.5 GB scoring 32 lines at a time
+  (`PPL_BATCH_LINES`: its default from its next release; set it on older ones), so the two fit one
+  24 GB card. At 128 lines it peaked at 23.3 GB, and on a 24 GB card next to page-classification
+  some batches ran out of memory. Their lines were scored worst, while the stage still read `ok`:
+  only the stage's paradata says so (`limits_applied`: `ppl_batch_lines`, `skipped`).
 * **Time.** `/reformat` took 3–58 s per document. `/describe` with both stages took up to 276 s
   (a 529-page report): page-classification 135 s for its 149 flagged pages, 202 s for all of them
-  (`classify_pages=all`), ocr-postprocess up to 76 s. `STAGE_TIMEOUT_S` is 360 s since then; a
-  client, a proxy and `GRACEFUL_SHUTDOWN_S` must allow about 5 minutes for one such request.
+  (`classify_pages=all`), ocr-postprocess up to 76 s (88 s at 32 lines a batch). `STAGE_TIMEOUT_S`
+  is 360 s since then; a client, a proxy and `GRACEFUL_SHUTDOWN_S` must allow about 5 minutes for
+  one such request.
 * **The stages' own limits decide `/describe` first.** The record part `/describe` sends a stage
   reached 14 MB compact. Page-classification also receives the whole PDF, and takes 10 MB per
   part and 50 pages per call by default: these samples need `MAX_UPLOAD_MB` ≥ 160 and

@@ -1,9 +1,11 @@
 # AMČR samples: born-digital conversion
 
-The 15 PDFs, converted on 2026-10-15 by atrium-digital-convert `993d33a`, the code of `v1.1.2-beta`
-(cluster job 7108263, [issue #5](https://github.com/ufal/atrium-digital-convert/issues/5)), with
-page-classification's five models and ocr-postprocess's line-quality model on one 24 GB GPU. The
-PDFs themselves are not here.
+The 15 PDFs, converted on 2026-10-15 by atrium-digital-convert `v1.1.2-beta`
+([issue #5](https://github.com/ufal/atrium-digital-convert/issues/5)), with page-classification's
+five models and ocr-postprocess's line-quality model. Cluster job 7108263 made everything but
+`reports/describe/stages/`, which job 7109859 made with ocr-postprocess scoring 32 lines at a time
+(`PPL_BATCH_LINES`, now its default) to fit beside page-classification on one GPU. The PDFs
+themselves are not here.
 
 | Folder                                    | File per document     | What it is                                                                                                                                     |
 |-------------------------------------------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -35,15 +37,11 @@ and 134 `ocr`. The 134 are:
   ("Objekt 22") and title block are part of the image, and whose only text is the running header.
 
 **Quality** (`pages[].quality` in `reports/describe/stages/`): ocr-postprocess's model judges
-running text. Its band says `Trash` for 626 `digital` pages, mostly tables and photo or drawing
+running text. Its band says `Trash` for 625 `digital` pages, mostly tables and photo or drawing
 captions, whose text is nevertheless exact; the route counts running text only and keeps all of
 them `nlp`.
 
 **What these files still get wrong:**
-- **Line scores in `reports/describe/stages/`.** In 6 documents, ocr-postprocess could not score
-  10 batches of lines (1,280 lines) in the GPU memory left to it, and gave them the worst score.
-  The stage's paradata says so (`limits_applied`, `ppl_batch_lines`). 155 of these lines read
-  `Trash` or `Noisy` instead of `Clear`, and one page's band changed. No route changed.
 - **Bold section titles are not headings.** A title set in bold body-size type ("1. Lokalizace a
   okolnosti výzkumu") stays a paragraph in the light records and their Markdown: CTX201202683 has
   19 headings, its Docling record 192.

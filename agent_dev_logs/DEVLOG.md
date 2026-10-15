@@ -915,6 +915,26 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-15 (evening) — #5: stage 61 at 32 lines a batch (C3b); ocr-postprocess's default 32
+* **Job 7109859** (18:38–18:59, an A40) re-ran `61_describe_stages` on `9f584d6` with `OP_PPL_BATCH_LINES=32`.
+  K4TEL put its reports in `data_samples/reports/describe/stages/` (`53fff01`).
+  * No failed batch and no out-of-memory event (C3 at 128: 36, 10 fatal).
+  * Routes 1,946 / 434 / 134, 625 `Trash` pages and no page band changed against C2 (an A40 at 128); 1 line of
+    177,473 changed category.
+  * ocr-postprocess peaked at 9.5 GB (23.3 GB at 128) and page-classification at 4.0 GB: 13.6 GB on a 24 GB
+    card. Scoring took 374 s over the 15 PDFs (301 s at 128).
+* **ocr-postprocess (K4TEL: change the default):** `PPL_BATCH_LINES` is 32 in its `tool_limits.py`,
+  `.env.example` and service README, the three places its contract tests compare. Its batch pipeline keeps
+  `[CLASSIFY].BATCH_SIZE` 128, and it ships with its next tag. 78 contract tests passed; delivered in chat.
+* **Docs:**
+  * `data_samples/README.md`: the two runs it holds; the failed line scores dropped;
+  * `service/README.md`: the stages' GPU, and ocr-postprocess's time at 32 lines.
+* **Dev logs:** `digests/5.digest.md` (status, a C3b section, the AMČR GPU row ✅); `plans/5.plan.md` (E6 done,
+  E7 the comment, D's GPU budget, F updated). The cluster job's header names the service's default instead of
+  128.
+
+  Files delivered in chat, with the comment for the thread.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
