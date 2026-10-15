@@ -896,6 +896,8 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   * 10 perplexity batches of 128 lines failed (1,280 lines in 6 documents, scored 99999). The service answered 200,
     and the stage read `ok`: only its paradata (`limits_applied`: `ppl_batch_lines`, `skipped`) said so;
   * page-classification took 4.0 GB, ocr-postprocess 20.1 GB at its peak; C2 on the A40 had no failed batch;
+  * its log (shared later that day): 36 out-of-memory allocations, 10 of them fatal to their batch, each one more
+    copy of a batch's logits (4.1–7.75 GiB at 128 lines) while the service held 14.4 GiB;
   * 155 lines lost their band, and one page band changed (CTX202200566 p. 3); no route.
 * **Cluster-side:** `copy_results_to_data_samples.sh` copies a finished run into `data_samples/`:
   * all or nothing, after checking that each file is done, rc 0 or HTTP 200, parses, and holds no failed stage or
