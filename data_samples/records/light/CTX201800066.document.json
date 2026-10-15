@@ -55,11 +55,11 @@
     "contributors": [
       {
         "program": "digital-convert",
-        "run_id": "261014-084040",
-        "run_uuid": "urn:uuid:fbeabe69-9b9b-4880-aaa0-e59feea125e5",
-        "paradata_ref": "261014-084040_digital-convert.json",
+        "run_id": "261014-175748",
+        "run_uuid": "urn:uuid:891e7358-ab96-4590-b422-f38770adffe6",
+        "paradata_ref": "261014-175748_digital-convert.json",
         "blocks": "pages,lines,content",
-        "at": "2026-10-14T08:40:43.491709+00:00"
+        "at": "2026-10-14T17:57:51.968389+00:00"
       }
     ]
   },
@@ -67,24 +67,24 @@
     "blocks": {
       "pages": {
         "program": "digital-convert",
-        "run_id": "261014-084040",
-        "run_uuid": "urn:uuid:fbeabe69-9b9b-4880-aaa0-e59feea125e5",
-        "paradata_ref": "261014-084040_digital-convert.json",
-        "updated_at": "2026-10-14T08:40:43.122774+00:00"
+        "run_id": "261014-175748",
+        "run_uuid": "urn:uuid:891e7358-ab96-4590-b422-f38770adffe6",
+        "paradata_ref": "261014-175748_digital-convert.json",
+        "updated_at": "2026-10-14T17:57:51.692519+00:00"
       },
       "lines": {
         "program": "digital-convert",
-        "run_id": "261014-084040",
-        "run_uuid": "urn:uuid:fbeabe69-9b9b-4880-aaa0-e59feea125e5",
-        "paradata_ref": "261014-084040_digital-convert.json",
-        "updated_at": "2026-10-14T08:40:43.129877+00:00"
+        "run_id": "261014-175748",
+        "run_uuid": "urn:uuid:891e7358-ab96-4590-b422-f38770adffe6",
+        "paradata_ref": "261014-175748_digital-convert.json",
+        "updated_at": "2026-10-14T17:57:51.697248+00:00"
       },
       "content": {
         "program": "digital-convert",
-        "run_id": "261014-084040",
-        "run_uuid": "urn:uuid:fbeabe69-9b9b-4880-aaa0-e59feea125e5",
-        "paradata_ref": "261014-084040_digital-convert.json",
-        "updated_at": "2026-10-14T08:40:43.130173+00:00"
+        "run_id": "261014-175748",
+        "run_uuid": "urn:uuid:891e7358-ab96-4590-b422-f38770adffe6",
+        "paradata_ref": "261014-175748_digital-convert.json",
+        "updated_at": "2026-10-14T17:57:51.697446+00:00"
       }
     },
     "had_baseline": false,
@@ -993,7 +993,7 @@
     }
   ],
   "content": {
-    "text": "Revizní archeologický výzkum\nporušení zříceniny hradu Neuhaus, kulturní památky č. 41205/4-98.\nNálezová zpráva\n2013\nObsah\n1.\nLokalizace a okolnosti výzkumu.................................................................................................... 1\n2.\nCíle výzkumu ................................................................................................................................ 1\n3.\nGeografický a sídelní kontext lokality........................................................................................... 1\n4.\nHistorie objektu............................................................................................................................ 2\n5.\nMetoda výzkumu.......................................................................................................................... 2\n6.\nPopis terénní situace.................................................................................................................... 3\n6.1.\nVyhodnocení antropogenních útvarů................................................................................... 3\n6.2.\nDetektorový průzkum lokality.............................................................................................. 4\n6.3.\nRevizní výzkum porušení památky ....................................................................................... 5\n7.\nZhodnocení výsledků výzkumu..................................................................................................... 6\n8.\nTrvající otázky............................................................................................................................... 7\n9.\nPřílohy .......................................................................................................................................... 8\n9.1.\nMapy a plány........................................................................................................................ 8\n9.2.\nFotodokumentace.............................................................................................................. 19\n9.3.\nKatalog nálezů.................................................................................................................... 38\n1. Lokalizace a okolnosti výzkumu\nLokalita „zřícenina hradu Neuhaus je kulturní památkou, která je evidována v Ústředním seznamu\nkulturních památek pod číslem: 41205/4-98. Nachází se na mírné vyvýšenině, jež vybíhá\nze severovýchodního svahu Bukové hory, 1,3 km jihozápadně od centra obce Šneky a přibližně 15 km\nseverně od města Chebu. Samotná lokalita se nachází cca 900 m západně od státních hranic se Spolkovou\nrepublikou Německo. V širším kontextu se také jedná o jeden z východních výběžků Smrčin směrem do\nChebské pánve. Opevněné místo disponuje velmi dobrým rozhledem východním směrem.\nVýzkum byl vyvolán výsledky pozorování při revizích archeologických památek v roce 2011 a 2012.\nBěhem nich došlo ke zjištění, že v ploše památky se nacházejí pozůstatky amatérských srubů a zákopů\nsoužící k jisté volnočasové aktivitě. Dle jednání s majiteli pozemku a výkonného orgánu státní památkové\npéče, bylo rozhodnuto, že dojde k odstranění uvedených staveb, provedení revizního archeologického\nvýzkumu a navrácení přibližně původního tvaru reliéfu v místech staveb.\nVýzkum zajišťovalo územní odborné pracoviště Národního památkového ústavu v Lokti, ve spolupráci\ns organizací ZIP o.p. s. Odstranění nadzemních částí srubů provedl majitel pozemku Lesy ČR.\n2. Cíle výzkumu\nZáchranný archeologický výzkum měl několik cílů. Především to bylo získání plánu lokality a jejího\ngeodetického určení v lesnatém terénu. Dalším cílem bylo vyhodnocení nelegálních porušení kulturní\npamátky s cílem vyhodnotit poškozená souvrství a získat datovací materiál k bližšímu určení specifické\narcheologické památky regionu 1 . Vzhledem k aktuálnímu stavu poznání došlo k vyhodnocení\nantropogenních reliktů v širším okolí areálu na základě vyhodnocení digitálního modelu reliéfu (DMR), který\nbyl vytvořen z dat leteckého laserového snímkování (LLS).\n3. Geografický a sídelní kontext lokality\nÚzemně spadá lokalita k městečku Plesná a dílčímu katastrálnímu území Šneky. Městečko Plesná má\nrelativně bohatou historii. První písemná zmínka o městečku je datována již k roku 1185 2 . První písemná\nzmínka o obci Šneky pochází z roku 1322 3 . K nejstarším archeologickým nálezům širšího okolí se řadí soubor\nsídlištní keramiky z doby popelnicových polí, který byl nalezen v místech obecního pivovaru 4 .\nŠirší okolí lokality, měst Plesná a Skalná, je spojeno především s tzv. německou kolonizací v 12. -13.\nstoletí. Nejvýraznějším historickým objektem okolí je město Skalná, s hradem z 12. století, který se řadí\nk nejstarším objektům středověké kolonizace Chebska 5 . Oblast Plesné byla v té době nárazníkovým pásem\nmezi zájmy císařské ministeriality a Waldassenského kláštera 6 . Dokonce k roku 1181 existuje záznam, kdy\nčeský kníže Bedřich bere klášterní osadníky v ochranu před „invasores\", kteří je měli napadat a protiprávně\nusurpovat klášterní statky. V této době také krátce obec Plesná spadala pod církevní správu v Bad\nBramabachu (3 km západně) 7 .\n1 K problematice souhrnně: Karel, K. – Knoll, V. 2008: Hrad u Plesné zvaný Neuhaus. Zamyšlení nad jeho místem v dějinách Chebska.\nDějiny staveb: sborník příspěvků z konference Dějiny staveb 2008. Plzeň. s. 171-184\n2 Schreiner,L. 1992: Heimatkreis Eger. Amberg. s. 448-451, dle karty SAS č. : 11-12-21/3.\n3 Schreiner,L. 1992: Heimatkreis Eger. Amberg. s. 448-451, dle karty SAS, č.11-12-21/4 .\n4 Kuna, M. – Křivánková, D. 2009: Archiv 3.0. Archeologická databáze Čech. Praha.\n5 Hejna A, 1971: Archeologický výzkum a počátky sídlištního vývoje Chebu a Chebska II, Památky Archeologické 62, s. 534.\n6 Karel, K. – Knoll, V. 2008: Hrad u Plesné zvaný Neuhaus. s. 176.\n7 Karel, K. – Knoll, V. 2008: Hrad u Plesné zvaný Neuhaus. s. 176\n4. Historie objektu\nBěžné pojmenování lokality umožňuje snadnou záměnu s jinými lokalitami a nejednoznačnou\ninterpretaci písemných pramenů. Relativně bezpečně vztažený název Neuhaus k naší lokalitě se nachází\nna Müllerově mapě Čech z roku 1720 (mapa 1). Jeho umístnění přibližně odpovídá místu jeho skutečného\nvýskytu. stejně tak je to v případě 1. vojenského mapování. To obsahuje náznak budov nebo jistých zděných\nčástí, které lze relativně velmi přesně ztotožnit se zkoumanou lokalitou po jejím přibližném\ngeoreferencování (mapa 2).\nPísemné prameny, které by bylo možné vztáhnout k naší lokalitě, souhrnně představuje Vilém Knoll.\nDochází k závěru, že máme před sebou pozůstatek neznámého opevněného sídla, pravděpodobně\nkrátkodobě užívaného opěrného bodu, který mohl patřit k Walldsassenskému klášteru, stejně jako\nněkterému z ministeriálních rodů 8 .\nLokalita nemá jasnou návaznost na stabilizovanou sídlištní strukturu, kterou známe z historických\nmapových děl, ani dochovaných sídel. Tato skutečnost je rovněž vážnou indicií ke skutečnosti, že stojíme\npřed středověkým objektem. Bohužel, jasné doklady o tomto zařazení nemáme. Východní část opevněného\nareálu byla poškozena stavbou železnice v 19. století. Rozsah poškození neznáme, dle rozboru terénní\nsituace i starších názorů vyplývá, že toto poškození nebylo velké. Bohužel, pravděpodobně v zaniklé žásti\nbychom měli hledat relikty stavby zaznamenané na 1. vojenském mapování (mapa 2). Je však\npravděpodobném že mohlo dojít k záměně s početně zastoupenými kameny, které jsou na lokalitě však\njasně přírodního původu.\nV oblasti neregistrujeme žádnou zemědělskou činnost. Nejmladší kategorií dějin s hmotnými\npozůstatky jsou vojenské události z jara 1945, kdy se v oblasti strhla jedna z nejvážnějších bitev mezi\nněmeckými a spojeneckými jednotkami na našem území. Během ní měli němečtí vojáci vyhodit do povětří\nmuniční vlak, a to v blízkosti železniční stanice Plesná Šneky. Její pozůstatky můžeme nalézt na východní\nstraně trati několik desítek metrů jižně od lokality Neuhaus.\n5. Metoda výzkumu\nVzhledem k nejasnému zařazení lokality bylo použito několik metod. Pro získání geodetického plánu\nlokality byla použita kombinace geodetického zaměření pomocí totální stanice PENTAX R-205EN a\ninterpretace tvarových anomálií, které zachytilo letecké laserové snímkování 9 . Získaná data byla zpracována\ndo podoby digitálního modelu terénu s různým úhlem umělého osvětlení aplikací Surfer 9. Ve stejném\nprostředí byl z dat vytvořen podrobný vrstevnicový plán s výškovým rozestupem vrstevnic 0, 25 a 1, 0 m.\nPlán byl vyhodnocován a dále doplňován v prostředí aplikace ArcMAP 10.1.\nRevize míst terénních zásahů byla těžištěm výzkumu. V ploše památky byly identifikovány tři\nrozměrné zahloubeniny recentního stáří, viz mapa č 7. Porušení 1 a 2 souvisela se stavbou uvedených\nsrubů. Porušení 3 bylo neznámého původu. Tyto porušení byly postupně ručně začištěny na úroveň podloží.\nSituace byla fotograficky dokumentována. Vzhledem k nepravidelným tvarům porušení bylo přistoupeno\n8 Karel, K. – Knoll, V. 2008: Hrad u Plesné zvaný Neuhaus. Zamyšlení nad jeho místem v dějinách Chebska. Dějiny staveb: sborník\npříspěvků z konference Dějiny staveb 2008. Plzeň. s. 171-184\n9 Zdrojová data byla zakoupena od Českého úřadu zeměměřičského a katastrálního.\nk dokumentaci pomocí průsekové fotogrammetrie 10 . S její pomocí došlo k vytvoření dvou trojrozměrných\nmodelů odpovídající porušení 1 a 2. Porušení 3 bylo dokumentováno pouze fotograficky.\nSoučástí prací byl rovněž detektorový průzkum přístrojem MineLab 750. Celoplošně byla zkoumána\nvymezená plocha opevnění, dno příkopu, a koruna valu. Dále bylo prozkoumáno okolí skalního výběžku\nzápadním směrem a plocha cca 50 x 100 jižně od opevněné lokality. Rovněž bylo prozkoumáno údolí\nvodoteče severním směrem. Identifikované signály byly označeny, exkavovány a poloha geodeticky\nzaměřena.\n6. Popis terénní situace\n6.1. Vyhodnocení antropogenních útvarů\nVyhodnocení antropogenních tvarů lokality bylo prováděno ve dvou měřítkách. Ve velkém měřítku\nbyla vyhodnocována plocha památky. V malém měřítku bylo sledováno širší okolí památky do vzdálenosti\ncca 500 m.\nHlavním prvkem památky je příkop podkovovitého tvaru, který je svým těžištěm orientován\nk jihozápadu. V těchto místech je široký 7 m a také nejhlubší, a to cca 2 m. Směrem k oběma ramenům se\npříkop změlčuje až do ztracena. Celkové délka příkopu je 100 m. Příkop vymezuje vnitřní opevněnou plochu\no rozměrech 30 x 60 m. Je zajímavé, že poslední třetina severního svahu není opatřena příkopem. V těchto\nmístech pozorujeme množství rozměrných kamenů z rozvolněného skalního výchozu, který tvoří severní\nvrchol plochy památky (mapa 7, objekt 7 a 4). Současný tvar východního svahu je výsledkem stavby\nželeznice z pol. 19. století. Na hraně areálu směrem k železničnímu upravenému svahu můžeme pozorovat\ndílčí terasní sníženinu, která byla interpretovaná jako cesta. Pravděpodobnější se však jeví vznik útvaru při\nstavbě železnice 11 . Hrany mohutného příkopu jsou dále zdůrazněny nasypáním vytěženého materiálu, a to\njak na vnitřní straně, tak na vnější. Vnější násyp je poněkud mohutnější než vnitřní. Právě v hmotě vnitřního\nnásypu se nacházela rozměrná porušení 1 až 3, viz níže. Vlastní opevněná plocha dosahuje tvaru dvou\ndílčích vrcholů na opačných koncích při severovýchodu (559, 5 m Bpv)a při jihozápadu (561,5 m Bpv). Dělící\nsedlo s nejnižším bodem převýšení, se nachází v blízkosti severního vrcholu (mapa 7). V těchto místech\nbychom mohli tušit přístupovou komunikaci vedenou po okraji závěru příkopu ústící do severního údolí, ke\nkteré však nemáme hmatatelnější doklad. Stejně tak postrádáme více informací k mírné protáhlé depresi\nvedoucí do porušení č. 3 na jihu plochy. Ta také evidentně pokračovala opačným směrem, a to do prostoru\nzničeného železnicí. Více markantních objektů v ploše areálu postrádáme. Mimo opevnění se západním\nsměrem nachází skalnatý výběžek. Jeho západní závěr je poznamenán lámáním skalních bloků. V jeho okolí\nse nachází také několik odlámaných polotovarů s charakteristickými znaky na hranách a množství\nrozptýlených menších fragmentů skály.\nAntropogenní tvary v širším okolí památky tvoří především pozůstatky cest. Přestože je z nich řada\nstále užívána, je možné určit jejich relativní stratigrafii. Bylo zvoleno jednoduché rozdělení do čtyř stupňů:\n1) současné, 2) staré, 3) nejstarší a 4) neurčité (mapa 6). Klíčem určení byla jejich dnešní průchodnost a\nvztah k mladším cestám. Nejstarší byly ty, které se nacházejí v konfliktu i s cestami „starými“ nebo jsou\njasně opuštěné a nepoužívané. Neurčité jsou ty, které nelze podle těchto kritérií přiřadit k jiné kategorii.\nPodrobný rozbor každého z uvedených reliktů by vydal na samostatnou práci a jistě to bude předmětem\n10 Hodač, J. 2011: Pozemní fotogrammetrie. Ústí nad Labem, s. 37.\n11 V práci Karel, K. – Knoll, V. 2008, je relikt považován za cestu. Objekt se však opakuje i na jiných svazích, které\nstavba železnice „seřízla“. Za pravděpodobnější variantu považuji přípravu staveniště, kdy došlo k odstranění\nnadložních vrstev v širší ploše než následná těžba podloží.\ndalších terénních pozorování. Přesto bych zde chtěl konstatovat, že z uvedeného vyhodnocení je patrné, že\n„nejstarší“ komunikace jsou především ve směru východ – západ. Staré a současné jsou především ve\nsměru sever – jih. Je otázkou, zda je to věcí náhody nebo určitým faktorem. Domnívám se, že racionálním\ndůvodem by mohla blízkost státních hranic, které jdou ve směru sever - jih. Pokud pomineme existenci\npašeráckých stezek, je možné torza těchto západovýchodních cest považovat za zbytky sídelních struktur\nokolí, které hranice ještě nerespektují. Z tohoto závěru však stále nemůžeme určit žádné absolutní\ndatování. Je zajímavé, že tyto komunikace se nacházejí rovněž v blízkosti sledovaného opevněného areálu.\nZajímavé je dobře prostorově definované údolí východně od Neuhausu. Jestliže si odmyslíme trať\nželeznice, působí oba objekty logickým celkem, kdy prvně jmenovaný nám vytváří vhodné sídelní zázemí\nk opevněnému areálu (Mapa 8). Bližší vyhodnocení údolí by mělo být předmětem budoucích výzkumů.\nJasně patrným prvkem je kamenolom, který se nachází jižně od sledované lokality. Ten můžeme bezpečně\npřiřadit ke stavbě železnice v polovině 19. století. Ten vymazal dvě výrazné úvozové cesty, které dnes\nvycházejí z jeho čela dál západním směrem (foto 38).\n6.2. Detektorový průzkum lokality\nDetektorový průzkum v ploše památky měl přinést případné doklady využívání lokality a předcházet\nobdobným aktivitám ze strany amatérů. Tyto aktivity v lokalitě již probíhají. Sledovány byly rovněž plochy\nv okolí památky. Celkem bylo lokalizováno 37 situací. Jejich prostorovou distribuci představuje mapa 9 a\nkatalog nálezů. Absolutně většina nálezů pochází z druhé světové války a je možné ji dát s určitostí do\nsouvislostí s výbuchem muničního vlaku 12 . Jedná se o různě velké fragmenty zkroucených železných plátů se\nstopami působení ohně. Součástí nalezených předmětů byly také fragmenty ručních zbraní a vypálené\nmunice různého charakteru (nábojnice, fragmenty zásobníků, minometné hlavice). Tyto předměty nebyly\nz bezpečnostních důvodů zahrnuty do našeho výzkumu. Obecně lze konstatovat, že tyto nálezy se nacházely\nve všech místech zkoumaným detektorem a můžeme důvodně předpokládat, že jejich skutečný rozptyl\nv krajině je několikanásobně větší 13 . Mapa 9 zobrazuje místa a označení kovových nálezů. Zde byla\nzohledněna rovněž váha těchto předmětů. Zobrazení nevykazuje jasné interpretace různě těžkých částí,\nkteré by mohly přibližovat epicentrum exploze. Je velmi pravděpodobné, že k tomuto vyhodnocení by bylo\nnutné systematicky prozkoumat mnohem větší část území.\nZajímavostí lokality je absence mladších recentních nálezů, jež jsou zřejmě způsobené zákazem\nvstupu veřejnosti do hraničního pásma po roce 1945. Naopak pravděpodobně nejstarším nálezem je\nfragment podkovy (č. DN21), který se nacházel jihozápadně od opevněného areálu v blízkosti doložené\ntěžby kamene. Podkova je vybavena kvadraticky, šikmo odsazeným ozubem, který ji společně se svým\ncelkovým tvarem řadí k nálezům z 14. – 15. století. 14 Ty jsou řazeny do období Na základě znalosti regionu,\nje možné stanovit, že by fragment mohl spadat již do 13. století. Bohužel, ke všem uvedeným rizikům\nmusíme zmínit ještě to, že se jedná o ojedinělý nález s velmi volným vztahem ke sledované opevněné\nlokalitě. Pravděpodobněji je možné jej spojit s těžbou kamene na západním výběžku areálu.\nDalším specifickým nálezem je rovněž knoflík dělostřelce rakouskouherské armády 15 , který byl\nnalezen na severním úpatí vrchu Neuhaus. Z něho můžeme doložit, že na lokalitě či v její blízkosti se\n12 Švandrlík, R. 1995: 50. výročí osvobození americkou armádou. Ašsko – chebsko – Mariánské Lázně, Hamelika 20. s. 20\n13 Za konzultaci děkuji Mgr. Michalu Rakovi, ze Západočeské univerzity v Plzni.\n14 Vích, D. – Žákovský, P. 2012: Soubor kovových předmětů z dosud neznámé lokality na Litomyšlsku. In: Archeologické\nrozhledy. -- ISSN 0323-1267. -- Roč. 64, s. 103.\n15 nález č. 38\npohybovala rakouskouherská armáda. Rovněž se jedná o ojedinělý nález, který nevypovídá hlouběji o\nkonkrétní lidské aktivitě.\n6.3. Revizní výzkum porušení památky\nDestruktivní archeologický výzkum byl od počátku komponován s minimálním rozsahem nových\nterénních zásahů. Byl vždy využit již existující výkop, který byl upraven do kolmých profilů, umožňující\ndokumentaci odhalených souvrství.\nPorušení 1 se nacházelo na severozápadní hraně opevněného areálu (Mapa 7, foto 6-8). Byl\ndokumentován severní a jižní profil. Stratigrafické složení bylo obdobné. Pod lesní hrabankou se nacházelo\npísčité nadloží středně žluté barvy. Severní profil dále obsahoval trychtýřovitý objekt s organicko-uhlíkatou\nvýplní bez dalších nálezů (foto 10). Jižní profil byl tvořen vrstvou lesní hrabanky, která nasedala na písčité\nhomogenní nadloží středně žluté barvy. V levé části jižního profilu byly dokumentovány zbytky konstrukce\nsrubu. V průběhu začištění bylo nalezeno několik kamenů, které však byly volně loženy a nejevily známky\nopracování. Pro jednoznačnost okolní situace bylo rozhodnuto ponechat tyto recentní nálezy dřev na místě.\nŽádné movité nálezy nebyly během začištění objektu zachyceny. Po dokončení dokumentace byla situace\nopět zasypána.\nPorušení 2 se nacházelo na hraně opevněného areálu v blízkosti jihozápadního vrcholu, Mapa 7, foto\n15, 16. Rovněž zde byl dokumentován severní a jižní profil. Situace byla odkrývaná ve dvou úrovních. Po\nodstranění lesní hrabanky se vykreslil půdorys hlubšího výkopu s několika kameny na východním okraji\nobjektu. V této úrovni byly nacházeny pozůstatky térového papíru s kousky plechu. Po odstranění této\nvýplně se ukázalo, že se jedná o druhotné zasypání čtvercové jámy o rozměrech 1,3 x 1, 7m a hloubky 80\ncm. Na dně prostoru byly naházeny kulatiny recentního stáří. V levé části profilu se vykreslilo několik\nkamenů (foto 20). Na detailním snímku je patrné, že i mezi nimi se nacházel térový papír. Jiné movité nálezy\nnebyly výzkumem zachyceny.\nPorušení 3 bylo starším a rozměrnějším zásahem. Nachází se na jižním okraji opevněného areálu.\nVnější okraj zahloubeného objektu dosahoval rozměrů 10 x 10 m. Po odstranění lesní hrabanky byla\nnalezena rozměrná část železa (foto 30). Jednalo se o železnou trubku, dlouhou cca 210 cm, zakončenou\nželezným úhelníkem s otvory pro další spojovací prvky. Pravděpodobně se jedná o kostru vagónu pro\nzaplachtování. Strany objektu se trychtýřovitě zbíhaly ke svému středu. Dno objektu nepravidelně\nobdélného tvaru, široké 1 m a dlouhé 4 m. Zde byla tmavá humózní vrstva, která byla výplní zvířecí nory.\nZachycené rozměrné kameny nenesli stopy opracování ani netvořili žádnou konstrukci. Profily západní i\nvýchodní nenesly žádné stopy konstrukce či souvrství.\n7. Zhodnocení výsledků výzkumu\nPředstavený výzkum je prvním pokusem o archeologické vyhodnocení diskutabilní památky Neuhaus\nu Plesné. Zjištěné závěry relativně ostře kontrastují s písemnými prameny a předpokládaným zařazením\nlokality do období časných fází německé kolonizace přelomu 12. a 13. století. V ploše zkoumaných porušení\nnebyl zachycen žádný movitý nález, který by dokládal lidskou aktivitu nebo její vznik hlouběji v minulosti\nnež je 18. století. Nově bylo doloženo nepříliš intenzivní lámání skalního výchozu v severní části\nopevněného areálu. Výzkum dále přinesl zjištění, že příkop a vnitřní val je tvořen homogenním písčitým\nmateriálem bez známek složitější konstrukce. Doklady přítomnosti stavebního materiálu (opracované\nkameny, maltovina, kamenické prvky,…) nebyly zachyceny.\nRozborem digitálního modelu reliéfu a terénní revizí se ukázalo, že v blízkosti lokality se nachází\nzaniklá síť komunikací, které vedou výrazně jiným směrem než současné a je důvodné podezření, že mohou\nbýt ještě středověkého stáří. O pohybu lidí v tomto okolí může svědčit fragment podkovy z 14. – 15. století.\nPrakticky veškeré zachycené nálezy a drtivá většina situací však pochází z válečných událostí konce druhé\nsvětové války. V jejich kontextu působí výjimečně staře i nález uniformního knoflíku dělostřelce\nrakouskouherské armády.\nRevizní výzkum poškození památky nepřinesl doklady o přítomnosti starších archeologických situací,\nkromě sterilního nasypání vnitřního valu. Rozměrnost a členitost porušení 3. můžeme považovat za\npozůstatek zapuštěného postavení těžší palné zbraně nebo rozměrného okopu z 2. světové války. Nelze\nvyloučit, že ani odstraněné sruby aktivity neobsahovaly část již z tohoto období. Nasvědčoval by tomu nález\ntérového papíru mezi kameny v severním profilu porušení č. 2.\nPřestože zjištěnou absencí nálezů nemůžeme středověké zařazení památky vyvrátit, je již jasné, že\nzde nemůžeme očekávat bohatá kulturní souvrství. To by nasvědčovalo interpretaci místa jako provizoria\nnebo zaniklého objektu před vlastním dokončením. Absenci hospodářského zázemí nemůžeme rovněž\nvyloučit východně od Neuhausu. Zde se rozprostírá údolí stejné vodoteče, odkud tvoří vrch Neuhausu\nvýraznou dominantu. Víme rovněž, že v této oblasti existují zaniklé středověké vesnice, 16 které dokládají\ndramatické změny zdejší sídelní struktury. Interpretaci zaniklého panského sídla poněkud brání neupravený\nskalní výchoz a rozměrné balvany v severní části areálu a přilehlého svahu. Bylo by spodivem, že by při\njakémkoliv standardním pokusu o sídlení zůstal takto dostupný materiál nepovšimnut nebo jinak\nneupraven.\nDále je nutné podotknout, že není dostatečně vyloučen novověký původ lokality. Bez znalosti\npísemných pramenů a předchozích zhodnocení působí stavba a její umístnění v terénu jako jednoduché,\njednorázové polní opevnění z období třicetileté války nebo sedmileté války, jež jsou v regionu také\ndoloženy.\n16 Například Ruprechtsgrün, severně od Plesné, SAS č. : 11-12-21/1.\n8. Trvající otázky\nPředstavený výzkum přinesl především několik zásadních otázek než odpovědí. Budoucí odborná\npozornost by měla být věnována především povrchovému průzkumu východním směrem od lokality. Ten by\nmohl přinést definitivní vyloučení středověkého stáří lokality nebo naopak potvrzení středověkého osídlení\nv jejím bezprostředním okolí. Stejně tak by byl přínosný zvláštní výzkum se zaměřením na vyhodnocení\núvozových cest a jejich stáří v širším kontextu lokality tak, aby bylo možné vytvořit relevantní obrázek o\nsídelních proměnách a lidských aktivitách v tomto dlouhodobě nepřístupném prostoru. Odborné terénní\naktivity v ploše památky by bylo vhodné směřovat do prostoru dna příkopu a masivu vnějšího valu. Zde\nbychom měli mít největší pravděpodobnost zachytit datovatelný materiál z doby fungování lokality.\nOpomíjenou a přínosnou komponentou lokality spatřuji v dokladech událostí konce druhé světové\nválky. Speciálně zacílený výzkum v širším okolí památky by mohl velmi obohatit poznání stigmatizovaného\nobdobí dějin regionu. Z distribuce železných fragmentů by bylo možné rekonstruovat přesné místo\ndestrukce vlaku, stejně jako přesun a pozice jednotek, použité výzbroj nebo intenzita vzájemného střetu.\nExistence pohraničního pásma výrazně snížila intenzitu jinde běžných hospodářských zásahů a\nlidských aktivit po roce 1945. Tento zvláštní stav správy území učinil z okolí Neuhausu velmi zajímavý a\npotencionálně dobře čitelný pozůstatek minulých sídelních krajin regionu.\n9. Přílohy\n9.1. Mapy a plány\nl _\np\na\nm\n&\ne\nc\n=\nn\no\ni g\ne\nr\n_\np\na\nm\n:\nj o &\nr l u\nd m\nZ\n. =\ny\nt\nk oo\ne\nn r\nŠ _\ny p\nd a\na m\ns &\no\n0\nd =\no n\ně i ww\nn\nž\ni e\nj\n, n\nu _\nk z\nm &\ná 0\nz =\nh\no\nt\nb d\ne i w\nn\nud _\nz\n&\na\ns\nr c\nh\n=\ny g\nn n\ni n a\ne l &\nc 0001\ní\nř\nz\nm\n=\ní n\nt\ne h\nč g\na i e\nn h\nz _\ny\nv z\n?\ns l p\n0271 .\nr\ne\nw\ne\n.\nr i\nv\nz _\ny p\np a\na m\nm\n/\nz\ni c\nv\no . b\nr a\ne l\nll o\nü e\nM g\n.\ns\nz p\ne a\nř m\ný\nV d\n: l o 60\n1\n//\n0\na\np : c\np\n=\na\ntt\nt\nM\nh s\ni\n[\n9\n]\nMapa 3: Přibližně georeferencovaný výřez 1. vojenského mapování s mapou ZM 10 s vyznačením lokality Nehaus. V místech je rovněž\nvyznačena jistá stavb nebo její pozůstatek.\n[\n10\n]\nMapa 3: Výřez mapy ZM10 s vyznačením zkoumané památky Neuhaus.\n[\n11\n]\nMapa 4: Lokalita Neuhaus na mape ZM 10 podložená modelem terénu dle LLS. Autor F. Prekop.\n[\n12\n]\nMapa 5: Lokalita Neuhaus na digitálmím modelu terénu LLS. Autor F. Prekop.\n[\n13\n]\nMapa 6: Okolí lokality Neuhaus. Interpretace zaznamenaných cest a jejich relativní časové zařazení. Podrobněji v textu.\n[\n14\n]\nMapa 7: Plán lokality Neuhaus s interpretací objektů. Předmětem výzkumu byly porušení 1 – 3.\n[\n15\n]\nMapa 8: Antropogenní objekty identifikované v širším okolí památky Neuéhaus. Čárkovaně naznačeno území, kde bychom měli hledat , podle\nmého názoru, případné sídelní zázemí opevěného areálu.\n[\n16\n]\nMapa 9: Plán detektorových nálezů se zobrazením jejich hmotnosti. Nejstarším nálezem je podkova, je nález č. DN21 (mimo opevněný areál).\n[\n17\n]\nMapa 10: Plán porušení č. 1 po dokončení revizního výzkumu. Autor F. Prekop.\n[\n18\n]\nMapa 11: Plán porušení 2 po dokončení výzkumu. Autor F. Prekop\n9.2. Fotodokumentace\nFoto 1: Pohled na lokalitu od severu, ze železniční trati Cheb-Plesná- Plauen. Autor F. Prekop.\nFoto 2: Celkový pohled z vnější strany areálu od západu. Autor F. Prekop.\nFoto 3: Celkový pohled z koruny vnějšího valu od západu. Autor F. Prekop.\nFoto 4: Pohled k jihovýchodu. Autor F. Prekop.\nFoto 5: Srub v ploše areálu, později označen jako porušení 1. Pohled k severozápadu. Autor F. Prekop.\nFoto 6: Pohled do jádra objektu 1, pohled k jihozápadu. Autor F. Prekop.\nFoto 7: Objekt 1 před zahájením výzkumu pohled k jihozápadu. Autor F. Prekop.\nFoto 8: Objekt 1 po začištění. Dřevěné kuláče jsou pozůstatky stavby srubu. Autor F. Prekop.\nFoto 9: Objekt 1 po začištění, pohled k severovýchodu. Autor F. Prekop.\nFoto 10: Objekt 1, SV profil. Pozůstatek srubové konstrukce, bez dalších movitých nálezů. Autor J. Král\nFoto 11: Pozůstatky srubové konstrukce, ponechané po začištění. Autor J. Král.\nFoto 12: Objekt 1 po zasypání. Autor J. Král.\nFoto 13: Objekt 2 před odstraněním nadzemních částí. Autor F. Prekop.\nFoto 14: Objekt 2 v průběhu revizního výzkumu. Autor J. Král.\nFoto 15: Objekt 2, mechanická úroveň č. 1, Detailni pohled. Autor J. Král.\nFoto 16: Objekt 2, přirozená vrstva 2., recentní konstrukce. Autor J. Král.\nFoto 17: Objekt 2, maximální dosažená úroveň. Autor F. Prekop.\nFoto 18: Objekt 2, západní profil s relikty kamenné konstrukce. Autor F. Prekop.\nFoto 19: Objekt 2, sev. profil s patrným térovým papírem v kamenné konstrukci. Autor F. Prekop.\nFoto 20: Objekt 2, S profil.\nFoto 21: Západní profil s patrným prostě syapaným valovým tělesem.\nFoto 22: Objekt 2 po dokončení výzkumu. Autor J. Král.\nFoto 23: Objekt 3 v průběhu začíštění. Autor J. Král.\nFoto 24: Porušení 3. V průběhu začištění. autor J. Král.\nFoto 25: Kameny při dně porušení č. 3. Nacházely se bez známek konstrukce, volně v rozptýlené\nvrstvě lesní hrabanky a písčitého nadloží.\nFoto 26: Dno porušení 3, po začištění. Autor J. Král.\nFoto 27: Severní strana porušní 3. Sklaní blok. Autor J. Král.\nFoto 28: Porušení 3, nález železné tyče, možná součást výstroje vagónu. Autor F. Prekop.\nFoto 29: Porušení 3, po celkovém začištění. Autor J. Král.\nFoto 30: Rozptýlené kameny na severním svahu lokality, v místech, kde již není doložen opevňovací\npříkop. Autor F. Prekop.\nFoto 31: Severní závěr příkopu. Vlevo můžeme pozorovat rozměrné balvany severního svahu lokality.\nAutor F. Prekop.\nFoto 32: Západní výběžek mimo areál opevnění. Patrné stopy po lámání kamene. Autor F. Prekop.\nFoto 33: Úpatí západního výběžku. Patrné stopy nástrojů na odlomeném bloku kamene.\nAutor F. Prekop.\nFoto 34: Západní výběžek. Pohled k východu. Patrné stopy po snaze odlomení bloku kamene.\nAutor F. Prekop.\nFoto 35: Západní výběžek. Detail stop po snaze odlomení bloku kamene. Autor F. Prekop.\nFoto 36: Stopy po snaze lámání kamene na severním vrcholu opevněné plochy areálu. Jedná se o\njediný kámen v ploše památky se zásahy. Autor F. Prekop.\nFoto 37: Stopy po snaze lámání kamene na severním vrcholu opevněné plochy areálu. Jedná se o\njediný kámen v této části lokality s uvedenými zásahy. Autor F. Prekop.\nFoto 38: Úvozová cesta vycházející z čela kamenolomu, jižně od lokality Neuhaus. Pohled k východu.\nAutor F. Prekop.\n9.3. Katalog nálezů\nNález č. 1, strana a: Plát, Váha 305 g.\nNález č. 1, strana b: Plát, Váha 305 g.\nNález č. 2, strana a: hlavice nýtu, 52,6 g.\nNález č. 2, strana b: hlavice nýtu, 52,6 g.\nNález č. 4, strana a: plát, zkroucený. Váha 719,70 g.\nNález č. 4, strana b: plát, zkroucený. Váha 719,70 g.\nNález č. 5, strana a: plát, podélně zkroucený, váha 550,77 g.\nNález č. 5, strana b: plát, podélně zkroucený, váha 550,77 g.\nNález 6a, strana a: plát, velký, trapézovitý, váha: 755,33 g.\nNález 6a, strana b: plát, velký, trapézovitý, váha: 755,33 g.\nNález 6b, strana a: plát, fragment, malý, váha 56,40 g.\nNález 6b, strana b: plát, fragment, malý, váha 56,40 g.\nNález č. 7, strana a: plech, neželezný, drobný, váha 7,3 g.\nNález č. 7, strana b: plech, neželezný, drobný, váha 7,3 g.\nNález č. 8, strana a: šroub bez hlavice, váha 66,73 g.\nNález č. 8, strana b: šroub bez hlavice, váha 66,73 g.\nNález č. 9, strana a: Nález č. 8, strana a: šroub bez hlavice, pravděpodobně z železničního pražce, váha\n66,73 g.\nNález č. 9, strana a: Nález č. 8, strana b: šroub bez hlavice, pravděpodobně z železničního pražce, váha\n66,73 g.\nNález č. 10, strana a: fragment lopaty, váha 708,9 g.\nNález č. 10, strana b: fragment lopaty, váha 708,9 g.\nNález č. 11, strana a: plát, železný, malý, silný, váha 158,63 g.\nNález č. 11, strana b: plát, železný, malý, silný, váha 158,63 g.\nNález č. 12, strana a: plát, tlustý, obdélný s otvorem, 554,14 g.\nNález č. 12, strana b: plát, tlustý, obdélný s otvorem, 554,14 g\nNález č. 13, strana a: zarostlé řetězové očko, váha 134,5 g.\nNález č. 13, strana b: zarostlé řetězové očko, váha 134,5 g.\nNález č. 14, strana a: plát, velký s žebrováním, prohnutý, váha 999,61 g.\nNález č. 14, strana a: plát, velký s žebrováním, prohnutý, váha 999,61 g.\nNález č. 15a, strana a: část přezky na zavírání s pozůstatkem řemene, váha 178,67 g.\nNález č. 15a, strana b: část přezky na zavírání s pozůstatkem řemene, váha 178,67 g.\nNález č. 15b, strana a: šroub se zapuštěnou obdélnou hlavicí, váha 308,61 g.\nNález č. 15b, strana b: šroub se zapuštěnou obdélnou hlavicí, váha 308,61 g.\nNález č. 16, strana a: fragment plátu, obdélný, prohnutý, s polovinou otvoru, váha 249,9 g.\nNález č. 16, strana b: fragment plátu, obdélný, prohnutý, s polovinou otvoru, váha 249,9 g.\nNález č. 17, strana a: plát, zdeformovaný, váha 111,9 g.\nNález č. 17, strana a: plát, zdeformovaný, váha 111,9 g.\nNález č. 18, strana a: hrudka, železná, váha 47,2 g.\nNález č. 18, strana b: hrudka, železná, váha 47,2 g.\nNález č. 19, strana a: plát malý, oválně obdélníkový, váha 278,91 g.\nNález č. 19, strana a: plát malý, oválně obdélníkový, váha 278,91 g.\nNález č. 20, strana a: plát, s protáhlým výběžkem, váha 221,04 g.\nNález č. 20, strana b: plát, s protáhlým výběžkem, váha 221,04 g.\nNález č. 21, strana a: podkova, polovina, váha 102,13 g, 14. - 15. století. Stav před konzervací.\nNález č. 21, strana a: podkova, polovina, váha 102,13 g, 14. - 15. století. Stav před konzervací.\nNález č. 22, strana a: fragment plátu, nepravidelný malý fragment, váha: 103,48 g.\nNález č. 22, strana b: fragment plátu, nepravidelný malý fragment, váha: 103,48 g.\nNález č. 23, strana a: trn, se zploštělou polovinou délky, váha 98,35 g.\nNález č. 23, strana b: trn, se zploštělou polovinou délky, váha 98,35 g.\nNález č. 24, strana a: tyčka, čtverhranný profil, konec zploštělý s otvorem, 149,5 g.\nNález č. 24, strana b: tyčka, čtverhranný profil, konec zploštělý s otvorem, 149,5 g.\nNález č. 25, strana a: řetězové očko, váha 22,93 g.\nNález č. 26, strana a: plát, zkřivený, váha 786,5g.\nNález č. 27, strana a: podbití boty, novověk, váha 19,96 g.\nNález č. 27, strana a: podbití boty, novověk, váha 19,96 g.\nNález č. 28, strana a: plát, malý s otvorem, váha 248,73 g.\nNález č. 28, strana a: plát, malý s otvorem, váha 248,73 g.\nNález č. 29, strana a: plát, velký, prohnutý kosočtverečný, váha 850,3g.\nplát, velký, prohnutý kosočtverečný, váha 850,3g.\nNález č. 30, strana a: plát, velký prolámaný, zdeformovaný, váha 709,4g.\nNález č. 30, strana b: plát, velký prolámaný, zdeformovaný, váha 709,4g.\nNález č. 31, strana a: trubice se závitem, 293,32 g.\nNález č. 31, strana b: trubice se závitem, 293,32 g.\nNález č. 35, strana a: amorfní fragment železa, váha 76,6 g.\nNález č. 36, strana a: plech, neželezný, drobný, 5,26 g.\nNález č. 37, strana a: torzo příruční palné zbraně S&S, model 1913, určení dle: http://www.ai4fr.com.\nJedná se ruční zbraň německé armády, která byla užívána v obou světových válkách.\nNález č. 37, strana a: torzo příruční palné zbraně S&S, model 1913.\nNález č. 38, strana a: Knoflík Rakouskouherské armády, dělostřelec.\nNález č. 38, strana b: Knoflík Rakouskouherské armády, dělostřelec. 19. století.\nVýběr z nálezů sběru západně od lokality. Vyhodnocení bude předmětem dalších výzkumů.",
+    "text": "Revizní archeologický výzkum\nporušení zříceniny hradu Neuhaus, kulturní památky č. 41205/4-98.\nNálezová zpráva\n2013\nObsah\n1.\nLokalizace a okolnosti výzkumu.................................................................................................... 1\n2.\nCíle výzkumu ................................................................................................................................ 1\n3.\nGeografický a sídelní kontext lokality........................................................................................... 1\n4.\nHistorie objektu............................................................................................................................ 2\n5.\nMetoda výzkumu.......................................................................................................................... 2\n6.\nPopis terénní situace.................................................................................................................... 3\n6.1.\nVyhodnocení antropogenních útvarů................................................................................... 3\n6.2.\nDetektorový průzkum lokality.............................................................................................. 4\n6.3.\nRevizní výzkum porušení památky ....................................................................................... 5\n7.\nZhodnocení výsledků výzkumu..................................................................................................... 6\n8.\nTrvající otázky............................................................................................................................... 7\n9.\nPřílohy .......................................................................................................................................... 8\n9.1.\nMapy a plány........................................................................................................................ 8\n9.2.\nFotodokumentace.............................................................................................................. 19\n9.3.\nKatalog nálezů.................................................................................................................... 38\n1. Lokalizace a okolnosti výzkumu\nLokalita „zřícenina hradu Neuhaus je kulturní památkou, která je evidována v Ústředním seznamu\nkulturních památek pod číslem: 41205/4-98. Nachází se na mírné vyvýšenině, jež vybíhá\nze severovýchodního svahu Bukové hory, 1,3 km jihozápadně od centra obce Šneky a přibližně 15 km\nseverně od města Chebu. Samotná lokalita se nachází cca 900 m západně od státních hranic se Spolkovou\nrepublikou Německo. V širším kontextu se také jedná o jeden z východních výběžků Smrčin směrem do\nChebské pánve. Opevněné místo disponuje velmi dobrým rozhledem východním směrem.\nVýzkum byl vyvolán výsledky pozorování při revizích archeologických památek v roce 2011 a 2012.\nBěhem nich došlo ke zjištění, že v ploše památky se nacházejí pozůstatky amatérských srubů a zákopů\nsoužící k jisté volnočasové aktivitě. Dle jednání s majiteli pozemku a výkonného orgánu státní památkové\npéče, bylo rozhodnuto, že dojde k odstranění uvedených staveb, provedení revizního archeologického\nvýzkumu a navrácení přibližně původního tvaru reliéfu v místech staveb.\nVýzkum zajišťovalo územní odborné pracoviště Národního památkového ústavu v Lokti, ve spolupráci\ns organizací ZIP o.p. s. Odstranění nadzemních částí srubů provedl majitel pozemku Lesy ČR.\n2. Cíle výzkumu\nZáchranný archeologický výzkum měl několik cílů. Především to bylo získání plánu lokality a jejího\ngeodetického určení v lesnatém terénu. Dalším cílem bylo vyhodnocení nelegálních porušení kulturní\npamátky s cílem vyhodnotit poškozená souvrství a získat datovací materiál k bližšímu určení specifické\narcheologické památky regionu 1 . Vzhledem k aktuálnímu stavu poznání došlo k vyhodnocení\nantropogenních reliktů v širším okolí areálu na základě vyhodnocení digitálního modelu reliéfu (DMR), který\nbyl vytvořen z dat leteckého laserového snímkování (LLS).\n3. Geografický a sídelní kontext lokality\nÚzemně spadá lokalita k městečku Plesná a dílčímu katastrálnímu území Šneky. Městečko Plesná má\nrelativně bohatou historii. První písemná zmínka o městečku je datována již k roku 1185 2 . První písemná\nzmínka o obci Šneky pochází z roku 1322 3 . K nejstarším archeologickým nálezům širšího okolí se řadí soubor\nsídlištní keramiky z doby popelnicových polí, který byl nalezen v místech obecního pivovaru 4 .\nŠirší okolí lokality, měst Plesná a Skalná, je spojeno především s tzv. německou kolonizací v 12. -13.\nstoletí. Nejvýraznějším historickým objektem okolí je město Skalná, s hradem z 12. století, který se řadí\nk nejstarším objektům středověké kolonizace Chebska 5 . Oblast Plesné byla v té době nárazníkovým pásem\nmezi zájmy císařské ministeriality a Waldassenského kláštera 6 . Dokonce k roku 1181 existuje záznam, kdy\nčeský kníže Bedřich bere klášterní osadníky v ochranu před „invasores\", kteří je měli napadat a protiprávně\nusurpovat klášterní statky. V této době také krátce obec Plesná spadala pod církevní správu v Bad\nBramabachu (3 km západně) 7 .\n1 K problematice souhrnně: Karel, K. – Knoll, V. 2008: Hrad u Plesné zvaný Neuhaus. Zamyšlení nad jeho místem v dějinách Chebska.\nDějiny staveb: sborník příspěvků z konference Dějiny staveb 2008. Plzeň. s. 171-184\n2 Schreiner,L. 1992: Heimatkreis Eger. Amberg. s. 448-451, dle karty SAS č. : 11-12-21/3.\n3 Schreiner,L. 1992: Heimatkreis Eger. Amberg. s. 448-451, dle karty SAS, č.11-12-21/4 .\n4 Kuna, M. – Křivánková, D. 2009: Archiv 3.0. Archeologická databáze Čech. Praha.\n5 Hejna A, 1971: Archeologický výzkum a počátky sídlištního vývoje Chebu a Chebska II, Památky Archeologické 62, s. 534.\n6 Karel, K. – Knoll, V. 2008: Hrad u Plesné zvaný Neuhaus. s. 176.\n7 Karel, K. – Knoll, V. 2008: Hrad u Plesné zvaný Neuhaus. s. 176\n4. Historie objektu\nBěžné pojmenování lokality umožňuje snadnou záměnu s jinými lokalitami a nejednoznačnou\ninterpretaci písemných pramenů. Relativně bezpečně vztažený název Neuhaus k naší lokalitě se nachází\nna Müllerově mapě Čech z roku 1720 (mapa 1). Jeho umístnění přibližně odpovídá místu jeho skutečného\nvýskytu. stejně tak je to v případě 1. vojenského mapování. To obsahuje náznak budov nebo jistých zděných\nčástí, které lze relativně velmi přesně ztotožnit se zkoumanou lokalitou po jejím přibližném\ngeoreferencování (mapa 2).\nPísemné prameny, které by bylo možné vztáhnout k naší lokalitě, souhrnně představuje Vilém Knoll.\nDochází k závěru, že máme před sebou pozůstatek neznámého opevněného sídla, pravděpodobně\nkrátkodobě užívaného opěrného bodu, který mohl patřit k Walldsassenskému klášteru, stejně jako\nněkterému z ministeriálních rodů 8 .\nLokalita nemá jasnou návaznost na stabilizovanou sídlištní strukturu, kterou známe z historických\nmapových děl, ani dochovaných sídel. Tato skutečnost je rovněž vážnou indicií ke skutečnosti, že stojíme\npřed středověkým objektem. Bohužel, jasné doklady o tomto zařazení nemáme. Východní část opevněného\nareálu byla poškozena stavbou železnice v 19. století. Rozsah poškození neznáme, dle rozboru terénní\nsituace i starších názorů vyplývá, že toto poškození nebylo velké. Bohužel, pravděpodobně v zaniklé žásti\nbychom měli hledat relikty stavby zaznamenané na 1. vojenském mapování (mapa 2). Je však\npravděpodobném že mohlo dojít k záměně s početně zastoupenými kameny, které jsou na lokalitě však\njasně přírodního původu.\nV oblasti neregistrujeme žádnou zemědělskou činnost. Nejmladší kategorií dějin s hmotnými\npozůstatky jsou vojenské události z jara 1945, kdy se v oblasti strhla jedna z nejvážnějších bitev mezi\nněmeckými a spojeneckými jednotkami na našem území. Během ní měli němečtí vojáci vyhodit do povětří\nmuniční vlak, a to v blízkosti železniční stanice Plesná Šneky. Její pozůstatky můžeme nalézt na východní\nstraně trati několik desítek metrů jižně od lokality Neuhaus.\n5. Metoda výzkumu\nVzhledem k nejasnému zařazení lokality bylo použito několik metod. Pro získání geodetického plánu\nlokality byla použita kombinace geodetického zaměření pomocí totální stanice PENTAX R-205EN a\ninterpretace tvarových anomálií, které zachytilo letecké laserové snímkování 9 . Získaná data byla zpracována\ndo podoby digitálního modelu terénu s různým úhlem umělého osvětlení aplikací Surfer 9. Ve stejném\nprostředí byl z dat vytvořen podrobný vrstevnicový plán s výškovým rozestupem vrstevnic 0, 25 a 1, 0 m.\nPlán byl vyhodnocován a dále doplňován v prostředí aplikace ArcMAP 10.1.\nRevize míst terénních zásahů byla těžištěm výzkumu. V ploše památky byly identifikovány tři\nrozměrné zahloubeniny recentního stáří, viz mapa č 7. Porušení 1 a 2 souvisela se stavbou uvedených\nsrubů. Porušení 3 bylo neznámého původu. Tyto porušení byly postupně ručně začištěny na úroveň podloží.\nSituace byla fotograficky dokumentována. Vzhledem k nepravidelným tvarům porušení bylo přistoupeno\n8 Karel, K. – Knoll, V. 2008: Hrad u Plesné zvaný Neuhaus. Zamyšlení nad jeho místem v dějinách Chebska. Dějiny staveb: sborník\npříspěvků z konference Dějiny staveb 2008. Plzeň. s. 171-184\n9 Zdrojová data byla zakoupena od Českého úřadu zeměměřičského a katastrálního.\nk dokumentaci pomocí průsekové fotogrammetrie 10 . S její pomocí došlo k vytvoření dvou trojrozměrných\nmodelů odpovídající porušení 1 a 2. Porušení 3 bylo dokumentováno pouze fotograficky.\nSoučástí prací byl rovněž detektorový průzkum přístrojem MineLab 750. Celoplošně byla zkoumána\nvymezená plocha opevnění, dno příkopu, a koruna valu. Dále bylo prozkoumáno okolí skalního výběžku\nzápadním směrem a plocha cca 50 x 100 jižně od opevněné lokality. Rovněž bylo prozkoumáno údolí\nvodoteče severním směrem. Identifikované signály byly označeny, exkavovány a poloha geodeticky\nzaměřena.\n6. Popis terénní situace\n6.1. Vyhodnocení antropogenních útvarů\nVyhodnocení antropogenních tvarů lokality bylo prováděno ve dvou měřítkách. Ve velkém měřítku\nbyla vyhodnocována plocha památky. V malém měřítku bylo sledováno širší okolí památky do vzdálenosti\ncca 500 m.\nHlavním prvkem památky je příkop podkovovitého tvaru, který je svým těžištěm orientován\nk jihozápadu. V těchto místech je široký 7 m a také nejhlubší, a to cca 2 m. Směrem k oběma ramenům se\npříkop změlčuje až do ztracena. Celkové délka příkopu je 100 m. Příkop vymezuje vnitřní opevněnou plochu\no rozměrech 30 x 60 m. Je zajímavé, že poslední třetina severního svahu není opatřena příkopem. V těchto\nmístech pozorujeme množství rozměrných kamenů z rozvolněného skalního výchozu, který tvoří severní\nvrchol plochy památky (mapa 7, objekt 7 a 4). Současný tvar východního svahu je výsledkem stavby\nželeznice z pol. 19. století. Na hraně areálu směrem k železničnímu upravenému svahu můžeme pozorovat\ndílčí terasní sníženinu, která byla interpretovaná jako cesta. Pravděpodobnější se však jeví vznik útvaru při\nstavbě železnice 11 . Hrany mohutného příkopu jsou dále zdůrazněny nasypáním vytěženého materiálu, a to\njak na vnitřní straně, tak na vnější. Vnější násyp je poněkud mohutnější než vnitřní. Právě v hmotě vnitřního\nnásypu se nacházela rozměrná porušení 1 až 3, viz níže. Vlastní opevněná plocha dosahuje tvaru dvou\ndílčích vrcholů na opačných koncích při severovýchodu (559, 5 m Bpv)a při jihozápadu (561,5 m Bpv). Dělící\nsedlo s nejnižším bodem převýšení, se nachází v blízkosti severního vrcholu (mapa 7). V těchto místech\nbychom mohli tušit přístupovou komunikaci vedenou po okraji závěru příkopu ústící do severního údolí, ke\nkteré však nemáme hmatatelnější doklad. Stejně tak postrádáme více informací k mírné protáhlé depresi\nvedoucí do porušení č. 3 na jihu plochy. Ta také evidentně pokračovala opačným směrem, a to do prostoru\nzničeného železnicí. Více markantních objektů v ploše areálu postrádáme. Mimo opevnění se západním\nsměrem nachází skalnatý výběžek. Jeho západní závěr je poznamenán lámáním skalních bloků. V jeho okolí\nse nachází také několik odlámaných polotovarů s charakteristickými znaky na hranách a množství\nrozptýlených menších fragmentů skály.\nAntropogenní tvary v širším okolí památky tvoří především pozůstatky cest. Přestože je z nich řada\nstále užívána, je možné určit jejich relativní stratigrafii. Bylo zvoleno jednoduché rozdělení do čtyř stupňů:\n1) současné, 2) staré, 3) nejstarší a 4) neurčité (mapa 6). Klíčem určení byla jejich dnešní průchodnost a\nvztah k mladším cestám. Nejstarší byly ty, které se nacházejí v konfliktu i s cestami „starými“ nebo jsou\njasně opuštěné a nepoužívané. Neurčité jsou ty, které nelze podle těchto kritérií přiřadit k jiné kategorii.\nPodrobný rozbor každého z uvedených reliktů by vydal na samostatnou práci a jistě to bude předmětem\n10 Hodač, J. 2011: Pozemní fotogrammetrie. Ústí nad Labem, s. 37.\n11 V práci Karel, K. – Knoll, V. 2008, je relikt považován za cestu. Objekt se však opakuje i na jiných svazích, které\nstavba železnice „seřízla“. Za pravděpodobnější variantu považuji přípravu staveniště, kdy došlo k odstranění\nnadložních vrstev v širší ploše než následná těžba podloží.\ndalších terénních pozorování. Přesto bych zde chtěl konstatovat, že z uvedeného vyhodnocení je patrné, že\n„nejstarší“ komunikace jsou především ve směru východ – západ. Staré a současné jsou především ve\nsměru sever – jih. Je otázkou, zda je to věcí náhody nebo určitým faktorem. Domnívám se, že racionálním\ndůvodem by mohla blízkost státních hranic, které jdou ve směru sever - jih. Pokud pomineme existenci\npašeráckých stezek, je možné torza těchto západovýchodních cest považovat za zbytky sídelních struktur\nokolí, které hranice ještě nerespektují. Z tohoto závěru však stále nemůžeme určit žádné absolutní\ndatování. Je zajímavé, že tyto komunikace se nacházejí rovněž v blízkosti sledovaného opevněného areálu.\nZajímavé je dobře prostorově definované údolí východně od Neuhausu. Jestliže si odmyslíme trať\nželeznice, působí oba objekty logickým celkem, kdy prvně jmenovaný nám vytváří vhodné sídelní zázemí\nk opevněnému areálu (Mapa 8). Bližší vyhodnocení údolí by mělo být předmětem budoucích výzkumů.\nJasně patrným prvkem je kamenolom, který se nachází jižně od sledované lokality. Ten můžeme bezpečně\npřiřadit ke stavbě železnice v polovině 19. století. Ten vymazal dvě výrazné úvozové cesty, které dnes\nvycházejí z jeho čela dál západním směrem (foto 38).\n6.2. Detektorový průzkum lokality\nDetektorový průzkum v ploše památky měl přinést případné doklady využívání lokality a předcházet\nobdobným aktivitám ze strany amatérů. Tyto aktivity v lokalitě již probíhají. Sledovány byly rovněž plochy\nv okolí památky. Celkem bylo lokalizováno 37 situací. Jejich prostorovou distribuci představuje mapa 9 a\nkatalog nálezů. Absolutně většina nálezů pochází z druhé světové války a je možné ji dát s určitostí do\nsouvislostí s výbuchem muničního vlaku 12 . Jedná se o různě velké fragmenty zkroucených železných plátů se\nstopami působení ohně. Součástí nalezených předmětů byly také fragmenty ručních zbraní a vypálené\nmunice různého charakteru (nábojnice, fragmenty zásobníků, minometné hlavice). Tyto předměty nebyly\nz bezpečnostních důvodů zahrnuty do našeho výzkumu. Obecně lze konstatovat, že tyto nálezy se nacházely\nve všech místech zkoumaným detektorem a můžeme důvodně předpokládat, že jejich skutečný rozptyl\nv krajině je několikanásobně větší 13 . Mapa 9 zobrazuje místa a označení kovových nálezů. Zde byla\nzohledněna rovněž váha těchto předmětů. Zobrazení nevykazuje jasné interpretace různě těžkých částí,\nkteré by mohly přibližovat epicentrum exploze. Je velmi pravděpodobné, že k tomuto vyhodnocení by bylo\nnutné systematicky prozkoumat mnohem větší část území.\nZajímavostí lokality je absence mladších recentních nálezů, jež jsou zřejmě způsobené zákazem\nvstupu veřejnosti do hraničního pásma po roce 1945. Naopak pravděpodobně nejstarším nálezem je\nfragment podkovy (č. DN21), který se nacházel jihozápadně od opevněného areálu v blízkosti doložené\ntěžby kamene. Podkova je vybavena kvadraticky, šikmo odsazeným ozubem, který ji společně se svým\ncelkovým tvarem řadí k nálezům z 14. – 15. století. 14 Ty jsou řazeny do období Na základě znalosti regionu,\nje možné stanovit, že by fragment mohl spadat již do 13. století. Bohužel, ke všem uvedeným rizikům\nmusíme zmínit ještě to, že se jedná o ojedinělý nález s velmi volným vztahem ke sledované opevněné\nlokalitě. Pravděpodobněji je možné jej spojit s těžbou kamene na západním výběžku areálu.\nDalším specifickým nálezem je rovněž knoflík dělostřelce rakouskouherské armády 15 , který byl\nnalezen na severním úpatí vrchu Neuhaus. Z něho můžeme doložit, že na lokalitě či v její blízkosti se\n12 Švandrlík, R. 1995: 50. výročí osvobození americkou armádou. Ašsko – chebsko – Mariánské Lázně, Hamelika 20. s. 20\n13 Za konzultaci děkuji Mgr. Michalu Rakovi, ze Západočeské univerzity v Plzni.\n14 Vích, D. – Žákovský, P. 2012: Soubor kovových předmětů z dosud neznámé lokality na Litomyšlsku. In: Archeologické\nrozhledy. -- ISSN 0323-1267. -- Roč. 64, s. 103.\n15 nález č. 38\npohybovala rakouskouherská armáda. Rovněž se jedná o ojedinělý nález, který nevypovídá hlouběji o\nkonkrétní lidské aktivitě.\n6.3. Revizní výzkum porušení památky\nDestruktivní archeologický výzkum byl od počátku komponován s minimálním rozsahem nových\nterénních zásahů. Byl vždy využit již existující výkop, který byl upraven do kolmých profilů, umožňující\ndokumentaci odhalených souvrství.\nPorušení 1 se nacházelo na severozápadní hraně opevněného areálu (Mapa 7, foto 6-8). Byl\ndokumentován severní a jižní profil. Stratigrafické složení bylo obdobné. Pod lesní hrabankou se nacházelo\npísčité nadloží středně žluté barvy. Severní profil dále obsahoval trychtýřovitý objekt s organicko-uhlíkatou\nvýplní bez dalších nálezů (foto 10). Jižní profil byl tvořen vrstvou lesní hrabanky, která nasedala na písčité\nhomogenní nadloží středně žluté barvy. V levé části jižního profilu byly dokumentovány zbytky konstrukce\nsrubu. V průběhu začištění bylo nalezeno několik kamenů, které však byly volně loženy a nejevily známky\nopracování. Pro jednoznačnost okolní situace bylo rozhodnuto ponechat tyto recentní nálezy dřev na místě.\nŽádné movité nálezy nebyly během začištění objektu zachyceny. Po dokončení dokumentace byla situace\nopět zasypána.\nPorušení 2 se nacházelo na hraně opevněného areálu v blízkosti jihozápadního vrcholu, Mapa 7, foto\n15, 16. Rovněž zde byl dokumentován severní a jižní profil. Situace byla odkrývaná ve dvou úrovních. Po\nodstranění lesní hrabanky se vykreslil půdorys hlubšího výkopu s několika kameny na východním okraji\nobjektu. V této úrovni byly nacházeny pozůstatky térového papíru s kousky plechu. Po odstranění této\nvýplně se ukázalo, že se jedná o druhotné zasypání čtvercové jámy o rozměrech 1,3 x 1, 7m a hloubky 80\ncm. Na dně prostoru byly naházeny kulatiny recentního stáří. V levé části profilu se vykreslilo několik\nkamenů (foto 20). Na detailním snímku je patrné, že i mezi nimi se nacházel térový papír. Jiné movité nálezy\nnebyly výzkumem zachyceny.\nPorušení 3 bylo starším a rozměrnějším zásahem. Nachází se na jižním okraji opevněného areálu.\nVnější okraj zahloubeného objektu dosahoval rozměrů 10 x 10 m. Po odstranění lesní hrabanky byla\nnalezena rozměrná část železa (foto 30). Jednalo se o železnou trubku, dlouhou cca 210 cm, zakončenou\nželezným úhelníkem s otvory pro další spojovací prvky. Pravděpodobně se jedná o kostru vagónu pro\nzaplachtování. Strany objektu se trychtýřovitě zbíhaly ke svému středu. Dno objektu nepravidelně\nobdélného tvaru, široké 1 m a dlouhé 4 m. Zde byla tmavá humózní vrstva, která byla výplní zvířecí nory.\nZachycené rozměrné kameny nenesli stopy opracování ani netvořili žádnou konstrukci. Profily západní i\nvýchodní nenesly žádné stopy konstrukce či souvrství.\n7. Zhodnocení výsledků výzkumu\nPředstavený výzkum je prvním pokusem o archeologické vyhodnocení diskutabilní památky Neuhaus\nu Plesné. Zjištěné závěry relativně ostře kontrastují s písemnými prameny a předpokládaným zařazením\nlokality do období časných fází německé kolonizace přelomu 12. a 13. století. V ploše zkoumaných porušení\nnebyl zachycen žádný movitý nález, který by dokládal lidskou aktivitu nebo její vznik hlouběji v minulosti\nnež je 18. století. Nově bylo doloženo nepříliš intenzivní lámání skalního výchozu v severní části\nopevněného areálu. Výzkum dále přinesl zjištění, že příkop a vnitřní val je tvořen homogenním písčitým\nmateriálem bez známek složitější konstrukce. Doklady přítomnosti stavebního materiálu (opracované\nkameny, maltovina, kamenické prvky,…) nebyly zachyceny.\nRozborem digitálního modelu reliéfu a terénní revizí se ukázalo, že v blízkosti lokality se nachází\nzaniklá síť komunikací, které vedou výrazně jiným směrem než současné a je důvodné podezření, že mohou\nbýt ještě středověkého stáří. O pohybu lidí v tomto okolí může svědčit fragment podkovy z 14. – 15. století.\nPrakticky veškeré zachycené nálezy a drtivá většina situací však pochází z válečných událostí konce druhé\nsvětové války. V jejich kontextu působí výjimečně staře i nález uniformního knoflíku dělostřelce\nrakouskouherské armády.\nRevizní výzkum poškození památky nepřinesl doklady o přítomnosti starších archeologických situací,\nkromě sterilního nasypání vnitřního valu. Rozměrnost a členitost porušení 3. můžeme považovat za\npozůstatek zapuštěného postavení těžší palné zbraně nebo rozměrného okopu z 2. světové války. Nelze\nvyloučit, že ani odstraněné sruby aktivity neobsahovaly část již z tohoto období. Nasvědčoval by tomu nález\ntérového papíru mezi kameny v severním profilu porušení č. 2.\nPřestože zjištěnou absencí nálezů nemůžeme středověké zařazení památky vyvrátit, je již jasné, že\nzde nemůžeme očekávat bohatá kulturní souvrství. To by nasvědčovalo interpretaci místa jako provizoria\nnebo zaniklého objektu před vlastním dokončením. Absenci hospodářského zázemí nemůžeme rovněž\nvyloučit východně od Neuhausu. Zde se rozprostírá údolí stejné vodoteče, odkud tvoří vrch Neuhausu\nvýraznou dominantu. Víme rovněž, že v této oblasti existují zaniklé středověké vesnice, 16 které dokládají\ndramatické změny zdejší sídelní struktury. Interpretaci zaniklého panského sídla poněkud brání neupravený\nskalní výchoz a rozměrné balvany v severní části areálu a přilehlého svahu. Bylo by spodivem, že by při\njakémkoliv standardním pokusu o sídlení zůstal takto dostupný materiál nepovšimnut nebo jinak\nneupraven.\nDále je nutné podotknout, že není dostatečně vyloučen novověký původ lokality. Bez znalosti\npísemných pramenů a předchozích zhodnocení působí stavba a její umístnění v terénu jako jednoduché,\njednorázové polní opevnění z období třicetileté války nebo sedmileté války, jež jsou v regionu také\ndoloženy.\n16 Například Ruprechtsgrün, severně od Plesné, SAS č. : 11-12-21/1.\n8. Trvající otázky\nPředstavený výzkum přinesl především několik zásadních otázek než odpovědí. Budoucí odborná\npozornost by měla být věnována především povrchovému průzkumu východním směrem od lokality. Ten by\nmohl přinést definitivní vyloučení středověkého stáří lokality nebo naopak potvrzení středověkého osídlení\nv jejím bezprostředním okolí. Stejně tak by byl přínosný zvláštní výzkum se zaměřením na vyhodnocení\núvozových cest a jejich stáří v širším kontextu lokality tak, aby bylo možné vytvořit relevantní obrázek o\nsídelních proměnách a lidských aktivitách v tomto dlouhodobě nepřístupném prostoru. Odborné terénní\naktivity v ploše památky by bylo vhodné směřovat do prostoru dna příkopu a masivu vnějšího valu. Zde\nbychom měli mít největší pravděpodobnost zachytit datovatelný materiál z doby fungování lokality.\nOpomíjenou a přínosnou komponentou lokality spatřuji v dokladech událostí konce druhé světové\nválky. Speciálně zacílený výzkum v širším okolí památky by mohl velmi obohatit poznání stigmatizovaného\nobdobí dějin regionu. Z distribuce železných fragmentů by bylo možné rekonstruovat přesné místo\ndestrukce vlaku, stejně jako přesun a pozice jednotek, použité výzbroj nebo intenzita vzájemného střetu.\nExistence pohraničního pásma výrazně snížila intenzitu jinde běžných hospodářských zásahů a\nlidských aktivit po roce 1945. Tento zvláštní stav správy území učinil z okolí Neuhausu velmi zajímavý a\npotencionálně dobře čitelný pozůstatek minulých sídelních krajin regionu.\n9. Přílohy\n9.1. Mapy a plány\nhttp://oldmaps.geolab.cz/map_viewer.pl?z_height=1000&lang=cs&z_width=0&z_newwin=0&map_root=mul&map_region=ce&map_l\nMapa 1: Výřez Müllerovi mapy z r. 1720 s vyznačením zříceniny hradu nebo zámku , jižně od osady Šneky. Zdroj:\nist=c006\n[9]\nMapa 3: Přibližně georeferencovaný výřez 1. vojenského mapování s mapou ZM 10 s vyznačením lokality Nehaus. V místech je rovněž\nvyznačena jistá stavb nebo její pozůstatek.\n[10]\nMapa 3: Výřez mapy ZM10 s vyznačením zkoumané památky Neuhaus.\n[11]\nMapa 4: Lokalita Neuhaus na mape ZM 10 podložená modelem terénu dle LLS. Autor F. Prekop.\n[12]\nMapa 5: Lokalita Neuhaus na digitálmím modelu terénu LLS. Autor F. Prekop.\n[13]\nMapa 6: Okolí lokality Neuhaus. Interpretace zaznamenaných cest a jejich relativní časové zařazení. Podrobněji v textu.\n[14]\nMapa 7: Plán lokality Neuhaus s interpretací objektů. Předmětem výzkumu byly porušení 1 – 3.\n[15]\nMapa 8: Antropogenní objekty identifikované v širším okolí památky Neuéhaus. Čárkovaně naznačeno území, kde bychom měli hledat , podle\nmého názoru, případné sídelní zázemí opevěného areálu.\n[16]\nMapa 9: Plán detektorových nálezů se zobrazením jejich hmotnosti. Nejstarším nálezem je podkova, je nález č. DN21 (mimo opevněný areál).\n[17]\nMapa 10: Plán porušení č. 1 po dokončení revizního výzkumu. Autor F. Prekop.\n[18]\nMapa 11: Plán porušení 2 po dokončení výzkumu. Autor F. Prekop\n9.2. Fotodokumentace\nFoto 1: Pohled na lokalitu od severu, ze železniční trati Cheb-Plesná- Plauen. Autor F. Prekop.\nFoto 2: Celkový pohled z vnější strany areálu od západu. Autor F. Prekop.\nFoto 3: Celkový pohled z koruny vnějšího valu od západu. Autor F. Prekop.\nFoto 4: Pohled k jihovýchodu. Autor F. Prekop.\nFoto 5: Srub v ploše areálu, později označen jako porušení 1. Pohled k severozápadu. Autor F. Prekop.\nFoto 6: Pohled do jádra objektu 1, pohled k jihozápadu. Autor F. Prekop.\nFoto 7: Objekt 1 před zahájením výzkumu pohled k jihozápadu. Autor F. Prekop.\nFoto 8: Objekt 1 po začištění. Dřevěné kuláče jsou pozůstatky stavby srubu. Autor F. Prekop.\nFoto 9: Objekt 1 po začištění, pohled k severovýchodu. Autor F. Prekop.\nFoto 10: Objekt 1, SV profil. Pozůstatek srubové konstrukce, bez dalších movitých nálezů. Autor J. Král\nFoto 11: Pozůstatky srubové konstrukce, ponechané po začištění. Autor J. Král.\nFoto 12: Objekt 1 po zasypání. Autor J. Král.\nFoto 13: Objekt 2 před odstraněním nadzemních částí. Autor F. Prekop.\nFoto 14: Objekt 2 v průběhu revizního výzkumu. Autor J. Král.\nFoto 15: Objekt 2, mechanická úroveň č. 1, Detailni pohled. Autor J. Král.\nFoto 16: Objekt 2, přirozená vrstva 2., recentní konstrukce. Autor J. Král.\nFoto 17: Objekt 2, maximální dosažená úroveň. Autor F. Prekop.\nFoto 18: Objekt 2, západní profil s relikty kamenné konstrukce. Autor F. Prekop.\nFoto 19: Objekt 2, sev. profil s patrným térovým papírem v kamenné konstrukci. Autor F. Prekop.\nFoto 20: Objekt 2, S profil.\nFoto 21: Západní profil s patrným prostě syapaným valovým tělesem.\nFoto 22: Objekt 2 po dokončení výzkumu. Autor J. Král.\nFoto 23: Objekt 3 v průběhu začíštění. Autor J. Král.\nFoto 24: Porušení 3. V průběhu začištění. autor J. Král.\nFoto 25: Kameny při dně porušení č. 3. Nacházely se bez známek konstrukce, volně v rozptýlené\nvrstvě lesní hrabanky a písčitého nadloží.\nFoto 26: Dno porušení 3, po začištění. Autor J. Král.\nFoto 27: Severní strana porušní 3. Sklaní blok. Autor J. Král.\nFoto 28: Porušení 3, nález železné tyče, možná součást výstroje vagónu. Autor F. Prekop.\nFoto 29: Porušení 3, po celkovém začištění. Autor J. Král.\nFoto 30: Rozptýlené kameny na severním svahu lokality, v místech, kde již není doložen opevňovací\npříkop. Autor F. Prekop.\nFoto 31: Severní závěr příkopu. Vlevo můžeme pozorovat rozměrné balvany severního svahu lokality.\nAutor F. Prekop.\nFoto 32: Západní výběžek mimo areál opevnění. Patrné stopy po lámání kamene. Autor F. Prekop.\nFoto 33: Úpatí západního výběžku. Patrné stopy nástrojů na odlomeném bloku kamene.\nAutor F. Prekop.\nFoto 34: Západní výběžek. Pohled k východu. Patrné stopy po snaze odlomení bloku kamene.\nAutor F. Prekop.\nFoto 35: Západní výběžek. Detail stop po snaze odlomení bloku kamene. Autor F. Prekop.\nFoto 36: Stopy po snaze lámání kamene na severním vrcholu opevněné plochy areálu. Jedná se o\njediný kámen v ploše památky se zásahy. Autor F. Prekop.\nFoto 37: Stopy po snaze lámání kamene na severním vrcholu opevněné plochy areálu. Jedná se o\njediný kámen v této části lokality s uvedenými zásahy. Autor F. Prekop.\nFoto 38: Úvozová cesta vycházející z čela kamenolomu, jižně od lokality Neuhaus. Pohled k východu.\nAutor F. Prekop.\n9.3. Katalog nálezů\nNález č. 1, strana a: Plát, Váha 305 g.\nNález č. 1, strana b: Plát, Váha 305 g.\nNález č. 2, strana a: hlavice nýtu, 52,6 g.\nNález č. 2, strana b: hlavice nýtu, 52,6 g.\nNález č. 4, strana a: plát, zkroucený. Váha 719,70 g.\nNález č. 4, strana b: plát, zkroucený. Váha 719,70 g.\nNález č. 5, strana a: plát, podélně zkroucený, váha 550,77 g.\nNález č. 5, strana b: plát, podélně zkroucený, váha 550,77 g.\nNález 6a, strana a: plát, velký, trapézovitý, váha: 755,33 g.\nNález 6a, strana b: plát, velký, trapézovitý, váha: 755,33 g.\nNález 6b, strana a: plát, fragment, malý, váha 56,40 g.\nNález 6b, strana b: plát, fragment, malý, váha 56,40 g.\nNález č. 7, strana a: plech, neželezný, drobný, váha 7,3 g.\nNález č. 7, strana b: plech, neželezný, drobný, váha 7,3 g.\nNález č. 8, strana a: šroub bez hlavice, váha 66,73 g.\nNález č. 8, strana b: šroub bez hlavice, váha 66,73 g.\nNález č. 9, strana a: Nález č. 8, strana a: šroub bez hlavice, pravděpodobně z železničního pražce, váha\n66,73 g.\nNález č. 9, strana a: Nález č. 8, strana b: šroub bez hlavice, pravděpodobně z železničního pražce, váha\n66,73 g.\nNález č. 10, strana a: fragment lopaty, váha 708,9 g.\nNález č. 10, strana b: fragment lopaty, váha 708,9 g.\nNález č. 11, strana a: plát, železný, malý, silný, váha 158,63 g.\nNález č. 11, strana b: plát, železný, malý, silný, váha 158,63 g.\nNález č. 12, strana a: plát, tlustý, obdélný s otvorem, 554,14 g.\nNález č. 12, strana b: plát, tlustý, obdélný s otvorem, 554,14 g\nNález č. 13, strana a: zarostlé řetězové očko, váha 134,5 g.\nNález č. 13, strana b: zarostlé řetězové očko, váha 134,5 g.\nNález č. 14, strana a: plát, velký s žebrováním, prohnutý, váha 999,61 g.\nNález č. 14, strana a: plát, velký s žebrováním, prohnutý, váha 999,61 g.\nNález č. 15a, strana a: část přezky na zavírání s pozůstatkem řemene, váha 178,67 g.\nNález č. 15a, strana b: část přezky na zavírání s pozůstatkem řemene, váha 178,67 g.\nNález č. 15b, strana a: šroub se zapuštěnou obdélnou hlavicí, váha 308,61 g.\nNález č. 15b, strana b: šroub se zapuštěnou obdélnou hlavicí, váha 308,61 g.\nNález č. 16, strana a: fragment plátu, obdélný, prohnutý, s polovinou otvoru, váha 249,9 g.\nNález č. 16, strana b: fragment plátu, obdélný, prohnutý, s polovinou otvoru, váha 249,9 g.\nNález č. 17, strana a: plát, zdeformovaný, váha 111,9 g.\nNález č. 17, strana a: plát, zdeformovaný, váha 111,9 g.\nNález č. 18, strana a: hrudka, železná, váha 47,2 g.\nNález č. 18, strana b: hrudka, železná, váha 47,2 g.\nNález č. 19, strana a: plát malý, oválně obdélníkový, váha 278,91 g.\nNález č. 19, strana a: plát malý, oválně obdélníkový, váha 278,91 g.\nNález č. 20, strana a: plát, s protáhlým výběžkem, váha 221,04 g.\nNález č. 20, strana b: plát, s protáhlým výběžkem, váha 221,04 g.\nNález č. 21, strana a: podkova, polovina, váha 102,13 g, 14. - 15. století. Stav před konzervací.\nNález č. 21, strana a: podkova, polovina, váha 102,13 g, 14. - 15. století. Stav před konzervací.\nNález č. 22, strana a: fragment plátu, nepravidelný malý fragment, váha: 103,48 g.\nNález č. 22, strana b: fragment plátu, nepravidelný malý fragment, váha: 103,48 g.\nNález č. 23, strana a: trn, se zploštělou polovinou délky, váha 98,35 g.\nNález č. 23, strana b: trn, se zploštělou polovinou délky, váha 98,35 g.\nNález č. 24, strana a: tyčka, čtverhranný profil, konec zploštělý s otvorem, 149,5 g.\nNález č. 24, strana b: tyčka, čtverhranný profil, konec zploštělý s otvorem, 149,5 g.\nNález č. 25, strana a: řetězové očko, váha 22,93 g.\nNález č. 26, strana a: plát, zkřivený, váha 786,5g.\nNález č. 27, strana a: podbití boty, novověk, váha 19,96 g.\nNález č. 27, strana a: podbití boty, novověk, váha 19,96 g.\nNález č. 28, strana a: plát, malý s otvorem, váha 248,73 g.\nNález č. 28, strana a: plát, malý s otvorem, váha 248,73 g.\nNález č. 29, strana a: plát, velký, prohnutý kosočtverečný, váha 850,3g.\nplát, velký, prohnutý kosočtverečný, váha 850,3g.\nNález č. 30, strana a: plát, velký prolámaný, zdeformovaný, váha 709,4g.\nNález č. 30, strana b: plát, velký prolámaný, zdeformovaný, váha 709,4g.\nNález č. 31, strana a: trubice se závitem, 293,32 g.\nNález č. 31, strana b: trubice se závitem, 293,32 g.\nNález č. 35, strana a: amorfní fragment železa, váha 76,6 g.\nNález č. 36, strana a: plech, neželezný, drobný, 5,26 g.\nNález č. 37, strana a: torzo příruční palné zbraně S&S, model 1913, určení dle: http://www.ai4fr.com.\nJedná se ruční zbraň německé armády, která byla užívána v obou světových válkách.\nNález č. 37, strana a: torzo příruční palné zbraně S&S, model 1913.\nNález č. 38, strana a: Knoflík Rakouskouherské armády, dělostřelec.\nNález č. 38, strana b: Knoflík Rakouskouherské armády, dělostřelec. 19. století.\nVýběr z nálezů sběru západně od lokality. Vyhodnocení bude předmětem dalších výzkumů.",
     "reading_order": "layout"
   },
   "lines": [
@@ -4842,12 +4842,12 @@
     {
       "page": "11",
       "line": 2,
-      "text": "l _",
+      "text": "http://oldmaps.geolab.cz/map_viewer.pl?z_height=1000&lang=cs&z_width=0&z_newwin=0&map_root=mul&map_region=ce&map_l",
       "bbox": [
         510.802,
         144.529,
         521.812,
-        152.55
+        744.95
       ],
       "group_id": "p11-2",
       "quality_score": 1.0
@@ -4855,12 +4855,12 @@
     {
       "page": "11",
       "line": 3,
-      "text": "p",
+      "text": "Mapa 1: Výřez Müllerovi mapy z r. 1720 s vyznačením zříceniny hradu nebo zámku , jižně od osady Šneky. Zdroj:",
       "bbox": [
-        510.802,
-        152.529,
-        521.812,
-        158.31
+        497.052,
+        246.04,
+        508.062,
+        744.95
       ],
       "group_id": "p11-2",
       "quality_score": 1.0
@@ -4868,12 +4868,12 @@
     {
       "page": "11",
       "line": 4,
-      "text": "a",
+      "text": "ist=c006",
       "bbox": [
-        510.802,
-        158.336,
-        521.812,
-        163.61
+        524.552,
+        707.563,
+        535.562,
+        744.95
       ],
       "group_id": "p11-2",
       "quality_score": 1.0
@@ -4881,1618 +4881,6 @@
     {
       "page": "11",
       "line": 5,
-      "text": "m",
-      "bbox": [
-        510.802,
-        163.61,
-        521.812,
-        172.407
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 6,
-      "text": "&",
-      "bbox": [
-        510.802,
-        172.398,
-        521.812,
-        179.906
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 7,
-      "text": "e",
-      "bbox": [
-        510.802,
-        179.924,
-        521.812,
-        185.407
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 8,
-      "text": "c",
-      "bbox": [
-        510.802,
-        185.399,
-        521.812,
-        190.056
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 9,
-      "text": "=",
-      "bbox": [
-        510.802,
-        190.024,
-        521.812,
-        195.507
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 10,
-      "text": "n",
-      "bbox": [
-        510.802,
-        195.526,
-        521.812,
-        201.307
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 11,
-      "text": "o",
-      "bbox": [
-        510.802,
-        201.254,
-        521.812,
-        207.056
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 12,
-      "text": "i g",
-      "bbox": [
-        510.802,
-        207.085,
-        521.812,
-        214.807
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 13,
-      "text": "e",
-      "bbox": [
-        510.802,
-        214.774,
-        521.812,
-        220.257
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 14,
-      "text": "r",
-      "bbox": [
-        510.802,
-        220.264,
-        521.812,
-        224.107
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 15,
-      "text": "_",
-      "bbox": [
-        510.802,
-        224.074,
-        521.812,
-        229.557
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 16,
-      "text": "p",
-      "bbox": [
-        510.802,
-        229.576,
-        521.812,
-        235.357
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 17,
-      "text": "a",
-      "bbox": [
-        510.802,
-        235.383,
-        521.812,
-        240.657
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 18,
-      "text": "m",
-      "bbox": [
-        510.802,
-        240.657,
-        521.812,
-        249.454
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 19,
-      "text": ":",
-      "bbox": [
-        497.052,
-        246.04,
-        508.062,
-        248.991
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 20,
-      "text": "j o &",
-      "bbox": [
-        497.052,
-        248.96,
-        521.812,
-        257.441
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 21,
-      "text": "r l u",
-      "bbox": [
-        497.052,
-        256.882,
-        521.812,
-        265.204
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 22,
-      "text": "d m",
-      "bbox": [
-        497.052,
-        261.261,
-        521.812,
-        274.001
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 23,
-      "text": "Z",
-      "bbox": [
-        497.052,
-        267.041,
-        508.062,
-        272.194
-      ],
-      "group_id": "p11-2",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 24,
-      "text": ". =",
-      "bbox": [
-        497.052,
-        274.018,
-        521.812,
-        279.501
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 25,
-      "text": "y",
-      "bbox": [
-        497.052,
-        277.456,
-        508.062,
-        282.444
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 26,
-      "text": "t",
-      "bbox": [
-        510.802,
-        279.462,
-        521.812,
-        283.151
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 27,
-      "text": "k oo",
-      "bbox": [
-        497.052,
-        282.434,
-        521.812,
-        294.803
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 28,
-      "text": "e",
-      "bbox": [
-        497.052,
-        287.461,
-        508.062,
-        292.944
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 29,
-      "text": "n r",
-      "bbox": [
-        497.052,
-        292.914,
-        521.812,
-        298.694
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 30,
-      "text": "Š _",
-      "bbox": [
-        497.052,
-        298.62,
-        521.812,
-        304.103
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 31,
-      "text": "y p",
-      "bbox": [
-        497.052,
-        304.123,
-        521.812,
-        311.197
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 32,
-      "text": "d a",
-      "bbox": [
-        497.052,
-        309.879,
-        521.812,
-        316.997
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 33,
-      "text": "a m",
-      "bbox": [
-        497.052,
-        315.153,
-        521.812,
-        323.95
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 34,
-      "text": "s &",
-      "bbox": [
-        497.052,
-        322.247,
-        521.812,
-        331.45
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 35,
-      "text": "o",
-      "bbox": [
-        497.052,
-        326.6,
-        508.062,
-        332.402
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 36,
-      "text": "0",
-      "bbox": [
-        510.802,
-        331.468,
-        521.812,
-        337.05
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 37,
-      "text": "d =",
-      "bbox": [
-        497.052,
-        334.872,
-        521.812,
-        342.5
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 38,
-      "text": "o n",
-      "bbox": [
-        497.052,
-        340.652,
-        521.812,
-        348.3
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 39,
-      "text": "ě i ww",
-      "bbox": [
-        497.052,
-        348.329,
-        521.812,
-        366.55
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 40,
-      "text": "n",
-      "bbox": [
-        497.052,
-        354.374,
-        508.062,
-        360.155
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 41,
-      "text": "ž",
-      "bbox": [
-        497.052,
-        360.155,
-        508.062,
-        364.504
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 42,
-      "text": "i e",
-      "bbox": [
-        497.052,
-        364.532,
-        521.812,
-        372.0
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 43,
-      "text": "j",
-      "bbox": [
-        497.052,
-        367.022,
-        508.062,
-        369.654
-      ],
-      "group_id": "p11-3",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 44,
-      "text": ", n",
-      "bbox": [
-        497.052,
-        372.02,
-        521.812,
-        377.8
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 45,
-      "text": "u _",
-      "bbox": [
-        497.052,
-        377.376,
-        521.812,
-        383.3
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 46,
-      "text": "k z",
-      "bbox": [
-        497.052,
-        383.197,
-        521.812,
-        388.206
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 47,
-      "text": "m &",
-      "bbox": [
-        497.052,
-        387.64,
-        521.812,
-        396.956
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 48,
-      "text": "á 0",
-      "bbox": [
-        497.052,
-        395.117,
-        521.812,
-        402.256
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 49,
-      "text": "z =",
-      "bbox": [
-        497.052,
-        400.716,
-        521.812,
-        406.605
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 50,
-      "text": "h",
-      "bbox": [
-        510.802,
-        406.169,
-        521.812,
-        411.949
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 51,
-      "text": "o",
-      "bbox": [
-        497.052,
-        409.103,
-        508.062,
-        414.905
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 52,
-      "text": "t",
-      "bbox": [
-        510.802,
-        411.96,
-        521.812,
-        415.649
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 53,
-      "text": "b d",
-      "bbox": [
-        497.052,
-        414.875,
-        521.812,
-        421.449
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 54,
-      "text": "e i w",
-      "bbox": [
-        497.052,
-        420.672,
-        521.812,
-        431.799
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 55,
-      "text": "n",
-      "bbox": [
-        497.052,
-        426.125,
-        508.062,
-        431.905
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 56,
-      "text": "ud _",
-      "bbox": [
-        497.052,
-        431.816,
-        521.812,
-        445.955
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 57,
-      "text": "z",
-      "bbox": [
-        510.802,
-        437.299,
-        521.812,
-        441.648
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 58,
-      "text": "&",
-      "bbox": [
-        510.802,
-        441.639,
-        521.812,
-        449.148
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 59,
-      "text": "a",
-      "bbox": [
-        497.052,
-        445.931,
-        508.062,
-        451.205
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 60,
-      "text": "s",
-      "bbox": [
-        510.802,
-        449.148,
-        521.812,
-        453.453
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 61,
-      "text": "r c",
-      "bbox": [
-        497.052,
-        451.212,
-        521.812,
-        458.103
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 62,
-      "text": "h",
-      "bbox": [
-        497.052,
-        455.075,
-        508.062,
-        460.855
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 63,
-      "text": "=",
-      "bbox": [
-        510.802,
-        458.07,
-        521.812,
-        463.553
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 64,
-      "text": "y g",
-      "bbox": [
-        497.052,
-        463.317,
-        521.812,
-        468.753
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 65,
-      "text": "n n",
-      "bbox": [
-        497.052,
-        468.275,
-        521.812,
-        474.553
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 66,
-      "text": "i n a",
-      "bbox": [
-        497.052,
-        474.084,
-        521.812,
-        482.405
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 67,
-      "text": "e l &",
-      "bbox": [
-        497.052,
-        479.831,
-        521.812,
-        489.803
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 68,
-      "text": "c 0001",
-      "bbox": [
-        497.052,
-        487.848,
-        521.812,
-        512.153
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 69,
-      "text": "í",
-      "bbox": [
-        497.052,
-        492.484,
-        508.062,
-        495.005
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 70,
-      "text": "ř",
-      "bbox": [
-        497.052,
-        495.013,
-        508.062,
-        498.855
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 71,
-      "text": "z",
-      "bbox": [
-        497.052,
-        498.855,
-        508.062,
-        503.204
-      ],
-      "group_id": "p11-4",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 72,
-      "text": "m",
-      "bbox": [
-        497.052,
-        505.704,
-        508.062,
-        514.501
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 73,
-      "text": "=",
-      "bbox": [
-        510.802,
-        512.12,
-        521.812,
-        517.603
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 74,
-      "text": "í n",
-      "bbox": [
-        497.052,
-        514.48,
-        508.062,
-        522.801
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 75,
-      "text": "t",
-      "bbox": [
-        510.802,
-        517.564,
-        521.812,
-        521.253
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 76,
-      "text": "e h",
-      "bbox": [
-        497.052,
-        521.273,
-        521.812,
-        528.251
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 77,
-      "text": "č g",
-      "bbox": [
-        497.052,
-        527.067,
-        521.812,
-        532.901
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 78,
-      "text": "a i e",
-      "bbox": [
-        497.052,
-        532.232,
-        521.812,
-        540.253
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 79,
-      "text": "n h",
-      "bbox": [
-        497.052,
-        538.171,
-        521.812,
-        546.003
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 80,
-      "text": "z _",
-      "bbox": [
-        497.052,
-        543.951,
-        521.812,
-        551.503
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 81,
-      "text": "y",
-      "bbox": [
-        497.052,
-        548.262,
-        508.062,
-        553.25
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 82,
-      "text": "v z",
-      "bbox": [
-        497.052,
-        551.503,
-        521.812,
-        558.2
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 83,
-      "text": "?",
-      "bbox": [
-        510.802,
-        555.852,
-        521.812,
-        560.949
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 84,
-      "text": "s l p",
-      "bbox": [
-        497.052,
-        560.745,
-        521.812,
-        569.249
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 85,
-      "text": "0271 .",
-      "bbox": [
-        497.052,
-        567.518,
-        521.812,
-        589.8
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 86,
-      "text": "r",
-      "bbox": [
-        510.802,
-        572.007,
-        521.812,
-        575.849
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 87,
-      "text": "e",
-      "bbox": [
-        510.802,
-        575.866,
-        521.812,
-        581.349
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 88,
-      "text": "w",
-      "bbox": [
-        510.802,
-        581.327,
-        521.812,
-        589.199
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 89,
-      "text": "e",
-      "bbox": [
-        510.802,
-        589.216,
-        521.812,
-        594.699
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 90,
-      "text": ".",
-      "bbox": [
-        497.052,
-        592.325,
-        508.062,
-        595.1
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 91,
-      "text": "r i",
-      "bbox": [
-        497.052,
-        594.678,
-        521.812,
-        598.95
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 92,
-      "text": "v",
-      "bbox": [
-        510.802,
-        597.173,
-        521.812,
-        602.149
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 93,
-      "text": "z _",
-      "bbox": [
-        497.052,
-        601.401,
-        521.812,
-        607.649
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 94,
-      "text": "y p",
-      "bbox": [
-        497.052,
-        607.619,
-        521.812,
-        613.399
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 95,
-      "text": "p a",
-      "bbox": [
-        497.052,
-        613.22,
-        521.812,
-        619.0
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 96,
-      "text": "a m",
-      "bbox": [
-        497.052,
-        618.699,
-        521.812,
-        627.496
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 97,
-      "text": "m",
-      "bbox": [
-        497.052,
-        624.253,
-        508.062,
-        633.05
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 98,
-      "text": "/",
-      "bbox": [
-        510.802,
-        627.446,
-        521.812,
-        631.696
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 99,
-      "text": "z",
-      "bbox": [
-        510.802,
-        631.696,
-        521.812,
-        636.045
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 100,
-      "text": "i c",
-      "bbox": [
-        497.052,
-        635.529,
-        521.812,
-        640.695
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 101,
-      "text": "v",
-      "bbox": [
-        497.052,
-        638.074,
-        508.062,
-        643.05
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 102,
-      "text": "o . b",
-      "bbox": [
-        497.052,
-        640.721,
-        521.812,
-        649.295
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 103,
-      "text": "r a",
-      "bbox": [
-        497.052,
-        648.808,
-        521.812,
-        654.595
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 104,
-      "text": "e l",
-      "bbox": [
-        497.052,
-        652.667,
-        521.812,
-        658.15
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 105,
-      "text": "ll o",
-      "bbox": [
-        497.052,
-        657.095,
-        521.812,
-        663.15
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 106,
-      "text": "ü e",
-      "bbox": [
-        497.052,
-        662.865,
-        521.812,
-        668.95
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 107,
-      "text": "M g",
-      "bbox": [
-        497.052,
-        668.362,
-        521.812,
-        678.35
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 108,
-      "text": ".",
-      "bbox": [
-        510.802,
-        673.523,
-        521.812,
-        676.298
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 109,
-      "text": "s",
-      "bbox": [
-        510.802,
-        676.298,
-        521.812,
-        680.602
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 110,
-      "text": "z p",
-      "bbox": [
-        497.052,
-        680.622,
-        521.812,
-        686.403
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 111,
-      "text": "e a",
-      "bbox": [
-        497.052,
-        685.166,
-        521.812,
-        691.652
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 112,
-      "text": "ř m",
-      "bbox": [
-        497.052,
-        690.657,
-        521.812,
-        700.449
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 113,
-      "text": "ý",
-      "bbox": [
-        497.052,
-        694.512,
-        508.062,
-        699.499
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 114,
-      "text": "V d",
-      "bbox": [
-        497.052,
-        699.507,
-        521.812,
-        706.249
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 115,
-      "text": ": l o 60",
-      "bbox": [
-        497.052,
-        706.228,
-        535.562,
-        718.695
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 116,
-      "text": "1",
-      "bbox": [
-        497.052,
-        711.168,
-        508.062,
-        716.75
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 117,
-      "text": "//",
-      "bbox": [
-        510.802,
-        714.55,
-        521.812,
-        723.049
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 118,
-      "text": "0",
-      "bbox": [
-        524.552,
-        718.663,
-        535.562,
-        724.245
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 119,
-      "text": "a",
-      "bbox": [
-        497.052,
-        719.226,
-        508.062,
-        724.5
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 120,
-      "text": "p : c",
-      "bbox": [
-        497.052,
-        723.049,
-        535.562,
-        730.25
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 121,
-      "text": "p",
-      "bbox": [
-        510.802,
-        725.97,
-        521.812,
-        731.75
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 122,
-      "text": "=",
-      "bbox": [
-        524.552,
-        728.912,
-        535.562,
-        734.395
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 123,
-      "text": "a",
-      "bbox": [
-        497.052,
-        730.226,
-        508.062,
-        735.5
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 124,
-      "text": "tt",
-      "bbox": [
-        510.802,
-        731.762,
-        521.812,
-        739.15
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 125,
-      "text": "t",
-      "bbox": [
-        524.552,
-        734.407,
-        535.562,
-        738.095
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 126,
-      "text": "M",
-      "bbox": [
-        497.052,
-        735.536,
-        508.062,
-        744.95
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 127,
-      "text": "h s",
-      "bbox": [
-        510.802,
-        738.095,
-        535.562,
-        744.95
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 128,
-      "text": "i",
-      "bbox": [
-        524.552,
-        742.429,
-        535.562,
-        744.95
-      ],
-      "group_id": "p11-5",
-      "quality_score": 1.0
-    },
-    {
-      "page": "11",
-      "line": 129,
       "text": "[8]",
       "bbox": [
         277.35,
@@ -6500,7 +4888,7 @@
         289.68,
         807.012
       ],
-      "group_id": "p11-6",
+      "group_id": "p11-3",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
@@ -6509,36 +4897,10 @@
     {
       "page": "12",
       "line": 0,
-      "text": "[",
+      "text": "[9]",
       "bbox": [
         34.888,
         277.35,
-        45.898,
-        280.73
-      ],
-      "group_id": "p12-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "12",
-      "line": 1,
-      "text": "9",
-      "bbox": [
-        34.888,
-        280.75,
-        45.898,
-        286.332
-      ],
-      "group_id": "p12-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "12",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        286.3,
         45.898,
         289.68
       ],
@@ -6547,7 +4909,7 @@
     },
     {
       "page": "12",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 3: Přibližně georeferencovaný výřez 1. vojenského mapování s mapou ZM 10 s vyznačením lokality Nehaus. V místech je rovněž",
       "bbox": [
         145.4,
@@ -6560,7 +4922,7 @@
     },
     {
       "page": "12",
-      "line": 4,
+      "line": 2,
       "text": "vyznačena jistá stavb nebo její pozůstatek.",
       "bbox": [
         145.4,
@@ -6568,42 +4930,16 @@
         334.779,
         521.812
       ],
-      "group_id": "p12-2",
+      "group_id": "p12-1",
       "quality_score": 1.0
     },
     {
       "page": "13",
       "line": 0,
-      "text": "[",
+      "text": "[10]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p13-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "13",
-      "line": 1,
-      "text": "10",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p13-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "13",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -6612,7 +4948,7 @@
     },
     {
       "page": "13",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 3: Výřez mapy ZM10 s vyznačením zkoumané památky Neuhaus.",
       "bbox": [
         140.6,
@@ -6620,42 +4956,16 @@
         456.772,
         508.062
       ],
-      "group_id": "p13-1",
+      "group_id": "p13-0",
       "quality_score": 1.0
     },
     {
       "page": "14",
       "line": 0,
-      "text": "[",
+      "text": "[11]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p14-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "14",
-      "line": 1,
-      "text": "11",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p14-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "14",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -6664,7 +4974,7 @@
     },
     {
       "page": "14",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 4: Lokalita Neuhaus na mape ZM 10 podložená modelem terénu dle LLS. Autor F. Prekop.",
       "bbox": [
         145.4,
@@ -6672,42 +4982,16 @@
         570.88,
         508.062
       ],
-      "group_id": "p14-1",
+      "group_id": "p14-0",
       "quality_score": 1.0
     },
     {
       "page": "15",
       "line": 0,
-      "text": "[",
+      "text": "[12]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p15-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "15",
-      "line": 1,
-      "text": "12",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p15-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "15",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -6716,7 +5000,7 @@
     },
     {
       "page": "15",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 5: Lokalita Neuhaus na digitálmím modelu terénu LLS. Autor F. Prekop.",
       "bbox": [
         179.35,
@@ -6724,42 +5008,16 @@
         522.682,
         508.062
       ],
-      "group_id": "p15-1",
+      "group_id": "p15-0",
       "quality_score": 1.0
     },
     {
       "page": "16",
       "line": 0,
-      "text": "[",
+      "text": "[13]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p16-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "16",
-      "line": 1,
-      "text": "13",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p16-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "16",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -6768,7 +5026,7 @@
     },
     {
       "page": "16",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 6: Okolí lokality Neuhaus. Interpretace zaznamenaných cest a jejich relativní časové zařazení. Podrobněji v textu.",
       "bbox": [
         179.35,
@@ -6776,42 +5034,16 @@
         709.836,
         508.062
       ],
-      "group_id": "p16-1",
+      "group_id": "p16-0",
       "quality_score": 1.0
     },
     {
       "page": "17",
       "line": 0,
-      "text": "[",
+      "text": "[14]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p17-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "17",
-      "line": 1,
-      "text": "14",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p17-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "17",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -6820,7 +5052,7 @@
     },
     {
       "page": "17",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 7: Plán lokality Neuhaus s interpretací objektů. Předmětem výzkumu byly porušení 1 – 3.",
       "bbox": [
         179.35,
@@ -6828,42 +5060,16 @@
         610.325,
         508.062
       ],
-      "group_id": "p17-1",
+      "group_id": "p17-0",
       "quality_score": 1.0
     },
     {
       "page": "18",
       "line": 0,
-      "text": "[",
+      "text": "[15]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p18-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "18",
-      "line": 1,
-      "text": "15",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p18-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "18",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -6872,7 +5078,7 @@
     },
     {
       "page": "18",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 8: Antropogenní objekty identifikované v širším okolí památky Neuéhaus. Čárkovaně naznačeno území, kde bychom měli hledat , podle",
       "bbox": [
         88.7,
@@ -6885,7 +5091,7 @@
     },
     {
       "page": "18",
-      "line": 4,
+      "line": 2,
       "text": "mého názoru, případné sídelní zázemí opevěného areálu.",
       "bbox": [
         88.7,
@@ -6893,42 +5099,16 @@
         346.619,
         521.812
       ],
-      "group_id": "p18-2",
+      "group_id": "p18-1",
       "quality_score": 1.0
     },
     {
       "page": "19",
       "line": 0,
-      "text": "[",
+      "text": "[16]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p19-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "19",
-      "line": 1,
-      "text": "16",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p19-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "19",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -6937,7 +5117,7 @@
     },
     {
       "page": "19",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 9: Plán detektorových nálezů se zobrazením jejich hmotnosti. Nejstarším nálezem je podkova, je nález č. DN21 (mimo opevněný areál).",
       "bbox": [
         145.4,
@@ -6945,42 +5125,16 @@
         775.067,
         508.062
       ],
-      "group_id": "p19-1",
+      "group_id": "p19-0",
       "quality_score": 1.0
     },
     {
       "page": "20",
       "line": 0,
-      "text": "[",
+      "text": "[17]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p20-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "20",
-      "line": 1,
-      "text": "17",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p20-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "20",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -6989,7 +5143,7 @@
     },
     {
       "page": "20",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 10: Plán porušení č. 1 po dokončení revizního výzkumu. Autor F. Prekop.",
       "bbox": [
         179.35,
@@ -6997,42 +5151,16 @@
         529.833,
         508.062
       ],
-      "group_id": "p20-1",
+      "group_id": "p20-0",
       "quality_score": 1.0
     },
     {
       "page": "21",
       "line": 0,
-      "text": "[",
+      "text": "[18]",
       "bbox": [
         34.888,
         274.55,
-        45.898,
-        277.93
-      ],
-      "group_id": "p21-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "21",
-      "line": 1,
-      "text": "18",
-      "bbox": [
-        34.888,
-        277.95,
-        45.898,
-        289.114
-      ],
-      "group_id": "p21-0",
-      "quality_score": 1.0
-    },
-    {
-      "page": "21",
-      "line": 2,
-      "text": "]",
-      "bbox": [
-        34.888,
-        289.1,
         45.898,
         292.48
       ],
@@ -7041,7 +5169,7 @@
     },
     {
       "page": "21",
-      "line": 3,
+      "line": 1,
       "text": "Mapa 11: Plán porušení 2 po dokončení výzkumu. Autor F. Prekop",
       "bbox": [
         179.35,
@@ -7049,7 +5177,7 @@
         476.092,
         508.062
       ],
-      "group_id": "p21-1",
+      "group_id": "p21-0",
       "quality_score": 1.0
     },
     {
