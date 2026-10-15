@@ -1,8 +1,9 @@
 # AMČR samples: born-digital conversion
 
-The 15 PDFs, converted on 2026-10-14 by atrium-digital-convert `6ac7a3e` (cluster job 7104676,
-[issue #5](https://github.com/ufal/atrium-digital-convert/issues/5)), with page-classification's
-five models and ocr-postprocess's line-quality model. The PDFs themselves are not here.
+The 15 PDFs, converted on 2026-10-15 by atrium-digital-convert `993d33a`, the code of `v1.1.2-beta`
+(cluster job 7108263, [issue #5](https://github.com/ufal/atrium-digital-convert/issues/5)), with
+page-classification's five models and ocr-postprocess's line-quality model on one 24 GB GPU. The
+PDFs themselves are not here.
 
 | Folder                                    | File per document     | What it is                                                                                                                                     |
 |-------------------------------------------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -11,7 +12,7 @@ five models and ocr-postprocess's line-quality model. The PDFs themselves are no
 | `markdown/full/`, `standard/`, `minimal/` | `<doc>.<detail>.md`   | The light record as Markdown, at three levels of detail. A page without usable text carries a `<!-- NEEDS_OCR: … -->` comment with the reason. |
 | `reports/reformat/`                       | `<doc>.reformat.json` | The service's `/reformat` answer: the record and its Markdown.                                                                                 |
 | `reports/describe/none/`                  | `<doc>.describe.json` | `/describe` without other services: per page, its text layer and where it goes next (`route`, `route_reason`).                                 |
-| `reports/describe/stages/`                | `<doc>.describe.json` | `/describe` with page-classification (on the pages without usable text) and ocr-postprocess's line-quality model (on the text).                |
+| `reports/describe/stages/`                | `<doc>.describe.json` | `/describe` with page-classification (on the pages without usable body text) and ocr-postprocess's line-quality model (on the text).           |
 | `reports/describe/all/`                   | `<doc>.describe.json` | `/describe` with page-classification on every page: the page type of each one.                                                                 |
 
 **Page verdicts** (`pages[].text_layer` in the records):
@@ -25,20 +26,24 @@ five models and ocr-postprocess's line-quality model. The PDFs themselves are no
 `htr` (handwriting), `none` (a photograph or drawing: nothing to read); `summary.reacquire_pages`
 lists a document's `ocr` and `htr` pages. Of the 2,514 pages, 1,981 have their own text; of the
 other 533, page-classification calls 434 photographs or drawings and 99 text or tables
-(`reports/describe/all/`). In `reports/describe/stages/` the routes are 1,952 `nlp`, 434 `none`
-and 128 `ocr`: the 99, and 29 pages of CTX202000362 that lose every ř, ě, č and ů (shown as `�`)
-in at least 5 % of their words. Those 29 stay `digital` in the records.
+(`reports/describe/all/`). In `reports/describe/stages/` the routes are 1,946 `nlp`, 434 `none`
+and 134 `ocr`. The 134 are:
+- the 99;
+- 29 pages of CTX202000362 that lose every ř, ě, č and ů (shown as `�`) in at least 5 % of their
+  words. They stay `digital` in the records;
+- 6 excavation plans of CTX202000362 (pp. 37, 41, 44, 45, 47, 49, `DRAW_L`) whose labels
+  ("Objekt 22") and title block are part of the image, and whose only text is the running header.
 
 **Quality** (`pages[].quality` in `reports/describe/stages/`): ocr-postprocess's model judges
-running text. Its band says `Trash` for 625 `digital` pages, mostly tables and photo or drawing
+running text. Its band says `Trash` for 626 `digital` pages, mostly tables and photo or drawing
 captions, whose text is nevertheless exact; the route counts running text only and keeps all of
 them `nlp`.
 
-**What these files still get wrong** (the first fixed in the code since):
-- **Plans whose labels are in the image.** CTX202000362 pp. 37, 41, 44, 45, 47 and 49 are
-  excavation plans (`DRAW_L`): their labels ("Objekt 22") and title block are part of the image,
-  and the text layer holds only the running header. They are routed `nlp` here; `/describe` now
-  sends such pages to `ocr`.
+**What these files still get wrong:**
+- **Line scores in `reports/describe/stages/`.** In 6 documents, ocr-postprocess could not score
+  10 batches of lines (1,280 lines) in the GPU memory left to it, and gave them the worst score.
+  The stage's paradata says so (`limits_applied`, `ppl_batch_lines`). 155 of these lines read
+  `Trash` or `Noisy` instead of `Clear`, and one page's band changed. No route changed.
 - **Bold section titles are not headings.** A title set in bold body-size type ("1. Lokalizace a
   okolnosti výzkumu") stays a paragraph in the light records and their Markdown: CTX201202683 has
   19 headings, its Docling record 192.

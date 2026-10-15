@@ -1,12 +1,12 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues (2026-10-15): **#3** (DU inputs; closes),
-> **#4** (PDF/DOCX inputs, W1–W6), **#5** (Dana's 15 AMČR PDFs), **#6** (forged cues; fixed on `test`, closes with
-> the next tag). #1 and #2 closed on 2026-10-07. Entries up to 2026-09-30 use the old llm-enrich numbers.
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues (2026-10-15): **#4** (PDF/DOCX inputs,
+> W1–W6), **#5** (Dana's 15 AMČR PDFs). #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15. Entries up to
+> 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
-> **v1.1.1-beta** (2026-10-05, `fe494cd`). `test` = `6ac7a3e` (2026-10-14): #5's R and R2 and #6's escaping are on
-> it, not released; the next tag is `v1.1.2-beta`._
+> **v1.1.1-beta** (2026-10-05, `fe494cd`) · **v1.1.2-beta** (2026-10-15, `8358f90`: #5's R, R2 and R3, #6's
+> escaping)._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -856,6 +856,60 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 * **Checked here:** `tests/test_md_stress.py` and `tests/test_layout_md.py`, 77 passed.
 * **Dev logs:** this header (the open issues, the releases, the `test` head); `digests/` and `plans/` of #3
   (consolidated), #5 and #6 (status after the push).
+
+  Files delivered in chat.
+
+## 2026-10-15 — #5: the clean re-run (C2) read, plans with labels in the image routed by page type
+* **Job 7104676** (10-14 evening, an A40 node, 1 h 36 min) ran every stage on `6ac7a3e`, `01_tests` included (903 passed). Its results replaced `data_samples/` (`691f04f`). Every expectation was met but one:
+  * quality moves 0; 29 lost-letter pages routed `ocr`; routes 1,952 / 434 / 128 as predicted;
+  * stages 61 and 62 agree on all 533 non-digital pages (21 differed before page-classification's fix);
+  * split letters 484 → 41; no small-caps split; CTX201703695's vertical headers whole (432 → 1);
+  * headings: the false ones gone (5,892 → 827), but bold body-size section titles are not headings (CTX201202683 19, Docling 192): a follow-up (K4TEL).
+* **What else it showed:**
+  * the 6 DRAW_L header-only pages of CTX202000362 are excavation plans whose labels and title block are part of the image, routed `nlp` with only the running header;
+  * ocr-postprocess peaks at 23.3 GB of GPU memory while scoring (`PPL_BATCH_LINES` 128, Qwen2.5-0.5B's vocabulary, logits copied up to three times), page-classification at 4.0 GB: over AMČR's shared 24 GB card;
+  * ocr-postprocess bands 625 of the 1,981 born-digital pages `Trash` (tables and captions).
+* **R3, plans with labels in the image (K4TEL: classify and OCR):**
+  * `digital_report.furniture_only`; `route_page` routes a `digital` page whose only text is a running header or footer by a page type that carries text (`ocr`, or `htr` for handwriting); the category mapping in `_route_by_category`;
+  * `/describe` asks page-classification about such pages by default (`service/api.py`; the spec's description);
+  * over C2's reports: 1,946 / 434 / 134, only the 6 plans change.
+* **Report and job:** `summary.md`'s Markdown columns say characters (`30_markdown` logs bytes); the near-miss text. The job's `OP_PPL_BATCH_LINES` sets ocr-postprocess's `PPL_BATCH_LINES`, to measure a smaller batch.
+* **Docs:** both READMEs' route tables; the AMČR section's figure pages and bold titles; `data_samples/README.md` rewritten for C2.
+* **Checks:** 924 passed, 3 skipped (11 new tests); ruff clean; fixtures and spec current; the job's dry runs with a stand-in ocr-postprocess.
+* **Dev logs:**
+  * `digests/5.digest.md`: a C2 section, the AMČR table updated, R3;
+  * `plans/5.plan.md`: C2 and R3 done; E the release next; F ocr-postprocess's GPU and band; G bold titles.
+
+  Files delivered in chat. Pushed as `993d33a` and released as `v1.1.2-beta` (`8358f90`). The log refresh `74169fd`,
+  written against `6ac7a3e`, had put back #5's digest and plan of 10-14 and dropped this entry; restored here, with
+  that refresh's facts kept (the release, hub #16, page-classification unreleased).
+
+
+## 2026-10-15 (afternoon) — #5: the release's run (C3) read; ocr-postprocess out of GPU memory
+* **Job 7108263** (13:39–15:09, an A30 node, 24 GB) ran every stage on `993d33a`, the code of `v1.1.2-beta`
+  (`01_tests` 914 passed). K4TEL put its results in `data_samples/` (`14099ce`).
+  * routes 1,946 / 434 / 134 as predicted: the 6 excavation plans of CTX202000362 went `nlp` → `ocr` (DRAW_L), and
+    nothing else moved;
+  * 569 pages classified in stage 61; stages 61 and 62 agree on all of them; no page type changed;
+  * the Markdown is byte-identical to C2's, and the records differ only in their run stamps.
+* **ocr-postprocess on 24 GB next to page-classification:**
+  * 10 perplexity batches of 128 lines failed (1,280 lines in 6 documents, scored 99999). The service answered 200,
+    and the stage read `ok`: only its paradata (`limits_applied`: `ppl_batch_lines`, `skipped`) said so;
+  * page-classification took 4.0 GB, ocr-postprocess 20.1 GB at its peak; C2 on the A40 had no failed batch;
+  * 155 lines lost their band, and one page band changed (CTX202200566 p. 3); no route.
+* **Cluster-side:** `copy_results_to_data_samples.sh` copies a finished run into `data_samples/`:
+  * all or nothing, after checking that each file is done, rc 0 or HTTP 200, parses, and holds no failed stage or
+    failed perplexity batch;
+  * `DRY_RUN`, `ALLOW_PARTIAL`; it warns on a run made by another code state, and leaves the README alone.
+
+  Tested on fake run directories made from C2's and C3's samples; shellcheck clean. On C3, it refuses the 6
+  reports with failed batches.
+* **Docs:** `data_samples/README.md` for C3 (routes, the plans, the failed line scores). The `v1.1.2-beta` row
+  in CONTRIBUTING now names R3, which the release notes also lack.
+* **Dev logs:**
+  * `digests/5.digest.md`: the status and a C3 section;
+  * `plans/5.plan.md`: C3 done; E6 is stage 61 again with `OP_PPL_BATCH_LINES=32`; F gets the silent failed
+    batch.
 
   Files delivered in chat.
 
