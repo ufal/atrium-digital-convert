@@ -83,11 +83,11 @@
     "contributors": [
       {
         "program": "digital-convert",
-        "run_id": "261014-182427",
-        "run_uuid": "urn:uuid:3be917e0-70c7-4c9d-a848-de6695d50b01",
-        "paradata_ref": "261014-182427_digital-convert.json",
+        "run_id": "261015-120845",
+        "run_uuid": "urn:uuid:7ed59b20-37e9-4cfa-bdef-5bff630465a4",
+        "paradata_ref": "261015-120845_digital-convert.json",
         "blocks": "pages,lines,content,tables",
-        "at": "2026-10-14T18:24:59.873145+00:00"
+        "at": "2026-10-15T12:09:09.220595+00:00"
       }
     ]
   },
@@ -95,31 +95,31 @@
     "blocks": {
       "pages": {
         "program": "digital-convert",
-        "run_id": "261014-182427",
-        "run_uuid": "urn:uuid:3be917e0-70c7-4c9d-a848-de6695d50b01",
-        "paradata_ref": "261014-182427_digital-convert.json",
-        "updated_at": "2026-10-14T18:24:59.494593+00:00"
+        "run_id": "261015-120845",
+        "run_uuid": "urn:uuid:7ed59b20-37e9-4cfa-bdef-5bff630465a4",
+        "paradata_ref": "261015-120845_digital-convert.json",
+        "updated_at": "2026-10-15T12:09:08.977340+00:00"
       },
       "lines": {
         "program": "digital-convert",
-        "run_id": "261014-182427",
-        "run_uuid": "urn:uuid:3be917e0-70c7-4c9d-a848-de6695d50b01",
-        "paradata_ref": "261014-182427_digital-convert.json",
-        "updated_at": "2026-10-14T18:24:59.505341+00:00"
+        "run_id": "261015-120845",
+        "run_uuid": "urn:uuid:7ed59b20-37e9-4cfa-bdef-5bff630465a4",
+        "paradata_ref": "261015-120845_digital-convert.json",
+        "updated_at": "2026-10-15T12:09:08.983250+00:00"
       },
       "content": {
         "program": "digital-convert",
-        "run_id": "261014-182427",
-        "run_uuid": "urn:uuid:3be917e0-70c7-4c9d-a848-de6695d50b01",
-        "paradata_ref": "261014-182427_digital-convert.json",
-        "updated_at": "2026-10-14T18:24:59.505694+00:00"
+        "run_id": "261015-120845",
+        "run_uuid": "urn:uuid:7ed59b20-37e9-4cfa-bdef-5bff630465a4",
+        "paradata_ref": "261015-120845_digital-convert.json",
+        "updated_at": "2026-10-15T12:09:08.983465+00:00"
       },
       "tables": {
         "program": "digital-convert",
-        "run_id": "261014-182427",
-        "run_uuid": "urn:uuid:3be917e0-70c7-4c9d-a848-de6695d50b01",
-        "paradata_ref": "261014-182427_digital-convert.json",
-        "updated_at": "2026-10-14T18:24:59.507396+00:00"
+        "run_id": "261015-120845",
+        "run_uuid": "urn:uuid:7ed59b20-37e9-4cfa-bdef-5bff630465a4",
+        "paradata_ref": "261015-120845_digital-convert.json",
+        "updated_at": "2026-10-15T12:09:08.984572+00:00"
       }
     },
     "had_baseline": false,
@@ -8322,12 +8322,12 @@
     {
       "page": "22",
       "line": 0,
-      "text": "188,00",
+      "text": "185,00",
       "bbox": [
         41.876,
-        129.376,
-        59.711,
-        133.626
+        554.53,
+        59.811,
+        558.78
       ],
       "group_id": "d224",
       "quality_score": 1.0,
@@ -8355,12 +8355,12 @@
     {
       "page": "22",
       "line": 2,
-      "text": "188,00",
+      "text": "185,00",
       "bbox": [
         541.407,
-        129.376,
-        559.242,
-        133.626
+        554.53,
+        559.342,
+        558.78
       ],
       "group_id": "d226",
       "quality_score": 1.0,
@@ -8371,22 +8371,6 @@
     {
       "page": "22",
       "line": 3,
-      "text": "187,00",
-      "bbox": [
-        42.017,
-        271.047,
-        59.517,
-        275.297
-      ],
-      "group_id": "d227",
-      "quality_score": 1.0,
-      "style": {
-        "region": "page_header"
-      }
-    },
-    {
-      "page": "22",
-      "line": 4,
       "text": "186,00",
       "bbox": [
         41.876,
@@ -8402,15 +8386,31 @@
     },
     {
       "page": "22",
-      "line": 5,
-      "text": "185,00",
+      "line": 4,
+      "text": "187,00",
       "bbox": [
-        41.876,
-        554.53,
-        59.811,
-        558.78
+        42.017,
+        271.047,
+        59.517,
+        275.297
       ],
       "group_id": "d229",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_header"
+      }
+    },
+    {
+      "page": "22",
+      "line": 5,
+      "text": "186,00",
+      "bbox": [
+        541.407,
+        412.292,
+        559.107,
+        416.542
+      ],
+      "group_id": "d230",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
@@ -8426,22 +8426,6 @@
         559.048,
         275.297
       ],
-      "group_id": "d230",
-      "quality_score": 1.0,
-      "style": {
-        "region": "page_header"
-      }
-    },
-    {
-      "page": "22",
-      "line": 7,
-      "text": "186,00",
-      "bbox": [
-        541.407,
-        412.292,
-        559.107,
-        416.542
-      ],
       "group_id": "d231",
       "quality_score": 1.0,
       "style": {
@@ -8450,15 +8434,31 @@
     },
     {
       "page": "22",
-      "line": 8,
-      "text": "185,00",
+      "line": 7,
+      "text": "188,00",
       "bbox": [
-        541.407,
-        554.53,
-        559.342,
-        558.78
+        41.876,
+        129.376,
+        59.711,
+        133.626
       ],
       "group_id": "d232",
+      "quality_score": 1.0,
+      "style": {
+        "region": "page_header"
+      }
+    },
+    {
+      "page": "22",
+      "line": 8,
+      "text": "188,00",
+      "bbox": [
+        541.407,
+        129.376,
+        559.242,
+        133.626
+      ],
+      "group_id": "d233",
       "quality_score": 1.0,
       "style": {
         "region": "page_header"
