@@ -239,7 +239,7 @@ checks this table against `tool_limits.py` and `.env.example`.
   parse; 1.9 GB before). Budget about 1 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot.
 * **The stages' GPU.** This service needs none. Page-classification takes 4.0 GB with its five
   models. ocr-postprocess's line-quality model peaked at 9.5 GB scoring 32 lines at a time
-  (`PPL_BATCH_LINES`: its default from its next release; set it on older ones), so the two fit one
+  (`PPL_BATCH_LINES`: its default from v1.12.0-beta, which also splits and retries a batch that runs out of memory; set it on older ones), so the two fit one
   24 GB card. At 128 lines it peaked at 23.3 GB, and on a 24 GB card next to page-classification
   some batches ran out of memory. Their lines were scored worst, while the stage still read `ok`:
   only the stage's paradata says so (`limits_applied`: `ppl_batch_lines`, `skipped`).
