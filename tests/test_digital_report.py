@@ -79,6 +79,34 @@ def test_quality_bands_follow_ocr_postprocess_plurality_vote():
     assert R.summarize_quality([]) is None
 
 
+def test_pre_filter_placeholders_do_not_move_the_score_or_the_language():
+    """`Non-text`/`Empty` lines carry a 0.0 placeholder and `N/A`: no model judged them (#5)."""
+    rows = [{"category": "Clear", "quality_score": 0.9, "lang": "ces"}] * 3 + [
+        {"category": "Non-text", "quality_score": 0.0, "lang": "N/A"},
+        {"category": "Empty", "quality_score": 0.0, "lang": "N/A"},
+        {"category": "Non-text", "quality_score": 0.0, "lang": "N/A"},
+        {"category": "Non-text", "quality_score": 0.0, "lang": "N/A"},
+    ]
+    quality = R.summarize_quality(rows)
+    assert quality["score"] == 0.9, "the placeholders' 0.0 is not averaged in"
+    assert quality["lang"] == "ces", "N/A does not out-vote the judged lines"
+    assert quality["lines_scored"] == 3
+    assert quality["lines_by_category"] == {"Clear": 3, "Empty": 1, "Non-text": 3}
+    assert quality["band"] == "Clear"
+
+
+def test_a_page_of_placeholders_only_has_no_score_band_or_language():
+    quality = R.summarize_quality(
+        [{"category": "Non-text", "quality_score": 0.0, "lang": "N/A"}] * 2
+    )
+    assert (quality["score"], quality["band"], quality["lang"], quality["lines_scored"]) == (
+        None,
+        None,
+        None,
+        0,
+    )
+
+
 def test_the_collections_come_from_the_vocabulary_registry():
     facets = R.page_category_collections()
     assert {"handwritten", "printed", "typed", "graphical", "tabular"} <= set(facets)

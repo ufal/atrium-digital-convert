@@ -15,6 +15,13 @@ that converts a document AND asks the two stages that can describe its pages:
     that endpoint is asked per page through `POST /process` (`task_type=text`) instead; its
     answer then informs the report only.
 
+**Lines ocr-postprocess could not score.** Since its v1.12.0-beta a perplexity batch that runs out
+of GPU memory is split and retried; a line that fails even on its own scores 99999 (`PPL_FAILED`),
+is categorised from that placeholder (usually `Trash`), and is noted only in the answer's
+`limits_applied` (`ppl_batch_lines`, `skipped`). Those lines keep the converter's values in the
+record, their page's score is recomputed from the lines that were scored (ocr-postprocess's own
+formula), they are left out of the report, and the stage reads `partial` with `lines_unscored`.
+
 Every stage is optional and every failure is contained:
 
   * a stage whose URL is not set (`PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`) is
@@ -39,14 +46,20 @@ worker thread, never on the event loop.
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import re
 import time
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
-from api_util.digital_report import is_prose_line, summarize_quality
+from api_util.digital_report import (
+    JUDGED_CATEGORIES,
+    is_prose_line,
+    quality_band,
+    summarize_quality,
+)
 
 PAGE_CLASSIFICATION = "page-classification"
 OCR_POSTPROCESS = "ocr-postprocess"
@@ -87,6 +100,12 @@ CONVERTER_PAGE_FIELDS: Tuple[str, ...] = (
     "text_layer",
 )
 CONVERTER_LINE_FIELDS: Tuple[str, ...] = ("text", "bbox", "group_id", "style")
+#: What ocr-postprocess's `/score_record` writes (the module docstring).
+SCORED_LINE_FIELDS: Tuple[str, ...] = ("categ", "quality_score", "lang")
+SCORED_PAGE_FIELDS: Tuple[str, ...] = ("quality_score", "quality_band")
+
+#: ocr-postprocess's perplexity for a line it could not score (`text_util.PPL_FAILED`).
+PPL_FAILED = 99999.0
 
 #: Short timeout for the best-effort `/info` probe that reads a stage's version.
 _INFO_TIMEOUT_S = 5.0
@@ -107,6 +126,7 @@ class StageOutcome:
     pages: Optional[List[int]] = None
     record_adopted: bool = False
     paradata: Optional[Dict[str, Any]] = None
+    lines_unscored: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -454,10 +474,17 @@ def run_ocr_postprocess(
         return result
     outcome.elapsed_s = round(time.monotonic() - started, 3)
 
+    unscored = _unscored_keys(body)
+    unscored_by_label: Dict[str, int] = {}
     by_label: Dict[str, List[Dict[str, Any]]] = {}
     for row in body.get("cleaned_lines") or []:
         if isinstance(row, dict) and row.get("page") is not None:
-            by_label.setdefault(str(row["page"]), []).append(row)
+            label = str(row["page"])
+            if (label, row.get("line")) in unscored:
+                # Its category and score come from the placeholder, not from the model.
+                unscored_by_label[label] = unscored_by_label.get(label, 0) + 1
+                continue
+            by_label.setdefault(label, []).append(row)
     summaries = {
         str(entry.get("page")): entry
         for entry in body.get("pages") or []
@@ -472,12 +499,25 @@ def run_ocr_postprocess(
         skipped = (summaries.get(label) or {}).get("skipped_decode_verdict")
         if skipped is not None:
             extra["skipped_decode_verdict"] = skipped
+        if unscored_by_label.get(label):
+            extra["lines_unscored"] = unscored_by_label[label]
         summary = summarize_quality(rows, prose=[_prose(row, sent) for row in rows], **extra)
         if summary:
             result.per_page[index] = summary
     paradata = body.get("paradata")
     outcome.paradata = paradata if isinstance(paradata, dict) else None
+    lost = max(len(unscored), _noted_unscored(body))
+    if lost:
+        outcome.lines_unscored = lost
     if not result.per_page:
+        if lost:
+            # Lines were sent, and none of them could be scored: the record is not written.
+            outcome.status = STATUS_ERROR
+            outcome.detail = (
+                f"no line could be scored: {lost} line(s) ran out of GPU memory even one at a time "
+                "(ocr-postprocess PPL_BATCH_LINES, limits_applied); the record keeps the converter's values"
+            )
+            return result
         # Every line kept the converter's decode verdict or had no text: nothing was scored, and
         # the record came back as it was sent.
         verdicts = sum(
@@ -490,8 +530,89 @@ def run_ocr_postprocess(
         return result
     outcome.detail = f"{len(result.per_page)} page(s) scored"
     record_back = body.get("document_json")
+    if isinstance(record_back, dict) and unscored:
+        record_back = _restore_unscored(record_back, record, unscored, by_label)
+    if lost:
+        outcome.status = STATUS_PARTIAL
+        outcome.detail += (
+            f"; {lost} line(s) could not be scored (out of GPU memory even one at a time) and keep the "
+            "converter's values"
+        )
     result.record = record_back if isinstance(record_back, dict) else None
     return result
+
+
+def _unscored_keys(body: Mapping[str, Any]) -> Set[Tuple[str, Any]]:
+    """The `(page, line)` keys of the lines `/score_record` could not score (perplexity 99999)."""
+    keys = set()
+    for row in body.get("cleaned_lines") or []:
+        if not isinstance(row, dict) or row.get("page") is None:
+            continue
+        perplexity = row.get("perplexity")
+        if isinstance(perplexity, (int, float)) and perplexity >= PPL_FAILED:
+            keys.add((str(row["page"]), row.get("line")))
+    return keys
+
+
+def _noted_unscored(body: Mapping[str, Any]) -> int:
+    """How many lines the answer's `limits_applied` says could not be scored."""
+    return sum(
+        int(entry.get("count") or 0)
+        for entry in body.get("limits_applied") or []
+        if isinstance(entry, dict)
+        and str(entry.get("limit") or "").lower() == "ppl_batch_lines"
+        and entry.get("effect") == "skipped"
+    )
+
+
+def _restore_unscored(
+    returned: Mapping[str, Any],
+    sent: Mapping[str, Any],
+    unscored: Set[Tuple[str, Any]],
+    scored_by_label: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> Dict[str, Any]:
+    """`returned` with the unscored lines' fields as the converter sent them.
+
+    Their pages' `quality_score`/`quality_band` are recomputed from the page's scored lines as
+    ocr-postprocess computes them (the mean score of the judged lines; the Clear/Noisy/Trash
+    plurality); a page none of whose lines was scored keeps the converter's values.
+    """
+    restored = copy.deepcopy(dict(returned))
+    before_lines = _line_index(sent)
+    for row in restored.get("lines") or []:
+        key = (str(row.get("page")), row.get("line")) if isinstance(row, dict) else None
+        if key not in unscored:
+            continue
+        _copy_fields(before_lines.get(key) or {}, row, SCORED_LINE_FIELDS)
+    affected = {label for label, _line in unscored}
+    before_pages = {str(p.get("page")): p for p in sent.get("pages") or [] if isinstance(p, dict)}
+    for page in restored.get("pages") or []:
+        label = str(page.get("page")) if isinstance(page, dict) else None
+        if label not in affected:
+            continue
+        _copy_fields(before_pages.get(label) or {}, page, SCORED_PAGE_FIELDS)
+        rows = scored_by_label.get(label) or []
+        categories = [str(row.get("category") or row.get("categ")) for row in rows]
+        scores = [
+            float(row["quality_score"])
+            for row, category in zip(rows, categories, strict=True)
+            if category in JUDGED_CATEGORIES and isinstance(row.get("quality_score"), (int, float))
+        ]
+        if scores:
+            page["quality_score"] = round(sum(scores) / len(scores), 4)
+        clear, noisy, trash = (categories.count(name) for name in JUDGED_CATEGORIES)
+        if clear or noisy or trash:
+            page["quality_band"] = quality_band(clear, noisy, trash)
+    return restored
+
+
+def _copy_fields(source: Mapping[str, Any], target: Dict[str, Any], names: Sequence[str]) -> None:
+    """Make `target`'s `names` what they are in `source` (absent there: absent here)."""
+    for name in names:
+        if name in source:
+            target[name] = copy.deepcopy(source[name])
+        else:
+            target.pop(name, None)
 
 
 def _score_per_page(

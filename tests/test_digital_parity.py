@@ -147,6 +147,12 @@ CASES = [
         ["K _", "e c a t a D", "nvonruT", "\n81\n"],
     ),
     (
+        "#5 bold section titles at the body size are headings; other bold lines are not",
+        "bold_titles.pdf",
+        ["### Zprava o vyzkumu", "#### 1 Uvod", "#### 2 Metodika", "#### 3 Zaver"],
+        ["#### Archeologicky", "#### Lokalita", "#### Tento", "#### - Keramika", "#### Poznamka"],
+    ),
+    (
         "G4 package without the main-part Override",
         "bare.docx",
         ["### Zpráva o sondě", "## Page 2"],

@@ -198,7 +198,7 @@ upload is read as what it is.
 | Pages                     | PDF pages, named by `/PageLabels`                          | explicit, section and Word's last rendered page breaks   | page breaks           | sheets                | `pages[]` (`page`, `page_index`)               |
 | Text blocks / paragraphs  | vertical gaps, per column                                  | one per paragraph, one per table cell                    | paragraph, table cell | row                   | `lines[]`, `lines[].group_id`                  |
 | Reading order             | words, columns (column-major), headers first               | document order; text boxes after their anchor            | document order        | row order             | `lines[]` order                                |
-| Headings                  | font size against the body size                            | outline level, then style name (`Heading N`, `Nadpis N`) | —                     | —                     | `lines[].style.heading_level`                  |
+| Headings                  | font size against the body size; bold body-size titles     | outline level, then style name (`Heading N`, `Nadpis N`) | —                     | —                     | `lines[].style.heading_level`                  |
 | Bold / italic             | font name                                                  | run → character style → paragraph style                  | —                     | —                     | `lines[].style.bold` / `.italic`               |
 | Running header / footer   | margin lines repeated across pages, page numbers           | each section's header and footer                         | —                     | —                     | `lines[].style.region`                         |
 | Footnotes                 | — (Docling engine: yes)                                    | footnotes and endnotes                                   | —                     | —                     | `lines[].style.region = footnote`              |
@@ -387,9 +387,14 @@ does about it:
   text. On born-digital pages its `Trash` lines are table cells, codes, coordinates, photo IDs and
   table-of-contents leaders, whose text is exact: counted over every line, `ROUTE_TRASH_SHARE` sent
   612 of the 1,981 `digital` pages to OCR. It counts prose lines only now, and moves none of them.
+* **Section titles in bold at the body size** were body text (one report had 19 headings where
+  Docling finds 192). A bold body-size line that reads as a title is a heading now, one level below
+  the size-based ones: 2–100 characters, no trailing comma, semicolon or hyphen, not a list item,
+  at most two bold lines in a row, and not the same bold line on three or more pages. The rule
+  stands aside in a document whose bold body-size text is over `BOLD_HEADING_MAX_SHARE` (25 %) of
+  its body text, and 0 switches it off.
 * **Known, not handled:** doubled glyphs on cover pages ("ARC CHEOLO GICKÝ"), letter-spaced captions
-  and map labels, unruled tables read column by column, and section titles set in bold body-size
-  type, which are not marked as headings (one report has 19 where Docling finds 192).
+  and map labels, unruled tables read column by column.
 * **Resources** (10-14, an A40 node; times differ between nodes, memory does not):
   * the light engine: 3–50 s per document, a peak of at most 0.7 GB on the command line and 0.8 GB
     in the service (783 MB for a 282-page report; 560 MB for the 156 MB one). Memory follows the
@@ -498,6 +503,7 @@ Every setting is an environment variable. [`.env.example`](.env.example) 📎 is
 | `ROUTE_TRASH_SHARE`                                       | 0.5                     | `/describe`: a decoding page with more `Trash` prose lines goes to `ocr`      |
 | `ROUTE_DAMAGED_WORD_SHARE`                                | 0.05                    | `/describe`: a decoding page with this share of words losing a letter → `ocr` |
 | `FURNITURE_ONLY_IMAGE_COVERAGE`                           | 0.85                    | a page with only header/footer text over images covering this much is `none`  |
+| `BOLD_HEADING_MAX_SHARE`                                  | 0.25                    | bold body-size titles are headings up to this share of bold text; 0 = off     |
 | `LIBREOFFICE_BIN`, `LIBREOFFICE_TIMEOUT_S`                | `soffice`, 120 s        | DOC/XLS conversion                                                            |
 | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`          | unset                   | `/describe`'s stages; unset → `not_configured`                                |
 | `STAGE_TIMEOUT_S`                                         | 360 s                   | per stage call; over it the stage is `unavailable`                            |

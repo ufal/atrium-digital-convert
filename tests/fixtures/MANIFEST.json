@@ -4,6 +4,11 @@
     "note": "minimal.docx without the document.xml Override — G4 lenient open",
     "sha256": "a318e43b12d74dba569a3e76d0164214d4ae175915996fd96a82fa2fbf951a86"
   },
+  "bold_titles.pdf": {
+    "bytes": 4460,
+    "note": "bold section titles at the body size; bold lines that are not titles (#5)",
+    "sha256": "815038aaffc5ccc7ab7109da318f5e55cdd61f69a2d1a3fc12047b227f640fa5"
+  },
   "enrichable.pdf": {
     "bytes": 884,
     "note": "1 page, diacritic-free Czech archaeology — the LLM stage's input",

@@ -92,6 +92,12 @@ Added later on 2026-10-14, for the re-run of the samples (job 7100515):
                       words; real spaces and a raised capital stay apart.
     rotated.pdf       table headers and a caption on a 90° baseline, each one line read in its
                       direction ("K_číslo", "Datace", "Obr. 18 Turnov").
+
+Added 2026-10-18 (#5, G):
+
+    bold_titles.pdf   section titles in bold at the body size are headings; a bold line ending in
+                      a comma, a bulleted one, a bold paragraph, a line with one bold word and a
+                      bold line repeated on every page are not.
 """
 
 from __future__ import annotations
@@ -667,6 +673,68 @@ def headings_pdf() -> bytes:
     return _build_pdf_ex([page1, page2, page3])
 
 
+def bold_titles_pdf() -> bytes:
+    """Section titles set in bold at the body size, and the bold lines that are not titles (#5).
+
+    The body is 11 pt Helvetica; the report title is 16 pt bold (a heading by size, level 1).
+    "1 Uvod", "2 Metodika" and "3 Zaver" are 11 pt bold: level 2. Not titles, though bold at
+    11 pt: a line ending in a comma, a bulleted item, a paragraph of three bold lines, a line
+    whose first word only is bold, and "Archeologicky ustav Praha", set bold in the body area
+    of every page.
+    """
+
+    def paragraph(y: int, first: str, n: int) -> bytes:
+        lines = [
+            f"{first} radek {i} popisuje sondu, vrstvy a nalezy z vyzkumu.".encode("ascii")
+            for i in range(1, n + 1)
+        ]
+        return _text_at(72, y, lines, size=11)
+
+    running = _text_at(72, 700, [b"Archeologicky ustav Praha"], font="F2", size=11)
+    page1 = b"\n".join(
+        [
+            running,
+            _text_at(72, 670, [b"Zprava o vyzkumu"], font="F2", size=16),
+            _text_at(72, 640, [b"1 Uvod"], font="F2", size=11),
+            paragraph(620, "Uvodni", 8),
+            _text_at(72, 490, [b"Lokalita a okolni krajina,"], font="F2", size=11),
+            paragraph(470, "Popisny", 4),
+            b"\n".join(
+                [
+                    b"BT",
+                    b"/F2 11 Tf",
+                    b"72 400 Td",
+                    b"(Poznamka:) Tj /F1 11 Tf ( text pokracuje obycejnym pismem.) Tj",
+                    b"ET",
+                ]
+            ),
+        ]
+    )
+    bold_paragraph = [
+        b"Tento odstavec je cely tucne, aby byl zdurazneny,",
+        b"a pokracuje na druhem radku stejnym pismem",
+        b"az do tretiho radku, kde konci teckou.",
+    ]
+    page2 = b"\n".join(
+        [
+            running,
+            _text_at(72, 680, [b"2 Metodika"], font="F2", size=11),
+            paragraph(660, "Metodicky", 8),
+            _text_at(72, 530, bold_paragraph, font="F2", size=11),
+            paragraph(480, "Dalsi", 4),
+            _text_at(72, 410, [b"- Keramika a mazanice"], font="F2", size=11),
+        ]
+    )
+    page3 = b"\n".join(
+        [
+            running,
+            _text_at(72, 680, [b"3 Zaver"], font="F2", size=11),
+            paragraph(660, "Zaverecny", 8),
+        ]
+    )
+    return _build_pdf_ex([page1, page2, page3])
+
+
 #: Czech capitals outside WinAnsi in a second subset (Č Ě Ř Ů), for `small_caps_pdf`.
 FONT_CZECH_CAPS_SUBSET = (
     b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+CzechCaps /FirstChar 128 /LastChar 131 "
@@ -1051,6 +1119,7 @@ BUILDERS = {
     "headings.pdf": headings_pdf,
     "small_caps.pdf": small_caps_pdf,
     "rotated.pdf": rotated_pdf,
+    "bold_titles.pdf": bold_titles_pdf,
 }
 
 NOTES = {
@@ -1070,6 +1139,7 @@ NOTES = {
     "headings.pdf": "title, paragraphs and a table of smaller type; an OCR page's ',' — headings (#5)",
     "small_caps.pdf": "capitals then smaller capitals in one word; real spaces; a Ts capital (#5)",
     "rotated.pdf": "vertical table headers (ttb with a second subset, btt); a btt caption (#5)",
+    "bold_titles.pdf": "bold section titles at the body size; bold lines that are not titles (#5)",
 }
 
 

@@ -75,6 +75,9 @@ ROUTES = (ROUTE_NLP, ROUTE_OCR, ROUTE_HTR, ROUTE_NONE)
 
 #: ocr-postprocess's line categories (its `/info` `quality_categories`).
 QUALITY_CATEGORIES = ("Clear", "Noisy", "Trash", "Non-text", "Empty")
+#: The verdicts of ocr-postprocess's quality model. `Non-text` and `Empty` are its CPU pre-filter's
+#: answers: no model ran, the score is a 0.0 placeholder and the language `N/A`.
+JUDGED_CATEGORIES = ("Clear", "Noisy", "Trash")
 
 #: The converter's own decode verdicts on `lines[].categ`.
 DECODE_CATEGORIES = ("Garbage", "Inverted")
@@ -177,6 +180,11 @@ def summarize_quality(
     """One page's quality from ocr-postprocess's per-line answers (`category`/`categ`,
     `quality_score`, `lang`). None when no line was scored.
 
+    `score`, `lang` and `lines_scored` count the lines the model judged (Clear/Noisy/Trash), as
+    ocr-postprocess's own page score does: a pre-filter answer (`Non-text`, `Empty`) carries a
+    0.0 placeholder and no language, and counting it pulled a page of clean prose with a few
+    page numbers down. `lines_by_category` still counts every line.
+
     `prose`, one flag per line of `lines` (`is_prose_line` of the line the converter sent),
     adds `prose_lines_scored` and `prose_lines_by_category`: what the quality rule of
     `route_page` counts. Flags that do not match the lines one to one are ignored.
@@ -187,19 +195,24 @@ def summarize_quality(
     if not rows:
         return None
     counts = Counter(str(row.get("category") or row.get("categ")) for row in rows)
+    judged = [
+        row for row in rows if str(row.get("category") or row.get("categ")) in JUDGED_CATEGORIES
+    ]
     scores = [
         float(row["quality_score"])
-        for row in rows
+        for row in judged
         if isinstance(row.get("quality_score"), (int, float))
     ]
-    langs = Counter(str(row["lang"]) for row in rows if row.get("lang"))
+    langs = Counter(
+        str(row["lang"]) for row in judged if row.get("lang") and str(row["lang"]) != "N/A"
+    )
     summary: Dict[str, Any] = {
         "source": "ocr-postprocess",
         "score": round(sum(scores) / len(scores), 4) if scores else None,
         "band": None,
         "lines_by_category": dict(sorted(counts.items())),
         "lang": langs.most_common(1)[0][0] if langs else None,
-        "lines_scored": len(rows),
+        "lines_scored": len(judged),
     }
     clear, noisy, trash = counts.get("Clear", 0), counts.get("Noisy", 0), counts.get("Trash", 0)
     if clear or noisy or trash:
@@ -248,7 +261,7 @@ def _converter_quality(page: DigitalPage) -> Optional[Dict[str, Any]]:
 def _judged(counts: Optional[Mapping[str, Any]]) -> Tuple[int, int]:
     """`(judged, trash)`: the Clear/Noisy/Trash lines of a `lines_by_category`-style count."""
     counts = counts or {}
-    judged = sum(int(counts.get(name, 0) or 0) for name in ("Clear", "Noisy", "Trash"))
+    judged = sum(int(counts.get(name, 0) or 0) for name in JUDGED_CATEGORIES)
     return judged, int(counts.get("Trash", 0) or 0)
 
 

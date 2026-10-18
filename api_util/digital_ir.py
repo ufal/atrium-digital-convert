@@ -198,6 +198,9 @@ class DigitalLine:
     #: Set by the light engine for a line read along a 90° rotated baseline (a table header
     #: set vertically, a caption along the page edge). Internal: such a line is never a heading.
     vertical: bool = False
+    #: Share of the line's characters set in a bold face (PDF light engine). Internal: `bold` is
+    #: the first word's face; the bold-title heading pass reads this (`digital_pdf`).
+    bold_share: float = 0.0
 
 
 #: `group_id` prefix of the lines that are table cells (`tbl{n}-r{r}c{c}`), in every adapter.

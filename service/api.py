@@ -224,7 +224,8 @@ class PageQuality(BaseModel):
         description="`ocr-postprocess` (the common line-quality model) or `digital-convert` (the decode check only)."
     )
     score: Optional[float] = Field(
-        description="From 0 to 1. ocr-postprocess: the mean line-quality score. digital-convert: the "
+        description="From 0 to 1. ocr-postprocess: the mean line-quality score of the lines it judged "
+        "(Clear/Noisy/Trash; a pre-filter answer's 0.0 placeholder is left out). digital-convert: the "
         "page's decode sanity (the record's `pages[].quality_score` before any scoring), a measure of "
         "how the characters decode, not of how the text reads."
     )
@@ -237,9 +238,12 @@ class PageQuality(BaseModel):
         description="Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty` (ocr-postprocess), or `Garbage`/`Inverted`/`decoded` (digital-convert)."
     )
     lang: Optional[str] = Field(
-        description="The page's dominant language, when the model reports one."
+        description="The page's dominant language among the lines the model judged, when it reports one."
     )
-    lines_scored: int = Field(description="Lines the verdict is based on.")
+    lines_scored: int = Field(
+        description="Lines the verdict is based on. ocr-postprocess: the lines it judged Clear, Noisy or "
+        "Trash; `Non-text`/`Empty` lines are counted in `lines_by_category` only."
+    )
     prose_lines_scored: Optional[int] = Field(
         None,
         description="ocr-postprocess only: the scored lines that are prose — outside a table, at "
@@ -345,6 +349,12 @@ class StageOutcomeModel(BaseModel):
     )
     paradata: Optional[Dict[str, Any]] = Field(
         description="The stage's own `CreateAction`, when it returned one."
+    )
+    lines_unscored: Optional[int] = Field(
+        None,
+        description="ocr-postprocess: lines it could not score (out of GPU memory even one at a time; "
+        "its `limits_applied` `ppl_batch_lines`). They keep the converter's values in the record and "
+        "are left out of the report; the stage is then `partial`.",
     )
 
 

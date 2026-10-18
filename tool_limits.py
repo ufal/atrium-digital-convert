@@ -10,9 +10,9 @@ startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.exampl
 checks that they agree.
 
 What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
-beside it. Four entries are POLICY thresholds rather than size caps
+beside it. Five entries are POLICY thresholds rather than size caps
 (``OCR_LAYER_DOCUMENT_SHARE``, ``ROUTE_TRASH_SHARE``, ``ROUTE_DAMAGED_WORD_SHARE``,
-``FURNITURE_ONLY_IMAGE_COVERAGE``): they are declared here all the same, because a value a deployment may change and a client must be
+``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``): they are declared here all the same, because a value a deployment may change and a client must be
 able to read back is exactly what ``/info`` ``limits`` is for.
 
 Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
@@ -89,6 +89,16 @@ FURNITURE_ONLY_IMAGE_COVERAGE = limit(
     "FURNITURE_ONLY_IMAGE_COVERAGE", 0.85, unit="share", kind=float, minimum=0, maximum=1
 )
 
+#: POLICY. A PDF line set in bold at the body size is a heading (one level below the size-based
+#: ones) when it reads as a title: short, not ending in a comma, not a list item, at most two bold
+#: lines in a row, not repeated on three pages. AMČR reports set their section titles that way, so
+#: before this they reached `/reformat` as body text (atrium-digital-convert#5). The rule applies
+#: only while bold text at the body size is at most this share of a document's body text: a
+#: document that sets whole paragraphs in bold has no bold titles to find. 0 switches it off.
+BOLD_HEADING_MAX_SHARE = limit(
+    "BOLD_HEADING_MAX_SHARE", 0.25, unit="share", kind=float, minimum=0, maximum=1
+)
+
 # ── the vendored reader's own caps (text_formats.py, from atrium-ocr-postprocess) ────────────
 #: Same variable names, units and defaults as atrium-ocr-postprocess's tool_limits.py: the reader
 #: module is byte-identical there and here (tests/test_vendored_reader_parity.py), and imports
@@ -113,6 +123,7 @@ LIMITS = LimitSet(
     ROUTE_TRASH_SHARE,
     ROUTE_DAMAGED_WORD_SHARE,
     FURNITURE_ONLY_IMAGE_COVERAGE,
+    BOLD_HEADING_MAX_SHARE,
     ODF_REPEAT_CAP,
     PDF_OBJECT_CAP,
 )

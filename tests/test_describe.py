@@ -335,6 +335,122 @@ def _score_record_all_trash(url, files=None, data=None, **_k):
     return _Reply(200, {**body, "document_json": record})
 
 
+def _score_record_some_unscored(unscored_every=3, page_score=0.85):
+    """ocr-postprocess v1.12.0-beta when a batch ran out of GPU memory: every `unscored_every`-th
+    line could not be scored (None: none). It carries perplexity 99999, reads Trash, counts in the page score,
+    and is noted only in `limits_applied`."""
+
+    def post(url, files=None, data=None, **_k):
+        if url.endswith("/info"):
+            return _Reply(200, {"version": "v1.12.0-beta"})
+        record = json.loads(files["document_json"][1])
+        rows, failed = [], 0
+        for n, line in enumerate(record["lines"]):
+            lost = unscored_every is not None and n % unscored_every == 0
+            failed += lost
+            categ, score = ("Trash", 0.0) if lost else ("Clear", 0.9)
+            line.update(categ=categ, quality_score=score, lang="ces")
+            rows.append(
+                {"page": str(line["page"]), "line": line["line"], "text": line["text"], "category": categ,
+                 "quality_score": score, "lang": "ces", "perplexity": 99999.0 if lost else 40.0}
+            )  # fmt: skip
+        for page in record["pages"]:
+            page.update(quality_score=page_score, quality_band="Trash")
+        notes = [
+            {
+                "limit": "ppl_batch_lines",
+                "value": 32,
+                "effect": "skipped",
+                "count": failed,
+                "detail": "...",
+            }
+        ]
+        body = {"type": "record", "doc_id": record["doc_id"], "cleaned_lines": rows, "pages": [],
+                "limits_applied": notes, "document_json": record}  # fmt: skip
+        return _Reply(200, body)
+
+    return post
+
+
+def test_lines_that_could_not_be_scored_make_the_stage_partial_and_keep_the_converters_values(
+    monkeypatch,
+):
+    _patch_requests(monkeypatch, _score_record_some_unscored())
+    sent = _describe("minimal.pdf", stages="none")["document_json"]
+    body = _describe("minimal.pdf", stages="ocr-postprocess")
+    stage = body["stages"][1]
+    assert stage["status"] == "partial" and stage["record_adopted"] is True
+    assert stage["lines_unscored"] == 2 and "could not be scored" in stage["detail"]
+
+    before = {(str(r["page"]), r["line"]): r for r in sent["lines"]}
+    scored_pages = set()
+    for n, row in enumerate(body["document_json"]["lines"]):
+        if n % 3 == 0:  # unscored: as the converter sent it
+            original = before[(str(row["page"]), row["line"])]
+            assert {k: row.get(k) for k in stages.SCORED_LINE_FIELDS} == {
+                k: original.get(k) for k in stages.SCORED_LINE_FIELDS
+            }
+        else:
+            assert row["categ"] == "Clear"
+            scored_pages.add(str(row["page"]))
+    sent_pages = {str(p["page"]): p for p in sent["pages"]}
+    assert scored_pages and len(scored_pages) < len(sent_pages), (
+        "the fixture has both kinds of page"
+    )
+    for page in body["document_json"]["pages"]:
+        if str(page["page"]) in scored_pages:  # recomputed from the lines that were scored
+            assert (page["quality_score"], page["quality_band"]) == (0.9, "Clear")
+        else:  # nothing on it was scored: the converter's values
+            original = sent_pages[str(page["page"])]
+            assert (page.get("quality_score"), page.get("quality_band")) == (
+                original.get("quality_score"),
+                original.get("quality_band"),
+            )
+    for page in body["pages"]:
+        assert "Trash" not in page["quality"]["lines_by_category"], (
+            "the placeholders stay out of the report"
+        )
+
+
+def test_a_note_without_unscored_rows_still_says_partial(monkeypatch):
+    post = _score_record_some_unscored(unscored_every=None)
+
+    def noted(url, **kwargs):
+        reply = post(url, **kwargs)
+        if url.endswith("/score_record"):
+            reply._payload["limits_applied"][0]["count"] = 4
+        return reply
+
+    _patch_requests(monkeypatch, noted)
+    stage = _describe("minimal.pdf", stages="ocr-postprocess")["stages"][1]
+    assert (stage["status"], stage["lines_unscored"]) == ("partial", 4)
+
+
+def test_without_a_note_the_stage_stays_ok(monkeypatch):
+    post = _score_record_some_unscored(unscored_every=None)
+
+    def clean(url, **kwargs):
+        reply = post(url, **kwargs)
+        if url.endswith("/score_record"):
+            reply._payload["limits_applied"] = []
+        return reply
+
+    _patch_requests(monkeypatch, clean)
+    stage = _describe("minimal.pdf", stages="ocr-postprocess")["stages"][1]
+    assert stage["status"] == "ok" and stage["lines_unscored"] is None
+
+
+def test_when_no_line_could_be_scored_the_stage_is_an_error_and_the_record_is_kept(monkeypatch):
+    _patch_requests(monkeypatch, _score_record_some_unscored(unscored_every=1))
+    body = _describe("minimal.pdf", stages="ocr-postprocess")
+    stage = body["stages"][1]
+    assert stage["status"] == "error" and stage["record_adopted"] is False
+    assert "no line could be scored" in stage["detail"]
+    assert all(
+        "categ" not in row or row["categ"] != "Trash" for row in body["document_json"]["lines"]
+    )
+
+
 def test_the_quality_model_moves_a_digital_page_only_for_its_prose(monkeypatch):
     """atrium-digital-convert#5: table cells and short lines read as Trash to a model of running
     text; only a page whose prose the model calls Trash goes to OCR."""

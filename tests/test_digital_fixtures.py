@@ -195,6 +195,7 @@ def test_canonical_manifest_path_is_independent_of_outdir(make_fixtures, tmp_pat
         "headings.pdf",
         "small_caps.pdf",
         "rotated.pdf",
+        "bold_titles.pdf",
     ],
 )
 def test_pdf_xref_offsets_resolve(blobs, name):

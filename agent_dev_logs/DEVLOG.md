@@ -1,12 +1,12 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues (2026-10-15): **#4** (PDF/DOCX inputs,
-> W1–W6), **#5** (Dana's 15 AMČR PDFs). #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15. Entries up to
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues (2026-10-18): **#4** (PDF/DOCX inputs,
+> W1–W6; ready to close), **#5** (Dana's 15 AMČR PDFs). #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15. Entries up to
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
 > **v1.1.1-beta** (2026-10-05, `fe494cd`) · **v1.1.2-beta** (2026-10-15, `8358f90`: #5's R, R2 and R3, #6's
-> escaping)._
+> escaping) · **v1.2.0-beta** prepared 2026-10-18 (#5's G, F, H; tag after C4)._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -934,6 +934,33 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   128.
 
   Files delivered in chat, with the comment for the thread.
+
+## 2026-10-18 — #5 round 2: bold titles as headings, unscored lines, the report's placeholders; v1.2.0-beta
+* **G — bold section titles** (`api_util/digital_pdf.py`; the C2 follow-up): a bold body-size line that reads as a
+  title is a heading one level below the size-based ones. The tests: ±6 % of the body size, ≥ 90 % of its
+  characters bold (`DigitalLine.bold_share`, internal), 2–100 characters with a letter, no trailing `,` `;` or
+  hyphen, no list marker, a run of at most two bold lines, and not the same bold text on three pages (the running
+  lines of CTX201400303). New policy limit `BOLD_HEADING_MAX_SHARE` (0.25; 0 = off): the rule stands aside when
+  bold body-size text is over it, which keeps `font_switch.pdf`'s output. New fixture `bold_titles.pdf`; the
+  parity table, the xref test and the manifest know it; the 16 earlier fixtures are unchanged.
+* **F — lines ocr-postprocess could not score** (`service/stages.py`): since its `v1.12.0-beta` such a line has
+  perplexity 99999, reads `Trash` and is noted only in `limits_applied`. It now keeps the converter's
+  `categ`/`quality_score`/`lang`, its page's `quality_score`/`quality_band` are recomputed from the scored lines
+  (ocr-postprocess's own formula; the converter's values where none was), it leaves the report, and the stage is
+  `partial` with the new `lines_unscored` (`error`, record not written, when nothing could be scored).
+* **H — the report** (`summarize_quality`): `score`, `lang` and `lines_scored` count the lines the model judged
+  (Clear/Noisy/Trash), not the pre-filter's `Non-text`/`Empty` (0.0, `N/A`). Routing is unchanged (`_judged`).
+* **Docs:** `service/README.md` (stage statuses, the unscored lines, the GPU note, the quality fields, the
+  limit), README (the settings table, the AMČR section's bold titles), `.env.example`, `PageQuality` and
+  `StageOutcomeModel` descriptions.
+* **Release `v1.2.0-beta`:** `para_config.txt`, `CITATION.cff`, the spec (compare: compatible), the CONTRIBUTING
+  row. The tag waits for C4. The notes mention R3 once, which `v1.1.2-beta`'s notes left out.
+* **Checks:** 938 passed, 4 skipped; ruff clean; `check_version` OK.
+* **Cluster:** C4 is the samples job again in a fresh folder; `issue5_extras_job.sh` (new) checks nlp-enrich#42 on
+  CTX201100348 and hub #72's rasteriser labels, PDF by PDF in parts of 40 pages.
+* **Dev logs:** `{5}` (R4, C4), `{4}` (ready to close: W5 is nlp-enrich#42, W7 hub #22).
+
+  Files delivered in chat, with the comments for #5 and #4.
 
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and

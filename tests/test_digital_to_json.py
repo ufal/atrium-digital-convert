@@ -1226,6 +1226,53 @@ def test_the_rerun_fixtures_read_as_their_pages_show(digital_fixtures):
     assert cells["K_číslo"] == "tbl0-r0c0" and cells["Datace"] == "tbl0-r0c1"
 
 
+def _headings(path):
+    record = d2j.build_record(str(path))
+    return [
+        (ln["page"], ln["text"], ln["style"]["heading_level"])
+        for ln in record["lines"]
+        if (ln.get("style") or {}).get("heading_level")
+    ]
+
+
+def test_bold_titles_at_the_body_size_are_headings_below_the_size_based_ones(digital_fixtures):
+    """AMČR reports set their section titles in bold at the body size (#5, G)."""
+    pytest.importorskip("pdfplumber")
+    assert _headings(digital_fixtures / "bold_titles.pdf") == [
+        ("1", "Zprava o vyzkumu", 1),
+        ("1", "1 Uvod", 2),
+        ("2", "2 Metodika", 2),
+        ("3", "3 Zaver", 2),
+    ], "not: a comma ending, a bullet, a bold paragraph, one bold word, a line bold on every page"
+
+
+@pytest.mark.parametrize("share", ["0", "0.1"])
+def test_bold_heading_max_share_switches_the_rule_off_or_guards_it(
+    digital_fixtures, monkeypatch, share
+):
+    """0 switches it off; below the document's bold share (about 0.17 here) nothing qualifies."""
+    pytest.importorskip("pdfplumber")
+    monkeypatch.setenv("BOLD_HEADING_MAX_SHARE", share)
+    assert _headings(digital_fixtures / "bold_titles.pdf") == [("1", "Zprava o vyzkumu", 1)]
+
+
+def test_a_document_set_largely_in_bold_has_no_bold_titles(digital_fixtures):
+    """font_switch.pdf: its bold title is over a third of its body-size text — the guard holds."""
+    pytest.importorskip("pdfplumber")
+    assert _headings(digital_fixtures / "font_switch.pdf") == []
+
+
+def test_bold_share_counts_characters_not_the_first_word():
+    from api_util.digital_pdf import _line_from_words
+
+    words = [
+        {"text": "Poznamka:", "fontname": "Helvetica-Bold", "size": 11, "x0": 0, "x1": 50, "top": 0, "bottom": 11},
+        {"text": "text pokracuje dal", "fontname": "Helvetica", "size": 11, "x0": 55, "x1": 150, "top": 0, "bottom": 11},
+    ]  # fmt: skip
+    line = _line_from_words(words, "1")
+    assert line.bold and line.bold_share == round(9 / 27, 3)
+
+
 def test_unmapped_glyph_placeholders_become_one_replacement_character_each():
     from api_util.digital_ir import unmapped_to_replacement
 

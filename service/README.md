@@ -89,11 +89,11 @@ record, that page only (atrium-digital-convert#4 W4).
 
 The fields of `/reformat` (without `markdown`), plus:
 
-| Field            | Meaning                                                                                                                         |
-|------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `stages`         | a comma-separated subset of `page-classification`, `ocr-postprocess`; empty → every configured one; `none` → none               |
+| Field            | Meaning                                                                                                                                                                                             |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `stages`         | a comma-separated subset of `page-classification`, `ocr-postprocess`; empty → every configured one; `none` → none                                                                                   |
 | `classify_pages` | `needs_ocr` (default): page-classification is asked about the pages without a usable text layer, and the pages whose only text is a running header or footer over an image; `all`: about every page |
-| `include_text`   | `false` to leave `pages[].text` out                                                                                             |
+| `include_text`   | `false` to leave `pages[].text` out                                                                                                                                                                 |
 
 The response is `/reformat`'s plus:
 
@@ -102,12 +102,12 @@ The response is `/reformat`'s plus:
   * `text_layer` — `digital` (decodes), `garbled` (a layer that does not decode), `ocr` (a prior OCR run), `none` (no text layer), `blank` (an empty page of a format without page images);
   * `needs_ocr`, `needs_ocr_reason`;
   * `category` — page-classification's answer (`label`, `confidence`, `top`), or null;
-  * `quality` — `source: ocr-postprocess` (the common line-quality model: `score`, `band`, `lines_by_category`, `lang`, and `prose_lines_scored` / `prose_lines_by_category`: the lines its route rule counts) or `source: digital-convert` (the decode check only);
+  * `quality` — `source: ocr-postprocess` (the common line-quality model: `score`, `band`, `lines_by_category`, `lang`, and `prose_lines_scored` / `prose_lines_by_category`: the lines its route rule counts; `score`, `lang` and `lines_scored` count only the lines it judged Clear, Noisy or Trash, not its pre-filter's `Non-text`/`Empty` placeholders) or `source: digital-convert` (the decode check only);
   * `route` + `route_reason`, below;
   * `layout` — `canvas`, `lines`, `blocks`, `tables`, `headings`, `regions`, `columns`, `images`, `vector_paths`, `words` (of the body text, outside the running header and footer), `damaged_words` (those of them that lost a letter to a glyph without a Unicode mapping, U+FFFD);
   * `text`.
 * `summary` — `pages`, `routes` (pages per route), `needs_ocr_pages`, `reacquire_pages`, `document_route` (`nlp`, `ocr`, `htr`, `none` or `mixed`). `reacquire_pages` (routes `ocr` and `htr`) is the page list to hand to ATR/HTR: it adds the decoding pages the two rules below send to OCR and leaves out the graphical ones, which `needs_ocr_pages` (the record's flags) does not.
-* `stages[]` — per stage: `status`, `detail`, `url`, `http_status`, `reason`, `elapsed_s`, `service_version`, `pages` sent, `record_adopted`, and the stage's own `paradata`.
+* `stages[]` — per stage: `status`, `detail`, `url`, `http_status`, `reason`, `elapsed_s`, `service_version`, `pages` sent, `record_adopted`, the stage's own `paradata`, and for ocr-postprocess `lines_unscored` (below).
 
 **Routes.** Deterministic (`api_util/digital_report.py`):
 
@@ -145,10 +145,19 @@ the image holds text the layer lacks, such as an excavation plan's labels and ti
 graphical or unknown type it keeps its route. page-classification is asked about these pages by
 default.
 
-**Stage statuses.** `ok`, `partial` (some pages failed), `not_configured` (its URL is unset),
-`not_requested`, `skipped` (nothing to do: not a PDF, no page needs classifying, no lines),
-`unavailable` (connection error, timeout `STAGE_TIMEOUT_S`, 429/5xx), `error` (another 4xx, or a
-payload that is not the expected JSON), `rejected` (the guard below refused its record).
+**Stage statuses.** `ok`, `partial` (some pages failed, or some lines could not be scored),
+`not_configured` (its URL is unset), `not_requested`, `skipped` (nothing to do: not a PDF, no page
+needs classifying, no lines), `unavailable` (connection error, timeout `STAGE_TIMEOUT_S`, 429/5xx),
+`error` (another 4xx, a payload that is not the expected JSON, or no line could be scored),
+`rejected` (the guard below refused its record).
+
+**Lines ocr-postprocess could not score.** From its v1.12.0-beta a perplexity batch that runs out
+of GPU memory is split and retried; a line that fails even on its own is scored 99999 (usually
+`Trash`) and noted only in its answer's `limits_applied` (`ppl_batch_lines`, `skipped`). Such a
+line keeps the converter's values in the record, its page's `quality_score`/`quality_band` are
+recomputed from the lines that were scored (the page keeps the converter's values when none was),
+it is left out of the page's `quality`, and the stage reads `partial` with `lines_unscored`, the
+count. When no line could be scored the stage is `error` and the record is not written.
 
 **What the stages may write.** Each stage is sent the current record and writes only its own fields
 through its own accretion: page-classification `page_categories` and `pages[].category/
@@ -225,6 +234,7 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its prose lines `Trash` |
 | `route_damaged_word_share`      | `ROUTE_DAMAGED_WORD_SHARE`          | 0.05    | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when this share of its body's words lose a letter (U+FFFD)   |
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needs_ocr`) when its images cover this share of it |
+| `bold_heading_max_share`        | `BOLD_HEADING_MAX_SHARE`            | 0.25    | share   | policy: a bold body-size line that reads as a title is a heading while bold body-size text is at most this share; 0 = off         |
 | `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                           |
 | `pdf_object_cap`                | `ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP` | 20000   | objects | the shared reader judges a PDF page's text layer on its first N objects                                                           |
 
@@ -241,8 +251,9 @@ checks this table against `tool_limits.py` and `.env.example`.
   models. ocr-postprocess's line-quality model peaked at 9.5 GB scoring 32 lines at a time
   (`PPL_BATCH_LINES`: its default from v1.12.0-beta, which also splits and retries a batch that runs out of memory; set it on older ones), so the two fit one
   24 GB card. At 128 lines it peaked at 23.3 GB, and on a 24 GB card next to page-classification
-  some batches ran out of memory. Their lines were scored worst, while the stage still read `ok`:
-  only the stage's paradata says so (`limits_applied`: `ppl_batch_lines`, `skipped`).
+  some batches ran out of memory (1,280 lines in 6 documents). Their lines were scored worst while
+  the stage read `ok`; since v1.2.0-beta they keep the converter's values and the stage reads
+  `partial` (above).
 * **Time.** `/reformat` took 3–58 s per document. `/describe` with both stages took up to 276 s
   (a 529-page report): page-classification 135 s for its 149 flagged pages, 202 s for all of them
   (`classify_pages=all`), ocr-postprocess up to 76 s (88 s at 32 lines a batch). `STAGE_TIMEOUT_S`

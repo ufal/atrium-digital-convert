@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import os
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -110,6 +110,22 @@ FURNITURE_MIN_SHARE = 0.5
 HEADING_SIZE_RATIO = 1.15
 HEADING_MAX_CHARS = 160
 MAX_HEADING_LEVEL = 3
+
+#: Bold titles at the body size (`_bold_titles`; `BOLD_HEADING_MAX_SHARE` in tool_limits.py):
+#: within this share of the body size, with at least this share of the characters bold, this
+#: long, in a run of at most this many bold lines, and not the same bold line on this many pages.
+BOLD_HEADING_SIZE_TOLERANCE = 0.06
+BOLD_HEADING_MIN_BOLD_SHARE = 0.9
+BOLD_HEADING_MIN_CHARS = 2
+BOLD_HEADING_MAX_CHARS = 100
+BOLD_HEADING_MAX_RUN = 2
+BOLD_HEADING_RUNNING_PAGES = 3
+#: The default of `BOLD_HEADING_MAX_SHARE` (tool_limits.py).
+BOLD_HEADING_MAX_SHARE = 0.25
+#: A list item, not a title: a bullet or dash and a space first.
+_LIST_MARKER = re.compile(r"^[\u2022\u2023\u2043\u25aa\u25cf\u25e6\u2013\u2014\-*·]\s")
+#: A title does not end mid-sentence or mid-word.
+_NOT_A_TITLE_END = (",", ";", "-", "\u2010", "\u00ad")
 
 #: A ruled grid covering this share of the page is a frame around it, not a table; a grid
 #: with fewer than this share of its cells holding text is decoration, not data.
@@ -481,6 +497,8 @@ def _line_from_words(words: List[Dict[str, Any]], page_label: str) -> DigitalLin
     sizes = Counter(round(float(w.get("size") or 0.0), 1) for w in words)
     fontname = str(words[0].get("fontname", ""))
     bold, italic = font_flags(fontname)
+    chars = sum(len(w["text"]) for w in words)
+    bold_chars = sum(len(w["text"]) for w in words if font_flags(str(w.get("fontname", "")))[0])
     return DigitalLine(
         page=page_label,
         line=0,
@@ -497,6 +515,7 @@ def _line_from_words(words: List[Dict[str, Any]], page_label: str) -> DigitalLin
         italic=italic,
         inverted=any(w.get("inverted") for w in words),
         vertical=any(w.get("vertical") for w in words),
+        bold_share=round(bold_chars / chars, 3) if chars else 0.0,
     )
 
 
@@ -726,6 +745,15 @@ def _mark_furniture(pages: List[Tuple[DigitalPage, List[_Unit]]]) -> None:
                 unit.region = band
 
 
+def bold_heading_max_share() -> float:
+    """The effective `BOLD_HEADING_MAX_SHARE` (the setting, else the module default)."""
+    try:
+        import tool_limits  # noqa: PLC0415  (repo root)
+    except ImportError:  # pragma: no cover - the repo root is on sys.path when the CLI runs
+        return BOLD_HEADING_MAX_SHARE
+    return float(tool_limits.BOLD_HEADING_MAX_SHARE.get())
+
+
 def furniture_only_image_coverage() -> float:
     """The effective `FURNITURE_ONLY_IMAGE_COVERAGE` (the setting, else the module default)."""
     try:
@@ -834,6 +862,59 @@ def _assign_headings(document: DigitalDocument) -> None:
     for line in candidates:
         if line.size in levels and len(line.text) <= HEADING_MAX_CHARS:
             line.heading_level = levels[line.size]
+    _bold_titles(document, body, min(len(heading_sizes) + 1, MAX_HEADING_LEVEL))
+
+
+def _bold_titles(document: DigitalDocument, body: float, level: int) -> None:
+    """Bold titles set at the body size become headings, one `level` below the size-based ones.
+
+    AMČR reports set their section titles in bold at the body size, so the size rule alone left
+    them body text (atrium-digital-convert#5). A body line is a title when nearly all of it is
+    bold, it is 2-100 characters with a letter in it, does not end in a comma, semicolon or
+    hyphen, is no list item, stands in a run of at most two bold lines (more is a bold
+    paragraph), and the same bold text is not on three or more pages (a running line set in
+    the body area). None of it applies when bold body-size text is over `BOLD_HEADING_MAX_SHARE`
+    of the document's body text, or when that setting is 0.
+    """
+    limit = bold_heading_max_share()
+    if limit <= 0:
+        return
+    tolerance = BOLD_HEADING_SIZE_TOLERANCE * body
+    runs: List[List[DigitalLine]] = []
+    body_chars = bold_chars = 0
+    pages_of: Dict[str, set] = defaultdict(set)
+    for page in document.pages:
+        run: List[DigitalLine] = []
+        for line in page.lines:
+            if not _heading_candidate(page, line):
+                continue
+            at_body_size = line.heading_level is None and abs(line.size - body) <= tolerance
+            if at_body_size:
+                body_chars += len(line.text)
+            if at_body_size and line.bold_share >= BOLD_HEADING_MIN_BOLD_SHARE:
+                bold_chars += len(line.text)
+                pages_of[_furniture_key(line.text)].add(page.page_index)
+                run.append(line)
+            elif run:
+                runs.append(run)
+                run = []
+        if run:
+            runs.append(run)
+    if not body_chars or bold_chars > limit * body_chars:
+        return
+    for run in runs:
+        if len(run) > BOLD_HEADING_MAX_RUN:
+            continue
+        for line in run:
+            text = line.text.strip()
+            if (
+                BOLD_HEADING_MIN_CHARS <= len(text) <= BOLD_HEADING_MAX_CHARS
+                and any(ch.isalpha() for ch in text)
+                and not text.endswith(_NOT_A_TITLE_END)
+                and not _LIST_MARKER.match(text)
+                and len(pages_of[_furniture_key(text)]) < BOLD_HEADING_RUNNING_PAGES
+            ):
+                line.heading_level = level
 
 
 # ── entry point ───────────────────────────────────────────────────────────────

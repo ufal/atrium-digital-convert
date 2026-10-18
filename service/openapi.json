@@ -3,7 +3,7 @@
   "info": {
     "title": "ATRIUM digital-convert API",
     "description": "Born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, DOC, XLS) into the ATRIUM document record, and a per-page assessment of whether each page's text can be used as it is.",
-    "version": "1.1.2-beta",
+    "version": "1.2.0-beta",
     "x-atrium-service": "atrium-digital-convert",
     "x-atrium-service-previous": "atrium-llm-enrich"
   },
@@ -2671,7 +2671,7 @@
               }
             ],
             "title": "Score",
-            "description": "From 0 to 1. ocr-postprocess: the mean line-quality score. digital-convert: the page's decode sanity (the record's `pages[].quality_score` before any scoring), a measure of how the characters decode, not of how the text reads."
+            "description": "From 0 to 1. ocr-postprocess: the mean line-quality score of the lines it judged (Clear/Noisy/Trash; a pre-filter answer's 0.0 placeholder is left out). digital-convert: the page's decode sanity (the record's `pages[].quality_score` before any scoring), a measure of how the characters decode, not of how the text reads."
           },
           "band": {
             "anyOf": [
@@ -2703,12 +2703,12 @@
               }
             ],
             "title": "Lang",
-            "description": "The page's dominant language, when the model reports one."
+            "description": "The page's dominant language among the lines the model judged, when it reports one."
           },
           "lines_scored": {
             "type": "integer",
             "title": "Lines Scored",
-            "description": "Lines the verdict is based on."
+            "description": "Lines the verdict is based on. ocr-postprocess: the lines it judged Clear, Noisy or Trash; `Non-text`/`Empty` lines are counted in `lines_by_category` only."
           },
           "prose_lines_scored": {
             "anyOf": [
@@ -3100,6 +3100,18 @@
             ],
             "title": "Paradata",
             "description": "The stage's own `CreateAction`, when it returned one."
+          },
+          "lines_unscored": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lines Unscored",
+            "description": "ocr-postprocess: lines it could not score (out of GPU memory even one at a time; its `limits_applied` `ppl_batch_lines`). They keep the converter's values in the record and are left out of the report; the stage is then `partial`."
           }
         },
         "additionalProperties": true,
