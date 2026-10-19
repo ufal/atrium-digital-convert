@@ -15,19 +15,21 @@ does its text read, and where should it go next.
 Inputs, by content (the extension only names the file): PDF, DOCX, ODT, ODS, XLSX, RTF, and the
 legacy DOC/XLS through headless LibreOffice. No model, no network, no GPU.
 
-## Quick start
+## Start
+
+The published image first: it is what a deployment runs, and it needs no checkout.
 
 ```bash
+docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.2.1-beta
+curl -s http://localhost:8000/ready                                               # 200 once ready
+# from a checkout:
+docker compose --profile api up
+docker compose --profile stub up      # /describe with stand-ins for the two stages
+# or in a virtual environment (development):
 pip install -r service/requirements.txt          # the converter stack + the web server
 python -m service.api                            # binds $HOST:$PORT (0.0.0.0:8000)
-# or, for development with auto-reload:
-RELOAD=true python -m service.api
-# or:
-uvicorn service.api:app --port 8000
+RELOAD=true python -m service.api                # with auto-reload
 ```
-
-Docker: `docker compose --profile api up` (image `ghcr.io/ufal/atrium-digital-convert-api`).
-To try `/describe` with stand-ins for the two stages: `docker compose --profile stub up`.
 
 ```bash
 curl -F file=@report.pdf http://localhost:8000/reformat
@@ -36,6 +38,16 @@ curl -F file=@report.pdf -F document_json=@seed.json http://localhost:8000/refor
 curl -F file=@report.pdf http://localhost:8000/describe
 curl -F file=@report.pdf -F stages=none http://localhost:8000/describe
 ```
+
+## Models and caches
+
+Nothing is downloaded at start or per request: the converter has no model and needs no network.
+
+| What                                                    | From where                                       | Revision                           | Into          | Without egress                                                                |
+|---------------------------------------------------------|--------------------------------------------------|------------------------------------|---------------|-------------------------------------------------------------------------------|
+| LibreOffice (DOC and XLS only)                          | in the image                                     | the image's package                | —             | nothing needed; a deployment without it answers 501 for DOC/XLS               |
+| page-classification, ocr-postprocess (`/describe` only) | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL` | their own releases                 | —             | the stage reads `not_configured` or `unavailable`; the request still succeeds |
+| Docling (optional engine)                               | a local build only, not the API image            | `requirements_digital_docling.txt` | its own cache | not part of the API image                                                     |
 
 ## Endpoints
 
@@ -179,21 +191,46 @@ through `/process` (`task_type=text`): its verdict goes into `pages[]`, not into
 Every error has the harmonised body `{status, reason, detail}` (§4.4); `reason` is a registered
 code or `null`, and refusals of a born-digital input name the converter's finer cause in `cause`.
 
-| Status | `reason`                 | When                                                                                                                          |
-|--------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| 413    | `limit_exceeded`         | a part over `MAX_UPLOAD_MB`                                                                                                   |
-| 415    | `unsupported_media_type` | not a born-digital type the converter reads (`cause`: `unsupported`, `legacy_office_unsupported`; `accepted` lists the types) |
-| 422    | `ocr_text_layer`         | a PDF whose text layer is an earlier OCR run (route it to OCR)                                                                |
-| 422    | `source_digest_mismatch` | the seed's `source.sha512` is not the uploaded file's                                                                         |
-| 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major)                                        |
-| 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`                                                                                   |
-| 422    | `null`                   | a broken file (`cause`: `corrupt`, `encrypted`, `zip_limits_exceeded`, `conversion_failed`); an unknown `stages` name         |
-| 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                  |
-| 501    | `null`                   | a DOC/XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                              |
-| 503    | `null`                   | the service is shutting down; retry against a live replica                                                                    |
+| Status | `reason`                 | When                                                                                                                          | What to do                                                                         |
+|--------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| 413    | `limit_exceeded`         | a part over `MAX_UPLOAD_MB`                                                                                                   | raise `MAX_UPLOAD_MB` for large originals (see Large documents), or split the file |
+| 415    | `unsupported_media_type` | not a born-digital type the converter reads (`cause`: `unsupported`, `legacy_office_unsupported`; `accepted` lists the types) | send a type in `accepted`; a scanned document goes to OCR                          |
+| 422    | `ocr_text_layer`         | a PDF whose text layer is an earlier OCR run (route it to OCR)                                                                | send the document to the OCR route                                                 |
+| 422    | `source_digest_mismatch` | the seed's `source.sha512` is not the uploaded file's                                                                         | send the file the seed was made for, or a new seed                                 |
+| 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major)                                        | send the seed AMČR made; update this service if the record is newer                |
+| 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`                                                                                   | raise the setting `limit.env` names, or split the document                         |
+| 422    | `null`                   | a broken file (`cause`: `corrupt`, `encrypted`, `zip_limits_exceeded`, `conversion_failed`); an unknown `stages` name         | repair or decrypt the file `cause` names; fix the `stages` value                   |
+| 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                  | retry after `Retry-After`; raise `MAX_CONCURRENT_JOBS` if memory allows            |
+| 501    | `null`                   | a DOC/XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                              | use the image (it has LibreOffice), or convert DOC/XLS to DOCX/XLSX first          |
+| 503    | `null`                   | the service is shutting down; retry against a live replica                                                                    | retry on another replica                                                           |
 
 `source_digest_mismatch` is in the shared registry (`service/atrium_service.py`, vendored from the hub)
 since v1.1.1-beta, so every ATRIUM service's spec publishes it; v1.1.0-beta registered it here.
+
+## Partial results
+
+A 200 can carry less than was asked for. Read these before using the result:
+
+- `needs_ocr` pages (and `summary.needs_ocr_pages`) have no usable text layer; with `/describe`,
+  `summary.reacquire_pages` lists every page OCR should read again, including pages whose letters do
+  not decode.
+- A `/describe` stage other than `ok` (see [Stage statuses](#post-describe-multipart-form)): `partial`
+  (some pages failed, or `lines_unscored` lines kept the converter's values), `not_configured`,
+  `unavailable`, `skipped`, `error` or `rejected`. The converter's record is still returned.
+- `limits_applied` lists each limit that shaped the result without refusing it (none today: each limit
+  refuses).
+
+## Known limits
+
+- Headings come from font size and bold body-size titles, not from a layout model, so a complex layout
+  gets fewer headings than a layout model finds; `BOLD_HEADING_MAX_SHARE=0` switches the bold-title rule
+  off.
+- Only a PDF gives line boxes; the other formats give pages and lines without positions.
+- A PDF page whose fonts do not map to Unicode loses its letters: the record keeps such a page
+  `digital`, and only `/describe`'s `summary.reacquire_pages` sends it to OCR.
+- Unruled tables are read by column, and letter-spaced captions and map labels split into pieces.
+- The upload is held in memory: the default 200 MB accepts most reports, and larger originals need
+  `MAX_UPLOAD_MB` raised per deployment (see Large documents).
 
 ## Configuration (environment)
 

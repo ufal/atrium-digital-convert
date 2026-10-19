@@ -974,6 +974,21 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   The #5 comment drafted in chat; it says `v1.2.0-beta` came out before C4.
 
+## 2026-10-19 (evening) — v1.2.1-beta: the service README as a runbook (atrium-project#77)
+* **`service/README.md`** gets the five runbook sections of the hub's outline:
+  - Start: the published image first;
+  - Models and caches: none; LibreOffice for DOC/XLS; the two stages of `/describe`; Docling only in a local build;
+  - a "What to do" column on all ten error rows;
+  - Partial results: `needs_ocr`, `reacquire_pages`, stage statuses;
+  - Known limits: headings without a layout model; boxes only for PDF; lost-letter pages; unruled tables; uploads held in memory.
+
+  The hub's `tools/runbook_check.py` passes for this repository.
+* **Why now:** AMČR's "production-runnable by 31 October" for `/reformat`; an operator starts from this README.
+* **Release `v1.2.1-beta`:** no code change. `para_config.txt`, `CITATION.cff`, the spec (version only;
+  compatible), the CONTRIBUTING row.
+
+  Files delivered in chat.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
