@@ -962,6 +962,18 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat, with the comments for #5 and #4.
 
+## 2026-10-19 — #5: C4 read; the 10-19 export
+* **C4** (`a4d3d4d`, the 15 PDFs on `v1.2.0-beta`): headings 827 → 1,217 against Docling's 1,597.
+  - CTX201202683's titles are found (19 → 119); CTX201400303 stays under Docling (76/109).
+  - CTX200802472 (235/190), CTX200914045 (62/47) and CTX202000362 (65/55) are now above it.
+  - The rule stays on; `BOLD_HEADING_MAX_SHARE=0` would switch it off.
+  - Routes 1,946 / 434 / 134 and the flags unchanged.
+* **F and H not exercised:** C4's services were ocr-postprocess 1.11.0-beta and page-classification 1.9.3-beta (every stage `ok`, no `lines_unscored`). They wait for a run on `v1.12.0-beta`/`v1.9.4-beta`.
+* **`600cd59`:** the issue exports of 10-19 (#4 closed, its export dropped; #5 with the 10-18 comment). `{4}` marked closed.
+* **Dev logs:** `{5}` (C4), `{4}` (closed).
+
+  The #5 comment drafted in chat; it says `v1.2.0-beta` came out before C4.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
