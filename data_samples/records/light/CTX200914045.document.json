@@ -55,11 +55,11 @@
     "contributors": [
       {
         "program": "digital-convert",
-        "run_id": "261015-114258",
-        "run_uuid": "urn:uuid:ac6cbf46-8ec8-48e8-bd6a-6bb44350b3aa",
-        "paradata_ref": "261015-114258_digital-convert.json",
+        "run_id": "261018-172038",
+        "run_uuid": "urn:uuid:ad1c736c-31ce-478e-bd37-13e7507eadb0",
+        "paradata_ref": "261018-172038_digital-convert.json",
         "blocks": "pages,lines,content,tables",
-        "at": "2026-10-15T11:43:00.956584+00:00"
+        "at": "2026-10-18T17:20:40.259142+00:00"
       }
     ]
   },
@@ -67,31 +67,31 @@
     "blocks": {
       "pages": {
         "program": "digital-convert",
-        "run_id": "261015-114258",
-        "run_uuid": "urn:uuid:ac6cbf46-8ec8-48e8-bd6a-6bb44350b3aa",
-        "paradata_ref": "261015-114258_digital-convert.json",
-        "updated_at": "2026-10-15T11:43:00.622504+00:00"
+        "run_id": "261018-172038",
+        "run_uuid": "urn:uuid:ad1c736c-31ce-478e-bd37-13e7507eadb0",
+        "paradata_ref": "261018-172038_digital-convert.json",
+        "updated_at": "2026-10-18T17:20:39.923816+00:00"
       },
       "lines": {
         "program": "digital-convert",
-        "run_id": "261015-114258",
-        "run_uuid": "urn:uuid:ac6cbf46-8ec8-48e8-bd6a-6bb44350b3aa",
-        "paradata_ref": "261015-114258_digital-convert.json",
-        "updated_at": "2026-10-15T11:43:00.629916+00:00"
+        "run_id": "261018-172038",
+        "run_uuid": "urn:uuid:ad1c736c-31ce-478e-bd37-13e7507eadb0",
+        "paradata_ref": "261018-172038_digital-convert.json",
+        "updated_at": "2026-10-18T17:20:39.931142+00:00"
       },
       "content": {
         "program": "digital-convert",
-        "run_id": "261015-114258",
-        "run_uuid": "urn:uuid:ac6cbf46-8ec8-48e8-bd6a-6bb44350b3aa",
-        "paradata_ref": "261015-114258_digital-convert.json",
-        "updated_at": "2026-10-15T11:43:00.630159+00:00"
+        "run_id": "261018-172038",
+        "run_uuid": "urn:uuid:ad1c736c-31ce-478e-bd37-13e7507eadb0",
+        "paradata_ref": "261018-172038_digital-convert.json",
+        "updated_at": "2026-10-18T17:20:39.931385+00:00"
       },
       "tables": {
         "program": "digital-convert",
-        "run_id": "261015-114258",
-        "run_uuid": "urn:uuid:ac6cbf46-8ec8-48e8-bd6a-6bb44350b3aa",
-        "paradata_ref": "261015-114258_digital-convert.json",
-        "updated_at": "2026-10-15T11:43:00.631034+00:00"
+        "run_id": "261018-172038",
+        "run_uuid": "urn:uuid:ad1c736c-31ce-478e-bd37-13e7507eadb0",
+        "paradata_ref": "261018-172038_digital-convert.json",
+        "updated_at": "2026-10-18T17:20:39.932275+00:00"
       }
     },
     "had_baseline": false,
@@ -715,7 +715,8 @@
       "group_id": "p2-0",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -728,7 +729,7 @@
         493.335,
         89.927
       ],
-      "group_id": "p2-0",
+      "group_id": "p2-1",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -744,7 +745,7 @@
         492.769,
         124.396
       ],
-      "group_id": "p2-1",
+      "group_id": "p2-2",
       "quality_score": 1.0,
       "style": {
         "italic": true
@@ -760,7 +761,7 @@
         507.762,
         135.919
       ],
-      "group_id": "p2-1",
+      "group_id": "p2-2",
       "quality_score": 1.0,
       "style": {
         "italic": true
@@ -776,7 +777,7 @@
         515.023,
         147.382
       ],
-      "group_id": "p2-1",
+      "group_id": "p2-2",
       "quality_score": 1.0,
       "style": {
         "italic": true
@@ -792,7 +793,7 @@
         244.248,
         158.905
       ],
-      "group_id": "p2-1",
+      "group_id": "p2-2",
       "quality_score": 1.0,
       "style": {
         "italic": true
@@ -808,10 +809,11 @@
         102.058,
         244.436
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-3",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -824,7 +826,7 @@
         222.088,
         264.325
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -837,7 +839,7 @@
         324.194,
         264.325
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -850,7 +852,7 @@
         253.194,
         284.846
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -863,7 +865,7 @@
         324.24,
         284.846
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -876,7 +878,7 @@
         158.154,
         305.367
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -889,7 +891,7 @@
         324.241,
         305.367
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -902,7 +904,7 @@
         186.519,
         325.828
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -915,7 +917,7 @@
         324.204,
         325.828
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -928,7 +930,7 @@
         175.296,
         346.349
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -941,7 +943,7 @@
         324.8,
         346.349
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -954,7 +956,7 @@
         195.296,
         366.87
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -967,7 +969,7 @@
         324.825,
         366.87
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -980,7 +982,7 @@
         210.781,
         387.331
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -993,7 +995,7 @@
         321.894,
         387.331
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1006,7 +1008,7 @@
         218.738,
         407.852
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1019,7 +1021,7 @@
         322.194,
         407.852
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1032,7 +1034,7 @@
         124.115,
         428.373
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1045,7 +1047,7 @@
         322.032,
         428.373
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1058,7 +1060,7 @@
         146.411,
         448.834
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1071,7 +1073,7 @@
         324.51,
         448.834
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1084,7 +1086,7 @@
         102.006,
         469.355
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1097,7 +1099,7 @@
         167.097,
         489.815
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1110,7 +1112,7 @@
         134.224,
         510.336
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1123,7 +1125,7 @@
         144.768,
         530.857
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1136,7 +1138,7 @@
         128.742,
         551.318
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1149,7 +1151,7 @@
         123.164,
         571.839
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1162,7 +1164,7 @@
         185.425,
         592.36
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1175,7 +1177,7 @@
         424.967,
         612.821
       ],
-      "group_id": "p2-2",
+      "group_id": "p2-4",
       "quality_score": 1.0
     },
     {
@@ -1191,7 +1193,8 @@
       "group_id": "p3-0",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -1223,7 +1226,8 @@
       "group_id": "p3-2",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -1236,7 +1240,7 @@
         524.44,
         167.113
       ],
-      "group_id": "p3-2",
+      "group_id": "p3-3",
       "quality_score": 1.0
     },
     {
@@ -1249,7 +1253,7 @@
         524.426,
         184.338
       ],
-      "group_id": "p3-2",
+      "group_id": "p3-3",
       "quality_score": 1.0
     },
     {
@@ -1262,7 +1266,7 @@
         524.507,
         201.612
       ],
-      "group_id": "p3-2",
+      "group_id": "p3-3",
       "quality_score": 1.0
     },
     {
@@ -1275,7 +1279,7 @@
         524.509,
         218.837
       ],
-      "group_id": "p3-2",
+      "group_id": "p3-3",
       "quality_score": 1.0
     },
     {
@@ -1288,7 +1292,7 @@
         202.025,
         236.061
       ],
-      "group_id": "p3-2",
+      "group_id": "p3-3",
       "quality_score": 1.0
     },
     {
@@ -1301,10 +1305,11 @@
         327.037,
         271.131
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-4",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -1317,7 +1322,7 @@
         524.524,
         287.844
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1330,7 +1335,7 @@
         524.473,
         305.069
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1343,7 +1348,7 @@
         524.467,
         322.343
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1356,7 +1361,7 @@
         524.474,
         339.567
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1369,7 +1374,7 @@
         524.442,
         356.842
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1382,7 +1387,7 @@
         524.501,
         374.066
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1395,7 +1400,7 @@
         524.366,
         391.351
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1408,7 +1413,7 @@
         524.471,
         408.575
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1421,7 +1426,7 @@
         524.523,
         425.86
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0,
       "style": {
         "italic": true
@@ -1437,7 +1442,7 @@
         524.452,
         443.084
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1450,7 +1455,7 @@
         524.465,
         460.359
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1463,7 +1468,7 @@
         524.506,
         477.583
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1476,7 +1481,7 @@
         524.465,
         494.857
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1489,7 +1494,7 @@
         444.505,
         512.082
       ],
-      "group_id": "p3-3",
+      "group_id": "p3-5",
       "quality_score": 1.0
     },
     {
@@ -1502,7 +1507,7 @@
         443.816,
         546.591
       ],
-      "group_id": "p3-4",
+      "group_id": "p3-6",
       "quality_score": 1.0
     },
     {
@@ -1515,7 +1520,7 @@
         87.607,
         617.653
       ],
-      "group_id": "p3-5",
+      "group_id": "p3-7",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -1531,7 +1536,7 @@
         283.427,
         617.653
       ],
-      "group_id": "p3-5",
+      "group_id": "p3-7",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -1547,7 +1552,7 @@
         496.423,
         617.653
       ],
-      "group_id": "p3-5",
+      "group_id": "p3-7",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -1563,7 +1568,7 @@
         377.488,
         634.817
       ],
-      "group_id": "p3-5",
+      "group_id": "p3-7",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -1579,7 +1584,7 @@
         268.511,
         646.46
       ],
-      "group_id": "p3-5",
+      "group_id": "p3-7",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -1595,7 +1600,7 @@
         276.793,
         658.224
       ],
-      "group_id": "p3-5",
+      "group_id": "p3-7",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -1611,7 +1616,7 @@
         494.197,
         669.927
       ],
-      "group_id": "p3-5",
+      "group_id": "p3-7",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -1627,7 +1632,7 @@
         455.265,
         680.939
       ],
-      "group_id": "p3-5",
+      "group_id": "p3-7",
       "quality_score": 1.0
     },
     {
@@ -1640,7 +1645,7 @@
         320.248,
         706.229
       ],
-      "group_id": "p3-6",
+      "group_id": "p3-8",
       "quality_score": 1.0,
       "style": {
         "bold": true
@@ -1656,7 +1661,7 @@
         524.4,
         807.504
       ],
-      "group_id": "p3-7",
+      "group_id": "p3-9",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
@@ -1675,7 +1680,8 @@
       "group_id": "p4-0",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -1688,7 +1694,7 @@
         524.445,
         100.58
       ],
-      "group_id": "p4-0",
+      "group_id": "p4-1",
       "quality_score": 1.0
     },
     {
@@ -1701,7 +1707,7 @@
         524.408,
         117.855
       ],
-      "group_id": "p4-0",
+      "group_id": "p4-1",
       "quality_score": 1.0
     },
     {
@@ -1714,7 +1720,7 @@
         318.49,
         135.079
       ],
-      "group_id": "p4-0",
+      "group_id": "p4-1",
       "quality_score": 1.0
     },
     {
@@ -1727,10 +1733,11 @@
         265.959,
         176.151
       ],
-      "group_id": "p4-1",
+      "group_id": "p4-2",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -1743,10 +1750,11 @@
         315.398,
         213.656
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-3",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -1759,7 +1767,7 @@
         524.395,
         230.37
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1772,7 +1780,7 @@
         524.43,
         247.594
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1785,7 +1793,7 @@
         524.473,
         267.36
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1798,7 +1806,7 @@
         524.474,
         285.554
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1811,7 +1819,7 @@
         524.488,
         302.778
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1824,7 +1832,7 @@
         524.409,
         320.063
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1837,7 +1845,7 @@
         524.415,
         337.287
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1850,7 +1858,7 @@
         323.12,
         354.511
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1863,7 +1871,7 @@
         524.438,
         371.796
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1876,7 +1884,7 @@
         524.441,
         389.02
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1889,7 +1897,7 @@
         524.523,
         406.305
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1902,7 +1910,7 @@
         524.478,
         423.529
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1915,7 +1923,7 @@
         524.444,
         440.804
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1928,7 +1936,7 @@
         524.454,
         458.028
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1941,7 +1949,7 @@
         524.417,
         475.313
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1954,7 +1962,7 @@
         524.456,
         492.537
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1967,7 +1975,7 @@
         382.053,
         509.811
       ],
-      "group_id": "p4-2",
+      "group_id": "p4-4",
       "quality_score": 1.0
     },
     {
@@ -1980,10 +1988,11 @@
         203.707,
         544.891
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-5",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -1996,7 +2005,7 @@
         524.469,
         561.545
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2009,7 +2018,7 @@
         524.425,
         578.829
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2022,7 +2031,7 @@
         524.524,
         596.054
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2035,7 +2044,7 @@
         524.418,
         613.338
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2048,7 +2057,7 @@
         524.467,
         630.562
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2061,7 +2070,7 @@
         524.494,
         647.847
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2074,7 +2083,7 @@
         524.417,
         665.071
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2087,7 +2096,7 @@
         524.494,
         682.356
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2100,7 +2109,7 @@
         524.527,
         699.58
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2113,7 +2122,7 @@
         524.523,
         716.805
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2126,7 +2135,7 @@
         156.392,
         734.089
       ],
-      "group_id": "p4-3",
+      "group_id": "p4-6",
       "quality_score": 1.0
     },
     {
@@ -2139,7 +2148,7 @@
         524.4,
         807.504
       ],
-      "group_id": "p4-4",
+      "group_id": "p4-7",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
@@ -2158,7 +2167,8 @@
       "group_id": "p5-0",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2239,7 +2249,8 @@
       "group_id": "p5-2",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2255,7 +2266,8 @@
       "group_id": "p5-2",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2268,7 +2280,7 @@
         500.06,
         274.598
       ],
-      "group_id": "p5-2",
+      "group_id": "p5-3",
       "quality_score": 1.0
     },
     {
@@ -2281,7 +2293,7 @@
         520.041,
         291.872
       ],
-      "group_id": "p5-2",
+      "group_id": "p5-3",
       "quality_score": 1.0
     },
     {
@@ -2294,7 +2306,7 @@
         496.594,
         309.097
       ],
-      "group_id": "p5-2",
+      "group_id": "p5-3",
       "quality_score": 1.0
     },
     {
@@ -2307,7 +2319,7 @@
         448.973,
         326.371
       ],
-      "group_id": "p5-2",
+      "group_id": "p5-3",
       "quality_score": 1.0
     },
     {
@@ -2320,10 +2332,11 @@
         265.403,
         381.662
       ],
-      "group_id": "p5-3",
+      "group_id": "p5-4",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2336,10 +2349,11 @@
         190.419,
         398.886
       ],
-      "group_id": "p5-3",
+      "group_id": "p5-4",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2352,7 +2366,7 @@
         524.471,
         415.599
       ],
-      "group_id": "p5-3",
+      "group_id": "p5-5",
       "quality_score": 1.0
     },
     {
@@ -2365,7 +2379,7 @@
         472.88,
         432.824
       ],
-      "group_id": "p5-3",
+      "group_id": "p5-5",
       "quality_score": 1.0
     },
     {
@@ -2378,7 +2392,7 @@
         500.57,
         450.098
       ],
-      "group_id": "p5-3",
+      "group_id": "p5-5",
       "quality_score": 1.0
     },
     {
@@ -2391,7 +2405,7 @@
         282.808,
         467.322
       ],
-      "group_id": "p5-3",
+      "group_id": "p5-5",
       "quality_score": 1.0
     },
     {
@@ -2404,10 +2418,11 @@
         140.424,
         502.403
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-6",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2420,7 +2435,7 @@
         524.588,
         519.116
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2433,7 +2448,7 @@
         524.444,
         536.34
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2446,7 +2461,7 @@
         524.526,
         553.625
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2459,7 +2474,7 @@
         524.544,
         570.849
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2472,7 +2487,7 @@
         315.502,
         588.124
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2485,7 +2500,7 @@
         524.506,
         605.348
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2498,7 +2513,7 @@
         524.456,
         622.632
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2511,7 +2526,7 @@
         524.462,
         639.857
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2524,7 +2539,7 @@
         260.941,
         657.141
       ],
-      "group_id": "p5-4",
+      "group_id": "p5-7",
       "quality_score": 1.0
     },
     {
@@ -2537,10 +2552,11 @@
         134.824,
         692.221
       ],
-      "group_id": "p5-5",
+      "group_id": "p5-8",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2553,7 +2569,7 @@
         524.448,
         708.875
       ],
-      "group_id": "p5-5",
+      "group_id": "p5-9",
       "quality_score": 1.0
     },
     {
@@ -2566,7 +2582,7 @@
         524.472,
         726.099
       ],
-      "group_id": "p5-5",
+      "group_id": "p5-9",
       "quality_score": 1.0
     },
     {
@@ -2579,7 +2595,7 @@
         524.516,
         743.384
       ],
-      "group_id": "p5-5",
+      "group_id": "p5-9",
       "quality_score": 1.0
     },
     {
@@ -2592,7 +2608,7 @@
         524.46,
         760.608
       ],
-      "group_id": "p5-5",
+      "group_id": "p5-9",
       "quality_score": 1.0
     },
     {
@@ -2605,7 +2621,7 @@
         524.4,
         807.504
       ],
-      "group_id": "p5-6",
+      "group_id": "p5-10",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
@@ -2689,7 +2705,8 @@
       "group_id": "p6-1",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2702,7 +2719,7 @@
         524.544,
         204.087
       ],
-      "group_id": "p6-1",
+      "group_id": "p6-2",
       "quality_score": 1.0
     },
     {
@@ -2715,7 +2732,7 @@
         524.349,
         221.362
       ],
-      "group_id": "p6-1",
+      "group_id": "p6-2",
       "quality_score": 1.0
     },
     {
@@ -2728,7 +2745,7 @@
         524.477,
         238.586
       ],
-      "group_id": "p6-1",
+      "group_id": "p6-2",
       "quality_score": 1.0
     },
     {
@@ -2741,7 +2758,7 @@
         524.441,
         255.861
       ],
-      "group_id": "p6-1",
+      "group_id": "p6-2",
       "quality_score": 1.0
     },
     {
@@ -2754,7 +2771,7 @@
         252.625,
         273.085
       ],
-      "group_id": "p6-1",
+      "group_id": "p6-2",
       "quality_score": 1.0
     },
     {
@@ -2767,7 +2784,7 @@
         524.466,
         290.359
       ],
-      "group_id": "p6-1",
+      "group_id": "p6-2",
       "quality_score": 1.0
     },
     {
@@ -2780,7 +2797,7 @@
         336.961,
         307.584
       ],
-      "group_id": "p6-1",
+      "group_id": "p6-2",
       "quality_score": 1.0
     },
     {
@@ -2793,10 +2810,11 @@
         182.621,
         357.654
       ],
-      "group_id": "p6-2",
+      "group_id": "p6-3",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2809,10 +2827,11 @@
         197.05,
         377.874
       ],
-      "group_id": "p6-2",
+      "group_id": "p6-3",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -2825,7 +2844,7 @@
         505.972,
         411.812
       ],
-      "group_id": "p6-3",
+      "group_id": "p6-4",
       "quality_score": 1.0
     },
     {
@@ -2838,7 +2857,7 @@
         464.935,
         423.335
       ],
-      "group_id": "p6-3",
+      "group_id": "p6-4",
       "quality_score": 1.0
     },
     {
@@ -2851,7 +2870,7 @@
         497.685,
         683.178
       ],
-      "group_id": "p6-4",
+      "group_id": "p6-5",
       "quality_score": 1.0
     },
     {
@@ -2864,7 +2883,7 @@
         478.358,
         694.641
       ],
-      "group_id": "p6-4",
+      "group_id": "p6-5",
       "quality_score": 1.0
     },
     {
@@ -2877,7 +2896,7 @@
         215.933,
         729.149
       ],
-      "group_id": "p6-5",
+      "group_id": "p6-6",
       "quality_score": 1.0
     },
     {
@@ -2890,7 +2909,7 @@
         132.004,
         740.672
       ],
-      "group_id": "p6-5",
+      "group_id": "p6-6",
       "quality_score": 1.0
     },
     {
@@ -2903,7 +2922,7 @@
         140.365,
         752.195
       ],
-      "group_id": "p6-5",
+      "group_id": "p6-6",
       "quality_score": 1.0
     },
     {
@@ -2916,7 +2935,7 @@
         524.4,
         807.504
       ],
-      "group_id": "p6-6",
+      "group_id": "p6-7",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
@@ -3013,7 +3032,8 @@
       "group_id": "p7-3",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -3026,7 +3046,7 @@
         524.486,
         240.859
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3039,7 +3059,7 @@
         524.452,
         258.134
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3052,7 +3072,7 @@
         524.455,
         275.358
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3065,7 +3085,7 @@
         524.453,
         292.633
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3078,7 +3098,7 @@
         436.064,
         309.857
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3091,7 +3111,7 @@
         524.419,
         327.142
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3104,7 +3124,7 @@
         524.468,
         344.366
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3117,7 +3137,7 @@
         524.569,
         361.651
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3130,7 +3150,7 @@
         524.497,
         378.875
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3143,7 +3163,7 @@
         524.473,
         396.159
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3156,7 +3176,7 @@
         524.505,
         413.384
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3169,7 +3189,7 @@
         402.073,
         430.658
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3182,7 +3202,7 @@
         524.485,
         447.883
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3195,7 +3215,7 @@
         524.452,
         465.167
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3208,7 +3228,7 @@
         524.457,
         482.392
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3221,7 +3241,7 @@
         524.465,
         499.666
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3234,7 +3254,7 @@
         524.375,
         516.89
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3247,7 +3267,7 @@
         524.417,
         534.165
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3260,7 +3280,7 @@
         524.387,
         551.389
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3273,7 +3293,7 @@
         524.389,
         568.614
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3286,7 +3306,7 @@
         524.331,
         585.898
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3299,7 +3319,7 @@
         524.37,
         603.123
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3312,7 +3332,7 @@
         524.444,
         620.407
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3325,7 +3345,7 @@
         146.962,
         637.631
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3338,7 +3358,7 @@
         524.504,
         654.916
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3351,7 +3371,7 @@
         524.432,
         672.14
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3364,7 +3384,7 @@
         524.426,
         689.425
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3377,7 +3397,7 @@
         524.373,
         706.649
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3390,7 +3410,7 @@
         524.447,
         723.934
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3403,7 +3423,7 @@
         524.375,
         741.158
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3416,7 +3436,7 @@
         214.747,
         758.443
       ],
-      "group_id": "p7-3",
+      "group_id": "p7-4",
       "quality_score": 1.0
     },
     {
@@ -3429,7 +3449,7 @@
         524.4,
         807.504
       ],
-      "group_id": "p7-4",
+      "group_id": "p7-5",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
@@ -3448,7 +3468,8 @@
       "group_id": "p8-0",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -3461,7 +3482,7 @@
         524.338,
         135.079
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3474,7 +3495,7 @@
         464.963,
         152.364
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3487,7 +3508,7 @@
         524.531,
         169.588
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3500,7 +3521,7 @@
         524.505,
         186.863
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3513,7 +3534,7 @@
         524.583,
         204.087
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3526,7 +3547,7 @@
         524.515,
         221.362
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3539,7 +3560,7 @@
         524.47,
         238.586
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3552,7 +3573,7 @@
         524.398,
         255.861
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3565,7 +3586,7 @@
         524.463,
         273.085
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3578,7 +3599,7 @@
         524.539,
         290.359
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3591,7 +3612,7 @@
         524.519,
         307.584
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0
     },
     {
@@ -3604,7 +3625,7 @@
         189.839,
         324.808
       ],
-      "group_id": "p8-0",
+      "group_id": "p8-1",
       "quality_score": 1.0,
       "style": {
         "italic": true
@@ -3620,7 +3641,7 @@
         524.519,
         578.241
       ],
-      "group_id": "p8-1",
+      "group_id": "p8-2",
       "quality_score": 1.0
     },
     {
@@ -3633,7 +3654,7 @@
         301.019,
         595.465
       ],
-      "group_id": "p8-1",
+      "group_id": "p8-2",
       "quality_score": 1.0
     },
     {
@@ -3646,10 +3667,11 @@
         214.873,
         630.535
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-3",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -3662,7 +3684,7 @@
         524.419,
         647.248
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-4",
       "quality_score": 1.0
     },
     {
@@ -3675,7 +3697,7 @@
         524.434,
         664.473
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-4",
       "quality_score": 1.0
     },
     {
@@ -3688,7 +3710,7 @@
         524.48,
         681.747
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-4",
       "quality_score": 1.0
     },
     {
@@ -3701,7 +3723,7 @@
         524.45,
         698.972
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-4",
       "quality_score": 1.0
     },
     {
@@ -3714,7 +3736,7 @@
         524.517,
         716.256
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-4",
       "quality_score": 1.0
     },
     {
@@ -3727,7 +3749,7 @@
         524.449,
         733.481
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-4",
       "quality_score": 1.0
     },
     {
@@ -3740,7 +3762,7 @@
         524.449,
         750.705
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-4",
       "quality_score": 1.0
     },
     {
@@ -3753,7 +3775,7 @@
         482.784,
         767.989
       ],
-      "group_id": "p8-2",
+      "group_id": "p8-4",
       "quality_score": 1.0
     },
     {
@@ -3766,7 +3788,7 @@
         524.4,
         807.504
       ],
-      "group_id": "p8-3",
+      "group_id": "p8-5",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
@@ -4168,7 +4190,8 @@
       "group_id": "p9-1",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -4181,7 +4204,7 @@
         524.427,
         618.114
       ],
-      "group_id": "p9-1",
+      "group_id": "p9-2",
       "quality_score": 1.0
     },
     {
@@ -4194,7 +4217,7 @@
         524.409,
         635.338
       ],
-      "group_id": "p9-1",
+      "group_id": "p9-2",
       "quality_score": 1.0
     },
     {
@@ -4207,7 +4230,7 @@
         524.437,
         652.622
       ],
-      "group_id": "p9-1",
+      "group_id": "p9-2",
       "quality_score": 1.0
     },
     {
@@ -4220,7 +4243,7 @@
         524.323,
         669.847
       ],
-      "group_id": "p9-1",
+      "group_id": "p9-2",
       "quality_score": 1.0
     },
     {
@@ -4233,7 +4256,7 @@
         524.439,
         687.071
       ],
-      "group_id": "p9-1",
+      "group_id": "p9-2",
       "quality_score": 1.0
     },
     {
@@ -4246,7 +4269,7 @@
         350.94,
         704.356
       ],
-      "group_id": "p9-1",
+      "group_id": "p9-2",
       "quality_score": 1.0
     },
     {
@@ -4259,7 +4282,7 @@
         524.4,
         807.504
       ],
-      "group_id": "p9-2",
+      "group_id": "p9-3",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
@@ -4278,7 +4301,8 @@
       "group_id": "p10-0",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -4729,7 +4753,8 @@
       "group_id": "p11-5",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -4742,7 +4767,7 @@
         506.106,
         246.081
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4755,7 +4780,7 @@
         427.704,
         263.355
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4768,7 +4793,7 @@
         475.556,
         283.576
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4781,7 +4806,7 @@
         352.651,
         300.85
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4794,7 +4819,7 @@
         520.127,
         321.071
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4807,7 +4832,7 @@
         193.702,
         338.345
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4820,7 +4845,7 @@
         506.139,
         358.565
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4833,7 +4858,7 @@
         209.871,
         375.79
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4846,7 +4871,7 @@
         465.395,
         396.07
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4859,7 +4884,7 @@
         303.811,
         416.291
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4872,7 +4897,7 @@
         492.198,
         436.571
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4885,7 +4910,7 @@
         165.339,
         453.795
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4898,7 +4923,7 @@
         471.059,
         474.076
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4911,7 +4936,7 @@
         287.027,
         494.296
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4924,7 +4949,7 @@
         478.824,
         514.577
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4937,7 +4962,7 @@
         174.283,
         531.801
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4950,7 +4975,7 @@
         514.492,
         552.082
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4963,7 +4988,7 @@
         512.708,
         569.306
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4976,7 +5001,7 @@
         113.172,
         586.581
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-6",
       "quality_score": 1.0
     },
     {
@@ -4989,10 +5014,11 @@
         113.115,
         607.372
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-7",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -5005,7 +5031,7 @@
         297.159,
         627.081
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-8",
       "quality_score": 1.0
     },
     {
@@ -5018,7 +5044,7 @@
         489.383,
         647.302
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-8",
       "quality_score": 1.0
     },
     {
@@ -5031,7 +5057,7 @@
         160.401,
         664.586
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-8",
       "quality_score": 1.0
     },
     {
@@ -5044,10 +5070,11 @@
         113.115,
         685.378
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-9",
       "quality_score": 1.0,
       "style": {
-        "bold": true
+        "bold": true,
+        "heading_level": 3
       }
     },
     {
@@ -5060,7 +5087,7 @@
         419.867,
         705.598
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-10",
       "quality_score": 1.0
     },
     {
@@ -5073,7 +5100,7 @@
         508.912,
         722.311
       ],
-      "group_id": "p11-5",
+      "group_id": "p11-10",
       "quality_score": 1.0
     },
     {
@@ -5086,7 +5113,7 @@
         513.308,
         741.804
       ],
-      "group_id": "p11-6",
+      "group_id": "p11-11",
       "quality_score": 1.0,
       "style": {
         "heading_level": 3
@@ -5102,7 +5129,7 @@
         142.891,
         762.504
       ],
-      "group_id": "p11-6",
+      "group_id": "p11-11",
       "quality_score": 1.0,
       "style": {
         "heading_level": 3
@@ -5118,7 +5145,7 @@
         524.4,
         807.504
       ],
-      "group_id": "p11-7",
+      "group_id": "p11-12",
       "quality_score": 1.0,
       "style": {
         "region": "page_footer"
