@@ -1,120 +1,106 @@
+# docker-compose.yaml — atrium-digital-convert, the born-digital stage.
+#
+# Profiles:
+#   api              the production service (POST /reformat, POST /describe), image -api
+#   digital          the converter CLI, image -digital:
+#                      docker compose --profile digital run --rm digital-convert-digital \
+#                        /data/report.pdf --document-json-out /data/report.document.json
+#   digital-docling  the opt-in heavy engine, built locally, never published
+#   stub             the api service WITH stand-ins for page-classification and
+#                    ocr-postprocess (tools/stage_stub.py), so /describe can be tried end to
+#                    end before those services are deployed beside it:
+#                      docker compose --profile stub up
+#                      curl -F file=@data/report.pdf http://localhost:8000/describe
+#
+# Images run as `${ATRIUM_UID:-10001}:0` (atrium-project#69, roadmap B6): on Linux set
+# ATRIUM_UID to your own uid in .env so the container can write ./data.
+
 services:
-  llm-enrich-remote:
-    profiles: [remote]
-    image: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-remote
-    build:
-      context: .
-      target: remote
-      args:
-        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-remote
-        ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
-        ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
-    environment:
-      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-remote
-      ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
-      ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
-    volumes:
-      - ./data:/data
-      - ./llm_config.txt:/app/llm_config.txt:ro
-    # No single default entrypoint — override the command to pick a client, e.g.:
-    #   docker compose --profile remote run --rm llm-enrich-remote \
-    #     openrouter_client.py --input /data/sample.csv --model openai/gpt-4o-mini
-    #   docker compose --profile remote run --rm llm-enrich-remote \
-    #     ollama_client.py --input /data/sample.csv --model qwen2.5:7b
-
-  # W8: the born-digital originator. Takes a PDF/DOCX and PRODUCES an
-  # atrium_document record — it consumes no --document-json baseline, because it is
-  # the start of the born-digital branch, not a stage in the scanned chain.
-  llm-enrich-digital:
-    profiles: [digital]
-    image: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-digital
-    build:
-      context: .
-      target: digital
-      args:
-        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-digital
-        ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
-        ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
-    environment:
-      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-digital
-      ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
-      ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
-    volumes:
-      - ./data:/data
-    # ENTRYPOINT is api_util/digital_to_json.py, so pass its args directly:
-    #   docker compose --profile digital run --rm llm-enrich-digital \
-    #     /data/report.pdf --document-json-out /data/report.document.json
-
-  llm-enrich-llm:
-    profiles: [llm]
-    image: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-llm
-    build:
-      context: .
-      target: llm
-      args:
-        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-llm
-        ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
-        ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
-    environment:
-      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-llm
-      ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-llm-enrich
-      ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
-      HF_HOME: /cache/huggingface
-      HF_TOKEN: ${HF_TOKEN:-}
-    volumes:
-      - ./data:/data
-      - hf-cache:/cache/huggingface
-      - ./llm_config.txt:/app/llm_config.txt:ro
-
-  # FastAPI meta-contract service (strategy §4), port 8000. Wraps the torch-free
-  # remote/lightweight engine — set LLM_BACKEND + the backend's key/model to enable
-  # extraction; /info and /health stay up (ready:false) until then.
-  llm-enrich-api:
+  digital-convert-api:
     profiles: [api]
-    image: ghcr.io/ufal/atrium-llm-enrich:${ATRIUM_VERSION:-dev}-api
+    image: ghcr.io/ufal/atrium-digital-convert-api:${ATRIUM_VERSION:-dev}
+    user: "${ATRIUM_UID:-10001}:0"
     build:
       context: .
       target: api
-    # env_file delivers every OTHER variable in .env.example into the container --
-    # LOG_LEVEL, GRACEFUL_SHUTDOWN_S, HOST, RELOAD, HEALTHCHECK_PATH, LLM_TIMEOUT,
-    # LLM_MAX_RETRIES, LLM_CONFIG and the OpenRouter attribution headers were all
-    # documented but undeliverable under compose until atrium-project#60 added this.
-    # `required: false` because .env is gitignored -- a fresh clone has none and
-    # compose must still start. The explicit environment: entries below are KEPT
-    # because they need a value DIFFERENT from a bare pass-through: compose itself
-    # needs PORT for the ports: mapping below, and OLLAMA_HOST's compose default
-    # (host.docker.internal) deliberately differs from the code default
-    # (localhost, which is wrong inside a container) -- see docs/k8s_deployment.md's
-    # "two defaults" callout in the hub.
+      args:
+        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-digital-convert-api:${ATRIUM_VERSION:-dev}
+        ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-digital-convert
+        ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
     env_file:
       - path: .env
         required: false
     environment:
-      LLM_BACKEND: ${LLM_BACKEND:-openrouter}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
-      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
-      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+      # PORT is named here as well because compose itself needs it for `ports:`.
       PORT: ${PORT:-8000}
     ports:
-    # PORT is passed through so `PORT=9000 docker compose --profile api up` moves the
-    # listener, the published port and the container's own HEALTHCHECK together — the
-    # service reads it in service/api.py's __main__ block and service/healthcheck.py
-    # probes it. (atrium-project#58)
       - "${PORT:-8000}:${PORT:-8000}"
     volumes:
       - ./data:/data
-      - ./llm_config.txt:/app/llm_config.txt:ro
-    # HEALTHCHECK comes from the `api` Dockerfile stage — no override needed here.
-    # stop_grace_period raised from Compose's 10s default (issue #55): the ENTRYPOINT
-    # allows uvicorn 20s to drain in-flight requests and serve_lifecycle up to another
-    # 25s after that, so 10s would SIGKILL mid-drain. Matches the grace budget in
-    # atrium-project/docs/templates/k8s/atrium-service.deployment.yaml.
     stop_grace_period: 60s
 
-volumes:
-  hf-cache:
+  digital-convert-digital:
+    profiles: [digital]
+    image: ghcr.io/ufal/atrium-digital-convert-digital:${ATRIUM_VERSION:-dev}
+    user: "${ATRIUM_UID:-10001}:0"
+    build:
+      context: .
+      target: digital
+      args:
+        ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-digital-convert-digital:${ATRIUM_VERSION:-dev}
+        ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-digital-convert
+        ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
+    environment:
+      ATRIUM_RUNNER_IMAGE: ghcr.io/ufal/atrium-digital-convert-digital:${ATRIUM_VERSION:-dev}
+      ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-digital-convert
+      ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
+    volumes:
+      - ./data:/data
+
+  digital-convert-digital-docling:
+    profiles: [digital-docling]
+    image: atrium-digital-convert-digital-docling:local
+    pull_policy: build
+    user: "${ATRIUM_UID:-10001}:0"
+    build:
+      context: .
+      target: digital-docling
+      args:
+        ATRIUM_RUNNER_IMAGE: atrium-digital-convert-digital-docling:local
+        ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-digital-convert
+        ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
+    environment:
+      ATRIUM_RUNNER_IMAGE: atrium-digital-convert-digital-docling:local
+      ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-digital-convert
+      ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
+    volumes:
+      - ./data:/data
+
+  # ── profile `stub`: /describe end to end, with stand-ins for the two stages ──────────────
+  stage-stub:
+    profiles: [stub]
+    image: ghcr.io/ufal/atrium-digital-convert-api:${ATRIUM_VERSION:-dev}
+    user: "${ATRIUM_UID:-10001}:0"
+    # The stub is not in the image (.dockerignore keeps tools/ out); it is mounted.
+    entrypoint: ["python", "/app/tools/stage_stub.py", "--host", "0.0.0.0", "--port", "8090"]
+    healthcheck:
+      disable: true
+    volumes:
+      - ./tools:/app/tools:ro
+
+  digital-convert-api-stub:
+    profiles: [stub]
+    image: ghcr.io/ufal/atrium-digital-convert-api:${ATRIUM_VERSION:-dev}
+    user: "${ATRIUM_UID:-10001}:0"
+    build:
+      context: .
+      target: api
+    depends_on: [stage-stub]
+    environment:
+      PORT: ${PORT:-8000}
+      PAGE_CLASSIFICATION_URL: http://stage-stub:8090
+      OCR_POSTPROCESS_URL: http://stage-stub:8090
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    volumes:
+      - ./data:/data

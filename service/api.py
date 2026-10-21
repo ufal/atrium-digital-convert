@@ -1,14 +1,38 @@
-"""service/api.py — FastAPI surface for atrium-llm-enrich (strategy §4.2).
+"""service/api.py — the HTTP service of atrium-digital-convert, the born-digital stage (#2, `api-digital`).
 
-Brings llm-enrich into API parity with the rest of the ATRIUM pipeline. It wraps the
-existing **remote / lightweight-local** enrichment engine (``llm_client_shared`` +
-``openrouter_client`` / ``ollama_client``) — deliberately the torch-free path, so the
-service stays in the no-model fast lane and never needs the GPU stack.
+Two operations, one converter:
 
-Backend is selected with ``LLM_BACKEND`` (``openrouter`` default, or ``ollama``); the
-engine is warmed once on startup. A misconfigured backend (missing API key / model) does
-**not** crash the app: ``/info`` and ``/health`` stay up and report ``ready: false`` while
-the extraction endpoints answer 503 until configured.
+* ``POST /reformat`` — the production endpoint the AMČR route calls. A born-digital file (PDF,
+  DOCX, ODT, ODS, XLSX, RTF; DOC and XLS through LibreOffice) and optionally the AMČR seed in;
+  the ``atrium_document`` record out, with Markdown only on request and the run's Process Run
+  Crate ``CreateAction`` as ``paradata``. It calls NO other service: in the AMČR deployment
+  Temporal chains the stages (atrium-digital-convert#1, 30 September).
+* ``POST /describe`` — the same conversion, then a per-page assessment
+  (``api_util/digital_report.py``): is each page's text layer usable, what kind of page it is
+  (page-classification), does its text read (ocr-postprocess), and where should it go next —
+  ``nlp``, ``ocr``, ``htr`` or ``none``. The two stages are called only when their URLs are
+  configured, through ``service/stages.py``, and every stage failure is a ``stages[]`` entry,
+  never a failed request. Each stage writes into the record only through its own accretion, and
+  the converter guards what comes back.
+
+The common contract (atrium-project#32/#53/#55/#71): ``/health``, ``/ready``, ``/info`` with every
+setting of ``tool_limits.py``; typed responses documented in the committed
+``service/openapi.json``; the §4.4 error body with registered reasons; a SIGTERM drain. Refusals:
+
+* 415 ``unsupported_media_type`` — not a born-digital type this service reads (``cause``:
+  ``unsupported`` or ``legacy_office_unsupported``; ``accepted`` lists the types);
+* 422 ``ocr_text_layer`` — a PDF whose text layer is an earlier OCR run (``OCR_LAYER_DOCUMENT_SHARE``);
+* 422 ``source_digest_mismatch`` — the seed's ``source.sha512`` is not the file's digest;
+* 422 ``invalid_record`` — a ``document_json`` part that cannot be opened;
+* 422 (``cause``: ``encrypted``, ``corrupt``, ``zip_limits_exceeded``, ``conversion_failed``);
+* 413/422 ``limit_exceeded`` — ``MAX_UPLOAD_MB``, ``MAX_PAGES``, ``LIBREOFFICE_TIMEOUT_S``;
+* 429 ``busy`` — ``MAX_CONCURRENT_JOBS`` conversions already running;
+* 501 (``cause``: ``dependency_missing``) — LibreOffice is not installed for a DOC/XLS;
+* 503 — the service is draining.
+
+Regenerate the spec after an API change::
+
+    python atrium_openapi.py export --app service.api:app --out service/openapi.json
 """
 
 from __future__ import annotations
@@ -16,569 +40,930 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
+import re
 import tempfile
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel, ConfigDict, Field
 
-from atrium_document import FILE_SUFFIX, canonical_doc_id
+import atrium_rocrate
+from api_util import digital_to_json as d2j
+from api_util.digital_ir import DigitalDocument, DigitalInputError
+from api_util.digital_report import build_report, furniture_only
+from atrium_document import canonical_doc_id, validate_baseline, validate_document
+from atrium_limits import LimitExceeded
 from atrium_paradata import ParadataLogger
+from tool_limits import (
+    LIMITS,
+    MAX_CONCURRENT_JOBS,
+    MAX_UPLOAD,
+    ROUTE_DAMAGED_WORD_SHARE,
+    ROUTE_TRASH_SHARE,
+    STAGE_TIMEOUT_S,
+)
+
+from . import stages
 
 # Shared ATRIUM meta-contract helpers (§4). Byte-identical across every service,
 # enforced by para-drift.reusable.yml.
 from .atrium_service import (
+    AtriumDocument,
+    AtriumHTTPError,
+    CreateAction,
+    InfoBase,
+    LimitNote,
     ServiceState,
     add_cors,
+    attach_error_handlers,
     attach_health,
     attach_inflight_middleware,
+    attach_openapi_contract,
     build_info,
+    busy,
+    error_responses,
+    operation_id,
+    parse_record_part,
     read_tool_version,
-    resolve_max_upload_mb,
+    read_upload_bounded,
     serve_lifecycle,
 )
 
 logger = logging.getLogger(__name__)
 
-# Canonical upload limit (§4.5).
-MAX_UPLOAD_MB = resolve_max_upload_mb(10)
-MAX_UPLOAD_BYTES = int(MAX_UPLOAD_MB * 1024 * 1024)
+#: The tool id (/info `service`, the spec's `x-atrium-service`): the repository name.
+SERVICE = "atrium-digital-convert"
+#: The id the previous release of this repository published (v1.0.0-beta, the llm-enrich
+#: snapshot): declared so the release gate accepts the rename (atrium-project#72).
+PREVIOUS_SERVICE = "atrium-llm-enrich"
+#: The program id the record and the paradata carry (unchanged by the repository move).
+PROGRAM = "digital-convert"
 
-# Reserved output-token budget subtracted from the context window when truncating the
-# vocabulary prompt. Mirrors {openrouter,ollama}_client: MAX_NEW_TOKENS (2048) + 512,
-# which those modules keep in sync with llm_utils by hand.
-_CONTEXT_RESERVED = 2048 + 512
+#: The import-time upload limit, for callers and tests that read it (requests read it live).
+MAX_UPLOAD_MB = MAX_UPLOAD.get()
 
-_LINE_SUFFIXES = (".csv", ".teitok.xml")
-_DOC_SUFFIXES = (".md", ".txt")
+#: Where para_config.txt (the tool version and the components' licences) lives: the repo root.
+_PARA_CONFIG_DIR = str(Path(__file__).resolve().parents[1])
 
-# Warmed engine state (or an "error" key when the backend is unavailable).
-_engine: Dict[str, Any] = {}
+#: File suffixes the converter reads, for /info and the 415 `accepted` member.
+SUPPORTED_SUFFIXES: Tuple[str, ...] = (
+    ".pdf",
+    ".docx",
+    ".odt",
+    ".ods",
+    ".xlsx",
+    ".rtf",
+    ".doc",
+    ".xls",
+)
+
+#: DigitalInputError reason -> (HTTP status, registered reason or None).
+_REFUSALS: Dict[str, Tuple[int, Optional[str]]] = {
+    "unsupported": (415, "unsupported_media_type"),
+    "legacy_office_unsupported": (415, "unsupported_media_type"),
+    "ocr_text_layer": (422, "ocr_text_layer"),
+    "source_digest_mismatch": (422, "source_digest_mismatch"),
+    "dependency_missing": (501, None),
+    "encrypted": (422, None),
+    "corrupt": (422, None),
+    "zip_limits_exceeded": (422, None),
+    "conversion_failed": (422, None),
+}
 
 
-def _load_engine() -> Dict[str, Any]:
-    """Build the enrichment engine for the configured backend (blocking).
+# ── the typed contract (atrium-project#32 round 2) ──────────────────────────────────────────
+# These models DOCUMENT the responses the handlers build; they do not filter them. A field the
+# handlers always send has no default (required); one they send only sometimes defaults to None.
+# No enums: known values are listed in the descriptions, so a new value never breaks a client
+# generated from an older spec. Descriptions are published in service/openapi.json.
 
-    Replicates the setup sequence of ``openrouter_client.main`` / ``ollama_client.main``:
-    load config + vocabulary, build the archaeological schema and system prompt, and bind
-    a ``chat_fn`` to the chosen remote/local backend. Heavy-ish imports are kept local so
-    importing this module (for contract tests) never requires ``requests``/vocab data.
-    """
-    import os
 
-    import requests
+class ReaderInfo(BaseModel):
+    """How the file was read."""
 
-    from llm_client_shared import (
-        build_document_schema,
-        build_document_system_prompt,
-        build_schema,
-        build_system_prompt,
-        excluded_prompt_themes,
-        load_config,
+    model_config = ConfigDict(extra="allow")
+
+    kind: str = Field(
+        description="The input kind, by content: `pdf`, `docx`, `odt`, `ods`, `xlsx`, `rtf`, `doc`, `xls`."
     )
-    from vocab_manager import VocabularyManager
-
-    backend = os.getenv("LLM_BACKEND", "openrouter").lower()
-    config_path = os.getenv("LLM_CONFIG", "llm_config.txt")
-    config = load_config(config_path) if Path(config_path).exists() else {}
-
-    vocab_path = os.getenv("VOCAB_PATH") or config.get(
-        "VOCAB_PATH", "data_samples/vocab/union_nested.json"
+    media_type: str = Field(
+        description="The original's media type (`source.media_type` unless a seed named one)."
     )
-    context_window = int(os.getenv("LLM_CONTEXT_WINDOW", config.get("CONTEXT_WINDOW", "32000")))
-    max_retries = int(os.getenv("LLM_MAX_RETRIES", "3"))
-    timeout = int(os.getenv("LLM_TIMEOUT", "300"))
-    max_input_tokens = context_window - _CONTEXT_RESERVED
-
-    filter_params = {
-        "include_non_text": config.get("INCLUDE_NON_TEXT", "true").lower() == "true",
-        "min_char_count": int(config.get("MIN_CHAR_COUNT", "3")),
-        "min_char_non_text": int(config.get("MIN_CHAR_NON_TEXT", "8")),
-        "min_alpha_ratio_non_text": float(config.get("MIN_ALPHA_RATIO_NON_TEXT", "0.40")),
-    }
-
-    vocab_mgr = VocabularyManager(vocab_path=vocab_path)
-    # auto_sync=False: never harvest inside a pipeline run. Besides the
-    # multi-minute OAI-PMH round trip, the sync path can no longer build a
-    # usable vocabulary — fetch_amcr_vocab() emits bare {"cs", "en"} pairs
-    # with no "source"/"scheme", so assign_theme() drops every term into
-    # "Other", which excluded_prompt_themes() withholds from the prompt. The
-    # result is an enum holding only "Nerelevantní (meta-text)", which then
-    # rejects every correct answer the model gives as a validation error.
-    # A missing vocabulary is a configuration fault: say so and stop.
-    vocab_data = vocab_mgr.load(auto_sync=False)
-    # Which themes reach the model is a taxonomy_config decision (in_prompt), not a
-    # literal in the prompt builder — see excluded_prompt_themes().
-    excluded_themes = excluded_prompt_themes(vocab_mgr)
-    line_prompt, line_terms = build_system_prompt(
-        vocab_data, max_tokens=max_input_tokens, excluded_themes=excluded_themes
+    origin: str = Field(
+        description="`source.origin`: `digital-born-pdf`, `digital-born-docx`, `digital-born-odt`, ..."
     )
-    doc_prompt, doc_terms = build_document_system_prompt(
-        vocab_data, max_tokens=max_input_tokens, excluded_themes=excluded_themes
+    engine: str = Field(
+        description="The structural engine: `light` (the only one in the service image)."
     )
-    line_model = build_schema(line_terms)
-    doc_model = build_document_schema(doc_terms)
-    session = requests.Session()
+    pages: int = Field(description="Pages read.")
+    conversion: Optional[Dict[str, Any]] = Field(
+        description="DOC/XLS only: how LibreOffice converted the original (`tool`, `from`, `to`, `seconds`); else null."
+    )
+    notes: List[str] = Field(
+        description="Reader notes worth knowing (e.g. a conversion); usually empty."
+    )
 
-    if backend == "openrouter":
-        from openrouter_client import _build_headers, make_chat_fn
 
-        api_key = os.getenv("OPENROUTER_API_KEY") or config.get("OPENROUTER_API_KEY")
-        model = os.getenv("OPENROUTER_MODEL") or config.get("OPENROUTER_MODEL")
-        if not api_key:
-            raise RuntimeError("OPENROUTER_API_KEY is not set")
-        if not model:
-            raise RuntimeError("OPENROUTER_MODEL is not set")
-        headers = _build_headers(
-            api_key,
-            os.getenv("OPENROUTER_SITE_URL"),
-            os.getenv("OPENROUTER_APP_NAME", "atrium-llm-enrich"),
-        )
-        line_chat_fn = make_chat_fn(
-            session, headers, model, line_model.model_json_schema(), max_retries, timeout, None
-        )
-        doc_chat_fn = make_chat_fn(
-            session, headers, model, doc_model.model_json_schema(), max_retries, timeout, None
-        )
-        model_id = model
-    elif backend == "ollama":
-        from ollama_client import DEFAULT_OLLAMA_HOST, make_chat_fn
+class ReformatResponse(BaseModel):
+    """`/reformat`: the document's record, and its Markdown when asked for."""
 
-        host = os.getenv("OLLAMA_HOST") or config.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST)
-        model = os.getenv("OLLAMA_MODEL") or config.get("OLLAMA_MODEL")
-        if not model:
-            raise RuntimeError("OLLAMA_MODEL is not set")
-        line_chat_fn = make_chat_fn(
-            session, host, model, line_model.model_json_schema(), max_retries, timeout
-        )
-        doc_chat_fn = make_chat_fn(
-            session, host, model, doc_model.model_json_schema(), max_retries, timeout
-        )
-        model_id = f"{model}@{host}"
-    else:
-        raise RuntimeError(f"Unknown LLM_BACKEND '{backend}' (expected 'openrouter' or 'ollama')")
+    model_config = ConfigDict(extra="allow")
 
-    return {
-        "backend": backend,
-        "model": model_id,
-        "line_prompt": line_prompt,
-        "line_model": line_model,
-        "line_chat_fn": line_chat_fn,
-        "doc_prompt": doc_prompt,
-        "doc_model": doc_model,
-        "doc_chat_fn": doc_chat_fn,
-        "filter_params": filter_params,
-        # Where the flat vocabulary artifacts sit, for entities[].pid resolution in
-        # write_document_record(). Derived from the same VOCAB_PATH the prompt vocabulary
-        # was loaded from, so the two can never point at different harvests.
-        "vocab_dir": os.path.dirname(vocab_path) or ".",
-    }
+    service: str = Field(description="`atrium-digital-convert`.")
+    doc_id: str = Field(
+        description="The record's `doc_id`: the seed's when one was sent, else derived from the file name."
+    )
+    document_json: AtriumDocument = Field(
+        description=(
+            "The ATRIUM document record: digital-convert's `source`, `pages`, `content`, `lines` and `tables` "
+            "written, every other block of a sent record passed through."
+        )
+    )
+    reader: ReaderInfo
+    markdown: Optional[str] = Field(
+        None,
+        description="Only with `markdown=true`: the record rendered as annotated Markdown (json_to_md).",
+    )
+    document_json_schema_error: Optional[str] = Field(
+        None,
+        description="Only when the sent record did not validate and the result inherits that: the schema error.",
+    )
+    limits_applied: List[LimitNote] = Field(
+        description="Every limit that shaped the result without refusing it."
+    )
+    paradata: CreateAction = Field(
+        description=(
+            "The call's provenance: its Process Run Crate `CreateAction` (atrium-project#71), whose `@id` is the "
+            "`run_uuid` stamped into `document_json`."
+        )
+    )
 
+
+class PageCategory(BaseModel):
+    """page-classification's answer for one page."""
+
+    model_config = ConfigDict(extra="allow")
+
+    label: Optional[str] = Field(
+        description="The top category (`TEXT_P`, `TEXT_HW`, `DRAW`, ...; page-category scheme)."
+    )
+    confidence: Optional[float] = Field(description="Its score, from 0 to 1.")
+    top: List[Dict[str, Any]] = Field(description="The `topn` categories with scores, best first.")
+    source: str = Field(description="`page-classification`.")
+
+
+class PageQuality(BaseModel):
+    """Whether a page's text reads: the common quality model, or the converter's decode check."""
+
+    model_config = ConfigDict(extra="allow")
+
+    source: str = Field(
+        description="`ocr-postprocess` (the common line-quality model) or `digital-convert` (the decode check only)."
+    )
+    score: Optional[float] = Field(
+        description="From 0 to 1. ocr-postprocess: the mean line-quality score of the lines it judged "
+        "(Clear/Noisy/Trash; a pre-filter answer's 0.0 placeholder is left out). digital-convert: the "
+        "page's decode sanity (the record's `pages[].quality_score` before any scoring), a measure of "
+        "how the characters decode, not of how the text reads."
+    )
+    band: Optional[str] = Field(
+        description="`Clear`, `Noisy` or `Trash`; null when no line was judged. ocr-postprocess: the "
+        "plurality of its line verdicts. digital-convert: the decode-sanity band, so a garbled page can "
+        "read `Clear` here; `text_layer` and `lines_by_category.Garbage` say whether it decodes."
+    )
+    lines_by_category: Dict[str, int] = Field(
+        description="Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty` (ocr-postprocess), or `Garbage`/`Inverted`/`decoded` (digital-convert)."
+    )
+    lang: Optional[str] = Field(
+        description="The page's dominant language among the lines the model judged, when it reports one."
+    )
+    lines_scored: int = Field(
+        description="Lines the verdict is based on. ocr-postprocess: the lines it judged Clear, Noisy or "
+        "Trash; `Non-text`/`Empty` lines are counted in `lines_by_category` only."
+    )
+    prose_lines_scored: Optional[int] = Field(
+        None,
+        description="ocr-postprocess only: the scored lines that are prose — outside a table, at "
+        "least 20 characters, mostly letters, not a table-of-contents line. The quality rule of a "
+        "`digital` page counts only these (`ROUTE_TRASH_SHARE`).",
+    )
+    prose_lines_by_category: Optional[Dict[str, int]] = Field(
+        None, description="ocr-postprocess only: `lines_by_category` over the prose lines."
+    )
+
+
+class PageLayout(BaseModel):
+    """What the converter found on the page."""
+
+    model_config = ConfigDict(extra="allow")
+
+    canvas: Optional[Dict[str, Any]] = Field(
+        description="`width`, `height`, `unit` (PDF only); null without geometry."
+    )
+    lines: int
+    blocks: int = Field(description="Distinct `group_id`s: paragraphs, table cells, a sheet.")
+    tables: int
+    headings: int
+    regions: Dict[str, int] = Field(
+        description="Lines per region: `page_header`, `page_footer`, `footnote`."
+    )
+    columns: int = Field(description="Reading-order columns of the body text (PDF).")
+    images: int = Field(description="Images the page draws (PDF).")
+    vector_paths: int = Field(
+        description="Vector paths the page draws (PDF): rules, curves, text drawn as outlines."
+    )
+    words: int = Field(
+        description="Whitespace-separated words of the page's body text (outside its running "
+        "header and footer)."
+    )
+    damaged_words: int = Field(
+        description="Of those, the words that lost a letter to a glyph without a Unicode mapping "
+        "(U+FFFD). A `digital` page goes to `ocr` when their share reaches "
+        "`ROUTE_DAMAGED_WORD_SHARE`."
+    )
+
+
+class PageReport(BaseModel):
+    """One page of `/describe`."""
+
+    model_config = ConfigDict(extra="allow")
+
+    page: str = Field(description="The page label (`pages[].page` in the record).")
+    page_index: int = Field(description="1-based physical position.")
+    text_layer: str = Field(
+        description="`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer, or only a running header or footer over a full-page image), `blank` (an empty page without a page image): the record's `pages[].text_layer`."
+    )
+    needs_ocr: bool
+    needs_ocr_reason: Optional[str]
+    category: Optional[PageCategory] = Field(
+        description="Null when page-classification did not run for the page."
+    )
+    quality: Optional[PageQuality] = Field(description="Null for a page without lines.")
+    route: str = Field(
+        description="`nlp`, `ocr` (ATR), `htr` (handwriting) or `none` (nothing to read)."
+    )
+    route_reason: str
+    layout: PageLayout
+    text: Optional[str] = Field(
+        None, description="The page's text in reading order (unless `include_text=false`)."
+    )
+
+
+class DescribeSummary(BaseModel):
+    """The document at a glance."""
+
+    model_config = ConfigDict(extra="allow")
+
+    pages: int
+    routes: Dict[str, int] = Field(description="Pages per route: `nlp`, `ocr`, `htr`, `none`.")
+    needs_ocr_pages: List[int] = Field(description="`page_index` of the pages flagged `needs_ocr`.")
+    reacquire_pages: List[int] = Field(
+        description="`page_index` of the pages routed to `ocr` or `htr`."
+    )
+    document_route: str = Field(description="`nlp`, `ocr`, `htr`, `none`, or `mixed`.")
+
+
+class StageOutcomeModel(BaseModel):
+    """What one adjacent stage did."""
+
+    model_config = ConfigDict(extra="allow")
+
+    stage: str = Field(description="`page-classification` or `ocr-postprocess`.")
+    status: str = Field(
+        description="`ok`, `partial`, `not_configured`, `not_requested`, `skipped`, `unavailable`, `error` or `rejected`."
+    )
+    detail: str
+    url: Optional[str] = Field(description="The stage's base URL; null when not configured.")
+    http_status: Optional[int]
+    reason: Optional[str] = Field(
+        description="The stage's reason code, or the guard's (`page_key_mismatch`, ...)."
+    )
+    elapsed_s: Optional[float]
+    service_version: Optional[str]
+    pages: Optional[List[int]] = Field(description="`page_index` of the pages sent.")
+    record_adopted: bool = Field(
+        description="Whether the stage's record write was taken into `document_json`."
+    )
+    paradata: Optional[Dict[str, Any]] = Field(
+        description="The stage's own `CreateAction`, when it returned one."
+    )
+    lines_unscored: Optional[int] = Field(
+        None,
+        description="ocr-postprocess: lines it could not score (out of GPU memory even one at a time; "
+        "its `limits_applied` `ppl_batch_lines`). They keep the converter's values in the record and "
+        "are left out of the report; the stage is then `partial`.",
+    )
+
+
+class DescribeResponse(ReformatResponse):
+    """`/describe`: the record, plus the per-page assessment and what each stage did."""
+
+    pages: List[PageReport] = Field(description="One entry per page, in page order.")
+    summary: DescribeSummary
+    stages: List[StageOutcomeModel] = Field(
+        description="One entry per stage, in the order they run."
+    )
+
+
+class DigitalInfo(InfoBase):
+    """`/info` of atrium-digital-convert."""
+
+    program: str = Field(
+        description="The program id the record and paradata carry: `digital-convert`."
+    )
+    supported_inputs: List[str] = Field(
+        description="The file suffixes the converter reads (by content, not by name)."
+    )
+    media_types: Dict[str, str] = Field(description="The media type of each input kind.")
+    libreoffice: bool = Field(description="Whether DOC/XLS can be converted in this deployment.")
+    stages: Dict[str, bool] = Field(
+        description="Which adjacent stages `/describe` can call (their URLs are configured)."
+    )
+
+
+_RECORD_PART_HELP = (
+    "Optional ATRIUM document record: the AMČR seed (`doc_id`, `source` with `sha512`, `filename`, "
+    "`media_type`) or an earlier record of the same document. The seed's identity is kept; its `sha512` "
+    "must be the uploaded file's (else 422 `source_digest_mismatch`). Every other tool's block passes "
+    "through. A record that cannot be opened is refused (422 `invalid_record`); an empty part counts as none."
+)
+_FILE_HELP = "The born-digital document: PDF, DOCX, ODT, ODS, XLSX, RTF, or legacy DOC/XLS (decided by content)."
+_BREAKS_HELP = (
+    "DOCX pages: `auto` (explicit + Word's rendered breaks), `explicit`, or `none` (one page)."
+)
+
+
+# ── state ───────────────────────────────────────────────────────────────────────────────────
 
 #: Readiness/draining/in-flight state for the §4.6 disposability contract (issue #55).
 _state = ServiceState()
 
 
-def _engine_is_serviceable() -> bool:
-    """Whether the warmed engine can actually answer a request.
+class _Slots:
+    """At most MAX_CONCURRENT_JOBS conversions at once; the next one is refused, not queued."""
 
-    Same expression /info's ``ready`` field reports, kept in one place. This — not
-    merely "startup finished" — is what ``_state.warm`` is set from, because a
-    misconfigured backend here is recorded rather than fatal (see ``lifespan``): the
-    process deliberately stays up so ``/info`` and ``/docs`` still explain what is
-    wrong. Marking such a pod *ready* would then route traffic to a service that
-    503s on every request; leaving it un-ready keeps it alive but drains it from the
-    load balancer, which is the behaviour a Kubernetes readinessProbe exists for.
-    """
-    return not _engine.get("error") and bool(_engine.get("line_chat_fn"))
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._busy = 0
+
+    def acquire(self) -> bool:
+        with self._lock:
+            if self._busy >= MAX_CONCURRENT_JOBS.get():
+                return False
+            self._busy += 1
+            return True
+
+    def release(self) -> None:
+        with self._lock:
+            self._busy = max(0, self._busy - 1)
+
+
+_slots = _Slots()
+
+
+def _deep_health() -> Optional[str]:
+    """Deep readiness (§4.1): the converter's readers and the record schema are importable."""
+    missing = []
+    for module in ("pdfplumber", "pypdfium2", "docx", "lxml", "jsonschema"):
+        try:
+            __import__(module)
+        except ImportError:
+            missing.append(module)
+    if missing:
+        return f"converter dependencies missing: {', '.join(missing)}"
+    try:
+        from atrium_document import load_schema  # noqa: PLC0415
+
+        load_schema()
+    except Exception as exc:  # the schema gate would refuse every record
+        return f"record schema unavailable: {exc}"
+    return None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Warm the backend once; a misconfigured backend is recorded, not fatal.
-    loop = asyncio.get_event_loop()
-    try:
-        _engine.update(await loop.run_in_executor(None, _load_engine))
-        logger.info("llm-enrich engine ready (backend=%s)", _engine.get("backend"))
-    except Exception as exc:
-        _engine.clear()
-        _engine["error"] = str(exc)
-        logger.warning("llm-enrich engine warmup failed: %s", exc)
-    _state.warm = _engine_is_serviceable()
-    # issue #55: composes with the warmup above rather than replacing it. Flips /ready
-    # to 503 on SIGTERM and, on shutdown, waits for in-flight requests before the
-    # `_engine.clear()` below tears the backend out from under them.
+    problem = await asyncio.to_thread(_deep_health)
+    if problem:
+        logger.warning("digital-convert is not ready: %s", problem)
+    else:
+        # A clean start must log too: the image smoke test looks for one record in the agreed
+        # shape at the default LOG_LEVEL (atrium-project#61), and nothing else here logs at INFO.
+        from api_util.digital_legacy import libreoffice_binary  # noqa: PLC0415
+
+        configured = [stage for stage, on in stages.configured().items() if on]
+        logger.info(
+            "digital-convert %s ready: LibreOffice %s; /describe stages configured: %s",
+            app.version,
+            "available" if libreoffice_binary() else "not found (DOC/XLS are refused)",
+            ", ".join(configured) or "none",
+        )
+    _state.warm = problem is None
     async with serve_lifecycle(_state):
         yield
-    _engine.clear()
 
 
 app = FastAPI(
-    title="ATRIUM llm-enrich API",
+    title="ATRIUM digital-convert API",
     version=read_tool_version(Path(__file__).resolve().parent),
-    description="LLM-based archaeological keyword extraction over text lines / documents.",
+    description=(
+        "Born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, DOC, XLS) into the ATRIUM document record, "
+        "and a per-page assessment of whether each page's text can be used as it is."
+    ),
     lifespan=lifespan,
+    responses=error_responses(422, 500),
+    generate_unique_id_function=operation_id,
+    root_path_in_servers=False,
 )
 attach_inflight_middleware(app, _state)
-
-# CORS — standard §4.5 configuration (ALLOWED_ORIGINS CSV, default "*").
+attach_error_handlers(app)
+attach_openapi_contract(app, SERVICE, previous=PREVIOUS_SERVICE)
 add_cors(app, methods=["GET", "POST"])
-
-# Demo frontend (§9) — served at /frontend when the directory is present.
-#
-# Guarded by `.exists()` on purpose, so this block is a no-op wherever
-# `service/frontend/` was not shipped. That is what makes it safe on every branch:
-# the page currently lives only on `agent-skill`, and this same code changes nothing
-# on a branch without it, so there is no fork to forward-merge later.
-#
-# Until 2026-09-09 the branch README advertised a frontend "mounted at `/frontend`"
-# while nothing mounted anything — the page shipped unreachable. The skill-validate
-# endpoint check could not catch it: step 2 skips `/`-rooted tokens, and step 4's
-# `GET /x` pattern deliberately ignores a bare backticked `/frontend` precisely
-# because that form also names slash-commands and static mounts.
-_frontend_dir = Path(__file__).resolve().parent / "frontend"
-if _frontend_dir.exists():
-    app.mount("/frontend", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
-
-
-def _deep_health() -> str | None:
-    """Deep readiness (§4.1): the LLM backend warmed up and a chat_fn is bound."""
-    if _engine.get("error"):
-        return f"backend not configured: {_engine['error']}"
-    if not _engine.get("line_chat_fn"):
-        return "engine not initialized"
-    return None
-
-
 attach_health(app, deep_check=_deep_health, state=_state)
 
 
-def _require_engine() -> Dict[str, Any]:
-    """Return the warmed engine, or 503 if the backend is not ready (§4.4 → client retries)."""
+# ── helpers ─────────────────────────────────────────────────────────────────────────────────
+
+_UNSAFE = re.compile(r"[\x00-\x1f/\\\\]+")
+
+
+def _safe_name(filename: Optional[str]) -> str:
+    """The upload's own name, reduced to a plain file name (the record's `source.filename` and
+    the derived `doc_id` come from it, in its original case — atrium-project#10 D2)."""
+    name = Path(str(filename or "")).name
+    name = _UNSAFE.sub("_", name).strip(". ")
+    encoded = name.encode("utf-8")
+    if len(encoded) > 200:
+        stem, dot, suffix = name.rpartition(".")
+        keep = 200 - len(suffix.encode("utf-8")) - 1 if dot else 200
+        name = stem.encode("utf-8")[: max(1, keep)].decode("utf-8", "ignore") + (
+            f".{suffix}" if dot else ""
+        )
+    return name or "upload"
+
+
+def _doc_id(filename: Optional[str]) -> str:
+    """The uploaded document's identity, derived the one canonical way (atrium-project#10, D3).
+
+    `atrium_document.canonical_doc_id()` on the upload's own name — the same derivation the CLI
+    and every other tool use, so a service upload and a batch run over the same file land on
+    the same record. A seed's `doc_id` still wins (DocumentRecord inherits it).
+    """
+    return canonical_doc_id(_safe_name(filename)) or "upload"
+
+
+def _refusal(exc: DigitalInputError) -> HTTPException:
+    status, reason = _REFUSALS.get(exc.reason, (422, None))
+    extra: Dict[str, Any] = {}
+    if status == 415:
+        extra["accepted"] = [*SUPPORTED_SUFFIXES, *sorted(set(d2j.MEDIA_TYPES.values()))]
+    if reason != exc.reason:
+        extra["cause"] = exc.reason
+    return AtriumHTTPError(status, f"{exc.reason}: {exc}", reason=reason, **extra)
+
+
+def _require_capacity() -> None:
     if _state.draining:
-        # issue #55: stop accepting NEW work the moment a shutdown signal arrives, so the
-        # drain has a bounded set of requests to wait for. /ready has already flipped to
-        # 503 by now, but a request already in the accept queue can still arrive here.
         raise HTTPException(
             503, "Service is shutting down; retry against a live replica."
         ) from None
-    if _engine.get("error"):
-        raise HTTPException(503, f"LLM backend not ready: {_engine['error']}") from None
-    if not _engine.get("line_chat_fn"):
-        raise HTTPException(503, "LLM backend not initialized.") from None
-    return _engine
 
 
-def _doc_id(filename: str) -> str:
-    """The uploaded document's identity, derived the one canonical way.
-
-    Delegates to ``atrium_document.canonical_doc_id()`` (atrium-project#10, D3): this was a
-    THIRD independent suffix-stripper in this repo, alongside
-    ``api_util/teitok_read.doc_id_from_path`` and the two batch clients' ``Path.stem``. The
-    accretion contract is keyed on ``doc_id``, so a service that re-keys the record it was
-    handed silently orphans the caller's baseline — which is exactly what D1/D2 did in the
-    batch clients and in alto's ``/process``.
-    """
-    return canonical_doc_id(filename)
-
-
-def _run_extraction(
-    tmp_path: str,
-    filename: str,
-    engine: Dict[str, Any],
-    doc_id: str,
-    document_record_dir: Optional[Path] = None,
-) -> Dict[str, Any]:
-    """Blocking enrichment call, dispatched by file extension (line vs document level).
-
-    When ``document_record_dir`` is given, also folds the results into this document's
-    paired ATRIUM record (accretion model, docs/document_schema.md / issue #13): a baseline
-    at ``<document_record_dir>/<doc_id>.document.json``, if the caller placed one there, is
-    read and written back with only llm-enrich's ``enrichment`` block updated — every other
-    tool's block passes through untouched (rule 2). With no baseline present the record holds
-    just llm-enrich's own part (rule 3), mirroring ``llm_run.py``/``openrouter_client.py``/
-    ``ollama_client.py``'s ``write_document_record`` call. A run that CONSULTED the model
-    and located nothing still writes the block, with an empty ``items`` list — "ran and
-    found nothing" is a different fact from "never ran", and only the record can carry
-    that difference (atrium-project#49). A run that never reached the model (every row
-    dropped by the quality filter) or whose every call failed writes nothing, same as
-    those batch entry points.
-
-    The Layer D schema gate (atrium-project#10, D4) lives in ``write_document_record()`` —
-    the repo's single write chokepoint — so an invalid record is never written here either.
-    What this function adds is the gate on the record it hands BACK: see below.
-    """
-    from llm_client_shared import (
-        contributes_document_record,
-        run_document_level,
-        run_line_level,
-        schema_gate,
-        write_document_record,
-    )
-
-    name = filename.lower()
-    path = Path(tmp_path)
-    if name.endswith(_LINE_SUFFIXES):
-        records, stats = run_line_level(
-            path,
-            engine["line_chat_fn"],
-            engine["line_prompt"],
-            engine["line_model"],
-            **engine["filter_params"],
-        )
-        mode = "line"
-    else:  # validated to be a _DOC_SUFFIXES file by the caller
-        records, stats = run_document_level(
-            path, engine["doc_chat_fn"], engine["doc_prompt"], engine["doc_model"]
-        )
-        mode = "document"
-
-    result: Dict[str, Any] = {"mode": mode, "results": records, "stats": stats}
-
-    if document_record_dir is not None and contributes_document_record(records, stats):
-        from atrium_document import load_document
-
-        with ParadataLogger(
-            program="llm-enrich-api",
-            config={"mode": mode, "backend": engine["backend"], "model": engine["model"]},
-            paradata_dir=str(Path(document_record_dir) / "paradata"),
-            output_types=["json"],
-        ) as para_logger:
-            try:
-                record_path = write_document_record(
-                    doc_id,
-                    records,
-                    document_record_dir,
-                    run_id=para_logger.run_id,
-                    paradata_ref=os.path.join(
-                        para_logger.paradata_dir,
-                        f"{para_logger.run_id}_{para_logger.program}.json",
-                    ),
-                    used_markdown_input=(mode == "document"),
-                    license_detail=para_logger.get_license_block(),
-                    # `.get`, not `[...]`: the contract tests build engine dicts by hand,
-                    # and an absent key must fall back to resolve_pid's default rather
-                    # than KeyError inside the record write.
-                    vocab_dir=engine.get("vocab_dir"),
-                )
-            except RuntimeError as exc:
-                # The Layer D refusal (D4). Translated here rather than left to
-                # _extract_from_path's blanket `RuntimeError -> 502 LLM backend error`,
-                # which would blame the upstream provider for a record WE built wrong —
-                # and 502 invites a retry that would fail identically. A record llm-enrich
-                # cannot emit is a defect on this side, so it is a 500, named as such.
-                raise HTTPException(
-                    500, f"Document record rejected by its own schema: {exc}"
-                ) from exc
-            if record_path is not None:
-                para_logger.log_success("json")
-                para_logger.log_document_success()
-
-        if record_path is not None:
-            record = load_document(str(record_path))
-            # Layer D on the way OUT (atrium-project#10, D4). write_document_record() has
-            # already refused to emit a record whose invalidity was ours, so anything caught
-            # here is a record it deliberately let through because the caller's own uploaded
-            # baseline did not validate. Re-raising would contradict that decision (and 500
-            # on somebody else's bad data), and returning it in silence is what D4 is about —
-            # so the response says so, in a field an automated caller can test instead of
-            # grepping the service log.
-            schema_error = schema_gate(record, f"{doc_id}{FILE_SUFFIX}")
-            if schema_error:
-                logger.warning(
-                    "returned document record for %s does not validate against the ATRIUM "
-                    "document schema: %s",
-                    doc_id,
-                    schema_error,
-                )
-                result["document_json_schema_error"] = schema_error
-            result["document_json"] = record
-
-    return result
-
-
-def _envelope(engine: Dict[str, Any], doc_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+def _reader_info(document: DigitalDocument, record: Dict[str, Any]) -> Dict[str, Any]:
+    source = record.get("source") or {}
     return {
-        "service": "atrium-llm-enrich",
-        "doc_id": doc_id,
-        "backend": engine["backend"],
-        "model": engine["model"],
-        **payload,
+        "kind": document.kind,
+        "media_type": source.get("media_type") or document.media_type,
+        "origin": source.get("origin") or document.origin,
+        "engine": document.engine,
+        "pages": len(document.pages),
+        "conversion": document.conversion,
+        "notes": list(document.notes),
     }
 
 
-async def _extract_from_path(
-    tmp_path: str,
-    filename: str,
-    engine: Dict[str, Any],
-    doc_id: str,
-    document_record_dir: Optional[Path] = None,
-) -> Dict[str, Any]:
-    loop = asyncio.get_event_loop()
+def _convert(
+    work: Path,
+    upload: Path,
+    baseline: Optional[Dict[str, Any]],
+    docx_page_breaks: str,
+    endpoint: str,
+) -> Tuple[DigitalDocument, Dict[str, Any], Optional[str], ParadataLogger]:
+    """Layers A–D for one upload (blocking): the IR, the gated record, a schema error, the run."""
+    run = ParadataLogger(
+        program=PROGRAM,
+        config={"endpoint": endpoint, "engine": "light", "docx_page_breaks": docx_page_breaks},
+        paradata_dir=None,
+        output_types=["json"],
+        config_dir=_PARA_CONFIG_DIR,
+    )
+    baseline_path: Optional[str] = None
+    baseline_invalid = False
+    if baseline is not None:
+        baseline_path = str(work / "baseline.document.json")
+        Path(baseline_path).write_text(json.dumps(baseline, ensure_ascii=False), encoding="utf-8")
+        try:
+            validate_baseline(baseline)
+        except Exception as exc:  # inherited, not ours: reported, not fatal (rule 6)
+            baseline_invalid = True
+            logger.warning("the sent record does not validate (%s); continuing", exc)
     try:
-        return await loop.run_in_executor(
-            None, _run_extraction, tmp_path, filename, engine, doc_id, document_record_dir
+        document, record, page_rows, line_rows = d2j.prepare(
+            str(upload),
+            baseline=baseline_path,
+            doc_id=_doc_id(upload.name),
+            run_id=run.run_id,
+            run_uuid=run.run_uuid,
+            paradata_ref=run.paradata_ref,
+            out_dir=str(work),
+            docx_page_breaks=docx_page_breaks,
+            logger=run,
         )
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
     except RuntimeError as exc:
-        # chat_fn exhausted its retries against the upstream LLM — retryable (§4.4).
-        raise HTTPException(502, f"LLM backend error: {exc}") from exc
+        if "is required to convert this input" in str(exc):
+            raise AtriumHTTPError(501, str(exc), cause="dependency_missing") from exc
+        raise
+    record.assert_fields_survived("lines", line_rows)
+    record.assert_fields_survived("pages", page_rows)
+    data = record.to_dict()
+    schema_error: Optional[str] = None
+    try:
+        validate_document(data)
+    except Exception as exc:
+        message = getattr(exc, "message", None) or str(exc)
+        if not baseline_invalid:
+            raise HTTPException(
+                500, f"Document record rejected by its own schema: {message}"
+            ) from exc
+        schema_error = message
+    run.log_success("json")
+    run.log_document_success()
+    return document, data, schema_error, run
 
 
-@app.get("/info")
+def _action(
+    run: ParadataLogger,
+    upload_name: str,
+    upload_bytes: bytes,
+    media_type: str,
+    baseline_sent: bool,
+    record: Dict[str, Any],
+    extra_outputs: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """The call's CreateAction (atrium-project#71): what it read and what it wrote."""
+    run.finalize()
+    inputs = [atrium_rocrate.file_entity(upload_name, upload_bytes, media_type=media_type)]
+    if baseline_sent:
+        inputs.append(atrium_rocrate.record_entity(str(record.get("doc_id"))))
+    outputs = atrium_rocrate.block_entities(atrium_rocrate.blocks_written(record, run.run_uuid))
+    outputs.extend(extra_outputs or [])
+    return atrium_rocrate.create_action(run.record, inputs=inputs, outputs=outputs)
+
+
+async def _read_parts(
+    file: UploadFile, document_json: Optional[UploadFile]
+) -> Tuple[str, bytes, Optional[Dict[str, Any]]]:
+    upload_mb = MAX_UPLOAD.get()
+    name = _safe_name(file.filename)
+    data = await read_upload_bounded(file, upload_mb, "File")
+    if not data:
+        raise AtriumHTTPError(422, "The uploaded file is empty.", cause="corrupt")
+    baseline: Optional[Dict[str, Any]] = None
+    if document_json is not None:
+        raw = await read_upload_bounded(document_json, upload_mb, "document_json")
+        baseline = parse_record_part(raw, "document_json")
+    return name, data, baseline
+
+
+async def _run_blocking(func, *args):
+    """Run a blocking conversion in a worker thread, inside a concurrency slot."""
+    _require_capacity()
+    if not _slots.acquire():
+        raise busy(
+            f"All {MAX_CONCURRENT_JOBS.get()} conversion slots are taken (MAX_CONCURRENT_JOBS)."
+        )
+    try:
+        return await asyncio.to_thread(func, *args)
+    except DigitalInputError as exc:
+        raise _refusal(exc) from exc
+    except LimitExceeded:
+        raise
+    finally:
+        _slots.release()
+
+
+# ── routes ──────────────────────────────────────────────────────────────────────────────────
+
+
+@app.get(
+    "/info",
+    response_model=None,
+    responses={200: {"model": DigitalInfo, "description": "Identity, limits, capabilities."}},
+)
 async def info() -> Dict[str, Any]:
     """Service identity and capabilities (§4.1)."""
+    from api_util.digital_legacy import libreoffice_binary  # noqa: PLC0415
+
     return build_info(
         app,
-        service="atrium-llm-enrich",
-        limits={"max_upload_mb": MAX_UPLOAD_MB},
-        backend=_engine.get("backend"),
-        model=_engine.get("model"),
-        ready=_engine_is_serviceable(),
-        supported_inputs=[*_LINE_SUFFIXES, *_DOC_SUFFIXES],
-        languages=["cs", "en"],
+        service=SERVICE,
+        limits=LIMITS,
+        program=PROGRAM,
+        supported_inputs=list(SUPPORTED_SUFFIXES),
+        media_types=dict(d2j.MEDIA_TYPES),
+        libreoffice=libreoffice_binary() is not None,
+        stages=stages.configured(),
     )
 
 
-@app.post("/extract_keywords")
-async def extract_keywords(
-    file: UploadFile = File(...),  # noqa: B008
-    document_json: UploadFile = File(  # noqa: B008
+@app.post(
+    "/reformat",
+    response_model=None,
+    responses={
+        200: {
+            "model": ReformatResponse,
+            "description": "The record, and its Markdown when asked for.",
+        },
+        **error_responses(413, 415, 429, 501, 503),
+    },
+)
+async def reformat(
+    file: UploadFile = File(..., description=_FILE_HELP),
+    document_json: UploadFile = File(
         None,
+        description=_RECORD_PART_HELP,
+        json_schema_extra={"contentMediaType": "application/json"},
+    ),
+    markdown: bool = Form(
+        False, description="Also return the record rendered as annotated Markdown."
+    ),
+    docx_page_breaks: Literal["auto", "explicit", "none"] = Form("auto", description=_BREAKS_HELP),
+):
+    """Convert a born-digital document into its ATRIUM document record (§4.2).
+
+    Calls no other service. Pages whose text layer does not decode, or that have none, carry
+    `needs_ocr` with a reason; a PDF whose text layer is an earlier OCR run is refused (422
+    `ocr_text_layer`) so the route can send it to OCR.
+    """
+    name, data, baseline = await _read_parts(file, document_json)
+
+    def work() -> Dict[str, Any]:
+        with tempfile.TemporaryDirectory(prefix="digital_convert_") as tmp:
+            workdir = Path(tmp)
+            upload = workdir / "in" / name
+            upload.parent.mkdir()
+            upload.write_bytes(data)
+            document, record, schema_error, run = _convert(
+                workdir, upload, baseline, docx_page_breaks, "/reformat"
+            )
+            result: Dict[str, Any] = {
+                "service": SERVICE,
+                "doc_id": record["doc_id"],
+                "document_json": record,
+                "reader": _reader_info(document, record),
+                "limits_applied": [],
+            }
+            extra = []
+            if markdown:
+                from api_util import json_to_md  # noqa: PLC0415
+
+                try:
+                    rendered = json_to_md.render_record(record, title=str(record["doc_id"]))
+                except ValueError:
+                    rendered = (
+                        f"# {record['doc_id']}\n"  # nothing to render: a document without text
+                    )
+                result["markdown"] = rendered
+                extra.append(
+                    atrium_rocrate.file_entity(
+                        f"{record['doc_id']}.md",
+                        rendered.encode("utf-8"),
+                        media_type="text/markdown",
+                    )
+                )
+            if schema_error:
+                result["document_json_schema_error"] = schema_error
+            result["paradata"] = _action(
+                run, name, data, document.media_type, baseline is not None, record, extra
+            )
+            return result
+
+    return await _run_blocking(work)
+
+
+@app.post(
+    "/describe",
+    response_model=None,
+    responses={
+        200: {
+            "model": DescribeResponse,
+            "description": "The record, the per-page assessment, and what each adjacent stage did.",
+        },
+        **error_responses(413, 415, 429, 501, 503),
+    },
+)
+async def describe(
+    file: UploadFile = File(..., description=_FILE_HELP),
+    document_json: UploadFile = File(
+        None,
+        description=_RECORD_PART_HELP,
+        json_schema_extra={"contentMediaType": "application/json"},
+    ),
+    stages_requested: Optional[str] = Form(
+        None,
+        alias="stages",
         description=(
-            "Optional baseline ATRIUM Document JSON (accretion model, docs/document_schema.md "
-            "/ issue #13). When given, the response's `document_json` carries the record back "
-            "with only llm-enrich's `enrichment` block updated — every other tool's block "
-            "(pages, lines, entities, translations, ...) passes through untouched. A baseline "
-            "that does not validate against atrium_document.schema.json is still accepted "
-            "(rule 6), but the response then also carries `document_json_schema_error`."
+            "Which adjacent stages to call: a comma-separated subset of `page-classification`, `ocr-postprocess`; "
+            "empty for every configured one; `none` for none (the assessment then rests on the converter alone)."
         ),
     ),
+    classify_pages: Literal["needs_ocr", "all"] = Form(
+        "needs_ocr",
+        description=(
+            "Pages page-classification is asked about: those without a usable text layer and those whose only "
+            "text is a running header or footer over an image (default), or all."
+        ),
+    ),
+    include_text: bool = Form(True, description="Include each page's text in `pages[].text`."),
+    docx_page_breaks: Literal["auto", "explicit", "none"] = Form("auto", description=_BREAKS_HELP),
 ):
-    """Extract archaeological keywords from an uploaded document (§4.2).
+    """Convert a born-digital document and assess every page (§4.2).
 
-    ``.csv`` / ``*.teitok.xml`` → line-level (one record per qualifying line);
-    ``.md`` / ``.txt`` → document-level (one record set per document). Each record's
-    ``enrichment`` carries ``extracted_keywords_cs`` / ``extracted_keywords_en``.
+    For each page: whether its text layer can be used, what kind of page it is
+    (page-classification), whether its text reads (ocr-postprocess), and where it should go
+    next (`nlp`, `ocr`, `htr`, `none`). A stage that is not configured, not running or answers
+    badly is reported in `stages[]`; the request still succeeds.
     """
-    engine = _require_engine()
-    if not file.filename:
-        raise HTTPException(422, "Filename is missing from the upload.") from None
-    name = file.filename.lower()
-    if not name.endswith(_LINE_SUFFIXES + _DOC_SUFFIXES):
-        raise HTTPException(
-            422, f"Unsupported file type. Accepted: {', '.join(_LINE_SUFFIXES + _DOC_SUFFIXES)}."
-        ) from None
+    try:
+        selected = stages.select_stages(stages_requested)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    name, data, baseline = await _read_parts(file, document_json)
 
-    data = await file.read()
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(413, f"File too large. Maximum size is {MAX_UPLOAD_MB} MB.") from None
+    def work() -> Dict[str, Any]:
+        with tempfile.TemporaryDirectory(prefix="digital_describe_") as tmp:
+            workdir = Path(tmp)
+            upload = workdir / "in" / name
+            upload.parent.mkdir()
+            upload.write_bytes(data)
+            document, record, schema_error, run = _convert(
+                workdir, upload, baseline, docx_page_breaks, "/describe"
+            )
+            paradata = _action(run, name, data, document.media_type, baseline is not None, record)
+            current, outcomes, categories, quality = _run_stages(
+                document, record, data, name, selected, classify_pages
+            )
+            report = build_report(
+                document,
+                categories=categories,
+                quality=quality,
+                trash_share_limit=ROUTE_TRASH_SHARE.get(),
+                include_text=include_text,
+                damaged_word_limit=ROUTE_DAMAGED_WORD_SHARE.get(),
+            )
+            result: Dict[str, Any] = {
+                "service": SERVICE,
+                "doc_id": current["doc_id"],
+                "document_json": current,
+                "reader": _reader_info(document, current),
+                "pages": report["pages"],
+                "summary": report["summary"],
+                "stages": [outcome.to_dict() for outcome in outcomes],
+                "limits_applied": [],
+                "paradata": paradata,
+            }
+            if schema_error:
+                result["document_json_schema_error"] = schema_error
+            return result
 
-    doc_id = _doc_id(file.filename)
-    suffix = ".teitok.xml" if name.endswith(".teitok.xml") else Path(name).suffix
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        work_dir = Path(tmp_dir)
-        tmp_path = work_dir / f"input{suffix}"
-        tmp_path.write_bytes(data)
-
-        document_record_dir: Optional[Path] = None
-        if document_json is not None:
-            baseline_bytes = await document_json.read()
-            (work_dir / f"{doc_id}{FILE_SUFFIX}").write_bytes(baseline_bytes)
-            document_record_dir = work_dir
-
-        result = await _extract_from_path(
-            str(tmp_path), file.filename, engine, doc_id, document_record_dir
-        )
-
-    return _envelope(engine, doc_id, result)
+    return await _run_blocking(work)
 
 
-@app.post("/extract_keywords_text")
-async def extract_keywords_text(
-    text: str = Body(
-        ..., description="Raw text for document-level archaeological keyword extraction."
-    ),
-    document_json: dict = Body(
-        None,
-        description="Optional baseline ATRIUM Document JSON. When given, the response's `document_json` carries the record back with only llm-enrich's `enrichment` block updated. An invalid baseline is still accepted, and the response then also carries `document_json_schema_error`.",
-    ),
-):
-    """Extract archaeological keywords from inline text (§4.2)."""
-    engine = _require_engine()
+def _validates(record: Dict[str, Any]) -> bool:
+    try:
+        validate_document(record)
+    except Exception:
+        return False
+    return True
 
-    # Assign a dummy doc_id for inline text (or generate a UUID if preferred)
-    doc_id = "inline_text"
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        work_dir = Path(tmp_dir)
-        tmp_path = work_dir / "input.txt"
-        tmp_path.write_text(text, encoding="utf-8")
-
-        document_record_dir: Optional[Path] = None
-        if document_json is not None:
-            baseline_path = work_dir / f"{doc_id}{FILE_SUFFIX}"
-            baseline_path.write_text(json.dumps(document_json), encoding="utf-8")
-            document_record_dir = work_dir
-
-        result = await _extract_from_path(
-            str(tmp_path), "input.txt", engine, doc_id, document_record_dir
-        )
-
-    return _envelope(engine, doc_id, result)
+def _run_stages(
+    document: DigitalDocument,
+    record: Dict[str, Any],
+    data: bytes,
+    name: str,
+    selected: List[str],
+    classify_pages: str,
+) -> Tuple[
+    Dict[str, Any], List[stages.StageOutcome], Dict[int, Dict[str, Any]], Dict[int, Dict[str, Any]]
+]:
+    """Call the selected, configured stages in order; adopt each guarded record write."""
+    timeout = float(STAGE_TIMEOUT_S.get())
+    current = record
+    outcomes: List[stages.StageOutcome] = []
+    categories: Dict[int, Dict[str, Any]] = {}
+    quality: Dict[int, Dict[str, Any]] = {}
+    for stage in stages.STAGES:
+        base = stages.stage_url(stage)
+        if stage not in selected:
+            outcomes.append(
+                stages.StageOutcome(stage=stage, status=stages.STATUS_NOT_REQUESTED, url=base)
+            )
+            continue
+        if base is None:
+            outcomes.append(
+                stages.StageOutcome(
+                    stage=stage,
+                    status=stages.STATUS_NOT_CONFIGURED,
+                    detail=f"{stages.URL_ENV[stage]} is not set",
+                )
+            )
+            continue
+        if stage == stages.PAGE_CLASSIFICATION:
+            if document.kind != "pdf":
+                outcomes.append(
+                    stages.StageOutcome(
+                        stage=stage,
+                        status=stages.STATUS_SKIPPED,
+                        url=base,
+                        detail=f"page-classification reads the page images of a PDF; a {document.kind.upper()} has none",
+                    )
+                )
+                continue
+            # A page whose only text is its running header or footer is asked about too: its page
+            # type says whether its image holds text the text layer lacks (#5, plans with legends).
+            wanted = [
+                page.page_index
+                for page in document.pages
+                if classify_pages == "all" or page.needs_ocr or furniture_only(page)
+            ]
+            if not wanted:
+                outcomes.append(
+                    stages.StageOutcome(
+                        stage=stage,
+                        status=stages.STATUS_SKIPPED,
+                        url=base,
+                        detail="every page has usable body text (send classify_pages=all to classify them anyway)",
+                    )
+                )
+                continue
+            result = stages.run_page_classification(base, data, name, current, wanted, timeout)
+            categories = result.per_page
+        else:
+            lines = {
+                page.page_index: (page.page, [line.text for line in page.lines])
+                for page in document.pages
+                if page.lines
+            }
+            if not lines:
+                outcomes.append(
+                    stages.StageOutcome(
+                        stage=stage,
+                        status=stages.STATUS_SKIPPED,
+                        url=base,
+                        detail="the document has no lines to score",
+                    )
+                )
+                continue
+            result = stages.run_ocr_postprocess(base, current, lines, timeout)
+            quality = result.per_page
+        adopted = stages.adopt(result, current)
+        if adopted is not current and not _validates(adopted):
+            result.outcome.status = stages.STATUS_REJECTED
+            result.outcome.record_adopted = False
+            result.outcome.reason = "schema"
+            result.outcome.detail = "the returned record does not validate against the schema; the record was kept as it was"
+            adopted = current
+        current = adopted
+        outcomes.append(result.outcome)
+    return current, outcomes, categories, quality
 
 
 if __name__ == "__main__":
-    import logging
     import os
     import sys
 
     import uvicorn
 
-    # (12-factor XI) Logs are an event stream: emit to stdout and let the supervisor
-    # route them. The library modules only getLogger(); this is the one place allowed
-    # to configure handlers. The format string is alto-postprocess's, verbatim, in all
-    # five services — a partner tailing five logs wants one shape, and format drift is
-    # never fixed later. (issue #61)
+    # (12-factor XI) Logs are an event stream: emit to stdout and let the supervisor route
+    # them. The format string is alto-postprocess's, verbatim, in every service (issue #61).
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
         stream=sys.stdout,
     )
-
-    # (12-factor VII) The service exports itself by binding a port, and which port is
-    # configuration. This was baked into an exec-form ENTRYPOINT array, where no shell
-    # exists to expand a variable even if one is set — while the reference manifest we
-    # hand ARÚP/ARÚB (atrium-project docs/templates/k8s/atrium-service.deployment.yaml)
-    # declares `env: PORT` and service/healthcheck.py already reads it. Setting PORT
-    # therefore moved the health PROBE and not the listener, so the container reported
-    # unhealthy forever rather than simply ignoring the knob. (issue #58)
+    # (12-factor VII) The port is configuration (issue #58); reload needs an import string,
+    # everywhere else the app object is correct (see atrium-llm-enrich history for why).
     reload = os.getenv("RELOAD", "false").strip().lower() in ("true", "1", "yes", "on")
-
-    # uvicorn needs an IMPORT STRING to respawn workers on reload; everywhere else the
-    # app OBJECT is correct and strictly better. Passing a string under the container
-    # entrypoint (`python -m service.api`) re-imports this module under its real name
-    # while it is already running as __main__: the whole body executes twice, and the
-    # copy uvicorn serves is not the one __main__ built. __spec__ is None under a direct
-    # `python api.py` from service/ (service/README.md's documented start), where no
-    # import string resolves anyway — so reload degrades to a uvicorn warning there
-    # instead of silently pretending to be on.
     _app_ref = f"{__spec__.name}:app" if reload and __spec__ is not None else app
-
     uvicorn.run(
         _app_ref,
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", "8000")),
         reload=reload,
-        # (12-factor IX) Disposability: this is the `--timeout-graceful-shutdown 20`
-        # that moved off the ENTRYPOINT line when the port became configurable. It
-        # bounds uvicorn's wait for in-flight requests; serve_lifecycle() adds its own
-        # drain on top, and docs/k8s_deployment.md in the hub carries the full grace
-        # budget the two have to fit inside. (issue #55)
+        # (12-factor IX) bounds uvicorn's wait for in-flight requests; serve_lifecycle() adds
+        # its own drain on top (issue #55).
         timeout_graceful_shutdown=int(os.getenv("GRACEFUL_SHUTDOWN_S", "20")),
     )

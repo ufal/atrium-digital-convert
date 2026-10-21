@@ -1,156 +1,136 @@
 ---
-name: atrium-llm-enrich
-description: Extracts vocabulary-guided archaeological keywords from digitized document text using a server-configured LLM backend (OpenRouter remote API or local Ollama) - line-level (CSV/TEITOK) or whole-document (Markdown/plain text) records each get Czech + English key terms, a TEATER/AMCR thematic category constrained to the controlled vocabulary, and a confidence score. Use this skill for semantic enrichment of archival text after OCR and quality filtering, when NLP-statistical keywords are not enough and vocabulary-grounded semantic categories are needed.
+name: atrium-digital-convert
+description: Converts born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF; DOC and XLS through LibreOffice) into the ATRIUM document record - pages, lines with their boxes (PDF), tables and the text-layer verdict of every page - and, on request, assesses every page and routes it to NLP, OCR, HTR or nothing, asking page-classification and ocr-postprocess when the server knows their URLs. Use this skill for born-digital archival documents before NLP enrichment, to find which pages need OCR instead, or to turn a document into annotated Markdown.
 ---
 
-# ATRIUM LLM Enrichment Skill 🗝️
+# ATRIUM digital-convert Skill 📄
 
-This skill provides agent access to the **ATRIUM LLM Enrichment** service -
-vocabulary-constrained keyword extraction over an LLM. It follows a
-**server-client** design: a FastAPI server (in `service/`) drives the LLM
-backends and the TEATER/AMCR vocabulary prompting, and a zero-dependency
-client script (`scripts/atrium_keywords.py`) is the only thing the agent
-calls directly.
+This skill gives agents access to the **ATRIUM digital-convert** service: the born-digital stage of the ATRIUM
+pipeline. It reads a document's own text layer instead of running OCR on it, and says, page by page, whether that
+text can be used. It follows a **server-client** design: a FastAPI server (in `service/`) does the conversion, and
+a zero-dependency client script (`scripts/atrium_convert.py`) is the only thing the agent calls directly.
 
 ## Operational Requirements ⚙️
 
-- **Server**: a running instance is required. Default `http://localhost:8000`;
-  override with `--base-url` or the `ATRIUM_LE_URL` environment variable.
-- **Client dependencies**: none - `scripts/atrium_keywords.py` uses only the
-  Python 3 standard library.
-- **Server dependencies**: Docker (recommended, compose `api` profile) or a
-  Python venv with `requirements_remote.txt` + `service/requirements.txt`
-  (torch-free). A backend must be configured: `OPENROUTER_API_KEY` (+
-  `OPENROUTER_MODEL` in `llm_config.txt`) for `openrouter`, or a reachable
-  Ollama server (`OLLAMA_HOST`, `OLLAMA_MODEL`) for `ollama`.
-- **First launch**: the TEATER/AMCR vocabulary auto-syncs from the AMCR
-  OAI-PMH API when its cache file is missing - minutes, network-bound. Do
-  **not** treat a slow first start as failure; `/health?deep=true` reports
-  readiness.
-- **Limits**: 10 MB per upload. **This is the slowest ATRIUM service** - a full
-  document takes minutes; there is no per-request line cap, so split very large
-  inputs yourself if a call is taking too long.
-- **Readiness**: `GET /health` is liveness (stays 200 while draining); `GET /ready` is
-  the orchestrator-facing readiness probe — 503 while warming up or shutting down.
-  `GET /info` reports `ready: false` (rather than failing to start) when the configured
-  backend is misconfigured (missing API key / model) — check `/info` before assuming
-  the server is up.
+- **Server**: a running instance is required. Default `http://localhost:8000`; override with `--base-url` or the
+  `ATRIUM_DC_URL` environment variable. `ATRIUM_DC_URL` is *inbound*, where the client finds this service. It is
+  unrelated to the server's *outbound* `PAGE_CLASSIFICATION_URL` and `OCR_POSTPROCESS_URL`, which say where
+  `/describe` finds the two other stages.
+- **Client dependencies**: none - Python 3 standard library only.
+- **Server dependencies**: Docker (recommended, compose `api` profile; the image includes LibreOffice) or a
+  Python venv with `service/requirements.txt` (which installs `requirements.txt` and `requirements_digital.txt`).
+  A local server reads DOC and XLS only when LibreOffice (`soffice`) is on its PATH; without it they answer 501.
+- **First launch**: no model and no download; the first Docker start pulls or builds the image. Ready in
+  seconds after that.
+- **Limits**: 200 MB per file (`MAX_UPLOAD_MB`), 2,000 pages (`MAX_PAGES`), 2 conversions at once
+  (`MAX_CONCURRENT_JOBS`; HTTP 429 with `Retry-After` when busy). A large report takes up to a minute with
+  `/reformat`, and up to about five minutes with `/describe` and both stages.
+- **Readiness**: `GET /health` is liveness (stays 200 while draining); `GET /ready` is the readiness probe, 503
+  before start-up checks pass and while shutting down. `GET /info` reports the version, limits, the accepted types,
+  whether LibreOffice is present and which stages are configured.
 
-## Backends & vocabulary 🗝️
+## Text layers and routes 📄
 
-| Backend      | Where it runs           | Requirements                            |
-|--------------|--------------------------|------------------------------------------|
-| `openrouter` | remote LLM-as-a-service | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` |
-| `ollama`     | local Ollama server      | `OLLAMA_HOST` reachable, `OLLAMA_MODEL` |
+Every page of the record carries `text_layer`, the converter's verdict on its text:
 
-**The backend and model are chosen server-side, once, at server startup** via the
-`LLM_BACKEND` env var (`openrouter` default, or `ollama`) plus the matching
-`OPENROUTER_MODEL`/`OLLAMA_MODEL` — there is no per-request backend override. Use
-`--info` to see which backend/model the running server warmed up, and whether it is
-`ready`. (`local` in-process transformers/vLLM is CLI-only, outside the API.)
+| `text_layer` | Meaning                                                                   | `needs_ocr` |
+|--------------|---------------------------------------------------------------------------|-------------|
+| `digital`    | the text decodes; use it                                                  | no          |
+| `garbled`    | a text layer exists but does not decode (wrong encoding, unmapped glyphs) | yes         |
+| `ocr`        | the text is an earlier OCR run's invisible layer over a page image        | yes         |
+| `none`       | no text layer, or only a running header or footer over an image           | yes         |
+| `blank`      | an empty page of a format without page images                             | no          |
 
-Two extraction modes, selected by input file suffix (or, for raw stdin text, always
-document-level):
+A PDF most of whose text-bearing pages are an earlier OCR run is refused (422 `ocr_text_layer`): send it to the
+OCR route instead.
 
-| Mode            | Input suffix                | Granularity                                                      |
-|-----------------|------------------------------|-------------------------------------------------------------------|
-| line-level      | `.csv`, `.teitok.xml`        | one record per qualifying line                                    |
-| document-level  | `.md`, `.txt`, or stdin text | one chat call over the whole document, one record per located passage |
-
-Each record's `enrichment` block picks the single most relevant **TEATER/AMCR
-category** from the controlled vocabulary (it cannot invent categories), extracts
-Czech key terms found in the passage itself, translates them to English, and reports a
-calibrated confidence score. Meta-text is categorized `Nerelevantní (meta-text)` with
-no keywords.
+With `--describe`, every page also gets a `route`: `nlp` (its text is good), `ocr` (printed or typed text to read
+again), `htr` (handwriting) or `none` (nothing to read: a drawing, a photograph, a blank page). `summary.reacquire_pages`
+lists the pages for OCR or HTR. That list can also include pages whose text decodes but lost letters to unmapped
+glyphs, which `needs_ocr` alone misses.
 
 ## Workflows 🪄
 
 ### 1. Ensure the server is running
 
 ```bash
-bash scripts/server.sh          # Docker Compose api profile (or local fallback)
-bash scripts/server.sh --local  # force local uvicorn (no Docker)
+bash scripts/server.sh          # Docker Compose api profile (or the local fallback)
+bash scripts/server.sh --local  # force a local server in venv-dc (no Docker)
 ```
 
-Idempotent: exits immediately if GET /info already answers; waits for
-first-run vocabulary sync.
+Idempotent: exits at once if `GET /ready` already answers 200.
 
-### 2. Extract keywords
+### 2. Convert
 
 ```bash
-# CSV with text[,page_num,line_num] columns - line-level
-python3 scripts/atrium_keywords.py small_data_samples/lines_sample.csv
+# One PDF: the record, and one row per page (text layer, lines, needs OCR or not)
+python3 scripts/atrium_convert.py small_data_samples/enrichable.pdf
 
-# TEITOK XML page - line-level, full JSON envelope
-python3 scripts/atrium_keywords.py page.teitok.xml --format json
+# A text page, a scanned page and a blank page: two flagged needs_ocr
+python3 scripts/atrium_convert.py small_data_samples/image_only.pdf
 
-# Markdown/plain-text document - document-level (one call, several passages)
-python3 scripts/atrium_keywords.py notes.md
+# A DOCX, with the record and annotated Markdown written to a directory
+python3 scripts/atrium_convert.py small_data_samples/minimal.docx --markdown --out-dir out/
 
-# Inline document text from stdin (no file needed) - document-level
-printf 'V sondě S3 byly odkryty základy kostela.\n' | python3 scripts/atrium_keywords.py -
+# With the AMČR seed record, which names the document and its digest
+python3 scripts/atrium_convert.py report.pdf --seed report.seed.json --out-dir out/
 
-# Discover the configured backend/model, readiness, and limits
-python3 scripts/atrium_keywords.py --info
+# DOCX page breaks: the document's own (explicit), none, or auto (default)
+python3 scripts/atrium_convert.py report.docx --docx-page-breaks explicit
+
+# Discover capabilities, limits and configured stages
+python3 scripts/atrium_convert.py --info
 ```
 
-### 3. ATRIUM Document JSON accretion (optional)
-
-Accrete this tool's `enrichment` block onto an existing baseline record (accretion
-contract, `docs/document_schema.md` in the hub repo; single-file only):
+### 3. Assess and route every page
 
 ```bash
-python3 scripts/atrium_keywords.py page.teitok.xml --document-json in.document.json \
-    --document-json-out-file out.document.json
+# Per page: text layer, page type, text quality, route and reason
+python3 scripts/atrium_convert.py small_data_samples/image_only.pdf --describe
+
+# The converter's own evidence only, without calling the other stages
+python3 scripts/atrium_convert.py report.pdf --describe --stages none
+
+# Ask page-classification about every page, not only those without usable text
+python3 scripts/atrium_convert.py report.pdf --describe --classify-pages all --no-text --format json
 ```
 
-Every other tool's block (`pages`, `lines`, `entities`, `translations`, ...) passes
-through unchanged. An invalid baseline is still accepted (rule 6), and the response
-then also carries `document_json_schema_error` — the client prints this as a warning.
+A stage the server has no URL for is reported as `not_configured`, and the request still succeeds. The route then
+rests on the converter alone.
 
-### 4. Interpret output
+### 4. Interpret the output
 
-- `table` (default): `DOC, LOCATOR, CATEGORY, CONF, KEYWORDS_CS` rows (`LOCATOR` is
-  `p<page>/l<line>` for line-level records, `p<page>:<locator>` for document-level ones)
-  plus a one-line run summary (`mode`, backend, model, processed/filtered/error counts)
-  on stderr.
-- `csv`: adds `KEYWORDS_EN`, complete keyword lists for downstream tabular use.
-- `json`: the full envelope — `doc_id`, `mode`, `backend`, `model`, `stats`, and
-  `results[]` with each record's `enrichment` (`extracted_keywords_cs/en`,
-  `teater_category`, `confidence_score`).
+- **Table and CSV** (`--format csv`): `/reformat` gives FILE, PAGE, TEXT_LAYER, LINES, NEEDS_OCR and REASON;
+  `/describe` gives FILE, PAGE, TEXT_LAYER, CATEGORY (with its confidence), QUALITY (band and source), ROUTE and
+  REASON. The table cuts the last column to 70 characters; CSV and JSON keep it whole.
+- **JSON** (`--format json`): the server's whole answer per document, keyed by `doc_id`. It holds the record
+  (`document_json`), the reader details (`reader`), the run's provenance (`paradata`), and with `--describe` the
+  `pages`, `summary` and `stages`.
+- **Files** (`--out-dir`): `<doc_id>.document.json`, and `<doc_id>.md` with `--markdown`.
+- One summary line per document goes to stderr; stdout stays clean for CSV and JSON.
 
 ## Agent Guidelines 🤖
 
-1. **Backend is server-configured, not client-chosen**: there is no `--backend` flag —
-   check `--info` for which backend/model the running server warmed up, and whether it
-   reports `ready: true`. If the wrong backend is configured, that is a server restart
-   with a different `LLM_BACKEND`, not a client-side switch.
-2. **Mode follows the file**: `.csv`/`.teitok.xml` get line-level records; `.md`/`.txt`
-   and stdin text get one document-level call. Convert other formats (e.g. ALTO XML)
-   with `api_util/xml_to_md.py` first if you need document-level extraction from them.
-3. Confidence discipline: treat `confidence_score < 0.7` as tentative - surface
-   the category with its score rather than asserting it; downstream filters
-   commonly threshold on this field.
-4. Prefer `--format json` (or `csv`) when the result feeds further
-   processing; the table truncates keyword lists for readability.
-5. For full request/response schemas, fetch `GET /openapi.json` from the
-   running server (Swagger UI at `/docs`).
-6. Exit code `2` (unreachable): start the server (`bash scripts/server.sh`)
-   and retry once. Exit code `3` (server error, including HTTP 503 for a
-   not-yet-ready or misconfigured backend): the client already retried
-   502/503/504 three times - check `GET /health?deep=true` and `--info`'s
-   `ready` field, and server logs; do not loop.
-7. **Budget**: this is the slowest ATRIUM service (minutes per document) and has no
-   built-in per-request line cap - run the quality filter (atrium-alto-postprocess)
-   first so only meaningful lines reach the LLM, split very large documents yourself,
-   and tell the user what you did.
-8. Do not bypass the API by importing the LLM client code directly - the
-   server is the supported entry point and enforces the vocabulary contract.
+1. **Route by the verdict, not by the file type.** Send pages with `needs_ocr` (and, after `--describe`, every
+   page in `summary.reacquire_pages`) to OCR. Use the text of `digital` pages as it is.
+2. **Report what the server could not do.** A `/describe` stage that is `not_configured`, `unavailable`, `error`
+   or `rejected` means the route rests on less evidence; say so rather than presenting the route as certain.
+3. Prefer `--format json` when the result feeds further processing; pass the record on with `--out-dir`.
+4. For full request and response schemas, fetch `GET /openapi.json` from the running server (Swagger UI at
+   `/docs`); `service/README.md` is the runbook.
+5. Exit code `2` (unreachable): start the server (`bash scripts/server.sh`) and retry once. Exit code `3` (server
+   error): the client has already retried a 503 or 504, and a 502 that is not final, three times. Read the hint
+   printed under the error, check `GET /health?deep=true` and the server log, and do not loop.
+6. **Refusals name their fix.** 415: not a born-digital type (a scan goes to OCR). 422 `ocr_text_layer`: send the
+   document to OCR. 422 `source_digest_mismatch`: the seed was made for another file. 501: no LibreOffice for DOC
+   or XLS on this server. 429: wait for `Retry-After`.
+7. **Size:** files over 200 MB are refused by default. Ask the operator to raise `MAX_UPLOAD_MB`, or split the
+   document, and tell the user which you did.
+8. Do not bypass the API by importing the converter directly. Every call returns its provenance as `paradata`, a
+   Process Run Crate `CreateAction`; the service writes no paradata file.
 
 ## Acknowledgements & Citations 🙏
 
-The models and dataset are developed within the [ATRIUM](https://atrium-research.eu/)
-project at ÚFAL, Charles University, with data hosted on
-[LINDAT/CLARIAH-CZ](https://lindat.cz). If you use this service for research, cite the
-repository's `CITATION.cff` and the LINDAT dataset record
-(http://hdl.handle.net/20.500.12800/1-6184).
+Developed within the [ATRIUM](https://atrium-research.eu/) project at ÚFAL, Charles University, for the
+Archaeological Map of the Czech Republic (AMČR). If you use this service for research, cite the repository's
+`CITATION.cff`.

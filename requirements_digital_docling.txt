@@ -1,0 +1,40 @@
+# requirements_digital_docling.txt — the HEAVY, opt-in engine of the digital-born converter
+# (Issue #18: `python api_util/digital_to_json.py report.pdf --engine docling`).
+#
+# For complex layouts, when accuracy is worth a torch stack: Docling's layout model and
+# TableFormer decide reading order, headings, captions, page furniture and tables with or
+# without ruling; the light engine's pdfplumber lines keep line-level geometry
+# (api_util/digital_docling.py). PDF only — for DOCX the light reader is the full reader.
+# The light engine (requirements_digital.txt) stays the default and is included below.
+#
+# Size and hardware. `docling-slim` with only the extras this converter uses — PDF parsing,
+# the local layout/table models, the core converter and the `docling-tools` CLI — not
+# `docling` itself, which adds OCR engines, audio, XBRL and VLM backends. Torch comes from
+# PyPI, i.e. CUDA-enabled wheels (several GB). For a CPU-only image, install torch from the
+# CPU index FIRST (pip install torch torchvision --index-url
+# https://download.pytorch.org/whl/cpu), then this file.
+#
+# Models. Docling downloads its weights from the Hugging Face Hub on first use. Offline,
+# download them once — `docling-tools models download layout tableformer -o DIR` — and set
+# DOCLING_ARTIFACTS_PATH=DIR (the Dockerfile's `digital-docling` stage does both at build
+# time). Without either, the converter exits 2 with that advice.
+#
+# LICENCES (para_config.txt [components], accretion rule 5): docling / docling-parse MIT,
+# docling-layout-heron weights Apache-2.0, TableFormer weights (docling-project/
+# docling-models) CDLA-Permissive-2.0. para_licenses.py — vendored from the hub, byte-identity
+# enforced — ranks CDLA-Permissive-2.0 with MIT since 2026-09-25 (no terms on Results), so a
+# docling run's record resolves to MIT, the same as the light engine's. Verified 2026-09-25
+# against PyPI and the Hub model cards.
+
+-r requirements_digital.txt
+
+docling-slim[format-pdf,models-local,convert-core,cli]==2.130.0   # MIT
+
+# OpenCV for TableFormer. docling-ibm-models (under `models-local`) imports `cv2` when it builds a
+# table, yet declares OpenCV only as an extra of its own; the full `docling` gets it through its
+# OCR extras, which this slim install leaves out. Without it every PDF failed AFTER the models
+# loaded — "ModuleNotFoundError: No module named 'cv2'", exit 2 on all 15 AMČR samples
+# (atrium-digital-convert#5, 2026-10-09). Headless: no GUI libraries in an image. Apache-2.0
+# (OpenCV ≥ 4.5; the wheel's packaging is MIT); a library under TableFormer, not a component of
+# its own, so the record's licence stays MIT.
+docling-ibm-models[opencv-python-headless]>=4.0.2,<5

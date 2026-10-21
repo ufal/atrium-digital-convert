@@ -1,0 +1,19 @@
+# requirements_docmd.txt — optional deps for the visually-rich document front-end
+# (api_util/docx_to_md.py, api_util/pdf_to_md.py, api_util/doc_to_visual_md.py).
+#
+# Kept out of the base install: only users converting PDF/DOCX inputs to
+# visually-rich Markdown need these. Both are permissive (MIT), matching the
+# license pressure noted in para_config.txt.
+#
+# Legacy MD-era stack (Issue #10), DEPRECATED since 2026-09-25 (#18 PR 7). The default
+# route of doc_to_visual_md.py — and so of the clients' PDF/DOCX auto-convert — is now the
+# JSON route (digital_to_json -> json_to_md): install requirements_digital.txt for it.
+# This file serves only what that route does not do yet: `--ocr` (Tesseract, below) and
+# `--legacy` (the direct converters, kept for A/B checks until they are deleted).
+python-docx   # DOCX reader (MIT) — styles, fonts, tables, headers/footers
+pdfplumber    # digital-born PDF reader (MIT) — word/char bboxes, fonts, tables (pulls pypdfium2)
+
+# Optional OCR path for scanned / curve-only PDF pages (pdf_to_md.py --ocr).
+# Needs the system Tesseract binary + Czech data, installed separately, e.g.:
+#   apt-get install tesseract-ocr tesseract-ocr-ces
+pytesseract   # Apache-2.0 wrapper around the Tesseract OCR engine

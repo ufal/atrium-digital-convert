@@ -1,8 +1,8 @@
 """
 api_util/layout_md.py — visual-layout cue vocabulary for LLM-friendly Markdown.
 
-Single source of truth for the "visual layout pieces" catalogued in issue #10
-(https://github.com/ufal/atrium-llm-enrich/issues/10, comment #2): the taxonomy
+Single source of truth for the "visual layout pieces" catalogued in issue #4 (was llm-enrich#10)
+(https://github.com/ufal/atrium-digital-convert/issues/4, comment #2): the taxonomy
 of page borders, bounding boxes, fonts, alignment, headers/footers, etc. that a
 PDF/DOCX front-end records so an LLM sees layout signal a plain text dump would
 lose.
@@ -18,10 +18,19 @@ string form documented in the issue, so both converters
 (``docx_to_md.py`` / ``pdf_to_md.py``) speak one canonical schema. ``CUE_SCHEMA``
 lists the whole taxonomy (including cues no current tool emits yet) so the set of
 "all possible visual layout pieces" stays discoverable and testable in one place.
+
+**Document text never forges a cue** (atrium-digital-convert#6). Cues are HTML comments and the
+``## Page N`` headings, and readers key on them: keyword-extract's whole-document prompt places a
+line on the page whose ``PAGE_BREAK``/``## Page`` marker is above it, and cites that page. So
+text that reaches the Markdown never holds a raw ``<!--`` or ``-->`` and never starts a line with
+``#`` (``escape_text``), and a value inside a cue or a page heading (a PDF page label, a
+``needs_ocr_reason``, a font name, a watermark) stays on one line without either delimiter
+(``cue_value``, applied by every cue emitter). Text without them renders exactly as before.
 """
 
 from __future__ import annotations
 
+import re
 from typing import Iterable, Optional, Sequence
 
 # --------------------------------------------------------------------------- #
@@ -62,15 +71,141 @@ INLINE_CUES: dict[str, str] = {
     "image": "![alt](src) — embedded figure, optionally + BBOX.",
     "footnote": "text[^n] / [^n]: … — footnotes and endnotes.",
     "table": "GFM pipe table — tabular data.",
+    "heading": "### text — a heading, two levels below the `## Page N` sections.",
 }
+
+
+# --------------------------------------------------------------------------- #
+# Detail profiles (atrium-project#70 item 1; llm-enrich#13 §B)
+#
+# What the record route (json_to_md -> xml_to_md.rows_to_layout_markdown) emits
+# at each ``detail`` level — the values of the schema's ``regenerable.<k>.detail``
+# enum. The TEXT lines are identical in all three; only cues are dropped, and the
+# cue sets nest (minimal ⊂ standard ⊂ full), so a lighter profile never says
+# anything the full one does not.
+#
+#   full      every cue the record can support: BBOX per line, DOC_META, OCR,
+#             emphasis, and LAYOUT_MARGIN on pages with a canvas and body boxes.
+#   standard  one BBOX per block (a run of lines sharing ``group_id``; a table keeps
+#             its own; lines with no group get none), no LAYOUT_MARGIN.
+#   minimal   the page skeleton and the document structure only: no geometry, no
+#             DOC_META, no OCR provenance, no emphasis. Dropping OCR deviates from
+#             the 07-24 §B draft on purpose — on pilot-shaped ALTO records (no bbox,
+#             no canvas) it is the only cue there is to drop.
+#
+# ``full`` is the default everywhere; which lighter profile is safe for the model is
+# #22's bake-off to decide, not this table's.
+# --------------------------------------------------------------------------- #
+DETAIL_LEVELS: tuple[str, ...] = ("full", "standard", "minimal")
+DEFAULT_DETAIL = "full"
+
+_MINIMAL_CUES = frozenset(
+    {
+        "PAGE_BREAK",
+        "NEEDS_OCR",
+        "HEADER_START",
+        "HEADER_END",
+        "FOOTER_START",
+        "FOOTER_END",
+        "heading",
+        "footnote",
+        "table",
+        "image",
+    }
+)
+_STANDARD_CUES = _MINIMAL_CUES | {"OCR", "DOC_META", "bold", "italic", "BBOX"}
+
+#: Cue names (``CUE_SCHEMA`` and ``INLINE_CUES`` keys) each profile emits.
+PROFILE_CUES: dict[str, frozenset] = {
+    "minimal": _MINIMAL_CUES,
+    "standard": _STANDARD_CUES,
+    "full": _STANDARD_CUES | {"LAYOUT_MARGIN"},
+}
+
+#: How much geometry each profile keeps: a box per line, a box per block, or none.
+#: Figures (``image``) keep their own box wherever BBOX is kept at all.
+BBOX_SCOPE: dict[str, Optional[str]] = {"full": "line", "standard": "block", "minimal": None}
+
+#: Cues in the catalogue that the record route does not emit under ANY profile, each
+#: with the reason. Every cue is in a profile or here (tests/test_layout_md.py), so a
+#: cue cannot be silently forgotten. The deprecated direct converters (docx_to_md /
+#: pdf_to_md, reachable with ``--legacy``) still emit some of these; they have no
+#: profiles.
+RESERVED: dict[str, str] = {
+    "INDENT": "No consumer has asked for it, and where a line counts as indented on an "
+    "OCR box is threshold guesswork.",
+    "LAYOUT_COLUMN": "The digital IR's column index stays inside digital_to_json; putting it "
+    "on the record is a post-freeze schema change (llm-enrich#10 W7).",
+    "FONT": "The record keeps semantic style only (lines[].style, #18 option (c)): size, "
+    "weight and family are dropped at conversion.",
+    "STYLE": "Colour, highlight and line spacing are not in the record (#18 option (c)).",
+    "WATERMARK": "No engine in the pipeline detects watermarks.",
+    "strike": "lines[].style carries bold and italic only.",
+    "underline": "lines[].style carries bold and italic only.",
+    "align_div": "The record has no alignment field.",
+}
+
+
+def check_detail(detail: str) -> str:
+    """Return ``detail`` if it names a profile; raise ``ValueError`` otherwise.
+
+    Never falls back to ``full``: a caller asking for a profile that does not exist
+    gets told so, rather than a rendering it did not ask for.
+    """
+    if detail not in DETAIL_LEVELS:
+        raise ValueError(
+            f"detail={detail!r} is not a detail profile (expected one of {list(DETAIL_LEVELS)})."
+        )
+    return detail
+
+
+def emits(detail: str, cue: str) -> bool:
+    """Whether profile ``detail`` emits ``cue`` (a ``CUE_SCHEMA``/``INLINE_CUES`` name)."""
+    return cue in PROFILE_CUES[check_detail(detail)]
 
 
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
+#: What Python's ``str.splitlines`` breaks on: a cue or a page heading must stay one line.
+_LINE_BREAKS = re.compile(r"[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]+")
+
+
+def escape_cue_delimiters(text) -> str:
+    """``<!--`` → ``&lt;!--`` and ``-->`` → ``--&gt;``: text that can neither open nor close an
+    HTML comment, so never a cue (#6). Idempotent; text without them is returned unchanged."""
+    return str(text).replace("<!--", "&lt;!--").replace("-->", "--&gt;")
+
+
+def escape_line_start(text) -> str:
+    """A line whose first non-space character is ``#`` gets ``\\#``: the line ``## Page 7`` is
+    then text, not a page heading (#6). Idempotent. Only for text that starts a Markdown line —
+    not for a table cell, where ``md_table`` would show the backslash."""
+    text = str(text)
+    stripped = text.lstrip()
+    if stripped.startswith("#"):
+        return text[: len(text) - len(stripped)] + "\\" + stripped
+    return text
+
+
+def escape_text(text) -> str:
+    """A line of document text as Markdown that no reader can take for a cue (#6): comment
+    delimiters escaped and a leading ``#`` escaped (``escape_cue_delimiters``,
+    ``escape_line_start``). Emphasis, ``|`` and other HTML are left as they are."""
+    return escape_line_start(escape_cue_delimiters(text))
+
+
+def cue_value(value) -> str:
+    """A value inside a cue or a ``## Page`` heading — a page label, a reason, a font name, a
+    title: line breaks become spaces and comment delimiters are escaped, so it cannot end the
+    cue or start a new line (#6). A one-line value without delimiters is unchanged."""
+    return escape_cue_delimiters(_LINE_BREAKS.sub(" ", str(value)))
+
+
 def _comment(body: str) -> str:
-    """Wrap a payload in an HTML comment: ``<!-- body -->``."""
-    return f"<!-- {body} -->"
+    """Wrap a payload in an HTML comment: ``<!-- body -->``. The body goes through
+    ``cue_value``, so a label, reason or font name taken from a document cannot close it."""
+    return f"<!-- {cue_value(body)} -->"
 
 
 def _page_id(page_id) -> str:
@@ -246,7 +381,7 @@ def align_div(content: str, align: str) -> str:
 
 def image(alt: str, src: str, box: Optional[Sequence[float]] = None) -> str:
     """``![alt](src) <!-- BBOX: [x,y,w,h] -->`` — a figure placeholder for VLMs."""
-    md = f"![{alt or ''}]({src})"
+    md = f"![{cue_value(alt or '')}]({src})"
     return f"{md} {bbox(box)}" if box else md
 
 
@@ -257,15 +392,15 @@ def footnote_ref(n) -> str:
 
 def footnote_def(n, text: str) -> str:
     """Footnote definition line: ``[^1]: Note content.``."""
-    return f"[^{n}]: {text}"
+    return f"[^{n}]: {escape_cue_delimiters(text)}"
 
 
 # --------------------------------------------------------------------------- #
 # Tabular data (shared GFM renderer)
 # --------------------------------------------------------------------------- #
 def _escape_cell(value) -> str:
-    """Make a value safe inside a GFM pipe-table cell."""
-    text = "" if value is None else str(value)
+    """Make a value safe inside a GFM pipe-table cell (comment delimiters escaped, #6)."""
+    text = "" if value is None else escape_cue_delimiters(value)
     return text.replace("\\", "\\\\").replace("|", "\\|").replace("\n", "<br>").strip()
 
 

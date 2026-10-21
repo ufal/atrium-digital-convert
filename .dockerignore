@@ -11,22 +11,23 @@ __pycache__/
 venv-nlp/
 venv/
 env/
-# Excluded wholesale — it is a ~100 MB corpus of samples, audits and decision
-# packages, none of which the runtime reads. The two exceptions below ARE runtime
-# inputs: llm_config.txt (which ships in the image) points VOCAB_PATH at the
-# vocabulary by default, and VocabularyManager reads taxonomy_config.json to decide
-# which themes reach the model. Without them the published image was internally
-# inconsistent — it shipped a config naming files it did not contain.
-#
-# That went unnoticed because a missing vocabulary used to fall back to a live AMCR
-# harvest that silently produced a one-term category enum. The clients now refuse to
-# auto-sync, so the image failed loudly instead (atrium-project run 34032532443),
-# which is how this surfaced. `docker run <image> openrouter_client.py --input …`
-# now works with no mounts and no --config, which is what the digital-born e2e and
-# any ordinary user reasonably expect of a published tool image.
-data_samples/
-!data_samples/taxonomy_config.json
-!data_samples/vocab/union_nested.json
+# Not runtime (atrium-project#69, roadmap H5): the test suite runs on the CI runner (the
+# digital smoke generates its fixtures from a checkout, not from an image), and the dev
+# logs are documentation.
+tests/
+agent_dev_logs/
+# Developer measurement (atrium-project#70): it renders test fixtures, which are not in the image.
+scripts/detail_budget.py
+# Research tools, run from a checkout (README: the document-understanding benchmark), never
+# from an image: no published target's entrypoint reaches them (atrium-project#72, "research
+# off the release line"; checked with the hub's tools/ci/image_closure.py over
+# api_util/digital_to_json.py and service/api.py).
+bench_compare.py
+eval_metrics.py
+sample_stratify.py
+# The stand-in for page-classification and ocr-postprocess (tests and local demos; compose's
+# `stub` profile mounts it). Never in an image.
+tools/
 TEMP/
 *.log
 *.png
@@ -40,8 +41,12 @@ TEMP/
 # W8: the born-digital exploration corpus — 5.1 MB (sample.docx 3.0 MB,
 # sample.pdf 1.98 MB, sample.pdf_docling_ir.json 197 KB) plus the Phase 0 probe
 # scripts. These are research inputs for the pdfplumber-vs-PyMuPDF A/B, not
-# runtime data, and they were being baked into EVERY published image (-remote and
-# -llm today, -digital as of this change). The generated test fixtures under
+# runtime data, and they were being baked into every published image. The generated test fixtures under
 # tests/fixtures/digital/ are 1-4 KB and are produced deterministically by
 # make_fixtures.py, so nothing needs the big samples at runtime.
 digital_born/
+
+# #5: the converted AMČR samples (records, /describe reports, Markdown; about 92 MB of JSON),
+# committed for review on the issue. Results of a run, not runtime data: nothing in an image
+# reads them, and `COPY . .` was baking them into every image built from `test` since 3156ca8.
+data_samples/
