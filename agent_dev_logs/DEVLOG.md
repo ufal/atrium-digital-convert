@@ -989,6 +989,17 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 
   Files delivered in chat.
 
+## 2026-10-21 — The adopted owner commits in the pin tests (atrium-project#82)
+* `tests/test_vendored_reader_parity.py`: `ADOPTED` names atrium-ocr-postprocess `2464756…` (first released in
+  `v1.9.0-beta`), the commit whose `text_formats.py` has the pinned digest; the comment naming `6707320` is gone.
+  `tests/test_vendored_teitok_parity.py`: `ADOPTED` names atrium-nlp-enrich `6726124…` (`v1.1.0-beta`). Each file
+  tests that `ADOPTED` is a full commit SHA.
+* `CONTRIBUTING.md`: the re-vendor bullet follows the hub's `docs/shared_components.md`.
+  `.github/production-image.json`: the `_comment` says where the pins live.
+* Every pinned file matches its owner at the adopted commit (the hub's `tools/ci/vendored_pins.py`, prepared for
+  para-drift's `vendored-parity` job; it lands after motyc's OK on #82).
+* **Checks:** the two parity modules pass.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

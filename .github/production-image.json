@@ -16,7 +16,8 @@
     "with markdown=true; keyword-extract vendors it with SHA pins (#72 B). text_formats.py is",
     "atrium-ocr-postprocess's ODT/ODS/XLSX/RTF reader, pinned by",
     "tests/test_vendored_reader_parity.py; teitok_read.py and bbox_scale.py are nlp-enrich's,",
-    "pinned by tests/test_vendored_teitok_parity.py."
+    "pinned by tests/test_vendored_teitok_parity.py. Each pin test names the owner commit it",
+    "adopted (ADOPTED); the rules are in the hub's docs/shared_components.md (atrium-project#82)."
   ],
   "image": "ghcr.io/ufal/atrium-digital-convert-api",
   "target": "api",

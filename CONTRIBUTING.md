@@ -162,9 +162,13 @@ Format: `[type] concise description of what changed`
     `tests/test_vendored_teitok_parity.py` (plus `requirements_flexiconv.txt`, the flexiconv
     fixtures and one writer sample).
 
-  Never fork their logic locally: change the owner, then re-vendor with the hub's
-  `scripts/revendor_shared.sh` and update the pin. This repo only *reads* TEITOK: the writer lives
-  in nlp-enrich.
+  Never fork their logic locally: change the owner, then adopt the change here in one pull
+  request: the copy, its `VENDORED` digest and the `ADOPTED` owner commit in the pin test. The
+  hub's `scripts/revendor_shared.sh` copies the hub files and `text_formats.py`; the TEITOK files are
+  copied from `../atrium-nlp-enrich` by hand, as the pin test's docstring says. The rules and the pull
+  request checklist are in the hub's
+  [`docs/shared_components.md`](https://github.com/ufal/atrium-project/blob/main/docs/shared_components.md).
+  This repo only *reads* TEITOK: the writer lives in nlp-enrich.
 
 ### Minimum checks before every commit
 ```bash
