@@ -2,7 +2,7 @@
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
 > moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues (2026-10-18): **#4** (PDF/DOCX inputs,
-> W1–W6; ready to close), **#5** (Dana's 15 AMČR PDFs). #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15. Entries up to
+> W1–W6; ready to close), **#5** (Dana's 15 AMČR PDFs). #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-10-21; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
 > **v1.1.1-beta** (2026-10-05, `fe494cd`) · **v1.1.2-beta** (2026-10-15, `8358f90`: #5's R, R2 and R3, #6's
@@ -1010,6 +1010,17 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 * **Checks:** the client against a local server on the three samples (text layers, `/describe` routes, the
   refusals 415 and 422 `source_digest_mismatch`, unreachable → 2); the hub's skill-validate steps 1–4a; the drift
   check aligned. Delivered as `atrium-digital-convert-agent-skill.zip`, not pushed.
+
+## 2026-10-21 (round 3) — Closed pairs removed; the old plan references named; the TEITOK adoption prepared
+* **Dev logs:** the pairs of the closed #2, #3, #4 and #6 are removed. #1's stays: `README.md`, `CONTRIBUTING.md`
+  and `.github/production-image.json` cite its transfer manifest.
+* `tests/test_digital_parity.py` and `api_util/digital_to_json.py` cited `agent_dev_logs/plans/10.plan.md` and
+  `18.plan.md`, which are llm-enrich's plans from before the rename and were not carried over; they now say so
+  (also on `agent-skill`).
+* **The adoption of nlp-enrich's owner headers (atrium-project#82), prepared:** `api_util/teitok_read.py` and
+  `api_util/flexiconv_convert.py` from nlp-enrich `477f68c`, `VENDORED` re-pinned, `ADOPTED` =
+  `477f68c` / `v1.1.3-beta` (on `test` and `agent-skill`). Delivered as a separate archive, to push after
+  nlp-enrich's `v1.1.3-beta` is released. `tests/test_vendored_teitok_parity.py`: 24 passed.
 
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and

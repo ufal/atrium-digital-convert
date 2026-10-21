@@ -1,6 +1,7 @@
-"""The #10 §9 measurement, as a test: every case the JSON route failed, end to end.
+"""The llm-enrich #10 §9 measurement, as a test: every case the JSON route failed, end to end.
 
-`agent_dev_logs/plans/10.plan.md` §9 ran the same inputs through markitdown, flexiconv, the
+§9 of the #10 plan (atrium-llm-enrich, this repository's name before v1.0.0-beta; that plan was not
+carried over to the new dev logs) ran the same inputs through markitdown, flexiconv, the
 legacy direct converters and the JSON route (`digital_to_json` → `json_to_md`) and found the
 JSON route behind on eight points (G1–G8). This module is that table's JSON-route column,
 re-run on every commit against the generated fixtures: the Markdown the clients' auto-
