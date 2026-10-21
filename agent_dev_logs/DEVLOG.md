@@ -1000,6 +1000,17 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   para-drift's `vendored-parity` job; it lands after motyc's OK on #82).
 * **Checks:** the two parity modules pass.
 
+## 2026-10-21 (round 2) — The agent-skill branch gets a skill of its own (atrium-project#77 C)
+* The branch carried llm-enrich's skill. Removed: its client, its LLM modules and config, its frontend and its
+  samples (12 files). New: `SKILL.md` (`atrium-digital-convert`), the client `scripts/atrium_convert.py`
+  (`/reformat`, `/describe`, `--seed`, `--markdown`, `--out-dir`; the 502 rule; usage errors exit 1),
+  `scripts/server.sh` (the release image named by `para_config.txt`, built from the checkout when it cannot be
+  pulled; `--local` in `venv-dc`; waits for `/ready`), three samples from `tests/fixtures/digital/make_fixtures.py`,
+  the branch README, and `service/README.md` as this repo's runbook minus what the branch trims.
+* **Checks:** the client against a local server on the three samples (text layers, `/describe` routes, the
+  refusals 415 and 422 `source_digest_mismatch`, unreachable → 2); the hub's skill-validate steps 1–4a; the drift
+  check aligned. Delivered as `atrium-digital-convert-agent-skill.zip`, not pushed.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
