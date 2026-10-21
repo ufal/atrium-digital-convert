@@ -35,17 +35,17 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 NLP_ENRICH = REPO_ROOT.parent / "atrium-nlp-enrich"
 
 #: The owner revision the copies were taken from (atrium-project#82): the
-#: atrium-nlp-enrich commit of 2026-10-15 (issue #42); its files have the digests below, first released
-#: in v1.1.0-beta.
+#: atrium-nlp-enrich commit of 2026-10-21 (the owner headers); its files have the digests below, first
+#: released in v1.1.3-beta.
 ADOPTED = {
     "owner": "atrium-nlp-enrich",
-    "commit": "6726124b5faac0baa0e6ef70bc6d7a2318940d56",
-    "release": "v1.1.0-beta",
+    "commit": "477f68c6c020e1f102046842a59082047650f6e5",
+    "release": "v1.1.3-beta",
 }
 
 VENDORED = {
-    "api_util/teitok_read.py": "861be1187ee130a2251b475325eab1785e6a50d1fb363ebe161407e2f498c280",
-    "api_util/flexiconv_convert.py": "4b9d8ba14628cf0f85fb402b35c5778aca9ce808f639d0b68e4b13ef3e83b654",
+    "api_util/teitok_read.py": "801daba6a37138561d1bcdf65895cf9bbbffea6826705bf91cf616da78479c47",
+    "api_util/flexiconv_convert.py": "e7152923d1b9cf8a04c54442774aa4d5adda4cc44d7e3852771a3bb831b4ed9b",
     "api_util/bbox_scale.py": "a3198dfdb8ab9dad0688139678514f4cdea86d066bc6a12c814f7e24937011f4",
     "requirements_flexiconv.txt": "b89e439836318f6322192f3cf658ea2f95741b015849b575ad8d8f32074580f8",
     "tests/test_flexiconv_convert.py": "9c35b68b5e414df303a81a9b055524a40e7c16473eeacdfbaea9c97841d33401",

@@ -1,7 +1,8 @@
 """flexiconv_convert.py -- convert one non-tabular document to TEITOK XML with flexiconv.
 
-Canonical copy: atrium-nlp-enrich ``api_util/flexiconv_convert.py`` (atrium-llm-enrich
-vendors it verbatim; its ``tests/test_vendored_teitok_parity.py`` pins the hash).
+Canonical copy: atrium-nlp-enrich ``api_util/flexiconv_convert.py``. atrium-digital-convert
+vendors it verbatim and pins the hash and the commit it took in its
+``tests/test_vendored_teitok_parity.py`` (atrium-project ``docs/shared_components.md``).
 
 The only module that touches flexiconv (optional dependency, lazily imported). Called per
 file by atrium-nlp-enrich's ``api_flexiconv.sh``, or standalone:
