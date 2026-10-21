@@ -19,7 +19,8 @@ which one applies is fixed per document by `source.origin`:
 The two are mutually exclusive per document, so nothing here is a second opinion on an
 ALTO document; it is the *only* writer of the plane for a born-digital one.
 
-Four layers, per `agent_dev_logs/plans/18.plan.md` §2:
+Four layers, per §2 of llm-enrich's #18 plan (this repository's name before v1.0.0-beta; the plan was
+not carried over to the new dev logs):
 
   A. **Extraction** — into the internal `DigitalDocument` (`api_util/digital_ir.py`).
      Two engines, chosen with `--engine`:
