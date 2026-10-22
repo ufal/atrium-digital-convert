@@ -155,7 +155,7 @@ def test_inventory_and_report_on_a_small_run(tmp_path):
     inventory = run / sr.INVENTORY / "inventory.tsv"
     assert sr.main(["inventory", "--samples", str(samples), "--out", str(inventory)]) == 0
     env = dict(line.split("=", 1) for line in inventory.with_suffix(".env").read_text().split())
-    assert env["N_DOCS"] == "2" and env["UPLOAD_MB"] == "200" and env["MAX_DOC_PAGES"] == "2"
+    assert env["N_DOCS"] == "2" and env["UPLOAD_MB"] == "250" and env["MAX_DOC_PAGES"] == "2"
 
     cli = run / sr.CLI
     cli.mkdir()
@@ -187,7 +187,7 @@ def test_inventory_and_report_on_a_small_run(tmp_path):
     candidates = (run / "report" / "candidates.md").read_text(encoding="utf-8")
     assert "![](thumbs/CTX1_p1.png)" in candidates
     assert (run / "report" / "thumbs" / "CTX1_p1.png").is_file()
-    assert "| digital-convert | MAX_UPLOAD_MB | 200 | 200 |" in (
+    assert "| digital-convert | MAX_UPLOAD_MB | 250 | 250 |" in (
         run / "report" / "limits.md"
     ).read_text(encoding="utf-8")
     delivered = run / "report" / "deliver"

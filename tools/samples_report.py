@@ -73,9 +73,9 @@ from api_util.pdf_coverage import image_boxes, page_frame, union_share  # noqa: 
 PC_RENDER_DPI = 300
 PC_MAX_IMAGE_PIXELS = 178_956_970
 #: The other defaults the limits table compares with (each service's tool_limits.py). This
-#: repository's upload default is 200 since the #5 run (50 before), its stage timeout 360 since
-#: the re-run (120 before).
-DEFAULTS = {"upload": 200, "pages": 2000, "stage_timeout": 360, "pc_upload": 10, "pc_pages": 50}
+#: repository's upload default is 250 since 2026-10-22 (200 from the #5 run, 50 before), its stage
+#: timeout 360 since the re-run (120 before).
+DEFAULTS = {"upload": 250, "pages": 2000, "stage_timeout": 360, "pc_upload": 10, "pc_pages": 50}
 #: ROUTE_DAMAGED_WORD_SHARE's default (tool_limits.py): a `digital` page with this share of its
 #: body's words losing a letter (U+FFFD) goes to OCR.
 DAMAGED_WORD_SHARE = 0.05

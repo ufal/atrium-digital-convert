@@ -1289,15 +1289,51 @@ def test_a_few_unmapped_glyphs_do_not_condemn_a_line_and_mostly_unmapped_ones_do
     assert many.is_undecodable and many.is_garbage
 
 
-def test_unmapped_pdf_is_garbled_on_page_one_and_digital_with_replacements_on_page_two(
-    digital_fixtures,
-):
+def test_unmapped_pdf_flags_both_pages_for_their_own_reasons(digital_fixtures):
+    """Page 1 does not decode; page 2 decodes but loses letters (2 of its 10 words): since #5 of
+    10-22 the record flags it too, with its own reason."""
     pytest.importorskip("pdfplumber")
     record = d2j.build_record(str(digital_fixtures / "unmapped.pdf"))
-    assert [p["text_layer"] for p in record["pages"]] == ["garbled", "digital"]
+    assert [p["text_layer"] for p in record["pages"]] == ["garbled", "garbled"]
     assert "over 15% glyphs without a Unicode mapping" in record["pages"][0]["needs_ocr_reason"]
+    assert record["pages"][1]["needs_ocr_reason"].startswith(
+        "the text layer decodes, but 2 of its 10 words (20%) lose a letter to a glyph without a Unicode mapping"
+    )
     assert not any("(cid:" in line["text"] for line in record["lines"])
     assert record["lines"][1]["text"] == "Zprava o sond� cislo 3, vrstva m�la mocnost 30 cm."
+
+
+def test_a_page_losing_letters_reaches_the_ocr_handoff(digital_fixtures, monkeypatch):
+    """The regression test #5 asked for (10-22): the 29 pages of CTX202000362 lose their Czech
+    letters, and the hand-off (`atrium_document.ocr_handoff_pages`) is what ocr-postprocess
+    re-originates. The page is in it, consistent with its `text_layer`; below the share it is not."""
+    pytest.importorskip("pdfplumber")
+    import atrium_document
+
+    record = d2j.build_record(str(digital_fixtures / "unmapped.pdf"))
+    page_two = record["pages"][1]
+    assert page_two["page"] in atrium_document.ocr_handoff_pages(record["pages"])
+    assert (page_two["text_layer"], page_two["needs_ocr"]) == ("garbled", True)
+    atrium_document.validate_document(record)
+
+    monkeypatch.setenv("ROUTE_DAMAGED_WORD_SHARE", "0.5")
+    record = d2j.build_record(str(digital_fixtures / "unmapped.pdf"))
+    assert record["pages"][1]["page"] not in atrium_document.ocr_handoff_pages(record["pages"])
+    assert (record["pages"][1]["text_layer"], record["pages"][1].get("needs_ocr", False)) == (
+        "digital",
+        False,
+    )
+
+
+def test_a_header_that_loses_letters_flags_nothing():
+    """Body text only: a running header that lost a letter leaves the page `digital` (#5)."""
+    header = d2j.DigitalLine(page="1", line=0, text="Zpr\ufffdva", region=d2j.REGION_HEADER)
+    body = d2j.DigitalLine(
+        page="1", line=1, text="Zprava o sonde cislo 3, vrstva mela mocnost 30 cm."
+    )
+    page = d2j.DigitalPage(page="1", page_index=1, lines=[header, body])
+    d2j.assess_page(page)
+    assert (page.needs_ocr, page.lost_letters, d2j.text_layer_of(page)) == (False, False, "digital")
 
 
 def test_a_page_number_over_a_full_page_image_is_none_and_flagged(digital_fixtures):

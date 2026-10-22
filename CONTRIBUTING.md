@@ -1,4 +1,4 @@
-# 🤝 Contributing to ATRIUM digital-convert
+# Contributing to ATRIUM digital-convert
 
 Thank you for your interest in contributing! This repository is the **born-digital stage** of the
 ATRIUM pipeline: it reads born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, and DOC/XLS
@@ -12,10 +12,11 @@ This document describes the development workflow, code conventions, and rules fo
 contributors. ATRIUM-wide conventions (branching, commit types, the test/lint standard) are
 identical across all repositories; anything repo-specific is called out explicitly.
 
-## 📦 Release History
+## Release History
 
 | Version         | Highlights                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status      |
 |-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| **v1.2.2-beta** | **The record flags pages that lose letters, and the release certifies its images** (#5, atrium-project#81). A `digital` page whose body words lose a letter to a glyph without a Unicode mapping, at `ROUTE_DAMAGED_WORD_SHARE` (0.05) or more, is flagged `needs_ocr` in the record itself, `text_layer` `garbled`, with the damaged words in its reason, so a step that reads only the record hands it to OCR (the 29 pages of CTX202000362); `/describe` keeps routing such a page to `ocr` whatever its page type. `MAX_UPLOAD_MB` 200 → 250, AMČR's setting; above it untested. **Release:** `release.yml` builds, probes, scans and promotes the images through the hub's reusable with `release-gate`, so a failed probe or CVE gate means no release; the release attaches `images.json` and names the digests; `docker.yml` no longer runs on tags; a dispatch input simulates a failed probe. The scheduled smoke reports through one issue per lane. **Docs (atrium-project#79):** the README follows the ATRIUM skeleton (655 → 112 lines), the rest in `docs/`; headings plain. Re-vendored `atrium_vocab.py` (#51). Additive: the spec changes one description.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Pre-release |
 | **v1.2.1-beta** | **The service README as a runbook** (atrium-project#77): Start with the published image, Models and caches (none; LibreOffice for DOC/XLS; the two stages of `/describe`), a "What to do" column for every error, Partial results (`needs_ocr`, `reacquire_pages`, stage statuses), Known limits. No code change; the spec changes only its version.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Pre-release |
 | **v1.2.0-beta** | **Bold section titles, and an honest quality stage** (#5). **Light engine:** a bold line at the body size that reads as a title is a heading, one level below the size-based ones (2–100 characters, no trailing comma, semicolon or hyphen, not a list item, at most two bold lines in a row, not the same bold line on three pages); the rule stands aside in a document whose bold body-size text is over the new policy setting `BOLD_HEADING_MAX_SHARE` (0.25; 0 switches it off); new fixture `bold_titles.pdf`. **`/describe`, ocr-postprocess stage:** lines it could not score (perplexity 99999 after an out-of-memory batch, its `limits_applied` `ppl_batch_lines`) keep the converter's values in the record, their page's `quality_score`/`quality_band` are recomputed from the scored lines, they stay out of the report, and the stage reads `partial` with the new `lines_unscored` (`error` when no line could be scored); before, they were scored `Trash` and the stage read `ok`. **Report:** a page's `quality.score`, `lang` and `lines_scored` count only the lines the model judged (Clear/Noisy/Trash), not its pre-filter's `Non-text`/`Empty` placeholders (0.0, `N/A`), as ocr-postprocess's own page score does; routing unchanged. `api_util/bbox_scale.py` knows the `pt` canvas unit (TEITOK parity with nlp-enrich); `data_samples/` from the C3 run. Additive: the spec stays compatible.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Pre-release |
 | **v1.1.2-beta** | **Dana's 15 AMČR born-digital reports read right, and Markdown cues that text cannot forge** (#5, #6). **Light engine:** words that a font switch split (ě č ř ů ň ť ď set in a second font subset) are joined; small capitals and vertical table headers read as words; headings judged on the body text of `digital` pages; unmapped glyphs (`(cid:N)`, Docling's `GLYPH<…>`) become U+FFFD, so the share rule marks such pages `garbled`; a page whose only text is its running header or footer over images covering `FURNITURE_ONLY_IMAGE_COVERAGE` (0.85) is `none` with `needs_ocr`; pages are closed after reading (server peak on the 15 reports 783 MB, was 1.9 GB). **`/describe` routing:** the quality rule counts prose lines only (612 of 1,981 pages no longer sent to OCR for table cells and codes); a `digital` page whose body words lose letters to U+FFFD at `ROUTE_DAMAGED_WORD_SHARE` (0.05) goes to `ocr` and `summary.reacquire_pages`; a `digital` page whose only text is its running header or footer over a drawing is classified by default and routed by its page type (excavation plans, `DRAW_L` → `ocr`); report fields `layout.words`/`damaged_words`, `quality.prose_lines_scored`/`prose_lines_by_category`. **Markdown (#6):** `<!--`, `-->` and a leading `#` in document text, page labels and cue values are escaped on both routes at every profile; ordinary output is byte-identical; `tests/test_md_stress.py` (#3). **Defaults:** `MAX_UPLOAD_MB` 50 → 200, `STAGE_TIMEOUT_S` 120 → 360. **Docling:** OpenCV declared; an incomplete install is `DoclingIncomplete`. `needs_ocr_reason` names ocr-postprocess; `data_samples/` out of the image build. Re-vendored shared modules: the record's `keywords` and `quality_summary` blocks, `enrichment.items[].teater_category_ids`, the reason `upstream_unavailable`, RO-Crate source URIs. Additive: the spec stays compatible. | Pre-release |
@@ -44,7 +45,7 @@ in `CITATION.cff` to the actual release date on every version bump.
 
 ---
 
-## 🏗️ Project Contributions & Capabilities
+## Project Contributions & Capabilities
 
 See [README.md](README.md) for full usage; in brief, the code is layered (the converter's module
 docstrings carry the detail):
@@ -65,7 +66,7 @@ docstrings carry the detail):
 
 ---
 
-## 🌿 Branches & Environments
+## Branches & Environments
 
 | Branch | Environment          | Rule                                                                          |
 |--------|----------------------|-------------------------------------------------------------------------------|
@@ -78,7 +79,7 @@ test  ←  bugfix-<name>
 main  ←  (humans only, after test stabilises)
 ```
 
-### 🏷️ Branch Naming
+### Branch Naming
 
 | Type           | Pattern          | Example                    |
 |----------------|------------------|----------------------------|
@@ -88,7 +89,7 @@ main  ←  (humans only, after test stabilises)
 
 ---
 
-## 🔁 Contributor Workflow
+## Contributor Workflow
 
 1. **Create an issue** (or find an existing one) describing the problem or feature.
 2. **Branch from `test`:**
@@ -102,7 +103,7 @@ main  ←  (humans only, after test stabilises)
 
 ---
 
-## 📋 Pull Request Format
+## Pull Request Format
 
 Every PR must include:
 
@@ -115,7 +116,7 @@ Every PR must include:
 
 ---
 
-## ✏️ Commit Messages
+## Commit Messages
 
 Format: `[type] concise description of what changed`
 
@@ -134,7 +135,7 @@ Format: `[type] concise description of what changed`
 
 ---
 
-## 🧪 Code Conventions & Testing
+## Code Conventions & Testing
 
 ### Code conventions
 * **Comments:** short and informative; add one when the function name doesn't fully explain intent.
@@ -197,7 +198,7 @@ hub's 120-column default, since the two repos share vendored files. The vendored
 
 ---
 
-## 🔗 Shared ("drop-in") code
+## Shared ("drop-in") code
 The `atrium_*.py` modules, `para_licenses.py`, `service/atrium_service.py`, the record schema and its
 frozen copy, and the shared tests are **canonical** in `ufal/atrium-project/docs/templates/shared/`
 (listed in its `MANIFEST.json`) and copied verbatim into each tool repository.
@@ -216,7 +217,7 @@ frozen copy, and the shared tests are **canonical** in `ufal/atrium-project/docs
 
 ---
 
-## 📁 Repository Documentation Management
+## Repository Documentation Management
 
 | File                | Audience        | Responsibility                                |
 |---------------------|-----------------|-----------------------------------------------|
@@ -229,7 +230,7 @@ Do not duplicate rules across files — cross-reference the canonical source.
 
 ---
 
-## 📞 Contacts & Acknowledgements
+## Contacts & Acknowledgements
 Maintainer: **lutsai.k@gmail.com** [^1] · Developed by UFAL [^2] · Funded by ATRIUM [^3]
 
 **©️ 2026 UFAL & ATRIUM**

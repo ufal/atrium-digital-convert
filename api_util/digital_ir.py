@@ -247,10 +247,37 @@ class DigitalPage:
     #: Share of the page under its images, measured only for a page whose only text is its
     #: running header or footer (`digital_pdf._mark_furniture_only`); None when not measured.
     image_coverage: Optional[float] = None
+    #: Flagged `needs_ocr` because its body words lose letters to unmapped glyphs (U+FFFD;
+    #: `digital_to_json.assess_page`, atrium-digital-convert#5): the page is `garbled`, and
+    #: `/describe` sends it to OCR whatever its page type.
+    lost_letters: bool = False
 
     @property
     def has_geometry(self) -> bool:
         return any(line.bbox for line in self.lines)
+
+
+def count_damaged_words(texts) -> Tuple[int, int]:
+    """`(damaged, words)` over lines of text: whitespace tokens, and those of them that hold
+    U+FFFD and a letter — a word that lost a letter to a glyph without a Unicode mapping
+    ("poh\ufffdební"). A token of U+FFFD alone is an unmapped symbol (a bullet), not a damaged word.
+    """
+    damaged = words = 0
+    for text in texts:
+        for token in str(text or "").split():
+            words += 1
+            if REPLACEMENT_CHAR in token and any(char.isalpha() for char in token):
+                damaged += 1
+    return damaged, words
+
+
+def damaged_body_words(page: DigitalPage) -> Tuple[int, int]:
+    """`count_damaged_words` over the page's body text, outside its running header and footer: a
+    figure page whose only text is a header that lost a letter has nothing to re-acquire (36 such
+    pages in one AMČR report, #5). The record's flag and `/describe`'s route use this one count."""
+    return count_damaged_words(
+        line.text for line in page.lines if line.region not in (REGION_HEADER, REGION_FOOTER)
+    )
 
 
 def text_layer_of(page: DigitalPage) -> str:

@@ -81,7 +81,7 @@
   },
   "unmapped.pdf": {
     "bytes": 912,
-    "note": "codes StandardEncoding leaves undefined → (cid:N) → U+FFFD; garbled + digital (#5)",
+    "note": "codes StandardEncoding leaves undefined → (cid:N) → U+FFFD; both pages garbled: undecodable, lost letters (#5)",
     "sha256": "7ceecd3ee2e2821404d2398f399be4d25e24525ceaf55b64274091731177b470"
   }
 }

@@ -481,13 +481,21 @@ def test_prose_lines_are_judged_on_the_lines_the_converter_sent():
     assert stages._prose(row, sent) is True, "no such line sent: the row's own text"
 
 
-def test_lost_letters_route_a_digital_page_to_ocr_without_any_stage(no_stages, monkeypatch):
-    page = _describe("unmapped.pdf", stages="none")["pages"][1]
-    assert page["text_layer"] == "digital" and not page["needs_ocr"]
+def test_lost_letters_flag_the_page_in_the_record_and_route_it_to_ocr(no_stages, monkeypatch):
+    """#5 (10-22): the record itself flags a page whose words lose letters, so a step that reads
+    only the record sees it; `/describe` routes it to OCR as before."""
+    body = _describe("unmapped.pdf", stages="none")
+    page = body["pages"][1]
+    assert page["text_layer"] == "garbled" and page["needs_ocr"]
+    assert "2 of its 10 words (20%) lose a letter" in page["needs_ocr_reason"]
     assert (page["layout"]["words"], page["layout"]["damaged_words"]) == (10, 2)
     assert page["route"] == "ocr" and "ROUTE_DAMAGED_WORD_SHARE 0.05" in page["route_reason"]
+    record_page = next(p for p in body["document_json"]["pages"] if p.get("page_index") == 2)
+    assert (record_page["text_layer"], record_page["needs_ocr"]) == ("garbled", True)
+    assert record_page["needs_ocr_reason"] == page["needs_ocr_reason"]
     monkeypatch.setenv("ROUTE_DAMAGED_WORD_SHARE", "0.5")
-    assert _describe("unmapped.pdf", stages="none")["pages"][1]["route"] == "nlp"
+    page = _describe("unmapped.pdf", stages="none")["pages"][1]
+    assert (page["text_layer"], page["needs_ocr"], page["route"]) == ("digital", False, "nlp")
 
 
 def test_a_stage_that_rewrites_converter_fields_is_rejected(monkeypatch):

@@ -17,10 +17,11 @@ For every page of a converted document it says, in one place:
       `ocr`  re-acquire the page with ATR (printed or typed text, or unknown);
       `htr`  re-acquire it with a handwriting model;
       `none` there is no text to read (a blank page, a drawing or photo).
-    A `digital` page goes to `ocr` instead of `nlp` in two cases (atrium-digital-convert#5):
-    when at least ROUTE_DAMAGED_WORD_SHARE of the words of its body text (outside its running
-    header and footer) lose a letter to a glyph without a Unicode mapping (U+FFFD: the
-    converter's own evidence, so it holds without any stage), and
+    A page whose body words (outside its running header and footer) lose a letter to a glyph
+    without a Unicode mapping, at ROUTE_DAMAGED_WORD_SHARE or more, goes to `ocr` whatever its
+    page type (atrium-digital-convert#5): the record flags it `needs_ocr`, so it is `garbled`
+    (`lost_letters`), and the evidence is the converter's own, so it holds without any stage.
+    A `digital` page also goes to `ocr` instead of `nlp`
     when the quality model calls more than ROUTE_TRASH_SHARE of its *prose* lines Trash. A prose
     line is outside a table, at least `PROSE_MIN_CHARS` long, mostly letters and not a dot
     leader, and the page needs `MIN_PROSE_LINES` of them: the model is trained on running text,
@@ -51,7 +52,6 @@ from api_util.digital_ir import (
     REGION_FOOTER,
     REGION_FOOTNOTE,
     REGION_HEADER,
-    REPLACEMENT_CHAR,
     TEXT_LAYER_BLANK,
     TEXT_LAYER_DIGITAL,
     TEXT_LAYER_GARBLED,
@@ -59,6 +59,8 @@ from api_util.digital_ir import (
     TEXT_LAYER_OCR,
     DigitalDocument,
     DigitalPage,
+    count_damaged_words,  # noqa: F401  (re-exported: `digital_report.count_damaged_words`)
+    damaged_body_words,
     in_table,
     text_layer_of,
 )
@@ -123,20 +125,6 @@ def line_kind(text: str, group_id: Optional[str] = None) -> str:
 def is_prose_line(text: str, group_id: Optional[str] = None) -> bool:
     """Whether the quality rule counts this line (`line_kind` is `prose`)."""
     return line_kind(text, group_id) == "prose"
-
-
-def count_damaged_words(texts: Iterable[str]) -> Tuple[int, int]:
-    """`(damaged, words)` over lines of text: whitespace tokens, and those of them that hold
-    U+FFFD and a letter — a word that lost a letter to a glyph without a Unicode mapping
-    ("poh�ební"). A token of U+FFFD alone is an unmapped symbol (a bullet), not a damaged word.
-    """
-    damaged = words = 0
-    for text in texts:
-        for token in str(text or "").split():
-            words += 1
-            if REPLACEMENT_CHAR in token and any(char.isalpha() for char in token):
-                damaged += 1
-    return damaged, words
 
 
 #: Used when `atrium_vocab` is not importable (it is vendored; this keeps the module standalone).
@@ -335,19 +323,29 @@ def route_page(
     damaged_word_limit: float = 0.05,
     min_prose_lines: int = MIN_PROSE_LINES,
     furniture_only: bool = False,
+    lost_letters: bool = False,
 ) -> tuple:
     """`(route, reason)` for one page. Deterministic; see the module docstring.
 
     `damaged_words` is the page's `count_damaged_words` (`(damaged, words)`): a `digital` page
-    at or over `damaged_word_limit` goes to `ocr` whatever the quality model says.
+    at or over `damaged_word_limit` goes to `ocr` whatever the quality model says, and so does
+    a `garbled` page the record flagged for it (`lost_letters`, `DigitalPage.lost_letters`):
+    its text is printed, whatever page-classification calls the page.
     `furniture_only` (the module's `furniture_only()`): a `digital` page whose only text is its
     running header or footer goes where its page type says, when that type carries text.
     """
     if text_layer == TEXT_LAYER_BLANK:
         return ROUTE_NONE, "empty page; nothing to read"
+    damaged, words = damaged_words or (0, 0)
+    damaged_rule = words and damaged and damaged / words >= damaged_word_limit
+    if text_layer == TEXT_LAYER_GARBLED and lost_letters and damaged_rule:
+        return ROUTE_OCR, (
+            f"{DAMAGED_ROUTE_PREFIX} {damaged} of its {words} words ({damaged / words:.0%}) "
+            "lose a letter to a glyph without a Unicode mapping (U+FFFD; "
+            f"ROUTE_DAMAGED_WORD_SHARE {damaged_word_limit:g}), so the record flags it: re-acquire it"
+        )
     if text_layer == TEXT_LAYER_DIGITAL:
-        damaged, words = damaged_words or (0, 0)
-        if words and damaged and damaged / words >= damaged_word_limit:
+        if damaged_rule:
             return ROUTE_OCR, (
                 f"{DAMAGED_ROUTE_PREFIX} {damaged} of its {words} words ({damaged / words:.0%}) "
                 "lose a letter to a glyph without a Unicode mapping (U+FFFD; "
@@ -407,11 +405,8 @@ def _layout(page: DigitalPage) -> Dict[str, Any]:
         "images": page.images,
         "vector_paths": page.vector_paths,
     }
-    # Body text only: a figure page whose only text is a running header that lost a letter has
-    # nothing to re-acquire (36 such pages in one AMČR report, #5).
-    damaged, words = count_damaged_words(
-        line.text for line in page.lines if line.region not in (REGION_HEADER, REGION_FOOTER)
-    )
+    # Body text only (`damaged_body_words`), the count the record's flag uses too.
+    damaged, words = damaged_body_words(page)
     layout["words"], layout["damaged_words"] = words, damaged
     return layout
 
@@ -450,6 +445,7 @@ def build_report(
             damaged_words=(layout["damaged_words"], layout["words"]),
             damaged_word_limit=damaged_word_limit,
             furniture_only=furniture_only(page),
+            lost_letters=page.lost_letters,
         )
         entry: Dict[str, Any] = {
             "page": page.page,

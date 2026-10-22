@@ -1022,6 +1022,38 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   `477f68c` / `v1.1.3-beta` (on `test` and `agent-skill`). Delivered as a separate archive, to push after
   nlp-enrich's `v1.1.3-beta` is released. `tests/test_vendored_teitok_parity.py`: 24 passed.
 
+## 2026-10-22 (round 4) — Lost letters in the record, 250 MB, the release that certifies its images (#5, atrium-project#81, #79)
+* **Why:** motyc on #5 (10-22): the default upload 250 MB, AMČR's setting, with 1.5 GB unverified; the 29
+  damaged-text pages of CTX202000362 flagged `needs_ocr` in the record itself, with a reason and a consistent
+  `text_layer`, and a regression test for the OCR hand-off; keep sample-derived outputs private. On
+  atrium-project#81 (10-22): a release certifies its `-api` image by digest, promotion waits for the probe, shown
+  here first; one issue per failing scheduled lane. On atrium-project#79: the README restructuring continues here.
+* **Lost letters:** `assess_page` flags a `digital` page whose body words lose a letter to U+FFFD at
+  `ROUTE_DAMAGED_WORD_SHARE` (0.05) or more: `needs_ocr`, the reason with the damaged words, `lost_letters`, so
+  `text_layer_of` gives `garbled`, as for the other flagged pages. The count (`damaged_body_words`, body text only)
+  moved to `digital_ir.py`, so the record and `/describe` use one. `route_page` keeps such a `garbled` page on
+  `ocr` whatever its page type (5 of the 29 are drawings or photos). Tests: the `unmapped.pdf` fixture's page 2
+  flagged and in `atrium_document.ocr_handoff_pages()`, not below the share; a running header that loses a letter
+  flags nothing; four tests that pinned the old behaviour flipped; the docs that said "the record keeps such a page
+  `digital`" rewritten; `openapi.json` regenerated (one description).
+* **250 MB:** `tool_limits.py`, `.env.example`, both READMEs, `tools/samples_report.py` and its test.
+* **#81:** `release.yml` runs the image job (`docker-tool.reusable.yml@v1`, `release-gate: true`), needs it, writes
+  and attaches `images.json` (+ `.sha256`) and puts the digests in the notes; a dispatch input
+  `simulate-probe-failure`. `docker.yml` lost its tag and `release:` triggers. The demonstration: a dispatched dry
+  run with the input (nothing published), one without (green), then the `v1.2.2-beta` tag. Needs the hub's new
+  `v1`. `scheduled-smoke.yml` reports through the hub's lane action.
+* **#79:** README 655 → 112 lines on the skeleton; `docs/usage.md`, `configuration.md`, `how-it-works.md`,
+  `reference/` (formats, markdown, paradata), `evaluation/` (the AMČR samples, the benchmark), `development.md`;
+  headings plain in every Markdown file; the hub's `plans/79.digital-convert_relocation_map.md`. `docs_check`: OK.
+* **atrium-project#82:** the rollback check's three files (`25cc2a8^`: the copies and the pins of nlp-enrich
+  `6726124` / `v1.1.0-beta`) are prepared for a temporary branch; they match the owner at that commit.
+* **v1.2.2-beta prepared:** `para_config.txt`, `CITATION.cff`, `service/openapi.json`, the runbook's example, the
+  CONTRIBUTING row. Re-vendored `atrium_vocab.py` and its two tests (atrium-project#51).
+* **#5, sharing:** later sample runs stay off the repository (`data_samples/README.md`); their results reach the
+  thread as counts. The chunking question is answered there, not built. Dev logs `{5}` updated.
+* **Checks:** 949 passed, 4 skipped; `ruff`; `check_version.py`; `workflow_lint.py` against the new hub and
+  actionlint; `make_fixtures.py --verify`.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a

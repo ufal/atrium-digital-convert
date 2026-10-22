@@ -583,8 +583,9 @@ def unmapped_pdf() -> bytes:
     StandardEncoding leaves undefined has no character, and pdfminer writes `(cid:N)` for it
     (see `enrichable_pdf`). Page 1 is one line of such codes (0x80-0x8F), the shape of an AMČR
     report's pages that are 89-100 % unmapped: `garbled`, `needs_ocr`. Page 2 is ASCII with
-    two `ě` in cp1250 bytes (0xEC, undefined there), under GARBLE_CHAR_SHARE: it stays
-    `digital`, the two glyphs shown as U+FFFD.
+    two `ě` in cp1250 bytes (0xEC, undefined there), under GARBLE_CHAR_SHARE, the two glyphs shown
+    as U+FFFD: 2 of its 10 words lose a letter, over ROUTE_DAMAGED_WORD_SHARE, so it is flagged
+    `needs_ocr` and `garbled` too (#5, 2026-10-22).
     """
     return _build_pdf(
         [
@@ -1134,7 +1135,7 @@ NOTES = {
     "rich.docx": "title/localized headings, ins/del, footnote, text box, header/footer, 4 pages",
     "bare.docx": "minimal.docx without the document.xml Override — G4 lenient open",
     "font_switch.pdf": "Czech letters from a second font subset mid-word; a Ts superscript (#5)",
-    "unmapped.pdf": "codes StandardEncoding leaves undefined → (cid:N) → U+FFFD; garbled + digital (#5)",
+    "unmapped.pdf": "codes StandardEncoding leaves undefined → (cid:N) → U+FFFD; both pages garbled: undecodable, lost letters (#5)",
     "stamped_scan.pdf": "page number over a full-page image → none; text page; half-page image (#5)",
     "headings.pdf": "title, paragraphs and a table of smaller type; an OCR page's ',' — headings (#5)",
     "small_caps.pdf": "capitals then smaller capitals in one word; real spaces; a Ts capital (#5)",

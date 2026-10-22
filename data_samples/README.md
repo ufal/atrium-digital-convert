@@ -5,7 +5,8 @@ The 15 PDFs, converted on 2026-10-15 by atrium-digital-convert `v1.1.2-beta`
 five models and ocr-postprocess's line-quality model. Cluster job 7108263 made everything but
 `reports/describe/stages/`, which job 7109859 made with ocr-postprocess scoring 32 lines at a time
 (`PPL_BATCH_LINES`, now its default) to fit beside page-classification on one GPU. The PDFs
-themselves are not here.
+themselves are not here. Outputs of later runs are not added: AMČR asked to keep them private
+(#5, 2026-10-22).
 
 | Folder                                    | File per document     | What it is                                                                                                                                     |
 |-------------------------------------------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -32,7 +33,8 @@ other 533, page-classification calls 434 photographs or drawings and 99 text or 
 and 134 `ocr`. The 134 are:
 - the 99;
 - 29 pages of CTX202000362 that lose every ř, ě, č and ů (shown as `�`) in at least 5 % of their
-  words. They stay `digital` in the records;
+  words. They are `digital` in these records; since v1.2.2-beta the record flags such a page
+  `needs_ocr`, so it reads `garbled`;
 - 6 excavation plans of CTX202000362 (pp. 37, 41, 44, 45, 47, 49, `DRAW_L`) whose labels
   ("Objekt 22") and title block are part of the image, and whose only text is the running header.
 

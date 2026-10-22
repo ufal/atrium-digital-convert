@@ -119,7 +119,7 @@ def test_the_collections_come_from_the_vocabulary_registry():
         ("minimal.pdf", [("digital", "nlp"), ("digital", "nlp")]),
         ("garbled.pdf", [("garbled", "ocr")]),
         # atrium-digital-convert#5: page 2 decodes, but 2 of its 10 words lose a letter (U+FFFD).
-        ("unmapped.pdf", [("garbled", "ocr"), ("digital", "ocr")]),
+        ("unmapped.pdf", [("garbled", "ocr"), ("garbled", "ocr")]),
     ],
 )
 def test_the_report_over_the_fixtures(tmp_path, fixture, expected):
@@ -168,6 +168,19 @@ def test_a_mixed_document_says_so():
 def test_a_line_is_prose_only_outside_tables_long_and_mostly_letters(text, group_id, kind):
     assert R.line_kind(text, group_id) == kind
     assert R.is_prose_line(text, group_id) == (kind == "prose")
+
+
+@pytest.mark.parametrize("category", ["DRAW", "PHOTO", "TEXT_P", None])
+def test_a_page_the_record_flags_for_lost_letters_goes_to_ocr_whatever_its_type(category):
+    """#5 (10-22): the 29 pages of CTX202000362 are `garbled` in the record now, and 5 of them are
+    drawings or photos; their text is printed, so they stay on `ocr` instead of `none`."""
+    route, reason = R.route_page(
+        "garbled", category, None, damaged_words=(2, 10), lost_letters=True
+    )
+    assert route == "ocr" and "so the record flags it" in reason
+    # a page garbled for another reason is still routed by its type
+    if category in ("DRAW", "PHOTO"):
+        assert R.route_page("garbled", category, None, damaged_words=(2, 10))[0] == "none"
 
 
 def test_a_damaged_word_holds_a_replacement_character_and_a_letter():

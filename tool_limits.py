@@ -25,12 +25,13 @@ from atrium_limits import LimitSet, limit, upload_limit
 
 #: §4.5 upload limit, per uploaded part (the file, `document_json`). Over it → 413
 #: ``limit_exceeded``. Born-digital PDFs with embedded images run larger than OCR text: the AMČR
-#: samples of atrium-digital-convert#5 reach 156 MB (200 since then; 50 before). The upload is
-#: held in memory, and a conversion's own peak follows the document's text, not its size: the
+#: samples of atrium-digital-convert#5 reach 156 MB (250 since 2026-10-22, AMČR's operational
+#: setting; 200 from the #5 run, 50 before). Larger originals (up to about 1.5 GB) are raised per
+#: deployment and are not yet tested for memory, concurrency and timeouts. The upload is held in memory, and a conversion's own peak follows the document's text, not its size: the
 #: server peaked at 783 MB on those 15 reports (a 282-page one; 560 MB for the 156 MB file) once
 #: the light engine stopped holding every page's parse (1.9 GB before). Budget about 1 GB plus
 #: the upload per ``MAX_CONCURRENT_JOBS`` slot.
-MAX_UPLOAD = upload_limit(200)
+MAX_UPLOAD = upload_limit(250)
 
 #: Pages one document may have. Counted before the text is read (a PDF's page tree; a DOCX,
 #: ODT or spreadsheet after reading). Over it → 422 ``limit_exceeded``: split the document.
@@ -71,12 +72,13 @@ OCR_LAYER_DOCUMENT_SHARE = limit(
 #: pages to OCR for their table cells, codes and coordinates.
 ROUTE_TRASH_SHARE = limit("ROUTE_TRASH_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1)
 
-#: POLICY (`/describe` only). A page whose text layer decodes is routed to OCR when at least this
-#: share of the words of its body text (outside the running header and footer) lose a letter to
-#: a glyph without a Unicode mapping (U+FFFD in the record; a font without /ToUnicode). The
-#: record keeps the page ``digital``: the rest of its text is right, and a line over
-#: ``GARBLE_CHAR_SHARE`` of such glyphs already makes it ``garbled``. One AMČR report loses every
-#: ř, ě, č and ů this way: 29 pages reach the default, at 19 % of their words in the median (#5).
+#: POLICY. A page whose text layer decodes but whose body words (outside the running header and
+#: footer) lose a letter to a glyph without a Unicode mapping (U+FFFD in the record; a font
+#: without /ToUnicode), at least this share of them, is flagged ``needs_ocr`` in the record (its
+#: ``text_layer`` is then ``garbled``, with the damaged words in the reason) and routed to OCR by
+#: ``/describe`` whatever its page type. Before 2026-10-22 only ``/describe`` sent it to OCR. One
+#: AMČR report loses every ř, ě, č and ů this way: 29 pages reach the default, at 19 % of their
+#: words in the median (#5).
 ROUTE_DAMAGED_WORD_SHARE = limit(
     "ROUTE_DAMAGED_WORD_SHARE", 0.05, unit="share", kind=float, minimum=0, maximum=1
 )

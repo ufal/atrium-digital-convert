@@ -1,4 +1,4 @@
-# digital-convert API service 📄
+# digital-convert API service
 
 The HTTP service of the born-digital stage (`api-digital`, [#2](https://github.com/ufal/atrium-digital-convert/issues/2)).
 It reads born-digital documents into the ATRIUM document record (`atrium_document`) and, on a
@@ -20,7 +20,7 @@ legacy DOC/XLS through headless LibreOffice. No model, no network, no GPU.
 The published image first: it is what a deployment runs, and it needs no checkout.
 
 ```bash
-docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.2.1-beta
+docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.2.2-beta
 curl -s http://localhost:8000/ready                                               # 200 once ready
 # from a checkout:
 docker compose --profile api up
@@ -141,9 +141,10 @@ A page whose text layer decodes goes to `ocr` instead of `nlp` when either holds
 
 * **Lost letters.** At least `ROUTE_DAMAGED_WORD_SHARE` (0.05) of the words of its body text (outside
   the running header and footer) lose a letter to a glyph without a Unicode mapping (U+FFFD; a font
-  without /ToUnicode). This is the converter's own evidence, so it holds with `stages=none` too. The
-  record keeps the page `digital` and does not flag it `needs_ocr`: take such pages from
-  `summary.reacquire_pages`.
+  without /ToUnicode). This is the converter's own evidence, so it holds with `stages=none` too. Since
+  v1.2.2-beta the record flags the page itself: `needs_ocr: true`, `text_layer: garbled` and a reason
+  naming the damaged words, so it reaches the OCR hand-off; `/describe` routes it to `ocr` whatever its
+  page type.
 * **The quality model.** ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose*
   lines `Trash`, and the page has at least 5 of them. A prose line is outside a table, at least 20
   characters long, mostly letters and not a table-of-contents line. The model judges running text;
@@ -226,11 +227,11 @@ A 200 can carry less than was asked for. Read these before using the result:
   gets fewer headings than a layout model finds; `BOLD_HEADING_MAX_SHARE=0` switches the bold-title rule
   off.
 - Only a PDF gives line boxes; the other formats give pages and lines without positions.
-- A PDF page whose fonts do not map to Unicode loses its letters: the record keeps such a page
-  `digital`, and only `/describe`'s `summary.reacquire_pages` sends it to OCR.
+- A PDF page whose fonts do not map to Unicode loses its letters: from `ROUTE_DAMAGED_WORD_SHARE` of its
+  body words on, the record flags it `needs_ocr` (`garbled`), and OCR reads it again.
 - Unruled tables are read by column, and letter-spaced captions and map labels split into pieces.
-- The upload is held in memory: the default 200 MB accepts most reports, and larger originals need
-  `MAX_UPLOAD_MB` raised per deployment (see Large documents).
+- The upload is held in memory: the default 250 MB accepts most reports, and larger originals need
+  `MAX_UPLOAD_MB` raised per deployment; above 250 MB that is not yet tested (see Large documents).
 
 ## Configuration (environment)
 
@@ -262,7 +263,7 @@ checks this table against `tool_limits.py` and `.env.example`.
 
 | Key (`/info`)                   | Variable                            | Default | Unit    | Over the limit                                                                                                                    |
 |---------------------------------|-------------------------------------|---------|---------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `max_upload_mb`                 | `MAX_UPLOAD_MB`                     | 200     | MB      | 413 `limit_exceeded` — per part (the file, `document_json`)                                                                       |
+| `max_upload_mb`                 | `MAX_UPLOAD_MB`                     | 250     | MB      | 413 `limit_exceeded` — per part (the file, `document_json`)                                                                       |
 | `max_pages`                     | `MAX_PAGES`                         | 2000    | pages   | 422 `limit_exceeded` — split the document                                                                                         |
 | `max_concurrent_jobs`           | `MAX_CONCURRENT_JOBS`               | 2       | jobs    | 429 `busy` with `Retry-After`                                                                                                     |
 | `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — a DOC/XLS LibreOffice did not convert in time                                                              |
@@ -278,9 +279,10 @@ checks this table against `tool_limits.py` and `.env.example`.
 **Large documents** (measured on the 15 AMČR samples of
 [#5](https://github.com/ufal/atrium-digital-convert/issues/5): up to 156 MB and 529 pages):
 
-* **Upload.** The upload is held in memory, so the 200 MB default accepts every sample. AMČR's
-  originals reach about 1.5 GB: raise `MAX_UPLOAD_MB` for them (measured only up to 156 MB), or
-  let the orchestration split the file; the 413 names the setting.
+* **Upload.** The upload is held in memory, so the 250 MB default (AMČR's operational setting)
+  accepts every sample. AMČR's originals reach about 1.5 GB: a deployment can raise `MAX_UPLOAD_MB`
+  for them, but above 250 MB memory, concurrency and timeouts are not yet tested (measured up to
+  156 MB), or the orchestration splits the file by pages; the 413 names the setting.
 * **Memory follows the text, not the file size.** The server's peak reached 783 MB, for a 282-page
   report, and 560 MB for the 156 MB one (10-14, after the light engine stopped holding every page's
   parse; 1.9 GB before). Budget about 1 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot.

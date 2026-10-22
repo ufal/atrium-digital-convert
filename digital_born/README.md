@@ -1,4 +1,4 @@
-# 🔬 `digital_born/` — Phase 0 exploration scratch space ([atrium-llm-enrich#18](https://github.com/ufal/atrium-llm-enrich/issues/18))
+# `digital_born/` — Phase 0 exploration scratch space ([atrium-llm-enrich#18](https://github.com/ufal/atrium-llm-enrich/issues/18))
 
 Not shipped code. Nothing here is imported by `api_util/`, and nothing here is a test.
 This directory exists so the PDF/DOCX tool choices in the plan of atrium-llm-enrich#18 (§2; that
@@ -14,7 +14,7 @@ probes cover). This directory stays for the Docling/MinerU bake-off on complex l
 `sample.pdf_docling_ir.json` is also what `tests/test_digital_docling.py` maps when present —
 and is deletable once that is decided.
 
-## 📁 What's in here
+## What's in here
 
 | Path                         | What it is                                                              |
 |------------------------------|-------------------------------------------------------------------------|
@@ -30,7 +30,7 @@ neither is in the light `requirements_digital.txt`, which is what the converter'
 engine and the `-digital` image use). PyMuPDF is **deliberately not in either** (see the
 licence section) — install it in a scratch venv only for the duration of the A/B.
 
-## ⚠️ The probes are not tests, and are not named as if they were
+## The probes are not tests, and are not named as if they were
 
 They were called `test_docling.py` / `test_pymupdf.py` / `test_ooxml.py`, and the rename to
 `probe_*.py` has **landed**. Recorded because the reasoning applies to anything added here:
@@ -74,7 +74,7 @@ tell an intentional change from a regression. Over a 700-byte document where eve
 position was chosen deliberately, it is readable in a code review. Both kinds of input have
 a place; they are not interchangeable.
 
-## ⚖️ The PyMuPDF licence A/B — run this before PR 3
+## The PyMuPDF licence A/B — run this before PR 3
 
 **Why it matters more than a normal dependency choice.** Rule 5 of the accretion contract
 merges component licences as a **most-restrictive union** into `provenance.license` on
@@ -135,7 +135,7 @@ Run it on `sample.pdf`, not on the minimal fixture — the fixture is Helvetica 
 rotation, which is exactly the easy case where the two libraries will agree. `--compare` on
 two dumps from the *same* engine is a useful sanity check: it must report `0.0`.
 
-## 🧪 `garbled.pdf` and why the decode-sanity check is not optional
+## `garbled.pdf` and why the decode-sanity check is not optional
 
 atrium-llm-enrich#10's research pass found digital-born PDFs where **every** text parser returned
 plausible-looking text with systematically wrong diacritics — non-embedded WinAnsi

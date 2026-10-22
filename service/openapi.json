@@ -3,7 +3,7 @@
   "info": {
     "title": "ATRIUM digital-convert API",
     "description": "Born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, DOC, XLS) into the ATRIUM document record, and a per-page assessment of whether each page's text can be used as it is.",
-    "version": "1.2.1-beta",
+    "version": "1.2.2-beta",
     "x-atrium-service": "atrium-digital-convert",
     "x-atrium-service-previous": "atrium-llm-enrich"
   },
@@ -2633,7 +2633,7 @@
           "damaged_words": {
             "type": "integer",
             "title": "Damaged Words",
-            "description": "Of those, the words that lost a letter to a glyph without a Unicode mapping (U+FFFD). A `digital` page goes to `ocr` when their share reaches `ROUTE_DAMAGED_WORD_SHARE`."
+            "description": "Of those, the words that lost a letter to a glyph without a Unicode mapping (U+FFFD). When their share reaches `ROUTE_DAMAGED_WORD_SHARE` the record flags the page `needs_ocr` (`garbled`) and it goes to `ocr`."
           }
         },
         "additionalProperties": true,
