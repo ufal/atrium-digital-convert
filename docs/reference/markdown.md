@@ -75,5 +75,5 @@ What each profile costs, from `python3 scripts/detail_budget.py` (characters; â‰
 * The line-level reader [`api_util/teitok_read.py`](../../api_util/teitok_read.py) is vendored
   byte-identical from atrium-nlp-enrich, together with `bbox_scale.py` and `flexiconv_convert.py`,
   and pinned by `tests/test_vendored_teitok_parity.py`.
-* The format itself is described in nlp-enrich's README, section
-  [TEITOK XML â€” Unified Output Format](https://github.com/ufal/atrium-nlp-enrich#teitok-xml--unified-output-format).
+* The format itself is described in nlp-enrich's documentation, section
+  [TEITOK XML: the output format](https://github.com/ufal/atrium-nlp-enrich/blob/test/docs/how-it-works.md#teitok-xml-the-output-format).

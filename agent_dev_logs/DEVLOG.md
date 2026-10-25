@@ -1054,6 +1054,19 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 * **Checks:** 949 passed, 4 skipped; `ruff`; `check_version.py`; `workflow_lint.py` against the new hub and
   actionlint; `make_fixtures.py --verify`.
 
+## 2026-10-25 — The ORCID and the licence wording (atrium-project#13, #6); a link into nlp-enrich's new docs
+* **Shared modules (hub re-vendor, atrium-project#13, #6, #79):** `atrium_rocrate.py` writes David Novák's
+  correct ORCID (`0000-0001-6592-6291`) as a tool creator in every crate; `atrium_document.schema.json` describes
+  `provenance.license*` as calculated from the components, not the output's licence (descriptions only, no
+  `POST_FREEZE_CHANGES` entry); an `atrium_vocab.py` comment names page-classification's new categories page.
+  `service/openapi.json` regenerated: description-only, and the `x-atrium-record-schema` digest.
+* **`CITATION.cff`:** the ORCID corrected; each author's affiliation in its ROR name (Charles University;
+  Czech Academy of Sciences, Institute of Archaeology, Prague). Authors unchanged until they confirm (#13).
+* **atrium-project#79:** `docs/reference/markdown.md` links nlp-enrich's TEITOK page in its new `docs/`.
+* **atrium-project#81:** this repository's dispatched dry runs (one with `simulate-probe-failure`) are the
+  demonstration the other five wait for; the comment of 10-22 cited a run that had not been made.
+* **Checks:** 948 passed, 3 skipped; OpenAPI check current.
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
