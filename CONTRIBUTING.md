@@ -226,6 +226,11 @@ frozen copy, and the shared tests are **canonical** in `ufal/atrium-project/docs
 | `service/README.md` | API consumers   | Endpoints, fields, errors, limits             |
 | `agent_dev_logs/`   | Maintainers     | Per-issue digests and plans; the DEVLOG       |
 
+Where each kind of information belongs, and the checklist for a documentation pull request:
+[`docs/documentation-style.md`](https://github.com/ufal/atrium-project/blob/main/docs/documentation-style.md); Workflow Policy Lint
+checks the links, anchors and headings on every push. What each CI check proves, and the checklist
+for a new one: [`docs/ci_policy.md`](https://github.com/ufal/atrium-project/blob/main/docs/ci_policy.md#changing-ci).
+
 Do not duplicate rules across files — cross-reference the canonical source.
 
 ---

@@ -1067,6 +1067,17 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   demonstration the other five wait for; the comment of 10-22 cited a run that had not been made.
 * **Checks:** 948 passed, 3 skipped; OpenAPI check current.
 
+
+## 2026-10-25 (evening) — CONTRIBUTING links the two checklists; the documentation check in CI (atrium-project#79, #81)
+* **CONTRIBUTING (atrium-project#79, #81):** the "Repository Documentation Management" section links the
+  hub's documentation style guide and `ci_policy.md#changing-ci`, the questions a new or changed CI check
+  answers, as the hub's CONTRIBUTING template does. Nothing else in the file changed.
+* **The documentation check in CI (atrium-project#79 E):** Workflow Policy Lint runs the hub's
+  `tools/docs_check.py` over this repository, advisory until the newcomer review, from the pin to the hub commit
+  that carries it (atrium-project#72 step B). It passes today.
+* **Quick start:** every endpoint, field, flag and sample file it shows exists at `v1.2.2-beta`, the release it
+  names (a static check; running it needs Docker and the Hugging Face Hub or LINDAT).
+
 ---
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
