@@ -24,6 +24,20 @@ Since v1.1.0-beta the service id is `atrium-digital-convert` and the images are
 The record follows the hub's [document contract](https://ufal.github.io/atrium-project/ecosystem/document-contract/).
 Each format, how it is read and what reaches the record: [docs/reference/formats.md](docs/reference/formats.md).
 
+The service and the command line take the same inputs and give the same results; since v1.3.0-beta they run the
+same code for the Markdown and the per-page assessment too:
+
+| Result                              | Service                                         | Command line (`api_util/digital_to_json.py`)                                          |
+|-------------------------------------|-------------------------------------------------|---------------------------------------------------------------------------------------|
+| the record                          | `POST /reformat` → `document_json`              | `<doc_id>.document.json` (or `--document-json-out PATH`)                              |
+| the record as annotated Markdown    | `markdown=true` → `markdown`                    | `--markdown` → `<doc_id>.md`                                                          |
+| the per-page assessment, the routes | `POST /describe` → `pages`, `summary`, `stages` | `--describe` → `<doc_id>.describe.json` (`--stages`, `--classify-pages`, `--no-text`) |
+| a seed record to add to             | the `document_json` part                        | `--document-json`                                                                     |
+| the run's paradata                  | `paradata`, a `CreateAction` in the answer      | a file, with `--paradata-dir`                                                         |
+
+Only the command line has the opt-in Docling engine (`--engine docling`, a local build); the service image runs
+the light engine.
+
 ## Quick start
 
 The service, from the published image, on small documents generated from this repository's test fixtures:
@@ -42,8 +56,12 @@ only when their URLs are set, and says so in `stages[]`.
 The same conversion on the command line, from a checkout with its [setup](docs/usage.md#setup) done:
 
 ```bash
-python3 api_util/digital_to_json.py fixtures/minimal.pdf --document-json-out minimal.document.json
+python3 api_util/digital_to_json.py fixtures/minimal.pdf --out-dir out --markdown --describe
 ```
+
+Expected: `out/minimal.document.json` (the record `/reformat` returns), `out/minimal.md` (its `markdown`) and
+`out/minimal.describe.json` (the `pages`, `summary` and `stages` of `/describe`; without the stage URLs both stages
+read `not_configured`).
 
 ## How it works
 

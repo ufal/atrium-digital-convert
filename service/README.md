@@ -20,7 +20,7 @@ legacy DOC/XLS through headless LibreOffice. No model, no network, no GPU.
 The published image first: it is what a deployment runs, and it needs no checkout.
 
 ```bash
-docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.2.2-beta
+docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.3.0-beta
 curl -s http://localhost:8000/ready                                               # 200 once ready
 # from a checkout:
 docker compose --profile api up
@@ -321,7 +321,12 @@ checks this table against `tool_limits.py` and `.env.example`.
 4. **Build and gate the record** — only digital-convert's fields; the field-survival assertion
    and the schema; the licence union of the components that ran (`para_config.txt`).
 5. `/describe` only: **the stages** (`service/stages.py`), then the **report**
-   (`api_util/digital_report.py`).
+   (`api_util/digital_report.py`), both run from `service/describe.py`.
+
+The command line runs the same steps and the same two views: `--markdown` is `markdown=true`, `--describe`
+is `/describe`, with `--stages`, `--classify-pages` and `--no-text` for its fields and the same
+`PAGE_CLASSIFICATION_URL` / `OCR_POSTPROCESS_URL` ([docs/usage.md](../docs/usage.md#command-line-api_utildigital_to_jsonpy)).
+`tests/test_cli_service_parity.py` holds the two sides to the same record, Markdown and assessment.
 
 ## Shutdown behavior (issue #55)
 
@@ -347,6 +352,7 @@ python atrium_openapi.py check  --app service.api:app --spec service/openapi.jso
 pytest tests/test_api_contract.py tests/test_openapi_contract.py   # the contract
 pytest tests/test_describe.py tests/test_digital_report.py         # /describe, the stages, the routes
 pytest tests/test_digital_formats.py tests/test_digital_to_json.py # the converter
+pytest tests/test_cli_service_parity.py                            # the CLI and the service agree
 ```
 
 `tests/test_describe.py` serves `tools/stage_stub.py` — a model-free stand-in for page-classification

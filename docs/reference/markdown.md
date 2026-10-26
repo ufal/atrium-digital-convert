@@ -2,14 +2,20 @@
 
 The Markdown rendering of a record: its cues, the detail profiles and the TEITOK input.
 
-`/reformat` with `markdown=true` returns the record rendered as **annotated Markdown**. The same
-renderer is available on the command line, and the TEITOK/ALTO renderer sits beside it:
+`/reformat` with `markdown=true` returns the record rendered as **annotated Markdown**, the `full`
+profile. The converter's `--markdown` writes exactly that rendering beside the record; the renderer also runs
+on its own, and the TEITOK/ALTO renderer sits beside it:
 
 ```bash
+python3 api_util/digital_to_json.py report.pdf --out-dir out/ --markdown      # = /reformat markdown=true
 python3 api_util/json_to_md.py CTX000000001.document.json --detail standard
 python3 api_util/xml_to_md.py  CTX000000001.teitok.xml --format layout --detail minimal
-python3 api_util/doc_to_visual_md.py report.pdf --output report.md         # convert + render in one step
+python3 api_util/doc_to_visual_md.py report.odt --output report.md         # convert + render in one step
 ```
+
+`doc_to_visual_md.py` takes every born-digital kind the converter reads, recognised by its content as
+`/reformat` does (since v1.3.0-beta; before, only `.pdf` and `.docx` by extension). Its deprecated
+`--legacy` and `--ocr` converters still take PDF and DOCX only.
 
 * **The format.** The Markdown is page-sectioned (`## Page N`). The visual-layout cues ride in HTML
   comments (`DOC_META`, `BBOX`, `PAGE_BREAK`, `NEEDS_OCR`, `HEADER_*`/`FOOTER_*`, headings, GFM

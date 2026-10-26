@@ -28,20 +28,35 @@ python3 api_util/digital_to_json.py report.pdf  --document-json-out report.docum
 python3 api_util/digital_to_json.py report.odt  --document-json seed.json --document-json-out report.document.json
 python3 api_util/digital_to_json.py budget.xls  --out-dir records/
 python3 api_util/digital_to_json.py report.pdf  --engine docling --paradata-dir paradata/
+python3 api_util/digital_to_json.py report.pdf  --out-dir out/ --markdown --describe
+PAGE_CLASSIFICATION_URL=http://localhost:8001 OCR_POSTPROCESS_URL=http://localhost:8002 \
+    python3 api_util/digital_to_json.py report.pdf --out-dir out/ --describe --classify-pages all
 ```
 
-| Option                          | Meaning                                                                                            |
-|---------------------------------|----------------------------------------------------------------------------------------------------|
-| `--document-json-out` (`--out`) | where to write the record (default `<out-dir>/<doc_id>.document.json`)                             |
-| `--document-json`               | the AMČR seed, or an earlier record of the same document, to accrete onto                          |
-| `--doc-id`                      | override the doc_id derived from the file name (a seed's doc_id always wins)                       |
-| `--engine`                      | `light` (default) or `docling` (PDF only, needs `requirements_digital_docling.txt` and its models) |
-| `--docx-page-breaks`            | DOCX pages: `auto` (explicit, section and Word's last rendered breaks), `explicit`, `none`         |
-| `--paradata-dir`                | also write the run's paradata record                                                               |
-| `--strict`                      | raise instead of warning on a field-ownership violation                                            |
+| Option                                               | Meaning                                                                                                                      |
+|------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| `--document-json-out` (`--out`)                      | where to write the record (default `<out-dir>/<doc_id>.document.json`)                                                       |
+| `--document-json`                                    | the AMČR seed, or an earlier record of the same document, to accrete onto                                                    |
+| `--doc-id`                                           | override the doc_id derived from the file name (a seed's doc_id always wins)                                                 |
+| `--engine`                                           | `light` (default) or `docling` (PDF only, needs `requirements_digital_docling.txt` and its models)                           |
+| `--docx-page-breaks`                                 | DOCX pages: `auto` (explicit, section and Word's last rendered breaks), `explicit`, `none`                                   |
+| `--paradata-dir`                                     | also write the run's paradata record                                                                                         |
+| `--strict`                                           | raise instead of warning on a field-ownership violation                                                                      |
+| `--markdown [PATH]`                                  | also write the record as annotated Markdown, as `/reformat`'s `markdown=true` (default `<doc_id>.md` beside the record)      |
+| `--describe [PATH]`                                  | also write the per-page assessment of `/describe`: `reader`, `pages`, `summary`, `stages` (default `<doc_id>.describe.json`) |
+| `--stages`                                           | with `--describe`: `page-classification`, `ocr-postprocess`, both comma-separated, or `none`; unset = every configured one   |
+| `--classify-pages`                                   | with `--describe`: `needs_ocr` (default) or `all`, the pages page-classification is asked about                              |
+| `--no-text`                                          | with `--describe`: leave `pages[].text` out (`include_text=false`)                                                           |
+| `--page-classification-url`, `--ocr-postprocess-url` | with `--describe`: the stages' base URLs (else `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`)                             |
+
+`--markdown` and `--describe` run the service's own code (`service/describe.py`), so a file gives the same
+Markdown and the same assessment on both sides. A record write a stage makes during `--describe` is adopted under
+the same guard as in the service, and the record file then holds it. A stage that is not configured, down or
+answering badly is reported in `stages[]` and the run still exits 0, as the service still answers 200.
 
 **Exit codes:**
-* `0`: the record was written.
+* `0`: the record was written (and the views asked for).
+* `2` (from argparse): an unknown `--stages` value, as the service's 422.
 * `2`: a dependency is missing (a reader, Docling's models, LibreOffice for DOC/XLS), with advice.
 * `3`: not an input this converter takes (unsupported type, an OCR-layer PDF, an old binary Office
   type it cannot convert), or a seed whose `source.sha512` does not match.
@@ -63,6 +78,10 @@ curl -F file=@report.pdf http://localhost:8000/describe
 | `POST /reformat`                 | file (+ seed) → `document_json` (the record), Markdown on request, `paradata`                        | **never**                                                         |
 | `POST /describe`                 | the same conversion → `document_json`, `pages[]` (the assessment), `summary`, `stages[]`, `paradata` | page-classification and ocr-postprocess, **only when configured** |
 | `GET /info`, `/health`, `/ready` | the ATRIUM service contract: identity, limits, readers, LibreOffice availability, stages configured  | —                                                                 |
+
+The command line gives every result of the two endpoints: the record, `--markdown` and `--describe` (above).
+What only one side has: the service's answer carries the run's paradata as a `CreateAction`, where the command
+line writes a paradata file (`--paradata-dir`); the command line has the opt-in Docling engine.
 
 The fields, every response key, the error table (`ocr_text_layer`, `source_digest_mismatch`,
 `unsupported_media_type`, `limit_exceeded`, `busy`, …), the limits and the shutdown behaviour are

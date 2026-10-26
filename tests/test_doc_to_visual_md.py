@@ -148,3 +148,32 @@ def test_a_lighter_profile_is_refused_on_the_deprecated_converters(tmp_path, kwa
 def test_unknown_detail_is_refused_before_any_conversion(tmp_path):
     with pytest.raises(ValueError, match="compact"):
         doc_to_visual_md.convert_to_visual_md(tmp_path / "a.pdf", detail="compact")
+
+
+def test_a_born_digital_file_under_another_name_takes_the_json_route(tmp_path):
+    """The dispatcher decides by content, as `POST /reformat` does (atrium-project#72): a PDF
+    saved without its extension is recognised and rendered, a plain-text file is refused."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "fixtures" / "digital"))
+    import make_fixtures
+
+    pytest.importorskip("pdfplumber")
+    misnamed = tmp_path / "report.bin"
+    misnamed.write_bytes(make_fixtures.build_all()["minimal.pdf"])
+    assert doc_to_visual_md.is_supported(misnamed) is True
+    rendered = doc_to_visual_md.convert_to_visual_md(misnamed)
+    assert "Excavation report, block one, line one." in rendered
+    text = tmp_path / "notes.bin"
+    text.write_text("just text", encoding="utf-8")
+    assert doc_to_visual_md.is_supported(text) is False
+    with pytest.raises(ValueError, match="Unsupported input"):
+        doc_to_visual_md.convert_to_visual_md(text)
+
+
+def test_the_deprecated_converters_keep_their_extension_rule(tmp_path):
+    p = tmp_path / "sheet.xlsx"
+    p.write_bytes(b"PK\x03\x04")
+    with pytest.raises(ValueError, match="deprecated converters"):
+        doc_to_visual_md.convert_to_visual_md(p, legacy=True)

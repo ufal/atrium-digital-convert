@@ -3,7 +3,7 @@
   "info": {
     "title": "ATRIUM digital-convert API",
     "description": "Born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, DOC, XLS) into the ATRIUM document record, and a per-page assessment of whether each page's text can be used as it is.",
-    "version": "1.2.2-beta",
+    "version": "1.3.0-beta",
     "x-atrium-service": "atrium-digital-convert",
     "x-atrium-service-previous": "atrium-llm-enrich"
   },

@@ -121,6 +121,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import tempfile
@@ -1227,23 +1228,47 @@ def convert(
     docx_page_breaks: str = "auto",
     paradata_dir: Optional[str] = None,
     run_uuid: Optional[str] = None,
+    markdown_out: Optional[str] = None,
+    describe_out: Optional[str] = None,
+    describe_stages: Optional[str] = None,
+    classify_pages: str = "needs_ocr",
+    include_text: bool = True,
 ) -> str:
     """A → B → C → D for one file. Returns the written record's path.
 
     With `paradata_dir`, the run also writes its paradata record there (the pair the
     accretion model expects of every stage): its `run_id` and file name stamp the blocks
     unless the caller passed its own.
+
+    The two views `POST /reformat` and `POST /describe` add, run by the same code
+    (`service/describe.py`, atrium-project#72): `markdown_out` writes the record as annotated
+    Markdown (`markdown=true`), `describe_out` the per-page assessment (`pages`, `summary`,
+    `stages`, `reader`). `describe_stages`, `classify_pages` and `include_text` are the
+    endpoint's `stages`, `classify_pages` and `include_text`; the stage URLs come from
+    `PAGE_CLASSIFICATION_URL` and `OCR_POSTPROCESS_URL`. A record write a stage makes is
+    adopted under the same guard, and the record file then holds it.
     """
+    selected: List[str] = []
+    if describe_out is not None:
+        from service import stages as describe_stages_module  # noqa: PLC0415
+
+        selected = describe_stages_module.select_stages(describe_stages)
     logger = None
     if paradata_dir:
-        logger = _paradata_logger(
-            paradata_dir,
-            {
-                "input": os.path.basename(input_path),
-                "engine": engine,
-                "docx_page_breaks": docx_page_breaks,
-            },
-        )
+        config: Dict[str, Any] = {
+            "input": os.path.basename(input_path),
+            "engine": engine,
+            "docx_page_breaks": docx_page_breaks,
+        }
+        if markdown_out is not None:
+            config["markdown"] = True
+        if describe_out is not None:
+            config["describe"] = {
+                "stages": selected,
+                "classify_pages": classify_pages,
+                "include_text": include_text,
+            }
+        logger = _paradata_logger(paradata_dir, config)
         if logger is not None:
             # The logger's run_uuid goes with its run_id: blocks a caller stamps with its own
             # run_id belong to the caller's run, not to this logger's.
@@ -1252,7 +1277,7 @@ def convert(
             run_id = run_id or logger.run_id
             paradata_ref = paradata_ref or f"{logger.run_id}_{PROGRAM}.json"
     try:
-        _, record, page_rows, line_rows = prepare(
+        document, record, page_rows, line_rows = prepare(
             input_path,
             baseline=baseline,
             doc_id=doc_id,
@@ -1266,6 +1291,19 @@ def convert(
             run_uuid=run_uuid,
         )
         written = emit(record, page_rows, line_rows, out_path=out_path)
+        if markdown_out is not None or describe_out is not None:
+            _write_views(
+                document,
+                record.to_dict(),
+                input_path,
+                written,
+                markdown_out,
+                describe_out,
+                selected,
+                classify_pages,
+                include_text,
+                logger,
+            )
     except Exception as exc:
         if logger is not None:
             logger.log_skip(input_path, getattr(exc, "reason", type(exc).__name__))
@@ -1276,6 +1314,75 @@ def convert(
         logger.log_document_success()
         logger.finalize(input_total=1)
     return written
+
+
+def _write_json(path: str, data: Dict[str, Any]) -> None:
+    """Write-then-rename, as `DocumentRecord.finalize()` writes a record."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, path)
+
+
+def view_path(record_path: str, doc_id: str, requested: str, suffix: str) -> str:
+    """The path of a view: the one asked for, or `<doc_id><suffix>` beside the record."""
+    if requested:
+        return requested
+    return os.path.join(os.path.dirname(record_path) or ".", f"{doc_id}{suffix}")
+
+
+def _write_views(
+    document: DigitalDocument,
+    data: Dict[str, Any],
+    input_path: str,
+    record_path: str,
+    markdown_out: Optional[str],
+    describe_out: Optional[str],
+    selected: List[str],
+    classify_pages: str,
+    include_text: bool,
+    logger: Optional[Any],
+) -> None:
+    """`--describe` and `--markdown`: the service's two views, from the service's own code."""
+    from service import describe as views  # noqa: PLC0415  (the stage client, only when asked)
+
+    doc_id = str(data["doc_id"])
+    if describe_out is not None:
+        with open(input_path, "rb") as fh:
+            raw = fh.read()
+        assessed = views.describe_document(
+            document,
+            data,
+            raw,
+            os.path.basename(input_path),
+            selected,
+            classify_pages=classify_pages,
+            include_text=include_text,
+        )
+        if assessed["document_json"] is not data:  # a stage's guarded write was adopted
+            data = assessed["document_json"]
+            _write_json(record_path, data)
+        report = {
+            "doc_id": doc_id,
+            "reader": views.reader_info(document, data),
+            "pages": assessed["pages"],
+            "summary": assessed["summary"],
+            "stages": assessed["stages"],
+        }
+        target = view_path(record_path, doc_id, describe_out, ".describe.json")
+        _write_json(target, report)
+        print(f"[digital-convert] wrote {target}")
+        if logger is not None:
+            logger.log_success("describe_json")
+    if markdown_out is not None:
+        target = view_path(record_path, doc_id, markdown_out, ".md")
+        os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
+        with open(target, "w", encoding="utf-8") as fh:
+            fh.write(views.render_markdown(data))
+        print(f"[digital-convert] wrote {target}")
+        if logger is not None:
+            logger.log_success("markdown")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1349,11 +1456,72 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="raise instead of warning on an ownership violation",
     )
+    views = parser.add_argument_group(
+        "views (what POST /reformat's markdown=true and POST /describe return)"
+    )
+    views.add_argument(
+        "--markdown",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="PATH",
+        help="also write the record as annotated Markdown (default <doc_id>.md beside the record)",
+    )
+    views.add_argument(
+        "--describe",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="PATH",
+        help="also write the per-page assessment of POST /describe (default <doc_id>.describe.json "
+        "beside the record); the stages are called when PAGE_CLASSIFICATION_URL / "
+        "OCR_POSTPROCESS_URL (or the two flags below) are set",
+    )
+    views.add_argument(
+        "--stages",
+        default=None,
+        help="with --describe: a comma-separated subset of page-classification, ocr-postprocess; "
+        "unset for every configured one; `none` for none",
+    )
+    views.add_argument(
+        "--classify-pages",
+        choices=("needs_ocr", "all"),
+        default="needs_ocr",
+        help="with --describe: the pages page-classification is asked about",
+    )
+    views.add_argument(
+        "--no-text",
+        dest="include_text",
+        action="store_false",
+        help="with --describe: leave each page's text out of pages[].text",
+    )
+    views.add_argument(
+        "--page-classification-url",
+        default=None,
+        help="with --describe: page-classification's base URL (sets PAGE_CLASSIFICATION_URL)",
+    )
+    views.add_argument(
+        "--ocr-postprocess-url",
+        default=None,
+        help="with --describe: ocr-postprocess's base URL (sets OCR_POSTPROCESS_URL)",
+    )
     return parser
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.page_classification_url:
+        os.environ["PAGE_CLASSIFICATION_URL"] = args.page_classification_url
+    if args.ocr_postprocess_url:
+        os.environ["OCR_POSTPROCESS_URL"] = args.ocr_postprocess_url
+    if args.describe is not None:
+        from service import stages as describe_stages_module  # noqa: PLC0415
+
+        try:
+            describe_stages_module.select_stages(args.stages)
+        except ValueError as exc:
+            parser.error(str(exc))
     try:
         written = convert(
             args.input,
@@ -1367,6 +1535,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             engine=args.engine,
             docx_page_breaks=args.docx_page_breaks,
             paradata_dir=args.paradata_dir,
+            markdown_out=args.markdown,
+            describe_out=args.describe,
+            describe_stages=args.stages,
+            classify_pages=args.classify_pages,
+            include_text=args.include_text,
         )
     except DigitalInputError as exc:
         print(f"[digital-convert] {exc.reason}: {exc}", file=sys.stderr)

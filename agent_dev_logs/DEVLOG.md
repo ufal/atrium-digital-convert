@@ -1100,3 +1100,15 @@ derived reading aid in `agent_dev_logs/`._
   `61_describe_stages/` with C4's reports in `data_samples/reports/describe/stages/` and writes counts only. Tested
   here on a modified copy of C4: the 29 `digital` → `garbled` pages and a stage's `partial` with `lines_unscored`
   are counted. Dev logs `{5}` updated.
+
+## 2026-10-26 — atrium-project#72: the command line gives what the service gives (`v1.3.0-beta`, prepared)
+* **Gap closed:** the CLI had no counterpart of `/describe` and wrote no Markdown in one step. `digital_to_json.py`
+  now takes `--describe [PATH]` (`--stages`, `--classify-pages`, `--no-text`, the stage URLs) and `--markdown [PATH]`;
+  both run the new FastAPI-free `service/describe.py`, which `/describe` and `/reformat` call too (the stage loop,
+  the adoption guard, the Markdown view, `reader_info`). `doc_to_visual_md.py` decides by content (`sniff()`), so it
+  takes all eight kinds, not only `.pdf`/`.docx`.
+* **Kept apart, documented:** Docling (CLI, local build), flexiconv (CLI adapter), paradata as a file vs a
+  `CreateAction`. `tests/test_cli_service_parity.py` pins record, Markdown and assessment parity.
+* **Citation:** the schema reference goes back to 1.0 (2026-09-25) with the hub's authors (atrium-project#13).
+* README, `docs/usage.md`, `docs/configuration.md`, `docs/reference/markdown.md`, `service/README.md` refreshed;
+  the spec changes only its version; `production-image.json` lists `service/describe.py`.

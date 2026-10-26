@@ -53,7 +53,6 @@ from pydantic import BaseModel, ConfigDict, Field
 import atrium_rocrate
 from api_util import digital_to_json as d2j
 from api_util.digital_ir import DigitalDocument, DigitalInputError
-from api_util.digital_report import build_report, furniture_only
 from atrium_document import canonical_doc_id, validate_baseline, validate_document
 from atrium_limits import LimitExceeded
 from atrium_paradata import ParadataLogger
@@ -61,9 +60,6 @@ from tool_limits import (
     LIMITS,
     MAX_CONCURRENT_JOBS,
     MAX_UPLOAD,
-    ROUTE_DAMAGED_WORD_SHARE,
-    ROUTE_TRASH_SHARE,
-    STAGE_TIMEOUT_S,
 )
 
 from . import stages
@@ -91,6 +87,7 @@ from .atrium_service import (
     read_upload_bounded,
     serve_lifecycle,
 )
+from .describe import describe_document, reader_info, render_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -531,19 +528,6 @@ def _require_capacity() -> None:
         ) from None
 
 
-def _reader_info(document: DigitalDocument, record: Dict[str, Any]) -> Dict[str, Any]:
-    source = record.get("source") or {}
-    return {
-        "kind": document.kind,
-        "media_type": source.get("media_type") or document.media_type,
-        "origin": source.get("origin") or document.origin,
-        "engine": document.engine,
-        "pages": len(document.pages),
-        "conversion": document.conversion,
-        "notes": list(document.notes),
-    }
-
-
 def _convert(
     work: Path,
     upload: Path,
@@ -722,19 +706,12 @@ async def reformat(
                 "service": SERVICE,
                 "doc_id": record["doc_id"],
                 "document_json": record,
-                "reader": _reader_info(document, record),
+                "reader": reader_info(document, record),
                 "limits_applied": [],
             }
             extra = []
             if markdown:
-                from api_util import json_to_md  # noqa: PLC0415
-
-                try:
-                    rendered = json_to_md.render_record(record, title=str(record["doc_id"]))
-                except ValueError:
-                    rendered = (
-                        f"# {record['doc_id']}\n"  # nothing to render: a document without text
-                    )
+                rendered = render_markdown(record)
                 result["markdown"] = rendered
                 extra.append(
                     atrium_rocrate.file_entity(
@@ -812,25 +789,18 @@ async def describe(
                 workdir, upload, baseline, docx_page_breaks, "/describe"
             )
             paradata = _action(run, name, data, document.media_type, baseline is not None, record)
-            current, outcomes, categories, quality = _run_stages(
-                document, record, data, name, selected, classify_pages
+            assessed = describe_document(
+                document, record, data, name, selected, classify_pages, include_text
             )
-            report = build_report(
-                document,
-                categories=categories,
-                quality=quality,
-                trash_share_limit=ROUTE_TRASH_SHARE.get(),
-                include_text=include_text,
-                damaged_word_limit=ROUTE_DAMAGED_WORD_SHARE.get(),
-            )
+            current = assessed["document_json"]
             result: Dict[str, Any] = {
                 "service": SERVICE,
                 "doc_id": current["doc_id"],
                 "document_json": current,
-                "reader": _reader_info(document, current),
-                "pages": report["pages"],
-                "summary": report["summary"],
-                "stages": [outcome.to_dict() for outcome in outcomes],
+                "reader": reader_info(document, current),
+                "pages": assessed["pages"],
+                "summary": assessed["summary"],
+                "stages": assessed["stages"],
                 "limits_applied": [],
                 "paradata": paradata,
             }
@@ -839,106 +809,6 @@ async def describe(
             return result
 
     return await _run_blocking(work)
-
-
-def _validates(record: Dict[str, Any]) -> bool:
-    try:
-        validate_document(record)
-    except Exception:
-        return False
-    return True
-
-
-def _run_stages(
-    document: DigitalDocument,
-    record: Dict[str, Any],
-    data: bytes,
-    name: str,
-    selected: List[str],
-    classify_pages: str,
-) -> Tuple[
-    Dict[str, Any], List[stages.StageOutcome], Dict[int, Dict[str, Any]], Dict[int, Dict[str, Any]]
-]:
-    """Call the selected, configured stages in order; adopt each guarded record write."""
-    timeout = float(STAGE_TIMEOUT_S.get())
-    current = record
-    outcomes: List[stages.StageOutcome] = []
-    categories: Dict[int, Dict[str, Any]] = {}
-    quality: Dict[int, Dict[str, Any]] = {}
-    for stage in stages.STAGES:
-        base = stages.stage_url(stage)
-        if stage not in selected:
-            outcomes.append(
-                stages.StageOutcome(stage=stage, status=stages.STATUS_NOT_REQUESTED, url=base)
-            )
-            continue
-        if base is None:
-            outcomes.append(
-                stages.StageOutcome(
-                    stage=stage,
-                    status=stages.STATUS_NOT_CONFIGURED,
-                    detail=f"{stages.URL_ENV[stage]} is not set",
-                )
-            )
-            continue
-        if stage == stages.PAGE_CLASSIFICATION:
-            if document.kind != "pdf":
-                outcomes.append(
-                    stages.StageOutcome(
-                        stage=stage,
-                        status=stages.STATUS_SKIPPED,
-                        url=base,
-                        detail=f"page-classification reads the page images of a PDF; a {document.kind.upper()} has none",
-                    )
-                )
-                continue
-            # A page whose only text is its running header or footer is asked about too: its page
-            # type says whether its image holds text the text layer lacks (#5, plans with legends).
-            wanted = [
-                page.page_index
-                for page in document.pages
-                if classify_pages == "all" or page.needs_ocr or furniture_only(page)
-            ]
-            if not wanted:
-                outcomes.append(
-                    stages.StageOutcome(
-                        stage=stage,
-                        status=stages.STATUS_SKIPPED,
-                        url=base,
-                        detail="every page has usable body text (send classify_pages=all to classify them anyway)",
-                    )
-                )
-                continue
-            result = stages.run_page_classification(base, data, name, current, wanted, timeout)
-            categories = result.per_page
-        else:
-            lines = {
-                page.page_index: (page.page, [line.text for line in page.lines])
-                for page in document.pages
-                if page.lines
-            }
-            if not lines:
-                outcomes.append(
-                    stages.StageOutcome(
-                        stage=stage,
-                        status=stages.STATUS_SKIPPED,
-                        url=base,
-                        detail="the document has no lines to score",
-                    )
-                )
-                continue
-            result = stages.run_ocr_postprocess(base, current, lines, timeout)
-            quality = result.per_page
-        adopted = stages.adopt(result, current)
-        if adopted is not current and not _validates(adopted):
-            result.outcome.status = stages.STATUS_REJECTED
-            result.outcome.record_adopted = False
-            result.outcome.reason = "schema"
-            result.outcome.detail = "the returned record does not validate against the schema; the record was kept as it was"
-            adopted = current
-        current = adopted
-        outcomes.append(result.outcome)
-    return current, outcomes, categories, quality
 
 
 if __name__ == "__main__":

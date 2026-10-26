@@ -15,16 +15,19 @@ comment cues are inert text that passes straight through to the LLM.
     python3 api_util/doc_to_visual_md.py report.docx --output INPUT_DIR/report.md
     python3 api_util/doc_to_visual_md.py report.pdf  --output INPUT_DIR/report.md
 
-Scope (first pass): DOCX and digital-born PDF. Scanned / curve-only PDF pages are
-marked with a ``NEEDS_OCR`` cue rather than transcribed; the OCR path is a
-benchmark-gated follow-up (hub ``atrium-project#22``).
+Scope: every born-digital kind the converter reads (PDF, DOCX, ODT, ODS, XLSX, RTF, DOC,
+XLS), recognised by its content as ``digital_to_json.sniff()`` does, not by its extension
+(atrium-project#72, the service–CLI alignment: ``POST /reformat`` took all eight while this
+dispatcher took only ``.pdf`` and ``.docx``). Scanned / curve-only PDF pages are marked with
+a ``NEEDS_OCR`` cue rather than transcribed; the OCR path is a benchmark-gated follow-up
+(hub ``atrium-project#22``).
 
 A fourth source joined the dispatcher later: ``*.document.json``, an
 AtriumDocument record (issue #13's JSON plane), via ``json_to_md.py`` — the
 regenerable-recipe path for a consumer that holds only the JSON, not a stored
 TEITOK/PDF/DOCX file.
 
-**One route (Issue #18 / #10 G8, 2026-09-25).** ``.pdf`` and ``.docx`` now go through
+**One route (Issue #18 / #10 G8, 2026-09-25).** Every born-digital input goes through
 ``digital_to_json.build_record()`` (in memory, schema-validated) and then
 ``json_to_md.render_record()`` — the same conversion the hub's born-digital smoke and any
 stored ``*.document.json`` go through, so the Markdown the model reads can no longer differ
@@ -61,7 +64,13 @@ from api_util import docx_to_md, json_to_md, pdf_to_md  # noqa: E402
 from api_util import layout_md as L  # noqa: E402
 from api_util.digital_ir import DigitalInputError  # noqa: E402
 
+#: The extensions of the deprecated direct converters (``ocr=True`` / ``legacy=True``). The JSON
+#: route takes every kind ``digital_to_json.sniff()`` recognises, whatever the file is called.
 SUPPORTED_EXTENSIONS = frozenset({".docx", ".pdf"})
+
+#: The extensions a caller can expect the JSON route to take — the converter's own list, for
+#: `is_supported()`'s quick check before a file is opened.
+CONVERTER_EXTENSIONS = frozenset({".pdf", ".docx", ".odt", ".ods", ".xlsx", ".rtf", ".doc", ".xls"})
 
 #: Bumped whenever the Markdown a given input renders to changes, so a cached rendering from
 #: an older converter is not served as current (`llm_client_shared.prepare_document_input`,
@@ -73,10 +82,19 @@ _DOCUMENT_JSON_SUFFIX = ".document.json"
 
 
 def is_supported(path: str | Path) -> bool:
-    """Whether this file has a visual-MD converter — by extension, or as an
-    AtriumDocument record (``*.document.json``)."""
+    """Whether this file has a visual-MD converter: an AtriumDocument record
+    (``*.document.json``), a born-digital extension, or a file whose content the converter
+    recognises (``digital_to_json.sniff()``) under another name."""
     name = str(path).lower()
-    return name.endswith(_DOCUMENT_JSON_SUFFIX) or Path(path).suffix.lower() in SUPPORTED_EXTENSIONS
+    if name.endswith(_DOCUMENT_JSON_SUFFIX) or Path(path).suffix.lower() in CONVERTER_EXTENSIONS:
+        return True
+    from api_util import digital_to_json  # noqa: PLC0415  (keeps this module's import light)
+
+    try:
+        digital_to_json.sniff(str(path))
+    except DigitalInputError:
+        return False
+    return True
 
 
 def convert_to_visual_md(
@@ -87,36 +105,54 @@ def convert_to_visual_md(
     legacy: bool = False,
     detail: str = L.DEFAULT_DETAIL,
 ) -> str:
-    """Convert a DOCX, PDF, or AtriumDocument JSON to visually-rich Markdown.
+    """Convert a born-digital document or an AtriumDocument JSON to visually-rich Markdown.
 
-    ``.pdf``/``.docx`` take the JSON route (see the module docstring); ``ocr`` (PDF only)
-    and ``legacy`` select the deprecated direct converters instead. ``min_quality`` drops
-    lines below that ``quality_score`` before rendering (JSON route and records), and
-    ``detail`` is the cue profile. Raises ``ValueError`` for an unsupported input, an
-    unknown ``detail`` or one the chosen converter cannot honour, or an unrenderable record
-    (``DigitalInputError`` is one), ``RuntimeError`` with install advice when a backing
-    library is missing.
+    Every kind the converter reads takes the JSON route (see the module docstring), chosen
+    by the file's content; ``ocr`` (PDF only) and ``legacy`` (PDF and DOCX) select the
+    deprecated direct converters instead. ``min_quality`` drops lines below that
+    ``quality_score`` before rendering (JSON route and records), and ``detail`` is the cue
+    profile. Raises ``ValueError`` for an unsupported input (``DigitalInputError`` is one),
+    an unknown ``detail`` or one the chosen converter cannot honour, or an unrenderable
+    record, ``RuntimeError`` with install advice when a backing library is missing.
     """
     L.check_detail(detail)
     name = str(path).lower()
     if name.endswith(_DOCUMENT_JSON_SUFFIX):
         return json_to_md.convert(path, detail=detail, min_quality=min_quality)
-    ext = Path(path).suffix.lower()
-    if ext not in SUPPORTED_EXTENSIONS:
-        raise ValueError(
-            f"Unsupported input '{ext or '(none)'}'. "
-            f"Supported: {', '.join(sorted(SUPPORTED_EXTENSIONS))}, {_DOCUMENT_JSON_SUFFIX}."
-        )
-    if legacy or (ocr and ext == ".pdf"):
+
+    from api_util import digital_to_json  # noqa: PLC0415  (keeps this module's import light)
+
+    if legacy or ocr:
+        ext = Path(path).suffix.lower()
+        if ext not in SUPPORTED_EXTENSIONS:
+            raise ValueError(
+                f"Unsupported input '{ext or '(none)'}' for the deprecated converters. "
+                f"Supported: {', '.join(sorted(SUPPORTED_EXTENSIONS))}; drop --legacy/--ocr "
+                "for the other born-digital kinds."
+            )
+    if legacy or (ocr and Path(path).suffix.lower() == ".pdf"):
         if detail != L.DEFAULT_DETAIL:
             raise ValueError(
                 f"detail={detail!r} needs the JSON route; the deprecated "
                 f"{'--ocr' if ocr and not legacy else '--legacy'} converter renders full only."
             )
-        return docx_to_md.convert(path) if ext == ".docx" else pdf_to_md.convert(path, ocr=ocr)
+        return (
+            docx_to_md.convert(path)
+            if Path(path).suffix.lower() == ".docx"
+            else pdf_to_md.convert(path, ocr=ocr)
+        )
 
-    from api_util import digital_to_json  # noqa: PLC0415  (keeps this module's import light)
-
+    ext = Path(path).suffix.lower()
+    if ext not in CONVERTER_EXTENSIONS:
+        # Another name: the converter decides by content (it would anyway, inside
+        # build_record); a file it does not recognise is refused here, before any reader runs.
+        try:
+            digital_to_json.sniff(str(path))
+        except DigitalInputError as exc:
+            raise ValueError(
+                f"Unsupported input '{ext or '(none)'}' ({exc.reason}). Supported: the born-digital "
+                f"kinds {', '.join(sorted(CONVERTER_EXTENSIONS))} (by content), {_DOCUMENT_JSON_SUFFIX}."
+            ) from exc
     record = digital_to_json.build_record(str(path), engine=engine)
     return json_to_md.render_record(
         record, title=Path(path).stem, detail=detail, min_quality=min_quality
