@@ -61,7 +61,9 @@ For an AMČR upload that is born-digital, digital-convert is the first stage and
 writes the positional part of the record. Its record goes on to nlp-enrich and keyword-extract; the pages it flags
 go to the OCR/HTR route, and ocr-postprocess merges their new text back into the same record, page by page. In
 the AMČR deployment Temporal chains the stages, and `/reformat` calls no other service. The whole chain: the
-[hub's workflow page](https://ufal.github.io/atrium-project/workflows/digital-convert/).
+[hub's workflow page](https://ufal.github.io/atrium-project/workflows/digital-convert/). Its SSH Open Marketplace
+record: [Born-digital document converter: PDF and office files into structured text without OCR -
+ATRIUM](https://marketplace.sshopencloud.eu/tool-or-service/jGxgQI).
 
 ## Limits and maturity
 

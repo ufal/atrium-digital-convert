@@ -1091,3 +1091,12 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
 _Timeline index refreshed 2026-09-26 (AMČR baseline entry and header); earlier 2026-09-07 against live `test`/`main` HEAD, the `CONTRIBUTING.md` changelog table, and
 open-issue state via the GitHub API; header and the 2026-09-24 entries refreshed 2026-09-24 against `test` `122915c`, then `c1ad762`, and after the push against `08dff48` (with the 09-07 → 09-17 gap filled). Nothing removed from the issues themselves (per hub #29); this file is a
 derived reading aid in `agent_dev_logs/`._
+
+## 2026-10-26 — Triage (atrium-project): the README's SSHOMP record; #5's last step
+* **README** ("Where it fits in ATRIUM"): links the SSH Open Marketplace record `jGxgQI`, created on 10-24
+  (atrium-project#4); the hub's workflow page names it in its **Record** row too.
+* **#5:** both asks are released (`v1.2.2-beta`) and chunking waits for after the pilot; what is owed is C5's routing
+  counts. For it, a CPU job (delivered in chat, cluster-side like the samples job) compares the new run's
+  `61_describe_stages/` with C4's reports in `data_samples/reports/describe/stages/` and writes counts only. Tested
+  here on a modified copy of C4: the 29 `digital` → `garbled` pages and a stage's `partial` with `lines_unscored`
+  are counted. Dev logs `{5}` updated.
