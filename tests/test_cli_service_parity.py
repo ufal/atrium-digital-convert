@@ -111,7 +111,9 @@ def test_a_bad_stages_value_is_refused_by_both(tmp_path, capsys):
         d2j.main([str(src), "--describe", "--stages", "no-such-stage"])
     assert caught.value.code == 2
     files = {"file": ("minimal.pdf", FIXTURES["minimal.pdf"], "application/pdf")}
-    assert client.post("/describe", files=files, data={"stages": "no-such-stage"}).status_code == 422
+    assert (
+        client.post("/describe", files=files, data={"stages": "no-such-stage"}).status_code == 422
+    )
 
 
 def test_paradata_is_a_file_on_the_cli_and_a_create_action_in_the_service(tmp_path):

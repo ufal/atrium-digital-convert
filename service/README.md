@@ -238,7 +238,7 @@ A 200 can carry less than was asked for. Read these before using the result:
 | Variable                  | Default   | Meaning                                                                                   |
 |---------------------------|-----------|-------------------------------------------------------------------------------------------|
 | `PORT`                    | `8000`    | port the service **binds**, and the one `service/healthcheck.py` probes (issues #55, #58) |
-| `HOST`                    | `0.0.0.0` | bind address (issue #58). ⚠️ see the warning below                                        |
+| `HOST`                    | `0.0.0.0` | bind address (issue #58); see the warning below                                           |
 | `GRACEFUL_SHUTDOWN_S`     | `20`      | seconds uvicorn waits for in-flight requests (issue #55)                                  |
 | `RELOAD`                  | `false`   | filesystem auto-reload — development only                                                 |
 | `LOG_LEVEL`               | `INFO`    | root logger level for the `python -m service.api` start path (issue #61)                  |
@@ -250,7 +250,7 @@ A 200 can carry less than was asked for. Read these before using the result:
 Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `OCR_LAYER_DOCUMENT_SHARE` and the rest — is
 listed under [Limits](#limits); `.env.example` is the complete ledger.
 
-> ⚠️ `HOST=127.0.0.1` yields a container that reports **healthy** and serves nobody:
+> **Note:** `HOST=127.0.0.1` yields a container that reports **healthy** and serves nobody:
 > `service/healthcheck.py` always probes loopback by design and never reads `HOST`.
 
 ## Limits

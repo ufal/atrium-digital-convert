@@ -1112,3 +1112,12 @@ derived reading aid in `agent_dev_logs/`._
 * **Citation:** the schema reference goes back to 1.0 (2026-09-25) with the hub's authors (atrium-project#13).
 * README, `docs/usage.md`, `docs/configuration.md`, `docs/reference/markdown.md`, `service/README.md` refreshed;
   the spec changes only its version; `production-image.json` lists `service/describe.py`.
+
+## 2026-10-28 — Documentation review: the licence label, no decorative emoji (atrium-project#79, #6)
+
+* `docs/reference/paradata.md`: "Licence of a record" becomes "The licence label of a record", with the wording agreed
+  on 22 October in atrium-project#6 (`provenance.license` summarises the components a run used; it is not the licence
+  of the record).
+* `service/README.md`: the `HOST` warning takes the runbook template's `> **Note:**` form, without the emoji;
+  CONTRIBUTING's footer ©.
+* No release (documentation only); it rides the next tag. `docs_check.py` and `runbook_check.py` OK.

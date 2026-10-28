@@ -239,7 +239,7 @@ Do not duplicate rules across files — cross-reference the canonical source.
 ## Contacts & Acknowledgements
 Maintainer: **lutsai.k@gmail.com** [^1] · Developed by UFAL [^2] · Funded by ATRIUM [^3]
 
-**©️ 2026 UFAL & ATRIUM**
+**© 2026 UFAL & ATRIUM**
 
 [^1]: https://github.com/ufal/atrium-digital-convert
 [^2]: https://ufal.mff.cuni.cz/

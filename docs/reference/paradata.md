@@ -12,8 +12,11 @@ What a run records about itself, the licence fields of a record, and the schema 
 * **The command line.** `--paradata-dir DIR` writes `YYMMDD-HHmmss_digital-convert.json`
   ([`atrium_paradata.py`](../../atrium_paradata.py)).
 
-**Licence of a record.** `provenance.license` is the most restrictive licence among the components
-the run actually used, as declared in [`para_config.txt`](../../para_config.txt):
+**The licence label of a record.** `provenance.license` is the most restrictive licence among the components
+the run actually used, as declared in [`para_config.txt`](../../para_config.txt). It is a calculated summary of the
+components, not the licence of the record: the rights in an output depend first on the source document, and they
+are stated by whoever holds them (for the AMČR pilot, AMČR; agreed on 22 October 2026,
+[atrium-project#6](https://github.com/ufal/atrium-project/issues/6)). For this tool:
 * **The light engine and the shared reader** are MIT, BSD-3-Clause or Apache-2.0, so a record
   says **MIT**.
 * **The Docling engine** adds TableFormer's CDLA-Permissive-2.0, which the shared licence table
