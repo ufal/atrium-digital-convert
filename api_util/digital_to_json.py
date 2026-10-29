@@ -107,10 +107,11 @@ calls out. DOCX has no page geometry without rendering, so a DOCX document carri
 
     0  record written
     2  a dependency is missing (advice printed, no traceback) — LibreOffice for DOC/XLS too
-    3  not an input this converter takes: unsupported format, an OCR-layer PDF, or a seed
-       whose source.sha512 is not the file's digest (source_digest_mismatch)
-    4  the file is broken: corrupt, encrypted, over the ZIP limits, a failed conversion, or
-       over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S)
+    3  not an input this converter takes: unsupported format, an OCR-layer PDF, a seed
+       whose source.sha512 is not the file's digest (source_digest_mismatch), or a
+       --document-json record that cannot be opened (invalid_record)
+    4  the file is broken: empty, corrupt, encrypted, over the ZIP limits, a failed
+       conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S)
 
 Usage:
     python api_util/digital_to_json.py report.pdf --document-json-out report.document.json
@@ -159,9 +160,11 @@ from api_util.digital_ir import (  # noqa: E402  (re-exported: `d2j.DigitalLine`
     text_layer_of,
 )
 from atrium_document import (  # noqa: E402
+    SCHEMA_VERSION,
     DocumentRecord,
     canonical_doc_id,
     load_document,
+    validate_baseline,
     validate_document,
 )
 from atrium_limits import LimitExceeded  # noqa: E402
@@ -718,6 +721,10 @@ def sniff(path: str) -> str:
             head = handle.read(1024)
     except OSError as exc:
         raise DigitalInputError("unsupported", f"unsupported input {path!r}: {exc}") from exc
+    if not head:
+        # An empty file is a broken one, as the service answers it (422 `corrupt`), not a
+        # format this converter does not take.
+        raise DigitalInputError("corrupt", f"the file {os.path.basename(path)!r} is empty")
     if b"%PDF-" in head:
         return "pdf"
     if head.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"{\\rtf"):
@@ -759,6 +766,66 @@ def sniff(path: str) -> str:
             f"document nor an Excel workbook (expected {_ACCEPTED})",
         )
     raise DigitalInputError("unsupported", f"unsupported input {path!r}: expected {_ACCEPTED}")
+
+
+def open_record(baseline: Optional[str]) -> Optional[Dict[str, Any]]:
+    """The record `--document-json` names, opened as the service opens its `document_json` part.
+
+    None when there is none: no path, a missing file (rule 1: a first stage has no record) or an
+    empty one. A record that cannot be opened at all is refused, `invalid_record` (exit 3; the
+    service's 422): not UTF-8 JSON, not a JSON object, or a `schema_version` major newer than
+    this tool reads. It used to end in a traceback. A record that opens but does not validate
+    is returned: it is accreted onto, and reported (`inherited_schema_problem`).
+    """
+    if not baseline or not os.path.exists(baseline):
+        return None
+    with open(baseline, "rb") as handle:
+        raw = handle.read()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise DigitalInputError("invalid_record", f"{baseline!r} is not UTF-8 text") from exc
+    if not text.strip():
+        return None
+    try:
+        record = json.loads(text)
+    except ValueError as exc:
+        raise DigitalInputError("invalid_record", f"{baseline!r} is not valid JSON: {exc}") from exc
+    if not isinstance(record, dict):
+        raise DigitalInputError(
+            "invalid_record", f"{baseline!r} is a JSON {type(record).__name__}, not an object"
+        )
+    version = record.get("schema_version")
+    if version is not None:
+        supported = int(str(SCHEMA_VERSION).split(".")[0])
+        try:
+            major = int(str(version).split(".")[0])
+        except ValueError:
+            raise DigitalInputError(
+                "invalid_record",
+                f"{baseline!r} has schema_version {version!r}, which is not a version",
+            ) from None
+        if major > supported:
+            raise DigitalInputError(
+                "invalid_record",
+                f"{baseline!r} has schema_version {version}; this tool reads up to {supported}.x",
+            )
+    return record
+
+
+def inherited_schema_problem(record: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Why the record handed in does not validate (as a seed or a full record), or None.
+
+    Not fatal (rule 6): the record is accreted onto, and the output gate then reports a schema
+    error instead of refusing the result, on the command line and in the service alike.
+    """
+    if record is None:
+        return None
+    try:
+        validate_baseline(record)
+    except Exception as exc:  # noqa: BLE001  (any failure to validate is the inherited problem)
+        return getattr(exc, "message", None) or str(exc)
+    return None
 
 
 def verify_seed_digest(input_path: str, baseline: Optional[str]) -> Optional[str]:
@@ -1159,11 +1226,55 @@ def prepare(
 def _gate(
     record: DocumentRecord, page_rows: List[Dict[str, Any]], line_rows: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
+    return gate(record, page_rows, line_rows)[0]
+
+
+def gate(
+    record: DocumentRecord,
+    page_rows: List[Dict[str, Any]],
+    line_rows: List[Dict[str, Any]],
+    inherited_invalid: bool = False,
+) -> Tuple[Dict[str, Any], Optional[str]]:
+    """The output gate of both entry points: `(record, schema error or None)`.
+
+    The round-trip assertion and the schema always run. A schema failure raises, unless the
+    record handed in was already invalid (`inherited_invalid`): the failure is then almost
+    certainly the inherited one, and it is returned as the schema error instead (the service's
+    `document_json_schema_error`, the command line's warning), so this stage's work is kept.
+    """
     record.assert_fields_survived("lines", line_rows)
     record.assert_fields_survived("pages", page_rows)
     data = record.to_dict()
-    validate_document(data)
-    return data
+    try:
+        validate_document(data)
+    except RuntimeError:
+        raise  # validation itself is unavailable (jsonschema missing): never a pass
+    except Exception as exc:
+        if not inherited_invalid:
+            raise
+        return data, getattr(exc, "message", None) or str(exc)
+    return data, None
+
+
+def run_config(
+    input_name: str,
+    engine: str,
+    docx_page_breaks: str,
+    markdown: bool = False,
+    describe: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """The run's parameters as its paradata records them, for the command line and the service
+    alike (atrium-project#72); the service adds the `endpoint` it was called on."""
+    config: Dict[str, Any] = {
+        "input": os.path.basename(input_name),
+        "engine": engine,
+        "docx_page_breaks": docx_page_breaks,
+    }
+    if markdown:
+        config["markdown"] = True
+    if describe is not None:
+        config["describe"] = dict(describe)
+    return config
 
 
 def emit(
@@ -1255,19 +1366,17 @@ def convert(
         selected = describe_stages_module.select_stages(describe_stages)
     logger = None
     if paradata_dir:
-        config: Dict[str, Any] = {
-            "input": os.path.basename(input_path),
-            "engine": engine,
-            "docx_page_breaks": docx_page_breaks,
-        }
-        if markdown_out is not None:
-            config["markdown"] = True
-        if describe_out is not None:
-            config["describe"] = {
-                "stages": selected,
-                "classify_pages": classify_pages,
-                "include_text": include_text,
-            }
+        config = run_config(
+            input_path,
+            engine,
+            docx_page_breaks,
+            markdown=markdown_out is not None,
+            describe=(
+                {"stages": selected, "classify_pages": classify_pages, "include_text": include_text}
+                if describe_out is not None
+                else None
+            ),
+        )
         logger = _paradata_logger(paradata_dir, config)
         if logger is not None:
             # The logger's run_uuid goes with its run_id: blocks a caller stamps with its own
@@ -1277,6 +1386,22 @@ def convert(
             run_id = run_id or logger.run_id
             paradata_ref = paradata_ref or f"{logger.run_id}_{PROGRAM}.json"
     try:
+        # What the service checks before it converts, in its order: an empty file, then a record
+        # that cannot be opened (atrium-project#72; both used to end differently here).
+        if os.path.isfile(input_path) and os.path.getsize(input_path) == 0:
+            raise DigitalInputError(
+                "corrupt", f"the file {os.path.basename(input_path)!r} is empty"
+            )
+        inherited = open_record(baseline)
+        if inherited is None:
+            baseline = None  # an empty file counts as none, as an empty part does
+        inherited_problem = inherited_schema_problem(inherited)
+        if inherited_problem:
+            print(
+                f"[digital-convert] WARNING - the record handed in does not validate ({inherited_problem}); "
+                "accreting onto it anyway (rule 6).",
+                file=sys.stderr,
+            )
         document, record, page_rows, line_rows = prepare(
             input_path,
             baseline=baseline,
@@ -1290,7 +1415,16 @@ def convert(
             logger=logger,
             run_uuid=run_uuid,
         )
-        written = emit(record, page_rows, line_rows, out_path=out_path)
+        _, schema_error = gate(
+            record, page_rows, line_rows, inherited_invalid=bool(inherited_problem)
+        )
+        if schema_error:
+            print(
+                f"[digital-convert] WARNING - the record does not validate ({schema_error}); written anyway, "
+                "since the record handed in was already invalid (the service's document_json_schema_error).",
+                file=sys.stderr,
+            )
+        written = record.finalize(out_path)
         if markdown_out is not None or describe_out is not None:
             _write_views(
                 document,
@@ -1397,8 +1531,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="Convert a born-digital PDF, DOCX, ODT, ODS, XLSX, RTF, DOC or XLS into an "
         "atrium_document JSON record.",
         epilog="Exit codes: 0 written; 2 dependency missing (LibreOffice for DOC/XLS too); 3 not a "
-        "born-digital input this converter takes, or a seed whose source.sha512 does not match "
-        "(source_digest_mismatch); 4 corrupt, encrypted, over the ZIP limits, a failed "
+        "born-digital input this converter takes, a seed whose source.sha512 does not match "
+        "(source_digest_mismatch), or a --document-json record that cannot be opened "
+        "(invalid_record); 4 empty, corrupt, encrypted, over the ZIP limits, a failed "
         "conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S).",
     )
     parser.add_argument(

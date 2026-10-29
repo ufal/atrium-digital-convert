@@ -6,7 +6,9 @@
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
 > **v1.1.1-beta** (2026-10-05, `fe494cd`) · **v1.1.2-beta** (2026-10-15, `8358f90`: #5's R, R2 and R3, #6's
-> escaping) · **v1.2.0-beta** prepared 2026-10-18 (#5's G, F, H; tag after C4)._
+> escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
+> **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** prepared 2026-10-28 (the two
+> end alike; the pilot candidate, atrium-project#77)._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -61,7 +63,8 @@
   with a decode-sanity guard for the garbled-diacritics (no-`/ToUnicode`) case. Permissive-first tool
   survey; recommendation to reuse the repo's **Markdown** (doc-level) or **TEITOK** (line-level) targets,
   not a new format. Digest+plan added (`5ee844f`). **Blocker** noted: flexiconv's license is undeclared
-  upstream (`para_config.txt:32-33`).
+  upstream (`para_config.txt:32-33`). (Resolved since: flexiconv is GPL-3.0, recorded in `para_config.txt` as a
+  conditional component; see the TEITOK / flexiconv entry below.)
 - **#11** — Deep-research report (Gemini) on agentic, roadmap-driven FAIR document navigation added as
   `digests/11.digest.md` (`59f0ddb`, `f88b216`); issue logs refreshed (`752ac64`).
 
@@ -1121,3 +1124,32 @@ derived reading aid in `agent_dev_logs/`._
 * `service/README.md`: the `HOST` warning takes the runbook template's `> **Note:**` form, without the emoji;
   CONTRIBUTING's footer ©.
 * No release (documentation only); it rides the next tag. `docs_check.py` and `runbook_check.py` OK.
+
+## 2026-10-28 — v1.4.0-beta: the command line and the service end alike (atrium-project#72, #77)
+
+* **How it was checked:** a scratch harness (not committed) ran `digital_to_json.main()` and `/reformat` /
+  `/describe` on the same files: PDF, DOCX, ODT, RTF, DOC, XLSX, ODS and XLS made with LibreOffice, a name with
+  diacritics and spaces, an empty file, a broken package; `docx_page_breaks` in all three modes; no seed, a seed, a
+  mismatched digest, an unreadable record, a newer schema, an invalid inherited record; the record alone, with
+  Markdown, and `/describe` with no stage, one and both (`tools/stage_stub.py`), both `classify_pages` values, with
+  and without the text. 240 cases. The record, the Markdown and the assessment were already equal in every
+  successful case; the edges were not.
+* **Fixed (CLI):** an empty file is `corrupt`, exit 4 (it was `unsupported`, exit 3); a `--document-json` record
+  that cannot be opened is `invalid_record`, exit 3 (a `JSONDecodeError` or `ValueError` traceback), checked in the
+  service's order (empty file, record, digest); an inherited record that does not validate is accreted onto with a
+  warning and written (the CLI raised at its gate; the service answers 200 with `document_json_schema_error`).
+  `d2j.open_record`, `d2j.inherited_schema_problem` and `d2j.gate` serve both.
+* **Fixed (service):** the paradata's `config` is `d2j.run_config`'s (`input`, `markdown`, `describe`, plus the
+  service's `endpoint`), and its counts are the CLI's (`document_json`, `markdown`, `describe_json`; it said
+  `json`). `/describe` closes the run after the assessment, as the CLI's `--describe` run does.
+* **After:** only `endpoint` differs (documented). `tests/test_cli_service_parity.py` pins the refusals, the
+  inherited invalid record and the paradata.
+* **Seen, not changed:** a baseline whose `pages` is not a list (`"pages": "x"`) makes the hub's
+  `atrium_document.merge_block` raise `AttributeError`: a 500 from the service, a traceback from the CLI. The fix
+  belongs to the hub's canonical module (a type check before the merge, as `invalid_record`).
+* **Docs:** `docs/usage.md`'s new section "The command line and the service" (every input and setting, the same
+  or why not); the exit codes; `docs/configuration.md`'s limits row (`MAX_PAGES` applies to both, `MAX_UPLOAD_MB`
+  in the CLI's shared reader too); the README's Quick start (`--describe` with stages adopts their writes); the
+  service README's input check and its link to the table; this log's flexiconv blocker marked resolved.
+* **Release:** v1.4.0-beta in `CITATION.cff` (2026-10-28), `para_config.txt`, the regenerated spec; CONTRIBUTING
+  row.

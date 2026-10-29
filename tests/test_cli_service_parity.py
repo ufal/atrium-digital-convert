@@ -8,6 +8,10 @@ The command line and the service read the same inputs and give the same results
 v1.3.0-beta the two views as well: `--markdown` is `markdown=true`, `--describe` is `/describe`,
 both through `service/describe.py`. What differs on purpose is pinned here too: the paradata is a
 file on the command line and a `CreateAction` in the response (hub #71).
+
+v1.4.0-beta: the paradata's parameters and counts are the same (`d2j.run_config`; the service adds
+`endpoint`); an empty file, a record that cannot be opened, and an inherited invalid record end
+alike on both sides (`d2j.open_record`, `d2j.gate`).
 """
 
 from __future__ import annotations
@@ -126,3 +130,58 @@ def test_paradata_is_a_file_on_the_cli_and_a_create_action_in_the_service(tmp_pa
     assert record["config"]["markdown"] is True
     body = _service("/reformat", "minimal.pdf", markdown="true")
     assert body["paradata"]["@type"] == "CreateAction"
+    served = body["paradata"]["paradataRecord"]
+    assert served["config"] == {**record["config"], "endpoint": "/reformat"}
+    assert (
+        served["statistics"]["output_counts_by_type"]
+        == record["statistics"]["output_counts_by_type"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("content", "seed", "code", "reason"),
+    [
+        (b"", None, 4, "corrupt"),
+        (None, b"{not json", 3, "invalid_record"),
+        (None, b'{"schema_version": "9.0", "doc_id": "x"}', 3, "invalid_record"),
+    ],
+)
+def test_an_empty_file_or_an_unreadable_record_ends_alike(
+    tmp_path, capsys, content, seed, code, reason
+):
+    data = FIXTURES["minimal.pdf"] if content is None else content
+    src = tmp_path / "minimal.pdf"
+    src.write_bytes(data)
+    flags = ["--out-dir", str(tmp_path / "out")]
+    files = {"file": ("minimal.pdf", data, "application/pdf")}
+    if seed is not None:
+        (tmp_path / "seed.json").write_bytes(seed)
+        flags += ["--document-json", str(tmp_path / "seed.json")]
+        files["document_json"] = ("seed.json", seed, "application/json")
+    assert d2j.main([str(src), *flags]) == code
+    assert f"] {reason}:" in capsys.readouterr().err
+    response = client.post("/reformat", files=files)
+    assert response.status_code == 422
+    assert reason in (response.json().get("reason"), response.json().get("cause"))
+
+
+def test_an_inherited_invalid_record_is_converted_and_reported_by_both(tmp_path, capsys):
+    seed = {
+        "schema_version": "1.0",
+        "record_type": "atrium-document",
+        "doc_id": "minimal",
+        "translations": 5,
+    }
+    (tmp_path / "seed.json").write_text(json.dumps(seed), encoding="utf-8")
+    out = _cli(tmp_path, "minimal.pdf", "--document-json", str(tmp_path / "seed.json"))
+    assert (out / "minimal.document.json").is_file()
+    assert "does not validate" in capsys.readouterr().err
+    response = client.post(
+        "/reformat",
+        files={
+            "file": ("minimal.pdf", FIXTURES["minimal.pdf"], "application/pdf"),
+            "document_json": ("seed.json", json.dumps(seed).encode(), "application/json"),
+        },
+    )
+    assert response.status_code == 200
+    assert response.json().get("document_json_schema_error")

@@ -53,7 +53,7 @@ from pydantic import BaseModel, ConfigDict, Field
 import atrium_rocrate
 from api_util import digital_to_json as d2j
 from api_util.digital_ir import DigitalDocument, DigitalInputError
-from atrium_document import canonical_doc_id, validate_baseline, validate_document
+from atrium_document import canonical_doc_id
 from atrium_limits import LimitExceeded
 from atrium_paradata import ParadataLogger
 from tool_limits import (
@@ -534,25 +534,32 @@ def _convert(
     baseline: Optional[Dict[str, Any]],
     docx_page_breaks: str,
     endpoint: str,
+    markdown: bool = False,
+    describe: Optional[Dict[str, Any]] = None,
 ) -> Tuple[DigitalDocument, Dict[str, Any], Optional[str], ParadataLogger]:
-    """Layers A–D for one upload (blocking): the IR, the gated record, a schema error, the run."""
+    """Layers A–D for one upload (blocking): the IR, the gated record, a schema error, the run.
+
+    The run's parameters and the output gate are the command line's (`d2j.run_config`,
+    `d2j.gate`, atrium-project#72), so both record the same keys and treat an inherited
+    invalid record alike."""
     run = ParadataLogger(
         program=PROGRAM,
-        config={"endpoint": endpoint, "engine": "light", "docx_page_breaks": docx_page_breaks},
+        config={
+            "endpoint": endpoint,
+            **d2j.run_config(
+                upload.name, "light", docx_page_breaks, markdown=markdown, describe=describe
+            ),
+        },
         paradata_dir=None,
-        output_types=["json"],
         config_dir=_PARA_CONFIG_DIR,
     )
     baseline_path: Optional[str] = None
-    baseline_invalid = False
+    inherited_problem = d2j.inherited_schema_problem(baseline)
+    if inherited_problem:  # inherited, not ours: reported, not fatal (rule 6)
+        logger.warning("the sent record does not validate (%s); continuing", inherited_problem)
     if baseline is not None:
         baseline_path = str(work / "baseline.document.json")
         Path(baseline_path).write_text(json.dumps(baseline, ensure_ascii=False), encoding="utf-8")
-        try:
-            validate_baseline(baseline)
-        except Exception as exc:  # inherited, not ours: reported, not fatal (rule 6)
-            baseline_invalid = True
-            logger.warning("the sent record does not validate (%s); continuing", exc)
     try:
         document, record, page_rows, line_rows = d2j.prepare(
             str(upload),
@@ -569,20 +576,16 @@ def _convert(
         if "is required to convert this input" in str(exc):
             raise AtriumHTTPError(501, str(exc), cause="dependency_missing") from exc
         raise
-    record.assert_fields_survived("lines", line_rows)
-    record.assert_fields_survived("pages", page_rows)
-    data = record.to_dict()
-    schema_error: Optional[str] = None
     try:
-        validate_document(data)
+        data, schema_error = d2j.gate(
+            record, page_rows, line_rows, inherited_invalid=bool(inherited_problem)
+        )
+    except RuntimeError:
+        raise
     except Exception as exc:
         message = getattr(exc, "message", None) or str(exc)
-        if not baseline_invalid:
-            raise HTTPException(
-                500, f"Document record rejected by its own schema: {message}"
-            ) from exc
-        schema_error = message
-    run.log_success("json")
+        raise HTTPException(500, f"Document record rejected by its own schema: {message}") from exc
+    run.log_success("document_json")
     run.log_document_success()
     return document, data, schema_error, run
 
@@ -700,7 +703,7 @@ async def reformat(
             upload.parent.mkdir()
             upload.write_bytes(data)
             document, record, schema_error, run = _convert(
-                workdir, upload, baseline, docx_page_breaks, "/reformat"
+                workdir, upload, baseline, docx_page_breaks, "/reformat", markdown=markdown
             )
             result: Dict[str, Any] = {
                 "service": SERVICE,
@@ -713,6 +716,7 @@ async def reformat(
             if markdown:
                 rendered = render_markdown(record)
                 result["markdown"] = rendered
+                run.log_success("markdown")
                 extra.append(
                     atrium_rocrate.file_entity(
                         f"{record['doc_id']}.md",
@@ -786,12 +790,23 @@ async def describe(
             upload.parent.mkdir()
             upload.write_bytes(data)
             document, record, schema_error, run = _convert(
-                workdir, upload, baseline, docx_page_breaks, "/describe"
+                workdir,
+                upload,
+                baseline,
+                docx_page_breaks,
+                "/describe",
+                describe={
+                    "stages": selected,
+                    "classify_pages": classify_pages,
+                    "include_text": include_text,
+                },
             )
-            paradata = _action(run, name, data, document.media_type, baseline is not None, record)
             assessed = describe_document(
                 document, record, data, name, selected, classify_pages, include_text
             )
+            # The run ends with the assessment, as the command line's --describe run does.
+            run.log_success("describe_json")
+            paradata = _action(run, name, data, document.media_type, baseline is not None, record)
             current = assessed["document_json"]
             result: Dict[str, Any] = {
                 "service": SERVICE,

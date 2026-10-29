@@ -36,7 +36,7 @@ same code for the Markdown and the per-page assessment too:
 | the run's paradata                  | `paradata`, a `CreateAction` in the answer      | a file, with `--paradata-dir`                                                         |
 
 Only the command line has the opt-in Docling engine (`--engine docling`, a local build); the service image runs
-the light engine.
+the light engine. Every difference, and why: [docs/usage.md](docs/usage.md#the-command-line-and-the-service).
 
 ## Quick start
 
@@ -61,7 +61,8 @@ python3 api_util/digital_to_json.py fixtures/minimal.pdf --out-dir out --markdow
 
 Expected: `out/minimal.document.json` (the record `/reformat` returns), `out/minimal.md` (its `markdown`) and
 `out/minimal.describe.json` (the `pages`, `summary` and `stages` of `/describe`; without the stage URLs both stages
-read `not_configured`).
+read `not_configured`). With the stage URLs set, `--describe` keeps what the stages write into the record, and the
+record and the Markdown then show it, as `/describe`'s `document_json` does.
 
 ## How it works
 
