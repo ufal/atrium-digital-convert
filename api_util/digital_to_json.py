@@ -109,7 +109,8 @@ calls out. DOCX has no page geometry without rendering, so a DOCX document carri
     2  a dependency is missing (advice printed, no traceback) — LibreOffice for DOC/XLS too
     3  not an input this converter takes: unsupported format, an OCR-layer PDF, a seed
        whose source.sha512 is not the file's digest (source_digest_mismatch), or a
-       --document-json record that cannot be opened (invalid_record)
+       --document-json record that cannot be opened, or whose `pages` or `lines` is not a
+       list of objects (invalid_record)
     4  the file is broken: empty, corrupt, encrypted, over the ZIP limits, a failed
        conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S)
 
@@ -162,6 +163,7 @@ from api_util.digital_ir import (  # noqa: E402  (re-exported: `d2j.DigitalLine`
 from atrium_document import (  # noqa: E402
     SCHEMA_VERSION,
     DocumentRecord,
+    InvalidRecordError,
     canonical_doc_id,
     load_document,
     validate_baseline,
@@ -1532,8 +1534,8 @@ def build_parser() -> argparse.ArgumentParser:
         "atrium_document JSON record.",
         epilog="Exit codes: 0 written; 2 dependency missing (LibreOffice for DOC/XLS too); 3 not a "
         "born-digital input this converter takes, a seed whose source.sha512 does not match "
-        "(source_digest_mismatch), or a --document-json record that cannot be opened "
-        "(invalid_record); 4 empty, corrupt, encrypted, over the ZIP limits, a failed "
+        "(source_digest_mismatch), or a --document-json record that cannot be opened or "
+        "added to (invalid_record); 4 empty, corrupt, encrypted, over the ZIP limits, a failed "
         "conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S).",
     )
     parser.add_argument(
@@ -1679,6 +1681,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except DigitalInputError as exc:
         print(f"[digital-convert] {exc.reason}: {exc}", file=sys.stderr)
         return exc.exit_code
+    except InvalidRecordError as exc:
+        # The record opened, but a block the merge adds rows to is not a list of objects
+        # (atrium-project#72): exit 3, as the service's 422 invalid_record. It was a traceback.
+        print(f"[digital-convert] invalid_record: {exc}", file=sys.stderr)
+        return DigitalInputError.EXIT_CODES["invalid_record"]
     except LimitExceeded as exc:
         print(f"[digital-convert] limit_exceeded: {exc.detail}", file=sys.stderr)
         return 4

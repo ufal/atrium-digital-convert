@@ -20,7 +20,7 @@ legacy DOC/XLS through headless LibreOffice. No model, no network, no GPU.
 The published image first: it is what a deployment runs, and it needs no checkout.
 
 ```bash
-docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.4.0-beta
+docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.4.1-beta
 curl -s http://localhost:8000/ready                                               # 200 once ready
 # from a checkout:
 docker compose --profile api up
@@ -192,18 +192,18 @@ through `/process` (`task_type=text`): its verdict goes into `pages[]`, not into
 Every error has the harmonised body `{status, reason, detail}` (§4.4); `reason` is a registered
 code or `null`, and refusals of a born-digital input name the converter's finer cause in `cause`.
 
-| Status | `reason`                 | When                                                                                                                            | What to do                                                                         |
-|--------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| 413    | `limit_exceeded`         | a part over `MAX_UPLOAD_MB`                                                                                                     | raise `MAX_UPLOAD_MB` for large originals (see Large documents), or split the file |
-| 415    | `unsupported_media_type` | not a born-digital type the converter reads (`cause`: `unsupported`, `legacy_office_unsupported`; `accepted` lists the types)   | send a type in `accepted`; a scanned document goes to OCR                          |
-| 422    | `ocr_text_layer`         | a PDF whose text layer is an earlier OCR run (route it to OCR)                                                                  | send the document to the OCR route                                                 |
-| 422    | `source_digest_mismatch` | the seed's `source.sha512` is not the uploaded file's                                                                           | send the file the seed was made for, or a new seed                                 |
-| 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major)                                          | send the seed AMČR made; update this service if the record is newer                |
-| 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`                                                                                     | raise the setting `limit.env` names, or split the document                         |
-| 422    | `null`                   | an empty or broken file (`cause`: `corrupt`, `encrypted`, `zip_limits_exceeded`, `conversion_failed`); an unknown `stages` name | repair or decrypt the file `cause` names; fix the `stages` value                   |
-| 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                    | retry after `Retry-After`; raise `MAX_CONCURRENT_JOBS` if memory allows            |
-| 501    | `null`                   | a DOC/XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                | use the image (it has LibreOffice), or convert DOC/XLS to DOCX/XLSX first          |
-| 503    | `null`                   | the service is shutting down; retry against a live replica                                                                      | retry on another replica                                                           |
+| Status | `reason`                 | When                                                                                                                                       | What to do                                                                         |
+|--------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| 413    | `limit_exceeded`         | a part over `MAX_UPLOAD_MB`                                                                                                                | raise `MAX_UPLOAD_MB` for large originals (see Large documents), or split the file |
+| 415    | `unsupported_media_type` | not a born-digital type the converter reads (`cause`: `unsupported`, `legacy_office_unsupported`; `accepted` lists the types)              | send a type in `accepted`; a scanned document goes to OCR                          |
+| 422    | `ocr_text_layer`         | a PDF whose text layer is an earlier OCR run (route it to OCR)                                                                             | send the document to the OCR route                                                 |
+| 422    | `source_digest_mismatch` | the seed's `source.sha512` is not the uploaded file's                                                                                      | send the file the seed was made for, or a new seed                                 |
+| 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major), or its `pages` or `lines` is not a list of objects | send the seed AMČR made; update this service if the record is newer                |
+| 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`                                                                                                | raise the setting `limit.env` names, or split the document                         |
+| 422    | `null`                   | an empty or broken file (`cause`: `corrupt`, `encrypted`, `zip_limits_exceeded`, `conversion_failed`); an unknown `stages` name            | repair or decrypt the file `cause` names; fix the `stages` value                   |
+| 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                               | retry after `Retry-After`; raise `MAX_CONCURRENT_JOBS` if memory allows            |
+| 501    | `null`                   | a DOC/XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                           | use the image (it has LibreOffice), or convert DOC/XLS to DOCX/XLSX first          |
+| 503    | `null`                   | the service is shutting down; retry against a live replica                                                                                 | retry on another replica                                                           |
 
 `source_digest_mismatch` is in the shared registry (`service/atrium_service.py`, vendored from the hub)
 since v1.1.1-beta, so every ATRIUM service's spec publishes it; v1.1.0-beta registered it here.
@@ -320,7 +320,9 @@ checks this table against `tool_limits.py` and `.env.example`.
    LibreOffice conversion with a throw-away profile (`digital_legacy.py`).
 3. **Check the text layer** — decode sanity per line, `needs_ocr` per page, the prior-OCR refusal.
 4. **Build and gate the record** — only digital-convert's fields; the field-survival assertion
-   and the schema; the licence union of the components that ran (`para_config.txt`).
+   and the schema; the licence union of the components that ran (`para_config.txt`). A record whose
+   `pages` or `lines` is not a list of objects cannot be added to, and is refused here with 422
+   `invalid_record` (it was a 500 before v1.4.1-beta).
 5. `/describe` only: **the stages** (`service/stages.py`), then the **report**
    (`api_util/digital_report.py`), both run from `service/describe.py`.
 

@@ -76,7 +76,8 @@ class DigitalInputError(ValueError):
     #: `source_digest_mismatch` (atrium-digital-convert#2, accepted by AMČR 2026-09-30): the seed's
     #: `source.sha512` is not the digest of the bytes handed over, so the record would describe
     #: one file under another file's identity. `invalid_record`: the `--document-json` record
-    #: cannot be opened (not UTF-8 JSON, not an object, a newer schema major), the service's 422.
+    #: cannot be opened (not UTF-8 JSON, not an object, a newer schema major), or its `pages` or
+    #: `lines` is not a list of objects (atrium_document.InvalidRecordError); the service's 422.
     #: `dependency_missing`: a reader this input needs (LibreOffice for DOC/XLS) is not
     #: installed in this deployment.
     EXIT_CODES: Dict[str, int] = {

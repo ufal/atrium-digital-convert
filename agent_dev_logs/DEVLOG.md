@@ -1153,3 +1153,23 @@ derived reading aid in `agent_dev_logs/`._
   service README's input check and its link to the table; this log's flexiconv blocker marked resolved.
 * **Release:** v1.4.0-beta in `CITATION.cff` (2026-10-28), `para_config.txt`, the regenerated spec; CONTRIBUTING
   row.
+
+## 2026-10-29 (evening) — v1.4.1-beta: a record that cannot be added to is refused, from both entry points (atrium-project#72)
+
+* **Shared modules** (re-vendored from the hub with `scripts/revendor_shared.sh`): `atrium_document.py` raises
+  `InvalidRecordError` when a list block the merge adds rows to is not a list of objects, before anything is written,
+  and `service/atrium_service.py` answers it with 422 `invalid_record`. Here that is `pages` and `lines`: the case
+  "seen, not changed" in the 10-28 entry above, now fixed where it belongs. The spec's registry text names the case,
+  and the `invalid_record` row of `service/README.md` names `pages` and `lines`.
+* **CLI:** `digital_to_json.main` turns `InvalidRecordError` into exit 3 `invalid_record`, as the service's 422;
+  `--help`'s epilogue, the module docstring, `digital_ir.EXIT_CODES`' comment, `docs/usage.md` (the exit codes and a
+  parity-table row) and the service README's step 4 say so. `tests/test_cli_service_parity.py` gains two cases
+  (`pages` a string, `lines` an object), which failed with the `AttributeError` before the fix.
+* **v1.4.0-beta's notes** say an invalid inherited record "is added to with a warning". That holds unless a list block
+  is not a list, which crashed; recorded here and in v1.4.1-beta's notes, not by editing the published release (the
+  maintainer's call, atrium-project#72).
+* **CI:** the hub's workflows are pinned to the commit that carries the modules (the maintainer's pin move; the Trivy
+  database retry of `b07090f` is already in).
+* **Release:** v1.4.1-beta in `CITATION.cff`, `para_config.txt`, the spec's version; CONTRIBUTING row; the service
+  README's version example.
+* **Checks:** 970 passed, 3 skipped; pre-commit clean.

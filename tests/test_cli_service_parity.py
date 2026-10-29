@@ -144,6 +144,10 @@ def test_paradata_is_a_file_on_the_cli_and_a_create_action_in_the_service(tmp_pa
         (b"", None, 4, "corrupt"),
         (None, b"{not json", 3, "invalid_record"),
         (None, b'{"schema_version": "9.0", "doc_id": "x"}', 3, "invalid_record"),
+        # v1.4.1-beta: a record that opens but cannot be added to (atrium-project#72). The merge
+        # failed on `.get`: a traceback from the CLI and a 500 from the service.
+        (None, b'{"doc_id": "minimal", "pages": "1"}', 3, "invalid_record"),
+        (None, b'{"doc_id": "minimal", "lines": {"page": "1", "line": 0}}', 3, "invalid_record"),
     ],
 )
 def test_an_empty_file_or_an_unreadable_record_ends_alike(
