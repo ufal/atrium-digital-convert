@@ -1182,3 +1182,23 @@ derived reading aid in `agent_dev_logs/`._
 * **The calculated licence:** `docs/reference/paradata.md`'s "licence label of a record" becomes "The components a
   record lists", without "a record says MIT"; `how-it-works.md` and the runbook follow (motyc, 10-29).
 * **Checks:** 971 passed, 4 skipped; with flexiconv v0.3.11, 973 passed, 2 skipped, as with v0.3.10.
+
+## 2026-11-02 — atrium-project#79 phase F, tool round: the docs for each kind of reader
+
+Documentation only; no code, test or configuration change.
+* **F3:** `docs/development.md` § Working records is the one Markdown pointer into `agent_dev_logs/`; other pages cite
+  the issue. CONTRIBUTING's documentation table follows the hub template.
+* **F4:** the opening is about 70 words; the former-name history moved to `docs/development.md`; the documentation map is grouped by reader.
+* **F5:** the runbook follows the template's order, with "At a glance" under Start and "Shutdown behaviour"; tracker
+  shorthand and version history are out of its running text. The error table's columns read Meaning and What to do.
+* **F6/F7:** task headings and a task list on `docs/usage.md`; "In short" on `evaluation/{amcr-samples,benchmark}`.
+* **Map:** the hub's `agent_dev_logs/plans/79.F-relocation_map.md` § atrium-digital-convert (every moved block, corrected facts,
+  renamed anchors).
+* **Checks:** `docs_check` and `runbook_check` pass; 971 passed, 4 skipped, as at the head.
+
+## 2026-11-02 — Para-drift red after the flexiconv pin: `ADOPTED` moved
+
+* The `Verify Vendored Copies Against Their Owners` job checks nlp-enrich out at `ADOPTED["commit"]`, still
+  `477f68c`, so the re-vendored `requirements_flexiconv.txt` (v0.3.11) did not match it. `ADOPTED` now names
+  nlp-enrich `ba81709` (the pin's commit) and `v1.3.2-beta`, the release that will first carry it.
+* **Checks:** `tests/test_vendored_teitok_parity.py` 24 passed against nlp-enrich fetched at `ba81709`, as the job does.

@@ -35,12 +35,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 NLP_ENRICH = REPO_ROOT.parent / "atrium-nlp-enrich"
 
 #: The owner revision the copies were taken from (atrium-project#82): the
-#: atrium-nlp-enrich commit of 2026-10-21 (the owner headers); its files have the digests below, first
-#: released in v1.1.3-beta.
+#: atrium-nlp-enrich commit of 2026-11-02 that pins flexiconv v0.3.11 (atrium-project#6); its files have
+#: the digests below. Only requirements_flexiconv.txt changed since the 2026-10-21 adoption (477f68c,
+#: v1.1.3-beta). "release" is the nlp-enrich release that will first carry it, the one after v1.3.1-beta:
+#: correct it if that release takes another number.
 ADOPTED = {
     "owner": "atrium-nlp-enrich",
-    "commit": "477f68c6c020e1f102046842a59082047650f6e5",
-    "release": "v1.1.3-beta",
+    "commit": "ba81709cfc037ad7551a76cadde53fbe224f6c2b",
+    "release": "v1.3.2-beta",
 }
 
 VENDORED = {

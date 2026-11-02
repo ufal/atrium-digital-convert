@@ -1,9 +1,9 @@
 # digital-convert API service
 
-The HTTP service of the born-digital stage (`api-digital`, [#2](https://github.com/ufal/atrium-digital-convert/issues/2)).
-It reads born-digital documents into the ATRIUM document record (`atrium_document`) and, on a
-second endpoint, assesses every page: can its text be used as it is, what kind of page is it,
-does its text read, and where should it go next.
+The HTTP service of the born-digital stage (`api-digital`). It reads born-digital documents into the
+ATRIUM document record (`atrium_document`). On a second endpoint it assesses every page: can its text be
+used as it is, what kind of page is it, does its text read, and where should it go next. The version it
+reports is read from `para_config.txt`.
 
 * **`POST /reformat`** — the production endpoint the AMČR route calls. File (and optionally the
   AMČR seed) in, record out; Markdown on request; run `paradata`. **Calls no other service** —
@@ -16,6 +16,12 @@ Inputs, by content (the extension only names the file): PDF, DOCX, ODT, ODS, XLS
 legacy DOC/XLS through headless LibreOffice. No model, no network, no GPU.
 
 ## Start
+
+**At a glance:**
+
+| Image                                               | CPU / GPU        | Memory                                                                                                      | Volumes                                   | Calls out to                                                                                             | Ready after                                                                        |
+|-----------------------------------------------------|------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| `ghcr.io/ufal/atrium-digital-convert-api:<version>` | CPU only; no GPU | budget about 1 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot; the largest peak measured was 783 MB | none (compose mounts `./data` as `/data`) | `/reformat`: nothing. `/describe`: page-classification and ocr-postprocess, only when their URLs are set | not measured; there is no model to load, and the health check allows 30 s to start |
 
 The published image first: it is what a deployment runs, and it needs no checkout.
 
@@ -53,9 +59,9 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 
 | Method | Path        | Purpose                                                                    |
 |--------|-------------|----------------------------------------------------------------------------|
-| GET    | `/info`     | identity, version, endpoints, limits and settings, capabilities (§4.1)     |
+| GET    | `/info`     | identity, version, endpoints, limits and settings, capabilities            |
 | GET    | `/health`   | liveness; `?deep=true` checks the readers and the record schema            |
-| GET    | `/ready`    | readiness: 503 before start-up checks pass and while draining (issue #55)  |
+| GET    | `/ready`    | readiness: 503 before start-up checks pass and while draining              |
 | POST   | `/reformat` | born-digital file → record (+ Markdown on request)                         |
 | POST   | `/describe` | born-digital file → record + per-page assessment + what each stage did     |
 
@@ -70,32 +76,36 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 
 The response:
 
-| Field                        | Meaning                                                                                                                                           |
-|------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| `service`                    | `atrium-digital-convert`                                                                                                                          |
-| `doc_id`                     | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                                         |
-| `document_json`              | the record: digital-convert's `source`, `pages`, `content`, `lines`, `tables`; every other block of a sent record passed through                  |
-| `reader`                     | how the file was read: `kind`, `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS), `notes`                                         |
-| `markdown`                   | only with `markdown=true`                                                                                                                         |
-| `document_json_schema_error` | only when the sent record did not validate and the result inherits that                                                                           |
-| `limits_applied`             | every limit that shaped the result without refusing it (`[]` today: each limit refuses)                                                           |
-| `paradata`                   | the call's Process Run Crate `CreateAction` (atrium-project#71); its `@id` is the `run_uuid` stamped into the record. No paradata file is written |
+| Field                        | Meaning                                                                                                                          |
+|------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| `service`                    | `atrium-digital-convert`                                                                                                         |
+| `doc_id`                     | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                        |
+| `document_json`              | the record: digital-convert's `source`, `pages`, `content`, `lines`, `tables`; every other block of a sent record passed through |
+| `reader`                     | how the file was read: `kind`, `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS), `notes`                        |
+| `markdown`                   | only with `markdown=true`                                                                                                        |
+| `document_json_schema_error` | only when the sent record did not validate and the result inherits that                                                          |
+| `limits_applied`             | every limit that shaped the result without refusing it (always `[]`: each limit refuses)                                         |
+| `paradata`                   | the call's Process Run Crate `CreateAction`; its `@id` is the `run_uuid` stamped into the record. No paradata file is written    |
 
 **The seed.** Its `doc_id`, `source.sha512`, `filename` and `media_type` are kept; the converter adds
 `source.origin` and `page_count` (and no `sha256` beside the archive's `sha512`). The seed's `sha512`
-is compared with the uploaded bytes **before anything is read** — for a DOC/XLS, before the
-LibreOffice conversion — and a mismatch is refused (422 `source_digest_mismatch`), so a record
-never describes one file under another file's identity.
+is compared with the uploaded bytes **before anything is read** (for a DOC/XLS, before the
+LibreOffice conversion). A mismatch is refused (422 `source_digest_mismatch`), so a record never
+describes one file under another file's identity.
 
-**The text layer.** Every page carries the converter's verdict in `pages[].text_layer`: `digital`
-(decodes), `garbled` (a layer that does not decode: CP1250 read as CP1252, U+FFFD and control
-characters), `ocr` (a prior OCR run), `none` (no text layer) or `blank` (an empty page of a format
-without page images). The `garbled`, `ocr` and `none` pages also carry `pages[].needs_ocr: true`
-with a `needs_ocr_reason`. A PDF whose text-bearing pages are at least `OCR_LAYER_DOCUMENT_SHARE`
-(0.5) prior-OCR layers (invisible text over a page image) is refused, 422 `ocr_text_layer`, so the
-route step sends it to OCR; below that share the document is converted and those pages are flagged.
-atrium-ocr-postprocess (`v1.9.1-beta`) then merges the ATR ALTO of a flagged page back into the same
-record, that page only (atrium-digital-convert#4 W4).
+**The text layer.** Every page carries the converter's verdict in `pages[].text_layer`:
+
+* `digital`: the layer decodes;
+* `garbled`: the layer does not decode (CP1250 read as CP1252, U+FFFD and control characters);
+* `ocr`: a prior OCR run;
+* `none`: no text layer;
+* `blank`: an empty page of a format without page images.
+
+The `garbled`, `ocr` and `none` pages also carry `pages[].needs_ocr: true` with a `needs_ocr_reason`. A PDF
+whose text-bearing pages are at least `OCR_LAYER_DOCUMENT_SHARE` (0.5) prior-OCR layers (invisible text over a
+page image) is refused, 422 `ocr_text_layer`, so the route step sends it to OCR. Below that share the document
+is converted and those pages are flagged. atrium-ocr-postprocess (v1.9.1-beta or later) then merges the ATR
+ALTO of a flagged page back into the same record, that page only.
 
 ### `POST /describe` (multipart form)
 
@@ -136,21 +146,20 @@ Categories are read through the page-category facets of `atrium_vocab.COLLECTION
 (handwritten / printed / typed / graphical / tabular), so a category added to the registry is routed
 without a code change.
 
-A page whose text layer decodes goes to `ocr` instead of `nlp` when either holds
-([#5](https://github.com/ufal/atrium-digital-convert/issues/5)):
+A page whose text layer decodes goes to `ocr` instead of `nlp` when either holds:
 
 * **Lost letters.** At least `ROUTE_DAMAGED_WORD_SHARE` (0.05) of the words of its body text (outside
   the running header and footer) lose a letter to a glyph without a Unicode mapping (U+FFFD; a font
-  without /ToUnicode). This is the converter's own evidence, so it holds with `stages=none` too. Since
-  v1.2.2-beta the record flags the page itself: `needs_ocr: true`, `text_layer: garbled` and a reason
-  naming the damaged words, so it reaches the OCR hand-off; `/describe` routes it to `ocr` whatever its
-  page type.
+  without /ToUnicode). This is the converter's own evidence, so it holds with `stages=none` too. The
+  record flags the page itself: `needs_ocr: true`, `text_layer: garbled` and a reason naming the damaged
+  words, so it reaches the OCR hand-off; `/describe` routes it to `ocr` whatever its page type.
 * **The quality model.** ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose*
   lines `Trash`, and the page has at least 5 of them. A prose line is outside a table, at least 20
   characters long, mostly letters and not a table-of-contents line. The model judges running text;
   on born-digital pages its other `Trash` lines are table cells, codes, coordinates and contents
-  pages, whose text is exact. Counted over every line, the rule sent 612 of 1,981 born-digital AMČR
-  pages to OCR; counted over prose, none.
+  pages, whose text is exact. Counting every line would send 612 of the 1,981 born-digital AMČR pages
+  of the samples to OCR; counting prose lines sends none
+  ([the samples](../docs/evaluation/amcr-samples.md)).
 
 A decoding page whose only text is its running header or footer, over an image or a drawing, goes
 where its page type sends it when that type carries text (`DRAW_L`, `PHOTO_L`, `TEXT_*`, `LINE_*`):
@@ -158,15 +167,20 @@ the image holds text the layer lacks, such as an excavation plan's labels and ti
 graphical or unknown type it keeps its route. page-classification is asked about these pages by
 default.
 
-**Stage statuses.** `ok`, `partial` (some pages failed, or some lines could not be scored),
-`not_configured` (its URL is unset), `not_requested`, `skipped` (nothing to do: not a PDF, no page
-needs classifying, no lines), `unavailable` (connection error, timeout `STAGE_TIMEOUT_S`, 429/5xx),
-`error` (another 4xx, a payload that is not the expected JSON, or no line could be scored),
-`rejected` (the guard below refused its record).
+**Stage statuses.**
 
-**Lines ocr-postprocess could not score.** From its v1.12.0-beta a perplexity batch that runs out
-of GPU memory is split and retried; a line that fails even on its own is scored 99999 (usually
-`Trash`) and noted only in its answer's `limits_applied` (`ppl_batch_lines`, `skipped`). Such a
+* `ok`;
+* `partial`: some pages failed, or some lines could not be scored;
+* `not_configured`: its URL is unset;
+* `not_requested`;
+* `skipped`: nothing to do (not a PDF, no page needs classifying, no lines);
+* `unavailable`: a connection error, a timeout (`STAGE_TIMEOUT_S`), or a 429 or 5xx answer;
+* `error`: another 4xx, a payload that is not the expected JSON, or no line could be scored;
+* `rejected`: the guard below refused its record.
+
+**Lines ocr-postprocess could not score.** ocr-postprocess v1.12.0-beta or later splits and retries a
+perplexity batch that runs out of GPU memory. A line that fails even on its own is scored 99999
+(usually `Trash`) and noted only in its answer's `limits_applied` (`ppl_batch_lines`, `skipped`). Such a
 line keeps the converter's values in the record, its page's `quality_score`/`quality_band` are
 recomputed from the lines that were scored (the page keeps the converter's values when none was),
 it is left out of the page's `quality`, and the stage reads `partial` with `lines_unscored`, the
@@ -176,12 +190,12 @@ count. When no line could be scored the stage is `error` and the record is not w
 through its own accretion: page-classification `page_categories` and `pages[].category/
 category_confidence`; ocr-postprocess `lines[].categ/quality_score/lang` and `pages[].quality_score/
 quality_band`, never over a line carrying the converter's decode verdict (`Garbage`/`Inverted`).
-The returned record is adopted only when it is the same document with the converter's part intact
-— the same `doc_id`, `source`, `content`, `tables`, page and line rows, and the converter's own
-fields (`text`, `bbox`, `group_id`, `style`, `page_index`, `canvas`, `needs_ocr`, `needs_ocr_reason`,
-`text_layer`) unchanged — and when it validates. Otherwise the stage is `rejected` (e.g. `page_key_mismatch`:
-an older page-classification keys pages by physical number on a PDF whose pages carry labels)
-and the record stays as it was; the stage's answer still goes into `pages[]`.
+The returned record is adopted only when it is the same document with the converter's part intact, and when it
+validates. Intact means the same `doc_id`, `source`, `content`, `tables`, page and line rows, and the
+converter's own fields unchanged (`text`, `bbox`, `group_id`, `style`, `page_index`, `canvas`, `needs_ocr`,
+`needs_ocr_reason`, `text_layer`). Otherwise the stage is `rejected`, and the record stays as it was. The
+stage's answer still goes into `pages[]`. An example is `page_key_mismatch`: an older page-classification keys
+pages by physical number on a PDF whose pages carry labels.
 
 **Older stage versions.** A page-classification without the `pages` subset classifies every page:
 only the requested ones are used. An ocr-postprocess without `/score_record` is asked page by page
@@ -189,10 +203,11 @@ through `/process` (`task_type=text`): its verdict goes into `pages[]`, not into
 
 ## Errors
 
-Every error has the harmonised body `{status, reason, detail}` (§4.4); `reason` is a registered
-code or `null`, and refusals of a born-digital input name the converter's finer cause in `cause`.
+Every error has one JSON body, `{status, reason, detail}` (hub `docs/agent_skill_strategy.md` §4.4).
+`reason` is a registered code or `null`, and refusals of a born-digital input name the converter's finer
+cause in `cause`. Each row gives the status, the cause and what to do.
 
-| Status | `reason`                 | When                                                                                                                                       | What to do                                                                         |
+| Status | `reason`                 | Meaning                                                                                                                                    | What to do                                                                         |
 |--------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
 | 413    | `limit_exceeded`         | a part over `MAX_UPLOAD_MB`                                                                                                                | raise `MAX_UPLOAD_MB` for large originals (see Large documents), or split the file |
 | 415    | `unsupported_media_type` | not a born-digital type the converter reads (`cause`: `unsupported`, `legacy_office_unsupported`; `accepted` lists the types)              | send a type in `accepted`; a scanned document goes to OCR                          |
@@ -205,59 +220,14 @@ code or `null`, and refusals of a born-digital input name the converter's finer 
 | 501    | `null`                   | a DOC/XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                           | use the image (it has LibreOffice), or convert DOC/XLS to DOCX/XLSX first          |
 | 503    | `null`                   | the service is shutting down; retry against a live replica                                                                                 | retry on another replica                                                           |
 
-`source_digest_mismatch` is in the shared registry (`service/atrium_service.py`, vendored from the hub)
-since v1.1.1-beta, so every ATRIUM service's spec publishes it; v1.1.0-beta registered it here.
-
-## Partial results
-
-A 200 can carry less than was asked for. Read these before using the result:
-
-- `needs_ocr` pages (and `summary.needs_ocr_pages`) have no usable text layer; with `/describe`,
-  `summary.reacquire_pages` lists every page OCR should read again, including pages whose letters do
-  not decode.
-- A `/describe` stage other than `ok` (see [Stage statuses](#post-describe-multipart-form)): `partial`
-  (some pages failed, or `lines_unscored` lines kept the converter's values), `not_configured`,
-  `unavailable`, `skipped`, `error` or `rejected`. The converter's record is still returned.
-- `limits_applied` lists each limit that shaped the result without refusing it (none today: each limit
-  refuses).
-
-## Known limits
-
-- Headings come from font size and bold body-size titles, not from a layout model, so a complex layout
-  gets fewer headings than a layout model finds; `BOLD_HEADING_MAX_SHARE=0` switches the bold-title rule
-  off.
-- Only a PDF gives line boxes; the other formats give pages and lines without positions.
-- A PDF page whose fonts do not map to Unicode loses its letters: from `ROUTE_DAMAGED_WORD_SHARE` of its
-  body words on, the record flags it `needs_ocr` (`garbled`), and OCR reads it again.
-- Unruled tables are read by column, and letter-spaced captions and map labels split into pieces.
-- The upload is held in memory: the default 250 MB accepts most reports, and larger originals need
-  `MAX_UPLOAD_MB` raised per deployment; above 250 MB that is not yet tested (see Large documents).
-
-## Configuration (environment)
-
-| Variable                  | Default   | Meaning                                                                                   |
-|---------------------------|-----------|-------------------------------------------------------------------------------------------|
-| `PORT`                    | `8000`    | port the service **binds**, and the one `service/healthcheck.py` probes (issues #55, #58) |
-| `HOST`                    | `0.0.0.0` | bind address (issue #58); see the warning below                                           |
-| `GRACEFUL_SHUTDOWN_S`     | `20`      | seconds uvicorn waits for in-flight requests (issue #55)                                  |
-| `RELOAD`                  | `false`   | filesystem auto-reload — development only                                                 |
-| `LOG_LEVEL`               | `INFO`    | root logger level for the `python -m service.api` start path (issue #61)                  |
-| `ALLOWED_ORIGINS`         | `*`       | CSV of CORS origins                                                                       |
-| `PAGE_CLASSIFICATION_URL` | —         | base URL of atrium-page-classification, for `/describe`; unset → `not_configured`         |
-| `OCR_POSTPROCESS_URL`     | —         | base URL of atrium-ocr-postprocess, for `/describe`; unset → `not_configured`             |
-| `LIBREOFFICE_BIN`         | —         | the LibreOffice binary for DOC/XLS; unset → `soffice` or `libreoffice` on `PATH`          |
-
-Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `OCR_LAYER_DOCUMENT_SHARE` and the rest — is
-listed under [Limits](#limits); `.env.example` is the complete ledger.
-
-> **Note:** `HOST=127.0.0.1` yields a container that reports **healthy** and serves nobody:
-> `service/healthcheck.py` always probes loopback by design and never reads `HOST`.
+`source_digest_mismatch` is in the shared registry (`service/atrium_service.py`, vendored from the hub),
+so every ATRIUM service's spec publishes it.
 
 ## Limits
 
-Every limit and setting is an environment variable (atrium-project#53, factor III), declared in
-`tool_limits.py` and reported with its current value by `GET /info` (`limits`; `limits_meta` says
-which variable sets it and whether the value came from the environment or the default). A
+Every limit and setting is an environment variable, declared in
+`tool_limits.py`. `GET /info` reports its current value (`limits`), and `limits_meta` says which variable
+sets it and whether the value came from the environment or the default. A
 malformed value stops the service at startup, naming the variable. `tests/test_limits_contract.py`
 checks this table against `tool_limits.py` and `.env.example`.
 
@@ -276,27 +246,26 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                           |
 | `pdf_object_cap`                | `ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP` | 20000   | objects | the shared reader judges a PDF page's text layer on its first N objects                                                           |
 
-**Large documents** (measured on the 15 AMČR samples of
-[#5](https://github.com/ufal/atrium-digital-convert/issues/5): up to 156 MB and 529 pages):
+**Large documents** (measured on 15 AMČR excavation reports, up to 156 MB and 529 pages;
+[what they showed](../docs/evaluation/amcr-samples.md)):
 
 * **Upload.** The upload is held in memory, so the 250 MB default (AMČR's operational setting)
-  accepts every sample. AMČR's originals reach about 1.5 GB: a deployment can raise `MAX_UPLOAD_MB`
+  accepts every sample. AMČR's originals reach about 1.5 GB. A deployment can raise `MAX_UPLOAD_MB`
   for them, but above 250 MB memory, concurrency and timeouts are not yet tested (measured up to
-  156 MB), or the orchestration splits the file by pages; the 413 names the setting.
+  156 MB). The orchestration can instead split the file by pages. The 413 names the setting.
 * **Memory follows the text, not the file size.** The server's peak reached 783 MB, for a 282-page
-  report, and 560 MB for the 156 MB one (10-14, after the light engine stopped holding every page's
-  parse; 1.9 GB before). Budget about 1 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot.
+  report, and 560 MB for the 156 MB one. Budget about 1 GB plus `MAX_UPLOAD_MB` per
+  `MAX_CONCURRENT_JOBS` slot.
 * **The stages' GPU.** This service needs none. Page-classification takes 4.0 GB with its five
-  models. ocr-postprocess's line-quality model peaked at 9.5 GB scoring 32 lines at a time
-  (`PPL_BATCH_LINES`: its default from v1.12.0-beta, which also splits and retries a batch that runs out of memory; set it on older ones), so the two fit one
-  24 GB card. At 128 lines it peaked at 23.3 GB, and on a 24 GB card next to page-classification
-  some batches ran out of memory (1,280 lines in 6 documents). Their lines were scored worst while
-  the stage read `ok`; since v1.2.0-beta they keep the converter's values and the stage reads
-  `partial` (above).
+  models. ocr-postprocess's line-quality model peaked at 9.5 GB scoring 32 lines at a time, so the two fit one
+  24 GB card. 32 is the default of `PPL_BATCH_LINES` in ocr-postprocess v1.12.0-beta and later, which also
+  splits and retries a batch that runs out of memory; set it on older versions. At 128 lines the model peaked
+  at 23.3 GB, and on a 24 GB card next to page-classification some batches ran out of memory (1,280 lines in 6
+  documents). Those lines keep the converter's values and the stage reads `partial` (above).
 * **Time.** `/reformat` took 3–58 s per document. `/describe` with both stages took up to 276 s
-  (a 529-page report): page-classification 135 s for its 149 flagged pages, 202 s for all of them
-  (`classify_pages=all`), ocr-postprocess up to 76 s (88 s at 32 lines a batch). `STAGE_TIMEOUT_S`
-  is 360 s since then; a client, a proxy and `GRACEFUL_SHUTDOWN_S` must allow about 5 minutes for
+  (a 529-page report). page-classification took 135 s for its 149 flagged pages and 202 s for all of them
+  (`classify_pages=all`); ocr-postprocess took up to 76 s (88 s at 32 lines a batch). `STAGE_TIMEOUT_S`
+  is 360 s by default. A client, a proxy and `GRACEFUL_SHUTDOWN_S` must allow about 5 minutes for
   one such request.
 * **The stages' own limits decide `/describe` first.** The record part `/describe` sends a stage
   reached 14 MB compact. Page-classification also receives the whole PDF, and takes 10 MB per
@@ -305,6 +274,51 @@ checks this table against `tool_limits.py` and `.env.example`.
   `classify_pages=all`. ocr-postprocess takes a 25 MB record. A stage that refuses a part (413) is
   that document's stage `error`; the request still answers 200. Set the stages' limits together
   with this service's.
+
+## Partial results
+
+A 200 can carry less than was asked for. Read these before using the result:
+
+- `needs_ocr` pages (and `summary.needs_ocr_pages`) have no usable text layer; with `/describe`,
+  `summary.reacquire_pages` lists every page OCR should read again, including pages whose letters do
+  not decode.
+- A `/describe` stage other than `ok` (see [Stage statuses](#post-describe-multipart-form)): `partial`
+  (some pages failed, or `lines_unscored` lines kept the converter's values), `not_configured`,
+  `unavailable`, `skipped`, `error` or `rejected`. The converter's record is still returned.
+- `limits_applied` lists each limit that shaped the result without refusing it. It is always empty: each
+  limit refuses.
+
+## Known limits
+
+- Headings come from font size and bold body-size titles, not from a layout model, so a complex layout
+  gets fewer headings than a layout model finds; `BOLD_HEADING_MAX_SHARE=0` switches the bold-title rule
+  off.
+- Only a PDF gives line boxes; the other formats give pages and lines without positions.
+- A PDF page whose fonts do not map to Unicode loses its letters: from `ROUTE_DAMAGED_WORD_SHARE` of its
+  body words on, the record flags it `needs_ocr` (`garbled`), and OCR reads it again.
+- Unruled tables are read by column, and letter-spaced captions and map labels split into pieces.
+- The upload is held in memory: the default 250 MB accepts most reports, and larger originals need
+  `MAX_UPLOAD_MB` raised per deployment; above 250 MB that is not yet tested (see Large documents).
+
+## Configuration (environment)
+
+| Variable                  | Default   | Meaning                                                                           |
+|---------------------------|-----------|-----------------------------------------------------------------------------------|
+| `PORT`                    | `8000`    | port the service **binds**, and the one `service/healthcheck.py` probes           |
+| `HOST`                    | `0.0.0.0` | bind address; see the note below                                                  |
+| `GRACEFUL_SHUTDOWN_S`     | `20`      | seconds uvicorn waits for in-flight requests                                      |
+| `RELOAD`                  | `false`   | filesystem auto-reload — development only                                         |
+| `LOG_LEVEL`               | `INFO`    | root logger level for the `python -m service.api` start path                      |
+| `ALLOWED_ORIGINS`         | `*`       | CSV of CORS origins                                                               |
+| `PAGE_CLASSIFICATION_URL` | —         | base URL of atrium-page-classification, for `/describe`; unset → `not_configured` |
+| `OCR_POSTPROCESS_URL`     | —         | base URL of atrium-ocr-postprocess, for `/describe`; unset → `not_configured`     |
+| `LIBREOFFICE_BIN`         | —         | the LibreOffice binary for DOC/XLS; unset → `soffice` or `libreoffice` on `PATH`  |
+
+Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `OCR_LAYER_DOCUMENT_SHARE` and the rest — is
+listed under [Limits](#limits); `.env.example` is the complete ledger.
+
+> **Note:** `HOST=127.0.0.1` yields a container that reports **healthy** and serves nobody:
+> `service/healthcheck.py` always probes loopback by design and never reads `HOST`.
 
 ## How it works
 
@@ -322,7 +336,7 @@ checks this table against `tool_limits.py` and `.env.example`.
 4. **Build and gate the record** — only digital-convert's fields; the field-survival assertion
    and the schema; the components that ran, each with its licence (`para_config.txt`). A record whose
    `pages` or `lines` is not a list of objects cannot be added to, and is refused here with 422
-   `invalid_record` (it was a 500 before v1.4.1-beta).
+   `invalid_record`.
 5. `/describe` only: **the stages** (`service/stages.py`), then the **report**
    (`api_util/digital_report.py`), both run from `service/describe.py`.
 
@@ -333,18 +347,18 @@ an unreadable record exit 3) and records the same paradata parameters. What diff
 [docs/usage.md](../docs/usage.md#the-command-line-and-the-service). `tests/test_cli_service_parity.py` holds the
 two sides to the same record, Markdown, assessment and refusals.
 
-## Shutdown behavior (issue #55)
+## Shutdown behaviour
 
-On SIGTERM `/ready` turns 503 at once (the load balancer stops routing), new conversions are
-refused with 503, and in-flight ones finish within `GRACEFUL_SHUTDOWN_S`; `/health` stays 200 so
+On SIGTERM `/ready` turns 503 at once, so the load balancer stops routing. New conversions are
+refused with 503, and in-flight ones finish within `GRACEFUL_SHUTDOWN_S`. `/health` stays 200, so
 a liveness probe does not kill a draining pod.
 
 ## OpenAPI (the typed contract)
 
-`service/openapi.json` is committed and attached to every release (atrium-project#32); `/info`
-reports its digest as `openapi_sha256`. The spec declares the service id `atrium-digital-convert`
-and the rename from `atrium-llm-enrich` (`x-atrium-service-previous`), and publishes the reason
-codes under `x-atrium-reason-codes`. Regenerate it after an API change:
+`service/openapi.json` is committed and attached to every release; `/info` reports its digest as
+`openapi_sha256`. The spec declares the service id `atrium-digital-convert` and its former id
+`atrium-llm-enrich` (`x-atrium-service-previous`), and publishes the reason codes under
+`x-atrium-reason-codes`. Regenerate it after an API change:
 
 ```bash
 python atrium_openapi.py export --app service.api:app --out service/openapi.json

@@ -1,17 +1,13 @@
 # ATRIUM digital-convert: born-digital documents into ATRIUM document records
 
-digital-convert reads a document that was created on a computer, and so already holds its text, and writes it as
-an ATRIUM document record: its pages, its lines in reading order, headings, tables and, for a PDF, exact geometry.
-The record is the JSON every later ATRIUM stage adds to. Use it for born-digital PDFs and office files; a scan,
-or a PDF that is mostly a prior OCR run, belongs to the OCR route instead. It uses no OCR, no model and no network.
+digital-convert reads a [born-digital](https://ufal.github.io/atrium-project/glossary/) document, one made on a
+computer, such as a PDF or an office file. It writes the text as an ATRIUM document record: pages, lines in
+reading order, headings, tables and, for a PDF, exact positions. Later ATRIUM stages add their results to the
+same record. Use it when the text is already in the file. A scan belongs to the OCR route. It needs no OCR, no
+model and no network.
 
 [Releases](https://github.com/ufal/atrium-digital-convert/releases) · [MIT licence](LICENSE) ·
 [ATRIUM documentation](https://ufal.github.io/atrium-project/workflows/digital-convert/)
-
-Formerly `atrium-llm-enrich`: until v1.0.0-beta this repository also held the keyword stage, which moved to
-[atrium-keyword-extract](https://github.com/ufal/atrium-keyword-extract) ([#1](https://github.com/ufal/atrium-digital-convert/issues/1)).
-Since v1.1.0-beta the service id is `atrium-digital-convert` and the images are
-`ghcr.io/ufal/atrium-digital-convert-{api,digital}`; the record's program id stays `digital-convert`.
 
 ## Inputs and outputs
 
@@ -24,8 +20,8 @@ Since v1.1.0-beta the service id is `atrium-digital-convert` and the images are
 The record follows the hub's [document contract](https://ufal.github.io/atrium-project/ecosystem/document-contract/).
 Each format, how it is read and what reaches the record: [docs/reference/formats.md](docs/reference/formats.md).
 
-The service and the command line take the same inputs and give the same results; since v1.3.0-beta they run the
-same code for the Markdown and the per-page assessment too:
+The service and the command line take the same inputs and give the same results. They run the same code for the
+record, the Markdown and the per-page assessment:
 
 | Result                              | Service                                         | Command line (`api_util/digital_to_json.py`)                                          |
 |-------------------------------------|-------------------------------------------------|---------------------------------------------------------------------------------------|
@@ -40,6 +36,11 @@ the light engine. Every difference, and why: [docs/usage.md](docs/usage.md#the-c
 
 ## Quick start
 
+**What you need:** Docker for the service; for the sample files and the command line, a checkout of this
+repository and Python 3.11 (the version of the image and of CI). No network is needed to convert a file, and no
+GPU. The `/describe` endpoint calls page-classification and ocr-postprocess only when their URLs are set. DOC
+and XLS files need LibreOffice, which the images carry.
+
 The service, from the published image, on small documents generated from this repository's test fixtures:
 
 ```bash
@@ -53,7 +54,7 @@ Expected: HTTP 200 and `out.json` with `document_json`, whose `source.origin` is
 with the same file adds `pages[]` with a `route` for each page; it calls page-classification and ocr-postprocess
 only when their URLs are set, and says so in `stages[]`.
 
-The same conversion on the command line, from a checkout with its [setup](docs/usage.md#setup) done:
+The same conversion on the command line, from a checkout with its [setup](docs/usage.md#set-up-a-checkout) done:
 
 ```bash
 python3 api_util/digital_to_json.py fixtures/minimal.pdf --out-dir out --markdown --describe
@@ -66,13 +67,18 @@ record and the Markdown then show it, as `/describe`'s `document_json` does.
 
 ## How it works
 
-Each page's text layer is checked before anything is trusted: a layer that decodes is `digital`; one that does
-not (broken font encodings, glyphs without a Unicode mapping, words losing letters) is `garbled`; a prior OCR run
-is `ocr`; a page without text, or whose only text is a page number over a scan, is `none`. Every page that is not
-`digital` (or `blank`) is flagged `needs_ocr` with a reason, and those pages go to the OCR route while the record is
-still written. `/describe` then decides, page by page, whether a page goes on to NLP, to OCR, to handwriting
-recognition or nowhere, using page-classification's page types and ocr-postprocess's line quality when they are
-deployed. The rules, with an example: [docs/how-it-works.md](docs/how-it-works.md).
+Each page's text layer is checked before anything is trusted:
+
+- `digital`: the layer decodes;
+- `garbled`: it does not (broken font encodings, glyphs without a Unicode mapping, words losing letters);
+- `ocr`: it is an earlier OCR run;
+- `none`: the page has no text, or its only text is a page number over a scan.
+
+Every page that is not `digital` (or `blank`) is flagged `needs_ocr` with a reason. Those pages go to the OCR
+route, and the record is still written. `/describe` then decides, page by page, where a page goes next: to NLP,
+to OCR, to handwriting recognition or nowhere. It uses page-classification's page types and ocr-postprocess's
+line quality when those services are deployed. The rules, with an example:
+[docs/how-it-works.md](docs/how-it-works.md).
 
 ## Where it fits in ATRIUM
 
@@ -86,35 +92,42 @@ ATRIUM](https://marketplace.sshopencloud.eu/tool-or-service/jGxgQI).
 
 ## Limits and maturity
 
-- **Born-digital only.** A PDF whose pages are mostly a prior OCR run (`OCR_LAYER_DOCUMENT_SHARE`, 0.5) is refused
-  as `ocr_text_layer`; such pages within a born-digital PDF are flagged for OCR.
-- **Uploads up to 250 MB by default.** AMČR's originals reach about 1.5 GB; a deployment can raise `MAX_UPLOAD_MB`,
-  but above 250 MB memory, concurrency and timeouts are not yet tested, and the upload is held in memory
-  ([Limits](service/README.md#limits)).
-- **Only PDF has geometry.** The other formats give pages and lines without positions.
-- **Known, not handled:** unruled tables are read by column, and letter-spaced captions and map labels split into
-  pieces ([the AMČR samples](docs/evaluation/amcr-samples.md)).
-- **DOC and XLS need LibreOffice**, which the images carry; without it they fail with `dependency_missing`.
-- **The Docling engine is opt-in** (`--engine docling`, PDF only, a GPU and its models); the default light engine
-  needs neither.
+- **Born-digital only.** A PDF whose pages are mostly an earlier OCR run (`OCR_LAYER_DOCUMENT_SHARE`, 0.5) is
+  refused as `ocr_text_layer`, so send it to the OCR route. Such pages inside a born-digital PDF are flagged
+  for OCR ([errors](service/README.md#errors)).
+- **Uploads up to 250 MB by default.** AMČR's originals reach about 1.5 GB, so a deployment must raise
+  `MAX_UPLOAD_MB` for them. Above 250 MB, memory, concurrency and timeouts are not yet tested, and the upload
+  is held in memory ([Limits](service/README.md#limits)).
+- **Only PDF has geometry.** The other formats give pages and lines without positions
+  ([formats](docs/reference/formats.md)).
+- **Tried on 15 AMČR excavation reports, with no accuracy figure.** The defects they showed were fixed or are
+  listed below ([what they showed](docs/evaluation/amcr-samples.md)).
+- **Known, not handled.** Unruled tables are read by column, and letter-spaced captions and map labels split
+  into pieces ([the AMČR samples](docs/evaluation/amcr-samples.md)).
+- **DOC and XLS need LibreOffice.** The images carry it. Without it these files fail with `dependency_missing`,
+  so use the image or convert them to DOCX or XLSX first ([errors](service/README.md#errors)).
+- **The Docling engine is opt-in.** It reads PDF only and needs a GPU and its models (`--engine docling`); the
+  default light engine needs neither ([usage](docs/usage.md#convert-a-file-on-the-command-line)).
 
 ## Documentation
 
-| To                                                     | Read                                                                           |
-|--------------------------------------------------------|--------------------------------------------------------------------------------|
-| set it up, run the command line, the service, Docker   | [docs/usage.md](docs/usage.md)                                                 |
-| deploy and operate the service, its errors and limits  | [service/README.md](service/README.md)                                         |
-| see the API contract                                   | [service/openapi.json](service/openapi.json)                                   |
-| set every option                                       | [docs/configuration.md](docs/configuration.md)                                 |
-| understand the text layers, `needs_ocr` and the routes | [docs/how-it-works.md](docs/how-it-works.md)                                   |
-| look up the formats and the record's fields            | [docs/reference/formats.md](docs/reference/formats.md)                         |
-| read the record as annotated Markdown                  | [docs/reference/markdown.md](docs/reference/markdown.md)                       |
-| see the paradata, licences and the record schema       | [docs/reference/paradata.md](docs/reference/paradata.md)                       |
-| see what the AMČR samples showed                       | [docs/evaluation/amcr-samples.md](docs/evaluation/amcr-samples.md)             |
-| run the document-understanding benchmark               | [docs/evaluation/benchmark.md](docs/evaluation/benchmark.md)                   |
-| contribute, test, release                              | [docs/development.md](docs/development.md), [CONTRIBUTING.md](CONTRIBUTING.md) |
+| For                 | To                                                      | Read                                                                           |
+|---------------------|---------------------------------------------------------|--------------------------------------------------------------------------------|
+| using it            | set it up, run the command line, the service, Docker    | [docs/usage.md](docs/usage.md)                                                 |
+|                     | read the record as annotated Markdown                   | [docs/reference/markdown.md](docs/reference/markdown.md)                       |
+|                     | look up the formats and the record's fields             | [docs/reference/formats.md](docs/reference/formats.md)                         |
+|                     | see the paradata, licences and the record schema        | [docs/reference/paradata.md](docs/reference/paradata.md)                       |
+| running the service | deploy and operate it, read its errors and limits       | [service/README.md](service/README.md)                                         |
+|                     | see the API contract                                    | [service/openapi.json](service/openapi.json)                                   |
+|                     | set every option                                        | [docs/configuration.md](docs/configuration.md)                                 |
+| judging the results | see what the AMČR samples showed                        | [docs/evaluation/amcr-samples.md](docs/evaluation/amcr-samples.md)             |
+|                     | run the document-understanding benchmark                | [docs/evaluation/benchmark.md](docs/evaluation/benchmark.md)                   |
+| changing the code   | understand the text layers, `needs_ocr` and the routes  | [docs/how-it-works.md](docs/how-it-works.md)                                   |
+|                     | set up, test, release; find the history                 | [docs/development.md](docs/development.md)                                     |
+|                     | follow the conventions                                  | [CONTRIBUTING.md](CONTRIBUTING.md)                                             |
 
-The documentation follows the ATRIUM
+Terms used across the tools are explained in the
+[ATRIUM glossary](https://ufal.github.io/atrium-project/glossary/). The documentation follows the ATRIUM
 [documentation style](https://github.com/ufal/atrium-project/blob/main/docs/documentation-style.md).
 
 ## Licence, citation and acknowledgements
@@ -131,3 +144,5 @@ Developed by [ÚFAL](https://ufal.mff.cuni.cz/), Charles University, with AMČR 
 Republic) as the pipeline partner. Funded by [ATRIUM](https://atrium-research.eu/) (GA 101132163), with the support
 of the LINDAT/CLARIAH-CZ research infrastructure and the AIS CR infrastructure (LM2023031). Contact: the
 [issue tracker](https://github.com/ufal/atrium-digital-convert/issues).
+
+Formerly `atrium-llm-enrich`; its history is in [docs/development.md](docs/development.md#history-of-the-repository).

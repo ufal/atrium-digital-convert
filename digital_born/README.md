@@ -1,9 +1,9 @@
 # `digital_born/` — Phase 0 exploration scratch space ([atrium-llm-enrich#18](https://github.com/ufal/atrium-llm-enrich/issues/18))
 
 Not shipped code. Nothing here is imported by `api_util/`, and nothing here is a test.
-This directory exists so the PDF/DOCX tool choices in the plan of atrium-llm-enrich#18 (§2; that
-repository's `agent_dev_logs/plans/18.plan.md`, from before the converter moved here) were made
-against real output rather than documentation.
+This directory exists so the PDF/DOCX tool choices in the plan of
+[atrium-llm-enrich#18](https://github.com/ufal/atrium-llm-enrich/issues/18) (§2, from before the converter
+moved here) were made against real output rather than documentation.
 
 The converter is `api_util/digital_to_json.py` (landed in v0.6.0; its engines are
 `digital_pdf.py`, `digital_docx.py` and the opt-in `digital_docling.py`; since v1.1.0-beta also
