@@ -11,8 +11,15 @@
 # for is recorded beside it, the same way tools/ci/workflow_lint.py requires a `# vX`
 # comment next to every pinned action SHA:
 #
-#     v0.3.10 = a982b88f363828bd6c71478d72d4f4e56a555677   (highest published tag)
-#     main    = a4f0fd9ce472c4e4d9ccd2827751e417b4480783   (ahead of it, untagged)
+#     v0.3.11 = f663958bd9a87cf4ceee27b9124bf646e5d1d32a   (tag object; highest published tag)
+#             → 50937b97b5efbd8b719faedd1886653cb99b80e1   (the commit it points to)
+#     main    = b0995bf1e7cf58d2a9374edc39964ec1a3124b51   (ahead of it, untagged; read 2026-11-02)
+#
+# MOVED 2026-11-02 from v0.3.10 to v0.3.11, the first tag with flexiconv's LICENSE file (MIT,
+# added upstream in 1aed8ca on 2026-10-29; atrium-project#6). v0.3.11 writes the same TEITOK
+# as v0.3.10 for the formats ATRIUM converts (ALTO, hOCR, PAGE XML, Markdown, DOCX, TXT;
+# compared on flexiconv's own examples, the `when` stamp aside), so the v0.3.10 fixtures
+# under tests/fixtures/teitok/flexiconv/ still stand.
 #
 # Move the pin deliberately: bump the tag, re-resolve the SHA above, and run
 # tests/test_flexiconv_convert.py — they SKIP when flexiconv is absent, so a bad pin is
@@ -26,4 +33,4 @@
 # extras. Without them the flexiconv CLI used to `pip install flexiconv[<fmt>]` at run
 # time — an unpinned install in the middle of a pipeline run. The adapter now passes
 # --no-auto-install, so the extras have to be declared here.
-flexiconv[docx,odt,md,pdf,rtf] @ git+https://github.com/ufal/flexiconv.git@v0.3.10
+flexiconv[docx,odt,md,pdf,rtf] @ git+https://github.com/ufal/flexiconv.git@v0.3.11

@@ -320,7 +320,7 @@ checks this table against `tool_limits.py` and `.env.example`.
    LibreOffice conversion with a throw-away profile (`digital_legacy.py`).
 3. **Check the text layer** — decode sanity per line, `needs_ocr` per page, the prior-OCR refusal.
 4. **Build and gate the record** — only digital-convert's fields; the field-survival assertion
-   and the schema; the licence union of the components that ran (`para_config.txt`). A record whose
+   and the schema; the components that ran, each with its licence (`para_config.txt`). A record whose
    `pages` or `lines` is not a list of objects cannot be added to, and is refused here with 422
    `invalid_record` (it was a 500 before v1.4.1-beta).
 5. `/describe` only: **the stages** (`service/stages.py`), then the **report**

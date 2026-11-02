@@ -47,7 +47,7 @@ VENDORED = {
     "api_util/teitok_read.py": "801daba6a37138561d1bcdf65895cf9bbbffea6826705bf91cf616da78479c47",
     "api_util/flexiconv_convert.py": "e7152923d1b9cf8a04c54442774aa4d5adda4cc44d7e3852771a3bb831b4ed9b",
     "api_util/bbox_scale.py": "a3198dfdb8ab9dad0688139678514f4cdea86d066bc6a12c814f7e24937011f4",
-    "requirements_flexiconv.txt": "b89e439836318f6322192f3cf658ea2f95741b015849b575ad8d8f32074580f8",
+    "requirements_flexiconv.txt": "dd3811b36adf91f9f84d4e7337bdf878b826d33a1ec6e85d3f237fa8a400dce4",
     "tests/test_flexiconv_convert.py": "9c35b68b5e414df303a81a9b055524a40e7c16473eeacdfbaea9c97841d33401",
     "tests/fixtures/teitok/flexiconv/alto.teitok.xml": "78a816383999f644e3c96834a2dc85e73f545c1672e94676b4190de607e0430a",
     "tests/fixtures/teitok/flexiconv/hocr.teitok.xml": "6269e0fc38b17bcc092c9bbd1c0980e6d4c6a4475b4f1d84207deb86cb0ad885",

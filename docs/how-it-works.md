@@ -41,7 +41,7 @@ AMČR upload ──► seed record (doc_id, source.sha512, filename, media_type)
   ATR/HTR; with `stages=none` it calls no other service.
 * **The legacy DOC and XLS** were accepted by AMČR on
   [#4](https://github.com/ufal/atrium-digital-convert/issues/4) (2026-09-26). LibreOffice
-  converts the file to DOCX/XLSX first and is not counted in the record's licence; see
+  converts the file to DOCX/XLSX first and is not among the components a record lists; see
   [Paradata and provenance](reference/paradata.md#paradata-and-provenance).
 
 ## The per-page assessment

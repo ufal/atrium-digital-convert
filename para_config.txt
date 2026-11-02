@@ -58,12 +58,13 @@ docling-layout-heron = Apache-2.0          ; conditional ; layout model weights 
 docling-tableformer  = CDLA-Permissive-2.0 ; conditional ; table-structure model weights (docling-project/docling-models)
 #
 # ── flexiconv (optional; api_util/flexiconv_convert.py, vendored from nlp-enrich) ─
-# Declares GPL-3.0-or-later in its pyproject.toml (checked at the pinned v0.3.10); para_licenses
-# folds "-or-later" into GPL-3.0. Conditional: it only constrains runs that actually convert
-# documents with it -- and no stage of this repo does (the adapter is vendored for its tests and
-# for direct use; nothing here calls log_component("flexiconv")), so the row never enters a
-# run's licence union here. Converting is nlp-enrich's api_flexiconv.sh, which logs it.
-flexiconv   = GPL-3.0 ; conditional ; flexiconv document -> TEITOK converter (api_util/flexiconv_convert.py)
+# MIT: its LICENSE file, added upstream on 2026-10-29 (1aed8ca), is in the pinned v0.3.11
+# (atrium-project#6); its pyproject.toml still says GPL-3.0-or-later (raised on ufal/flexiconv#1).
+# Conditional: it is listed only for runs that actually convert documents with it -- and no stage
+# of this repo does (the adapter is vendored for its tests and for direct use; nothing here calls
+# log_component("flexiconv")), so the row never enters a run's component list here. Converting is
+# nlp-enrich's api_flexiconv.sh, which logs it.
+flexiconv   = MIT     ; conditional ; flexiconv document -> TEITOK converter (api_util/flexiconv_convert.py)
 #
 # PyMuPDF is intentionally NOT listed. It is AGPL-3.0, and rule 5's most-restrictive union
 # would put AGPL-3.0 into provenance.license for every born-digital document. See

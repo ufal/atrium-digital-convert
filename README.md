@@ -123,7 +123,7 @@ The code is MIT ([LICENSE](LICENSE)). It reads PDFs with pdfplumber/pdfminer.six
 python-docx and lxml (and the reader shared with atrium-ocr-postprocess), the legacy formats through
 [LibreOffice](https://www.libreoffice.org/) (MPL-2.0), and, opt-in, [Docling](https://github.com/docling-project/docling);
 the service runs on FastAPI and uvicorn, and [flexiconv](https://github.com/ufal/flexiconv) is an optional TEITOK
-adapter (GPL-3.0). The inventory of components and their licences is [para_config.txt](para_config.txt); what a
+adapter (MIT). The inventory of components and their licences is [para_config.txt](para_config.txt); what a
 run records about them is in [docs/reference/paradata.md](docs/reference/paradata.md). Cite with
 [CITATION.cff](CITATION.cff).
 

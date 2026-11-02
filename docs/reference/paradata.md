@@ -1,6 +1,6 @@
 # Paradata, licences and the record schema
 
-What a run records about itself, the licence fields of a record, and the schema the record follows.
+What a run records about itself, the components it lists with their licences, and the schema the record follows.
 
 ## Paradata and provenance
 
@@ -12,15 +12,15 @@ What a run records about itself, the licence fields of a record, and the schema 
 * **The command line.** `--paradata-dir DIR` writes `YYMMDD-HHmmss_digital-convert.json`
   ([`atrium_paradata.py`](../../atrium_paradata.py)).
 
-**The licence label of a record.** `provenance.license` is the most restrictive licence among the components
-the run actually used, as declared in [`para_config.txt`](../../para_config.txt). It is a calculated summary of the
-components, not the licence of the record: the rights in an output depend first on the source document, and they
-are stated by whoever holds them (for the AMČR pilot, AMČR; agreed on 22 October 2026,
-[atrium-project#6](https://github.com/ufal/atrium-project/issues/6)). For this tool:
-* **The light engine and the shared reader** are MIT, BSD-3-Clause or Apache-2.0, so a record
-  says **MIT**.
-* **The Docling engine** adds TableFormer's CDLA-Permissive-2.0, which the shared licence table
-  ranks with MIT, so a Docling record also says MIT.
+**The components a record lists.** `provenance.license_detail` lists the components the run actually used, each with
+its licence, as declared in [`para_config.txt`](../../para_config.txt). None of them is the licence of the record:
+the rights in an output depend first on the source document, and they are stated by whoever holds them (for the
+AMČR pilot, AMČR; agreed on 22 October 2026, [atrium-project#6](https://github.com/ufal/atrium-project/issues/6)).
+`provenance.license` beside the list is an older calculated field, not a licence
+([Licences and paradata](https://ufal.github.io/atrium-project/ecosystem/licences/)). For this tool:
+* **The light engine and the shared reader** are MIT, BSD-3-Clause or Apache-2.0.
+* **The Docling engine** adds Docling and docling-parse (MIT), the layout model (Apache-2.0) and TableFormer's
+  model weights (CDLA-Permissive-2.0, which places no terms on the results of a computation).
 * **LibreOffice** (MPL-2.0) is declared but **never logged**. It converts the container format of
   a text it does not author, and AMČR accepted it on exactly that condition (#4). The conversion is
   reported beside the record instead (`reader.conversion` in the response).

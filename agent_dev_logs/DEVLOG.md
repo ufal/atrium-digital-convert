@@ -1173,3 +1173,12 @@ derived reading aid in `agent_dev_logs/`._
 * **Release:** v1.4.1-beta in `CITATION.cff`, `para_config.txt`, the spec's version; CONTRIBUTING row; the service
   README's version example.
 * **Checks:** 970 passed, 3 skipped; pre-commit clean.
+
+## 2026-11-02 — flexiconv v0.3.11, declared MIT (atrium-project#6)
+
+* **Re-vendored:** `requirements_flexiconv.txt` from nlp-enrich (the v0.3.11 pin); its digest in
+  `tests/test_vendored_teitok_parity.py`. `ADOPTED` names the nlp-enrich commit once that is pushed.
+* **`para_config.txt`:** `flexiconv = MIT`; README and `docs/usage.md` follow.
+* **The calculated licence:** `docs/reference/paradata.md`'s "licence label of a record" becomes "The components a
+  record lists", without "a record says MIT"; `how-it-works.md` and the runbook follow (motyc, 10-29).
+* **Checks:** 971 passed, 4 skipped; with flexiconv v0.3.11, 973 passed, 2 skipped, as with v0.3.10.

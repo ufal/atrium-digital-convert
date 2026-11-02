@@ -17,7 +17,7 @@ Optional:
 ```bash
 pip install -r requirements_digital_docling.txt  # the heavy PDF engine (--engine docling): Docling + torch
 apt-get install libreoffice-writer-nogui libreoffice-calc-nogui   # DOC and XLS (or set LIBREOFFICE_BIN)
-pip install -r requirements_flexiconv.txt        # flexiconv adapter (GPL-3.0; api_util/flexiconv_convert.py)
+pip install -r requirements_flexiconv.txt        # flexiconv adapter (MIT; api_util/flexiconv_convert.py)
 pip install -r requirements_docmd.txt            # deprecated direct converters (--legacy, --ocr)
 ```
 
@@ -123,7 +123,7 @@ the refusals and the paradata's parameters and counts were the same in every cas
 | Limits                                                     | `MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`; `MAX_UPLOAD_MB` in the shared reader (ODT, ODS, XLSX, RTF) | all, and the upload itself, `MAX_CONCURRENT_JOBS`                 | differs: the service bounds what it accepts                            |
 | Paradata                                                   | a file, with `--paradata-dir`                                                                    | the answer's `paradata`, a `CreateAction`; config adds `endpoint` | the same parameters and counts (since v1.4.0-beta)                     |
 
-flexiconv (GPL-3.0, `requirements_flexiconv.txt`) is an optional TEITOK adapter of the older Markdown converters
+flexiconv (MIT, `requirements_flexiconv.txt`) is an optional TEITOK adapter of the older Markdown converters
 (`api_util/doc_to_visual_md.py`, `docx_to_md.py`, `pdf_to_md.py`); neither entry point loads it.
 
 ## Docker
