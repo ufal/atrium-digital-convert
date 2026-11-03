@@ -1210,3 +1210,10 @@ Documentation only; no code, test or configuration change.
 * **`scheduled-smoke.yml`:** installs Tesseract (`tesseract-ocr tesseract-ocr-ces`) and `requirements_docmd.txt`, and a flexiconv install failure now fails the lane (no `|| echo`).
 * **Checks:** 971 passed, 4 skipped, as at the head; started with `LOG_LEVEL=WARNING`, no INFO line (10 before).
 * **Open:** `main` is red until `test` is merged into it: its para-drift still runs `055cc21`, before the `ADOPTED` fix.
+
+## 2026-11-03 — v1.4.2-beta
+
+* **Version:** v1.4.1-beta → v1.4.2-beta in `para_config.txt`, `CITATION.cff`, `service/openapi.json`, the version examples in `docs/usage.md` and `service/README.md`. `CITATION.cff` `date-released` 2026-11-03.
+* **CONTRIBUTING.md:** the release row. It covers the 11-02 licence wording (atrium-project#6), the documentation
+  round (#79) and the 11-03 CI fixes, with the hub's workflows pinned to `6a10787` (the pin sweep, committed
+  before this one).
