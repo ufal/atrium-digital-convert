@@ -1202,3 +1202,11 @@ Documentation only; no code, test or configuration change.
   `477f68c`, so the re-vendored `requirements_flexiconv.txt` (v0.3.11) did not match it. `ADOPTED` now names
   nlp-enrich `ba81709` (the pin's commit) and `v1.3.2-beta`, the release that will first carry it.
 * **Checks:** `tests/test_vendored_teitok_parity.py` 24 passed against nlp-enrich fetched at `ba81709`, as the job does.
+
+## 2026-11-03 — What the green CI runs on the 11-02 `test` head hid (atrium-project, CI audit)
+
+* **uvicorn gets the configured log level:** `uvicorn.run(…, log_level=…)` in `service/api.py`. Under `LOG_LEVEL=WARNING` uvicorn still logged its start-up lines and the access log, and the hub's probe, which read only the service's own format, reported none.
+* **pre-commit:** ruff v0.4.4 → v0.15.18, with `ruff-check` (the tree passes unchanged).
+* **`scheduled-smoke.yml`:** installs Tesseract (`tesseract-ocr tesseract-ocr-ces`) and `requirements_docmd.txt`, and a flexiconv install failure now fails the lane (no `|| echo`).
+* **Checks:** 971 passed, 4 skipped, as at the head; started with `LOG_LEVEL=WARNING`, no INFO line (10 before).
+* **Open:** `main` is red until `test` is merged into it: its para-drift still runs `055cc21`, before the `ADOPTED` fix.

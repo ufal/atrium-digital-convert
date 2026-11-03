@@ -20,9 +20,13 @@
 # silently stops installing shows up as a growing skip list rather than as nothing.
 #
 # PARAM block (mirrors docker.yml build args for consistency):
-#   APT_PACKAGES     — no extra apt deps for the base image
+#   APT_PACKAGES     — the Tesseract engine and its Czech data, for the opt-in OCR fallback
+#                      (`--ocr`), whose test skips without them
 #   PRE_INSTALL_TORCH — torch is not pre-installed for the CPU-only smoke run
 #   REQUIREMENTS     — base + test requirements (no LLM stack)
+#
+# Docling (`--engine docling`) is not installed: its CUDA-sized stack would dominate this lane, and
+# its live test skips here by design; tests/test_digital_docling.py covers the engine with a stub.
 #
 # Infra note: this job runs on GitHub-hosted ubuntu-latest (CPU-only).
 # GPU inference tests live in gpu-inference.yml on self-hosted runners.
@@ -49,7 +53,7 @@ on:
   workflow_dispatch:
 
 env:
-  APT_PACKAGES: ""
+  APT_PACKAGES: "tesseract-ocr tesseract-ocr-ces"
   PRE_INSTALL_TORCH: ""
   REQUIREMENTS: "requirements.txt requirements-test.txt"
 
@@ -72,18 +76,26 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/pip
-          key: pip-smoke-${{ runner.os }}-${{ hashFiles('requirements.txt', 'requirements_digital.txt', 'requirements-test.txt') }}
+          key: pip-smoke-${{ runner.os }}-${{ hashFiles('requirements.txt', 'requirements_digital.txt', 'requirements-test.txt', 'requirements_flexiconv.txt', 'requirements_docmd.txt') }}
           restore-keys: |
             pip-smoke-${{ runner.os }}-
+
+      - name: Install the OCR engine (apt)
+        run: |
+          sudo apt-get update -q
+          # shellcheck disable=SC2086 — APT_PACKAGES is a space-separated list on purpose
+          sudo apt-get install -y --no-install-recommends $APT_PACKAGES
 
       - name: Install dependencies
         # requirements-test.txt carries the converter's readers and the web stack, so the
         # whole suite runs here — /describe over the stage stub included. flexiconv is added
-        # for the two tests that skip without its CLI. No LibreOffice: the DOC/XLS tests run
-        # against a fake `soffice`.
+        # for the two tests that skip without its CLI, and requirements_docmd.txt (pytesseract)
+        # for the OCR fallback. No LibreOffice: the DOC/XLS tests run against a fake `soffice`.
+        # A failed install fails the lane: it used to be swallowed (`|| echo`), so the tests it
+        # gates would only have shown up as one more skip.
         run: |
           pip install -r requirements.txt -r requirements_digital.txt -r requirements-test.txt
-          pip install -r requirements_flexiconv.txt || echo "[smoke] flexiconv unavailable — its tests will report as skipped below"
+          pip install -r requirements_flexiconv.txt -r requirements_docmd.txt
 
       - name: Run the full suite
         # No exit-5 tolerance: a run that collects no tests is a failure, not a pass.
