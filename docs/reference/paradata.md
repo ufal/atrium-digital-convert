@@ -16,7 +16,8 @@ What a run records about itself, the components it lists with their licences, an
 its licence, as declared in [`para_config.txt`](../../para_config.txt). None of them is the licence of the record:
 the rights in an output depend first on the source document, and they are stated by whoever holds them (for the
 AMČR pilot, AMČR; agreed on 22 October 2026, [atrium-project#6](https://github.com/ufal/atrium-project/issues/6)).
-`provenance.license` beside the list is an older calculated field, not a licence
+`provenance.license` beside the list is an older calculated field, not a licence; the record marks it
+`provenance.license_basis: "calculated"`
 ([Licences and paradata](https://ufal.github.io/atrium-project/ecosystem/licences/)). For this tool:
 * **The light engine and the shared reader** are MIT, BSD-3-Clause or Apache-2.0.
 * **The Docling engine** adds Docling and docling-parse (MIT), the layout model (Apache-2.0) and TableFormer's

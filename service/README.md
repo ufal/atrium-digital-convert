@@ -26,7 +26,7 @@ legacy DOC/XLS through headless LibreOffice. No model, no network, no GPU.
 The published image first: it is what a deployment runs, and it needs no checkout.
 
 ```bash
-docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.4.2-beta
+docker run --rm -p 8000:8000 ghcr.io/ufal/atrium-digital-convert-api:<version>   # e.g. 1.4.3-beta
 curl -s http://localhost:8000/ready                                               # 200 once ready
 # from a checkout:
 docker compose --profile api up

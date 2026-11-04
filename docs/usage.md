@@ -115,7 +115,7 @@ attached to every release.
 | `digital`         | `ghcr.io/ufal/atrium-digital-convert-digital` | the converter's command line (published, never pinned)                                    |
 | `digital-docling` | built locally                                 | the heavy PDF engine, with Docling's models downloaded at build time                      |
 
-The tag is the release **without** its leading `v` (`1.4.2-beta` for `v1.4.2-beta`); the target is
+The tag is the release **without** its leading `v` (`1.4.3-beta` for `v1.4.3-beta`); the target is
 part of the image name.
 
 ```bash
