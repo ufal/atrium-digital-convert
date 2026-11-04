@@ -1252,3 +1252,13 @@ Documentation only; no code, test or configuration change.
 * A dispatch of `release.yml` is the dry run and publishes nothing. **To publish:** an admin deletes `v1.4.3-beta`
   (the `v*` ruleset refuses everyone else; GitHub logs the bypass) and pushes it again at `c4587c1`, on its own. A
   push that carries more than three tags creates no tag events.
+
+## 2026-11-04 (later) — v1.4.4-beta prepared: v1.4.3-beta released under the next number
+
+* **Why:** v1.4.3-beta was tagged but not released: its tag push created no workflow run (a dispatch of `release.yml` is only a dry run). The maintainer's decision: release the same code as v1.4.4-beta
+  rather than repair the v1.4.3-beta tag (the `v*` ruleset lets only an admin move or delete it).
+* **Version v1.4.4-beta** (prepared, not tagged): `para_config.txt`, `CITATION.cff`, `service/openapi.json` (version only), `service/README.md`, `docs/usage.md`; the `CONTRIBUTING.md` row. No code changes against v1.4.3-beta.
+* **Hub:** the CVE gate now runs once more after a 30 s pause, and the report-only scan's retry waits 30 s
+  (atrium-project#81). Both reach this repository with the pin sweep committed with this version.
+* **Yours:** push the hub and move `v1`; here, `python3 scripts/pin_hub_reusables.py --sha <v1>` from the hub, committed
+  with these files; push `test`; then push the tag `v1.4.4-beta` on its own.
