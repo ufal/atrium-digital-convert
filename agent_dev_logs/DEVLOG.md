@@ -1243,3 +1243,12 @@ Documentation only; no code, test or configuration change.
   `python3 scripts/pin_hub_reusables.py --sha <that commit>` from the hub so the pins and these copies land in one
   commit (para-drift compares them with the hub at the pin); then tag.
 * **Checks:** the suite on Python 3.11 with `requirements-test.txt` (the release lane, no torch): 980 passed, 4 skipped; `tests/test_openapi_contract.py` 12 of 12 against the app; `check_version.py --tag` agrees; the shared selftests pass; ruff clean.
+
+## 2026-11-04 (after the push) — v1.4.3-beta: no release run was created
+
+* The tag `v1.4.3-beta` is at `c4587c1`, but its push created no event, so `release.yml` never ran and there is no
+  release. The `test` push of the same commit created none either; the `main` push ran, and every run is green,
+  para-drift included.
+* A dispatch of `release.yml` is the dry run and publishes nothing. **To publish:** an admin deletes `v1.4.3-beta`
+  (the `v*` ruleset refuses everyone else; GitHub logs the bypass) and pushes it again at `c4587c1`, on its own. A
+  push that carries more than three tags creates no tag events.
