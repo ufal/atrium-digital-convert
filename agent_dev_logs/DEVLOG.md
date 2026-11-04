@@ -1,14 +1,15 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues (2026-10-18): **#4** (PDF/DOCX inputs,
-> W1–W6; ready to close), **#5** (Dana's 15 AMČR PDFs). #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-10-21; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issue: **#5** (Dana's 15 AMČR PDFs). **#4** (PDF/DOCX
+> inputs, W1–W6) is closed; #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-10-21; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
 > **v1.1.1-beta** (2026-10-05, `fe494cd`) · **v1.1.2-beta** (2026-10-15, `8358f90`: #5's R, R2 and R3, #6's
 > escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
-> **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** prepared 2026-10-28 (the two
-> end alike; the pilot candidate, atrium-project#77)._
+> **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** to **v1.4.2-beta** (10-29 to
+> 11-03) · **pilot release: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
+> v1.4.3-beta was tagged, not released. Hub workflows pinned to `51aad6c` (`v1`). Latest entry: 2026-11-04 (afternoon)._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -1262,3 +1263,9 @@ Documentation only; no code, test or configuration change.
   (atrium-project#81). Both reach this repository with the pin sweep committed with this version.
 * **Yours:** push the hub and move `v1`; here, `python3 scripts/pin_hub_reusables.py --sha <v1>` from the hub, committed
   with these files; push `test`; then push the tag `v1.4.4-beta` on its own.
+
+## 2026-11-04 (afternoon) — The pilot release out; records and comments aligned
+
+* **Released:** v1.4.4-beta (11:03Z, release run 41817612617), the pilot release (atrium-project#77). v1.4.3-beta stays a tag without a release; its CONTRIBUTING row now says so.
+* **#6 wording:** `digital_born/README.md`, `requirements_digital.txt` and `digital_born/probe_pdf_geometry.py` call `provenance.license` a calculated label, not the output's licence, and no longer say it goes to catalogue export as one.
+* **Records:** the header names the open issue (#5) and the pilot release.

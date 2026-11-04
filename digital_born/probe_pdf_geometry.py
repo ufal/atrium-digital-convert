@@ -8,9 +8,9 @@ PyMuPDF output and so could not answer the question that actually matters.
 WHY THIS EXISTS
 ---------------
 Accretion rule 5 merges component licences as a most-restrictive union into
-`provenance.license` on every document record, and that field goes to FAIR catalogue
-export. Declaring PyMuPDF (AGPL-3.0) as a component of a `digital-convert` run therefore
-sets `provenance.license = AGPL-3.0` for EVERY digital-born document. Docling already owns
+`provenance.license` on every document record, a calculated label rather than the output's
+licence (atrium-project#6). Declaring PyMuPDF (AGPL-3.0) as a component of a `digital-convert`
+run therefore sets `provenance.license = AGPL-3.0` for EVERY digital-born document. Docling already owns
 structural grouping, so PyMuPDF's only unique contribution is precise span geometry — and
 pdfplumber (MIT, already vendored) appears to supply the same numbers.
 

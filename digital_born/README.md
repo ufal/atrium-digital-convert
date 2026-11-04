@@ -79,9 +79,9 @@ a place; they are not interchangeable.
 **Why it matters more than a normal dependency choice.** Rule 5 of the accretion contract
 merges component licences as a **most-restrictive union** into `provenance.license` on
 every document record. Declaring PyMuPDF (AGPL-3.0) as a component of a `digital-convert`
-run therefore sets `provenance.license = AGPL-3.0` for **every digital-born document**, and
-that field is what goes to catalogue export. The blast radius is the licence on the output
-data for an entire input class.
+run therefore sets `provenance.license = AGPL-3.0` for **every digital-born document**. That
+field is a calculated label (`license_basis: "calculated"`), not the output's licence
+(atrium-project#6), but it would name AGPL-3.0 on every record of an entire input class.
 
 That union only works if the components are *declared*. `../para_config.txt` now carries
 `[components]` rows for `docling`, `pdfplumber`, `python-docx` and `docx2python` — without
