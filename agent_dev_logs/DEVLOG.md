@@ -9,7 +9,7 @@
 > escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
 > **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** to **v1.4.2-beta** (10-29 to
 > 11-03) · **pilot release: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
-> v1.4.3-beta was tagged, not released. Hub workflows pinned to `51aad6c` (`v1`). Latest entry: 2026-11-04 (afternoon)._
+> v1.4.3-beta was tagged, not released. Hub workflows pinned to `51aad6c` (`v1`). Latest entry: 2026-11-05._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -1269,3 +1269,18 @@ Documentation only; no code, test or configuration change.
 * **Released:** v1.4.4-beta (11:03Z, release run 41817612617), the pilot release (atrium-project#77). v1.4.3-beta stays a tag without a release; its CONTRIBUTING row now says so.
 * **#6 wording:** `digital_born/README.md`, `requirements_digital.txt` and `digital_born/probe_pdf_geometry.py` call `provenance.license` a calculated label, not the output's licence, and no longer say it goes to catalogue export as one.
 * **Records:** the header names the open issue (#5) and the pilot release.
+
+## 2026-11-05 — A document type for PDF pages: a plan (page-classification#58)
+
+* **New:** `plans/decision_models.plan.md`. This repository's part of the decision-model plan anchored on
+  page-classification#58.
+* **The work:** an opt-in `document-type` stage for `/describe` and the CLI.
+  * A decision model reads each rendered page (pypdfium2) with its text and layout counts.
+  * It answers a group (6) and a type (32), from AMČR's heslář `dokument_typ` (41 terms; the 9 data-only ones are
+    left out). The document gets one answer of its own.
+* **Where answers go:** the report only. `route_page()`, the default stage set and the record do not change, until a
+  `document-type` scheme is agreed with AMČR and atrium-project#71 grants a field.
+* **Evaluation:** on the 15 AMČR PDFs, counts only.
+  * Gold: the catalogue type per document, and 300 annotated pages.
+  * Inputs compared: text only, image only, and both.
+* Not pushed: files delivered in chat.
