@@ -1,11 +1,12 @@
 # AMČR samples: born-digital conversion
 
-The 15 PDFs, converted on 2026-10-15 by atrium-digital-convert `v1.1.2-beta`
-([issue #5](https://github.com/ufal/atrium-digital-convert/issues/5)), with page-classification's
-five models and ocr-postprocess's line-quality model. Cluster job 7108263 made everything but
-`reports/describe/stages/`, which job 7109859 made with ocr-postprocess scoring 32 lines at a time
-(`PPL_BATCH_LINES`, now its default) to fit beside page-classification on one GPU. The PDFs
-themselves are not here. Outputs of later runs are not added: AMČR asked to keep them private
+The 15 PDFs, converted on 2026-10-18 by atrium-digital-convert `v1.2.0-beta`
+([issue #5](https://github.com/ufal/atrium-digital-convert/issues/5)), with page-classification
+`v1.9.3-beta`'s five models and ocr-postprocess `v1.11.0-beta`'s line-quality model (run IDs `261018-*`;
+committed 2026-10-19). Four files of `reports/describe/stages/` (CTX200802472, CTX200914045, CTX201202683,
+CTX201504552) are still from the first run, of 2026-10-15 with `v1.1.2-beta` (cluster jobs 7108263 and 7109859),
+where ocr-postprocess scored 32 lines at a time (`PPL_BATCH_LINES`, now its default) to fit beside
+page-classification on one GPU. The PDFs themselves are not here. Outputs of later runs are not added: AMČR asked to keep them private
 (#5, 2026-10-22).
 
 | Folder                                    | File per document     | What it is                                                                                                                                     |
