@@ -115,8 +115,15 @@ attached to every release.
 | `digital`         | `ghcr.io/ufal/atrium-digital-convert-digital` | the converter's command line (published, never pinned)                                    |
 | `digital-docling` | built locally                                 | the heavy PDF engine, with Docling's models downloaded at build time                      |
 
-The tag is the release **without** its leading `v` (`1.4.4-beta` for `v1.4.4-beta`); the target is
+The tag is the release **without** its leading `v` (`1.4.5-beta` for `v1.4.5-beta`); the target is
 part of the image name.
+
+The batch image passes its arguments to `api_util/digital_to_json.py` (`docker run IMAGE /data/report.pdf
+--document-json-out /data/report.document.json`). Since `v1.4.5-beta` its entry point is the hub-canonical
+`container_entrypoint.py`, which names `api_util/digital_to_json.py` by its absolute path: a first argument that
+names a shell or Python runs that program instead (`docker run IMAGE /bin/sh job.sh`), which is how Galaxy starts a
+tool's container. Only those interpreters run: an input file that happens to be executable is still converted, as
+`digital-docling` does too.
 
 ```bash
 docker compose --profile api up                                     # the service on :8000

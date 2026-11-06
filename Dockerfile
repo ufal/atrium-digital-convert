@@ -110,7 +110,12 @@ RUN chown -R atrium:0 /app /home/atrium \
 ENV LIBREOFFICE_BIN=soffice
 USER atrium
 
-ENTRYPOINT ["python", "api_util/digital_to_json.py"]
+# container_entrypoint.py (hub-canonical, vendored; atrium-project#66) runs /app/api_util/digital_to_json.py by its absolute path with
+# the arguments `docker run` passes, as before. A first argument that names a shell or Python
+# (`/bin/sh tool_script.sh`) runs as given: that is how Galaxy starts a tool's container, in the
+# job's own working directory, where the old relative `python api_util/digital_to_json.py` failed. It ends in os.execv,
+# so the program is PID 1.
+ENTRYPOINT ["python", "/app/container_entrypoint.py", "/app/api_util/digital_to_json.py"]
 CMD ["--help"]
 
 
@@ -145,7 +150,8 @@ RUN pip install -r requirements_digital_docling.txt \
 ENV DOCLING_ARTIFACTS_PATH=/opt/docling-models
 USER atrium
 
-ENTRYPOINT ["python", "api_util/digital_to_json.py"]
+# The same entry point as `digital`.
+ENTRYPOINT ["python", "/app/container_entrypoint.py", "/app/api_util/digital_to_json.py"]
 CMD ["--help"]
 
 

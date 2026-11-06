@@ -9,7 +9,7 @@
 > escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
 > **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** to **v1.4.2-beta** (10-29 to
 > 11-03) · **pilot release: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
-> v1.4.3-beta was tagged, not released. Hub workflows pinned to `51aad6c` (`v1`). Latest entry: 2026-11-05._
+> v1.4.3-beta was tagged, not released. Hub workflows pinned to `51aad6c` (`v1`). Latest entry: 2026-11-06._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -1284,3 +1284,15 @@ Documentation only; no code, test or configuration change.
   * Gold: the catalogue type per document, and 300 annotated pages.
   * Inputs compared: text only, image only, and both.
 * Not pushed: files delivered in chat.
+
+## 2026-11-06 — v1.4.5-beta prepared: the batch image starts Galaxy's job script (atrium-project#66)
+
+* **Why:** Galaxy starts a tool's container as `docker run … IMAGE /bin/sh tool_script.sh` in the job's working
+  directory. The old relative ENTRYPOINT passed `/bin/sh` to the program as an argument (exit 2) and failed outside `/app`.
+* **Change:** the hub-canonical `container_entrypoint.py` and its shared test, vendored by `revendor_shared.sh`; the
+  ENTRYPOINT names the program by its absolute path: `digital` and `digital-docling` → `/app/api_util/digital_to_json.py`. Arguments still go to the program; a first argument
+  naming `sh`, `bash`, `dash`, `python` or `python3` runs as given. The positional input is safe: only interpreters run, an executable PDF is still converted.
+  `tests/test_batch_entrypoint.py` pins the stages; `ruff.toml` excludes the two vendored files from formatting.
+* **Version v1.4.5-beta** (prepared, not tagged): `CITATION.cff`, `para_config.txt`, `service/openapi.json`, the version
+  examples in the docs; the `CONTRIBUTING.md` row; a paragraph on the entry point in `docs/usage.md`.
+* **Yours:** push the hub commit with `container_entrypoint.py` and move `v1`; here, `python3 ../atrium-project/scripts/pin_hub_reusables.py --sha <v1>` committed with these files (para-drift checks the copy only at a pin that has it); push `test`; then `python3 ../atrium-project/scripts/tag_release.py v1.4.5-beta`, which tags the pushed HEAD only and pushes that one tag.
