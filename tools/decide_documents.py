@@ -169,6 +169,8 @@ def page_state(view: Mapping[str, Any], text: Optional[str]) -> Dict[str, Any]:
 def document_state(
     view: Mapping[str, Any], sent: int, total: int, texts: Optional[Sequence[str]]
 ) -> Dict[str, Any]:
+    """The state of a document request: the item names how many of its pages are attached; with
+    *texts*, their text layers, each under a ``[page N]`` line."""
     state: Dict[str, Any] = {"item": DOCUMENT_ITEM.format(sent=sent, total=total)}
     if texts is not None:
         state["text"] = "\n\n".join(f"[page {i}]\n{t}" for i, t in enumerate(texts, start=1))
@@ -179,6 +181,9 @@ def document_state(
 
 
 def columns(view: Mapping[str, Any], level: str) -> List[str]:
+    """The header of ``DECIDE_PAGES.csv`` (*level* ``page``) or ``DECIDE_DOCS.csv``: the key, the
+    answers with one ``P_group_*`` column per group and one ``P_type_*`` per type, the gold, then the
+    request's status and operations."""
     key = ["file", "page", "pages"] if level == "page" else ["file", "pages", "pages_sent"]
     groups = [f"P_group_{g}" for g in view["groups"]]
     types = [f"P_type_{t['id']}" for t in view["types"]]
@@ -199,6 +204,9 @@ def answer_fields(
     accept_at: Optional[float] = None,
     review_below: Optional[float] = None,
 ) -> Dict[str, Any]:
+    """The answer columns of one row: the group and the type with their probabilities, the top three
+    types, the lane when both thresholds are given, the gold, and the request's status. A failed
+    request gives empty answers."""
     group_of = {t["id"]: t["group"] for t in view["types"]}
     group, kind = d.answers.get("group"), d.answers.get("document_type")
     row: Dict[str, Any] = {"group": group.choice if group else ""}
@@ -235,6 +243,7 @@ def answer_fields(
 
 
 def input_pdfs(path: Path) -> List[Path]:
+    """*path* itself if it is a file, else every PDF under it at any depth (``.pdf`` in any case), sorted."""
     if path.is_file():
         return [path]
     return sorted(p for p in path.rglob("*") if p.suffix.lower() == ".pdf")
@@ -277,6 +286,8 @@ def run(
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Decide every page and/or document; rows are appended to the two tables as they come."""
     out_dir.mkdir(parents=True, exist_ok=True)
+    # main() refuses a --doc-pages outside 1..MAX_IMAGES; a programmatic caller is held to what one
+    # request takes instead.
     doc_pages = max(1, min(doc_pages, dc.MAX_IMAGES))
     pages_path, docs_path = out_dir / "DECIDE_PAGES.csv", out_dir / "DECIDE_DOCS.csv"
     want_pages, want_docs = level in ("page", "both"), level in ("document", "both")
@@ -422,6 +433,7 @@ def summarise(rows: Sequence[Mapping[str, Any]], abstain: str) -> Dict[str, Any]
 
 
 def read_rows(path: Path) -> List[Dict[str, str]]:
+    """The rows of a table this tool wrote, earlier runs' included; none when it does not exist."""
     if not path.is_file():
         return []
     with path.open(newline="", encoding="utf-8") as handle:
@@ -463,12 +475,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--max-chars", type=int, default=3000, help="the text layer per page, with --with-text"
     )
     parser.add_argument(
-        "--doc-pages", type=int, default=dc.MAX_IMAGES, help="pages per document request (≤ 4)"
+        "--doc-pages", type=int, default=dc.MAX_IMAGES, help="pages per document request (1 to 4)"
     )
     parser.add_argument("--gold", type=Path, help="documents: file,document_type")
     parser.add_argument("--page-gold", type=Path, help="pages: file,page,document_type")
-    parser.add_argument("--accept-at", type=float, help="lane threshold (set on dev)")
-    parser.add_argument("--review-below", type=float, help="lane threshold (set on dev)")
+    parser.add_argument(
+        "--accept-at", type=float, help="lane threshold, 0 to 1 (set on dev; with --review-below)"
+    )
+    parser.add_argument(
+        "--review-below", type=float, help="lane threshold, 0 to --accept-at (set on dev)"
+    )
     parser.add_argument("--resume", action="store_true", help="continue the tables in --out-dir")
     server = parser.add_argument_group("server")
     server.add_argument(
@@ -493,8 +509,23 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    # Refused here, before any request: decision_client.lane() raises on a bad pair only at the
+    # first answer, after a paid model call, and a clamped --doc-pages would leave the paradata
+    # recording a value the run did not use.
     if (args.accept_at is None) != (args.review_below is None):
         parser.error("--accept-at and --review-below go together")
+    if args.accept_at is not None:
+        for flag, value in (("--accept-at", args.accept_at), ("--review-below", args.review_below)):
+            if not 0.0 <= value <= 1.0:
+                parser.error(f"{flag} is a probability, between 0 and 1 (got {value})")
+        if args.review_below > args.accept_at:
+            parser.error(
+                f"--review-below ({args.review_below}) must not exceed --accept-at ({args.accept_at})"
+            )
+    if not 1 <= args.doc_pages <= dc.MAX_IMAGES:
+        parser.error(
+            f"--doc-pages is 1 to {dc.MAX_IMAGES}, a request's image limit (got {args.doc_pages})"
+        )
     pdfs = input_pdfs(args.input)
     if not pdfs:
         parser.error(f"no PDF at {args.input}")

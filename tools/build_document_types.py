@@ -172,6 +172,7 @@ def _source_commit(path: Path) -> str:
 
 
 def load_scheme(vocab: Path) -> List[Dict[str, Any]]:
+    """The ``dokument_typ`` terms of the vocabulary build, in the heslář's order (``sort``, then HES)."""
     data = json.loads(vocab.read_text(encoding="utf-8"))
     terms = data["terms"]
     terms = list(terms.values()) if isinstance(terms, dict) else terms
@@ -282,6 +283,7 @@ def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
 
 
 def render(content: Mapping[str, Any]) -> str:
+    """The list as the committed file holds it: indented JSON, non-ASCII kept, one final newline."""
     return json.dumps(content, indent=2, ensure_ascii=False) + "\n"
 
 

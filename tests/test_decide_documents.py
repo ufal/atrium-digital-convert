@@ -194,3 +194,81 @@ def test_main_refuses_an_unconfigured_server(pdfs, monkeypatch):
     monkeypatch.delenv("DECISION_MODEL_URL", raising=False)
     with pytest.raises(SystemExit):
         dd.main(["--input", str(pdfs), "--out-dir", "x", "--url", "", "--model", "m"])
+
+
+@pytest.mark.parametrize(
+    "flags, message",
+    [
+        (["--accept-at", "0.9"], "--accept-at and --review-below go together"),
+        (["--accept-at", "1.5", "--review-below", "0.5"], "--accept-at is a probability"),
+        (["--accept-at", "0.9", "--review-below", "-0.1"], "--review-below is a probability"),
+        (["--accept-at", "0.5", "--review-below", "0.8"], "must not exceed --accept-at"),
+        (["--doc-pages", "0"], "--doc-pages is 1 to 4"),
+        (["--doc-pages", "5"], "--doc-pages is 1 to 4"),
+    ],
+)
+def test_main_refuses_bad_thresholds_and_doc_pages_before_any_request(
+    pdfs, tmp_path, capsys, flags, message
+):
+    # lane() would raise only at the first answer, after a paid request; a clamped --doc-pages
+    # would leave the paradata recording a value the run did not use
+    out = tmp_path / "run"
+    with dc.FakeSystemOne() as fake:
+        with pytest.raises(SystemExit) as refused:
+            dd.main(
+                ["--input", str(pdfs), "--out-dir", str(out), "--url", fake.url, "--model", "m"]
+                + flags
+            )
+        assert not fake.requests
+    assert refused.value.code == 2
+    assert message in capsys.readouterr().err
+    assert not out.exists()
+
+
+def test_main_takes_thresholds_in_range_and_records_the_doc_pages_it_used(pdfs, tmp_path):
+    out = tmp_path / "run"
+    with dc.FakeSystemOne() as fake:
+        code = dd.main(
+            ["--input", str(pdfs), "--out-dir", str(out), "--url", fake.url, "--model", "m"]
+            + ["--level", "document", "--doc-pages", "1", "--accept-at", "1", "--review-below", "1"]
+        )
+    assert code == 0
+    docs = _read(out / "DECIDE_DOCS.csv")
+    assert {r["pages_sent"] for r in docs} == {"1"}
+    assert {r["lane"] for r in docs} <= {"accept", "review"}  # equal thresholds: no escalate lane
+    (record,) = (out / "paradata").glob("*.json")
+    assert json.loads(record.read_text(encoding="utf-8"))["config"]["doc_pages"] == 1
+
+
+def _data_uri(image, style):
+    """The data URI inside one image as *style* puts it on the wire."""
+    if style == "base64":
+        assert not image.startswith("data:")
+        return "data:image/jpeg;base64," + image
+    if style == "url":
+        return image["url"]
+    if style == "image_url":
+        assert image["type"] == "image_url"
+        return image["image_url"]["url"]
+    return image
+
+
+@pytest.mark.parametrize("style", dc.IMAGE_STYLES)
+def test_image_style_sets_how_the_images_travel(pdfs, tmp_path, style):
+    with dc.FakeSystemOne() as fake:
+        code = dd.main(
+            ["--input", str(pdfs), "--out-dir", str(tmp_path / "run"), "--url", fake.url]
+            + ["--model", "m", "--level", "page", "--max-side", "100", "--image-style", style]
+        )
+        images = [image for request in fake.requests for image in request["images"]]
+    assert code == 0 and len(images) == 3
+    for image in images:
+        uri = _data_uri(image, style)
+        assert uri.startswith("data:image/jpeg;base64,")
+        assert dc.image_on_wire(uri, style) == image
+
+
+def test_image_style_refuses_a_style_it_does_not_know(pdfs, capsys):
+    with pytest.raises(SystemExit) as refused:
+        dd.main(["--input", str(pdfs), "--out-dir", "x", "--model", "m", "--image-style", "png"])
+    assert refused.value.code == 2 and "--image-style" in capsys.readouterr().err

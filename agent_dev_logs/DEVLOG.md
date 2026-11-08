@@ -1368,3 +1368,32 @@ Documentation only; no code, test or configuration change.
   3. tag `v1.4.6-beta` once GitHub's release downloads work;
   4. then keyword-extract re-vendors v2.
 * Not pushed: files delivered as per-repo archives.
+
+## 2026-11-08 (round 3) — #8: review fixes; v1.4.7-beta prepared (atrium-project#83)
+
+* **Asked (K4TEL):** the review's fixes to #8's tools, and a release in place of v1.4.6-beta.
+* **v1.4.6-beta** is tagged on `427b690` and not released: every download from GitHub's release storage answered
+  504, so the release job could not install Trivy and stopped before its CVE gate, with no finding. Tags are
+  protected and never moved.
+* **Written (not pushed):**
+  * **`tools/decide_documents.py`:** `parser.error` for a threshold outside 0 to 1, a `--review-below` above
+    `--accept-at` (`lane()` raised only at the first answer, after a paid call) and a `--doc-pages` outside 1 to 4
+    (clamped, while the paradata recorded the value given). `run()` still clamps for programmatic callers.
+  * **Docstrings** for the public functions of `tools/decide_documents.py` and `tools/build_document_types.py`.
+  * **Tests:** `tests/test_decide_documents.py` (+12): the refusals (exit 2), thresholds in range and the recorded
+    `--doc-pages`, and `--image-style`'s four wire forms.
+  * **Docs:** `docs/usage.md`, "Document types for decision models (offline)": the list and its two views, both
+    tools' options, the lanes, the outputs. A pointer in `README.md`; item 6 of the layout in
+    `docs/development.md`.
+  * **`.github/workflows/para-drift.yml`:** the comment said the drift job compares the copies with the owners'
+    `test` head; the reusable compares them with the owner at the adopted commit. Comment only.
+  * **Version v1.4.7-beta:** `CITATION.cff` (date kept), `para_config.txt`, `service/openapi.json`, the version
+    examples. `CONTRIBUTING.md`: a v1.4.7-beta row, the v1.4.6-beta row marked tagged, not released (and given
+    its missing Status cell).
+* **Checked:**
+  * the suite without `slow`: 1,031 passed, 3 skipped (flexiconv, Tesseract);
+  * `check_version.py --tag v1.4.7-beta --require-tag`;
+  * ruff; the hub's `docs_check.py`.
+* **Yours:** re-pin the hub's reusables (Trivy from its ghcr.io image, the OpenAPI baseline through the GitHub API)
+  in the same push; once its runs are green, tag `v1.4.7-beta`. keyword-extract's list pin names that release.
+* Committed locally, not pushed.
