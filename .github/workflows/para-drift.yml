@@ -21,5 +21,7 @@ jobs:
       # fixtures are nlp-enrich's, pinned by tests/test_vendored_teitok_parity.py; text_formats.py
       # (the ODT/ODS/XLSX/RTF reader, atrium-digital-convert#2 W2) is ocr-postprocess's, pinned by
       # tests/test_vendored_reader_parity.py. The reusable compares each with its owner's `test`
-      # head, so a copy that falls behind turns red here.
-      vendored-from: atrium-nlp-enrich atrium-ocr-postprocess
+      # head, so a copy that falls behind turns red here. decision_client.py (the decision-model
+      # client of tools/decide_documents.py, atrium-project#83) is page-classification's, pinned by
+      # tests/test_vendored_decision_parity.py.
+      vendored-from: atrium-nlp-enrich atrium-ocr-postprocess atrium-page-classification

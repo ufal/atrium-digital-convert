@@ -33,6 +33,11 @@ extend-immutable-calls = [
     "fastapi.Query",
 ]
 
+[lint.per-file-ignores]
+# Vendored byte-identical from atrium-page-classification (tests/test_vendored_decision_parity.py), whose
+# rule set has no "B": its zip() calls carry no strict=. Fix them there, never in the copy.
+"decision_client.py" = ["B905"]
+
 [format]
 quote-style = "double"
 indent-style = "space"
@@ -77,4 +82,7 @@ exclude = [
     # Vendored from atrium-ocr-postprocess (the shared reader, atrium-project#72), held
     # byte-identical by tests/test_vendored_reader_parity.py: never reformatted here.
     "text_formats.py",
+    # Vendored from atrium-page-classification (line-length 120 there), pinned by
+    # tests/test_vendored_decision_parity.py (atrium-project#83): formatted there, never here.
+    "decision_client.py",
 ]

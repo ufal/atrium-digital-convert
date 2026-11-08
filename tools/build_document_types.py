@@ -3,10 +3,9 @@
 
 A decision model gives each PDF page, and each document, a type chosen from a fixed list. That list
 is AMČR's heslář ``dokument_typ`` (41 terms). This script generates it, so it is never written by
-hand. The list is shared: atrium-keyword-extract asks the same two questions about a document's OCR
-text (its #3), and pins a copy of the output (``tests/test_vendored_decision_parity.py`` there), so
-both tools answer from one list with one digest. The source is atrium-keyword-extract's vocabulary build, ``data_samples/vocab/amcr_flat.json``,
-which is harvested from AMČR's OAI-PMH endpoint, CC0.
+hand. The list is shared with atrium-keyword-extract (its #3), which pins a copy of the output
+(``tests/test_vendored_doctype_parity.py`` there). The source is atrium-keyword-extract's vocabulary
+build, ``data_samples/vocab/amcr_flat.json``, harvested from AMČR's OAI-PMH endpoint, CC0.
 
 * **The 9 data-only types** are left out: those whose ``broader`` is ``HES-000217`` ("digitální
   soubor"), i.e. the ecofact-analysis, geodetic, geophysical, GNSS, fieldwork and vector-plan data and
@@ -16,13 +15,22 @@ which is harvested from AMČR's OAI-PMH endpoint, CC0.
   is an error: when AMČR adds a type, it is placed here on purpose.
 * ``neurčený dokument`` (``unspecified``) is the abstain option.
 
-The output, ``decisions/document_type.v1.json``, records where it came from (the source repository's
-commit and the file's SHA-256). It holds the two questions in the ``/v1/systemone`` wire format and
-their digest, computed exactly as ``decision_client.schema_digest`` computes it. The questions name
-no input ("this document"): what the item is goes in the request's *state*, from ``STATES``
-(``pdf_page`` here, ``document_text`` in keyword-extract), so the digest is the same in both tools.
-v1 (2026-11-08) replaced v0, which was never run, for that wording. The list is a draft until AMČR
-agrees to it (ufal/atrium-project#83); nothing reaches the record before then.
+The output, ``decisions/document_type.v2.json``, records where it came from (the source repository's
+commit and the file's SHA-256). Its ``views`` hold the questions in the ``/v1/systemone`` wire format,
+one set per input, each with its digest, computed exactly as ``decision_client.schema_digest``
+computes it (``VIEWS``):
+
+* ``pdf_page`` (digital-convert, ``tools/decide_documents.py``): the rendered page image, always; its
+  text layer only on request. ``group`` (6) and ``document_type`` (32 types and the abstain option).
+* ``document_text`` (keyword-extract, ``dm_run.py --doc-type``): the document's OCR text, never an
+  image. Photographs, aerial photographs, plans, maps and drawings cannot be told from OCR text, so it
+  asks ``document_type`` over the ``text`` group only (6 types and the abstain option), with no
+  ``group`` question.
+
+The questions name no input ("this document"); the view's ``item`` says what it is, in the request's
+state. v2 (2026-11-08) adds the views; v1 had one question set for both tools, and v0 was never run.
+The list is a draft until AMČR agrees to it (ufal/atrium-project#83); nothing reaches the record
+before then.
 
     python3 tools/build_document_types.py --vocab ../atrium-keyword-extract/data_samples/vocab/amcr_flat.json
     python3 tools/build_document_types.py --vocab <file> --check     # exit 1 if the committed list differs
@@ -39,8 +47,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = REPO_ROOT / "decisions" / "document_type.v1.json"
-VERSION = 1
+OUTPUT = REPO_ROOT / "decisions" / "document_type.v2.json"
+VERSION = 2
 SHARED_WITH = ("ufal/atrium-keyword-extract",)
 DEFAULT_VOCAB = (
     REPO_ROOT.parent / "atrium-keyword-extract" / "data_samples" / "vocab" / "amcr_flat.json"
@@ -111,16 +119,28 @@ TYPE_MAP: Dict[str, Tuple[str, str]] = {
 GROUP_INSTRUCTIONS = "What kind of document is this, broadly?"
 TYPE_INSTRUCTIONS = "Which AMČR document type is this?"
 
-#: What each consumer puts in the request's state: the item the questions are about. Not in the digest.
-STATES: Dict[str, Dict[str, str]] = {
+#: The question sets, one per input. ``groups``: the type groups a view offers (``None``: all), the
+#: abstain option always included; ``ask_group``: whether the coarse ``group`` question is asked too.
+VIEWS: Dict[str, Dict[str, Any]] = {
     "pdf_page": {
-        "item": "one page of a PDF from an archaeological archive; its image is attached, "
-        "and `text` holds its text layer, if any",
-        "used_by": "ufal/atrium-digital-convert (#8)",
+        "used_by": "ufal/atrium-digital-convert (#8, tools/decide_documents.py)",
+        "inputs": {
+            "image": "the rendered page, always",
+            "text": "the page's text layer, only on request (--with-text); off by default",
+        },
+        "item": "the attached image of one page of a PDF from an archaeological archive",
+        "groups": None,
+        "ask_group": True,
     },
     "document_text": {
+        "used_by": "ufal/atrium-keyword-extract (#3, dm_run.py --doc-type)",
+        "inputs": {
+            "image": "none",
+            "text": "the document's OCR text (its first lines, in order), always",
+        },
         "item": "the OCR text of one archaeological archive document; `text` holds its first lines, in order",
-        "used_by": "ufal/atrium-keyword-extract (#3)",
+        "groups": ("text",),
+        "ask_group": False,
     },
 }
 
@@ -159,6 +179,34 @@ def load_scheme(vocab: Path) -> List[Dict[str, Any]]:
     return sorted(scheme, key=lambda t: (t.get("sort") or 0, t["source_id"]))
 
 
+def view_options(
+    types: Sequence[Mapping[str, Any]], groups: Optional[Sequence[str]] = None
+) -> List[str]:
+    """The type ids a view offers, in list order: those of *groups* (all when ``None``) and the abstain option."""
+    return [t["id"] for t in types if groups is None or t["group"] in groups or t["id"] == ABSTAIN]
+
+
+def view_questions(types: Sequence[Mapping[str, Any]], view: Mapping[str, Any]) -> Dict[str, Any]:
+    """The questions of one view. ``document_type``'s criteria are the same text in every view."""
+    questions: Dict[str, Any] = {}
+    if view["ask_group"]:
+        questions["group"] = {
+            "type": "choice",
+            "instructions": GROUP_INSTRUCTIONS,
+            "criteria": {gid: f"{label}: {text}" for gid, (label, text) in GROUPS.items()},
+        }
+    by_id = {t["id"]: t for t in types}
+    questions["document_type"] = {
+        "type": "choice",
+        "instructions": TYPE_INSTRUCTIONS,
+        "criteria": {
+            tid: f"{by_id[tid]['en']} ({by_id[tid]['cs']})"
+            for tid in view_options(types, view["groups"])
+        },
+    }
+    return questions
+
+
 def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
     """The list as a JSON-ready dict; raises ``SystemExit`` when the vocabulary and the map disagree."""
     scheme = load_scheme(vocab)
@@ -190,25 +238,22 @@ def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
                 "en": t["en"],
             }
         )
-    questions = {
-        "group": {
-            "type": "choice",
-            "instructions": GROUP_INSTRUCTIONS,
-            "criteria": {gid: f"{label}: {text}" for gid, (label, text) in GROUPS.items()},
-        },
-        "document_type": {
-            "type": "choice",
-            "instructions": TYPE_INSTRUCTIONS,
-            "criteria": {t["id"]: f"{t['en']} ({t['cs']})" for t in types},
-        },
-    }
+    views = {}
+    for name, view in VIEWS.items():
+        questions = view_questions(types, view)
+        views[name] = {
+            "used_by": view["used_by"],
+            "inputs": view["inputs"],
+            "item": view["item"],
+            "questions": questions,
+            "schema_digest": schema_digest(questions),
+        }
     return {
         "name": "document_type",
         "version": VERSION,
         "status": "draft: AMČR's agreement to the list is pending (ufal/atrium-project#83)",
         "generated_by": "tools/build_document_types.py",
         "shared_with": list(SHARED_WITH),
-        "states": STATES,
         "source": {
             "repository": "ufal/atrium-keyword-extract",
             "path": "data_samples/vocab/amcr_flat.json",
@@ -232,8 +277,7 @@ def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
         },
         "types": types,
         "abstain": ABSTAIN,
-        "questions": questions,
-        "schema_digest": schema_digest(questions),
+        "views": views,
     }
 
 
@@ -242,7 +286,7 @@ def render(content: Mapping[str, Any]) -> str:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate decisions/document_type.v1.json (#8).")
+    parser = argparse.ArgumentParser(description="Generate decisions/document_type.v2.json (#8).")
     parser.add_argument(
         "--vocab", type=Path, default=DEFAULT_VOCAB, help="atrium-keyword-extract's amcr_flat.json"
     )
@@ -273,7 +317,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args.out.write_text(render(content), encoding="utf-8")
     print(
         f"wrote {args.out}: {len(content['types'])} types in {len(content['groups'])} groups, "
-        f"{len(content['excluded'])} left out; schema digest {content['schema_digest'][:12]}"
+        f"{len(content['excluded'])} left out; "
+        + ", ".join(
+            f"{name} {view['schema_digest'][:12]}" for name, view in content["views"].items()
+        )
     )
     return 0
 

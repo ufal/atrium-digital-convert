@@ -1337,3 +1337,34 @@ Documentation only; no code, test or configuration change.
   there until the commit exists.
 * Not pushed: files delivered as per-repo archives.
 
+## 2026-11-08 (round 2) — #8: the page image by default, the list v2, the CLI; v1.4.6-beta prepared (atrium-project#83)
+
+* **Asked (K4TEL):** digital-convert can take both inputs but by default only the page image; keyword-extract only
+  text. Fix the GHA failures; prepare a release for keyword-extract's pin.
+* **CI on `2bb3f3c`:** everything green but API Meta-Contract. Its 504 is GitHub's: release downloads failed
+  everywhere on 11-08, reproduced. Re-run it once they are back.
+* **Written (not pushed):**
+  * **The list:** `tools/build_document_types.py` writes `decisions/document_type.v2.json`, v1 removed.
+    * `pdf_page`: the image always, the text on request; `group` + 32 types; digest `6c5e8abb…`, unchanged.
+    * `document_text`: OCR text only; the 6 written types and `unspecified`; digest `34d45440…`.
+    * Tests: `tests/test_document_types.py` (10).
+  * **`tools/decide_documents.py`:**
+    * pages and documents, image-only by default, `--with-text`;
+    * `DECIDE_PAGES.csv`, `DECIDE_DOCS.csv`, a summary and paradata; gold scoring; `--resume`.
+    * Tests: `tests/test_decide_documents.py` (9), on PDFs the tests write.
+  * **The client:**
+    * `decision_client.py` from page-classification `39a7bea` (`v1.13.0-beta`), pinned in
+      `tests/test_vendored_decision_parity.py`;
+    * `vendored-from` gains `atrium-page-classification`;
+    * `ruff.toml`; `DECISION_*` under `NOT_PUBLISHED`; `decision_model` in `para_config.txt`.
+  * **Version v1.4.6-beta:** `CITATION.cff`, `para_config.txt`, `service/openapi.json`, the version examples, the
+    `CONTRIBUTING.md` row.
+* **Checked:** the full suite; `check_version.py`; `build_document_types.py --check`; the pin test with
+  page-classification at `39a7bea` beside it; ruff.
+* **Records:** `plans/8.plan.md`, `digests/8.digest.md`.
+* **Yours:**
+  1. delete `decisions/document_type.v1.json`;
+  2. push before keyword-extract;
+  3. tag `v1.4.6-beta` once GitHub's release downloads work;
+  4. then keyword-extract re-vendors v2.
+* Not pushed: files delivered as per-repo archives.

@@ -13,6 +13,9 @@ NOT_PUBLISHED: dict[str, str] = {
     "DOCLING_ARTIFACTS_PATH": "read only by api_util/digital_docling.py (`--engine docling`), set by the Dockerfile's digital-docling stage; the api image carries no Docling",
     "STUB_PAGE_CATEGORY": "read only by tools/stage_stub.py, a local stand-in for page-classification that no image ships",
     "STUB_NEEDS_OCR_CATEGORY": "read only by tools/stage_stub.py, a local stand-in for page-classification that no image ships",
+    "DECISION_*": "defaults of the offline decision-model CLI (decision_client.py, vendored from page-classification; "
+    "tools/decide_documents.py; #8): DECISION_MODEL_URL, DECISION_MODEL_NAME, DECISION_TIMEOUT_S. Not a service "
+    "setting; the server's address stays out of the repository",
 }
 
 # In .env.example but read by no Python in this repo — each with a reason.

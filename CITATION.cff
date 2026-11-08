@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "ATRIUM's born-digital converter: PDF, DOCX, ODT, ODS, XLSX, RTF, DOC and XLS into atrium_document records, with a per-page assessment"
-version: "1.4.5-beta"
-date-released: "2026-11-06"
+version: "1.4.6-beta"
+date-released: "2026-11-08"
 authors:
   - family-names: "Lutsai"
     given-names: "Kateryna"

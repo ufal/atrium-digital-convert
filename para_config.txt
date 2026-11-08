@@ -4,7 +4,7 @@
 
 [tool]
 program = digital-convert
-version = v1.4.5-beta
+version = v1.4.6-beta
 repository_fallback = https://github.com/ufal/atrium-digital-convert
 
 [components]
@@ -65,6 +65,10 @@ docling-tableformer  = CDLA-Permissive-2.0 ; conditional ; table-structure model
 # log_component("flexiconv")), so the row never enters a run's component list here. Converting is
 # nlp-enrich's api_flexiconv.sh, which logs it.
 flexiconv   = MIT     ; conditional ; flexiconv document -> TEITOK converter (api_util/flexiconv_convert.py)
+# (#8, atrium-project#83) The decision models of the offline tools/decide_documents.py, served at
+# POST /v1/systemone and called through decision_client.py (vendored from page-classification): Clef,
+# Clef-Flash (Cloudflare) and Strands Decider 2B, all Apache-2.0. No image and no service run them.
+decision_model = Apache-2.0 ; conditional ; decision models (Clef, Clef-Flash, Strands Decider 2B) for the #8 experiments
 #
 # PyMuPDF is intentionally NOT listed. It is AGPL-3.0, and rule 5's most-restrictive union
 # would put AGPL-3.0 into provenance.license for every born-digital document. See
