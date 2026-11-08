@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""tools/build_document_types.py — the document-type list v0 for decision models (#8; ufal/atrium-project#83).
+"""tools/build_document_types.py — the shared document-type list for decision models (#8; ufal/atrium-project#83).
 
 A decision model gives each PDF page, and each document, a type chosen from a fixed list. That list
 is AMČR's heslář ``dokument_typ`` (41 terms). This script generates it, so it is never written by
-hand. The source is atrium-keyword-extract's vocabulary build, ``data_samples/vocab/amcr_flat.json``,
+hand. The list is shared: atrium-keyword-extract asks the same two questions about a document's OCR
+text (its #3), and pins a copy of the output (``tests/test_vendored_decision_parity.py`` there), so
+both tools answer from one list with one digest. The source is atrium-keyword-extract's vocabulary build, ``data_samples/vocab/amcr_flat.json``,
 which is harvested from AMČR's OAI-PMH endpoint, CC0.
 
 * **The 9 data-only types** are left out: those whose ``broader`` is ``HES-000217`` ("digitální
@@ -14,10 +16,13 @@ which is harvested from AMČR's OAI-PMH endpoint, CC0.
   is an error: when AMČR adds a type, it is placed here on purpose.
 * ``neurčený dokument`` (``unspecified``) is the abstain option.
 
-The output, ``decisions/document_type.v0.json``, records where it came from (the source repository's
+The output, ``decisions/document_type.v1.json``, records where it came from (the source repository's
 commit and the file's SHA-256). It holds the two questions in the ``/v1/systemone`` wire format and
-their digest, computed exactly as ``decision_client.schema_digest`` computes it. The list is a draft
-until AMČR agrees to it (ufal/atrium-project#83); nothing reaches the record before then.
+their digest, computed exactly as ``decision_client.schema_digest`` computes it. The questions name
+no input ("this document"): what the item is goes in the request's *state*, from ``STATES``
+(``pdf_page`` here, ``document_text`` in keyword-extract), so the digest is the same in both tools.
+v1 (2026-11-08) replaced v0, which was never run, for that wording. The list is a draft until AMČR
+agrees to it (ufal/atrium-project#83); nothing reaches the record before then.
 
     python3 tools/build_document_types.py --vocab ../atrium-keyword-extract/data_samples/vocab/amcr_flat.json
     python3 tools/build_document_types.py --vocab <file> --check     # exit 1 if the committed list differs
@@ -34,7 +39,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = REPO_ROOT / "decisions" / "document_type.v0.json"
+OUTPUT = REPO_ROOT / "decisions" / "document_type.v1.json"
+VERSION = 1
+SHARED_WITH = ("ufal/atrium-keyword-extract",)
 DEFAULT_VOCAB = (
     REPO_ROOT.parent / "atrium-keyword-extract" / "data_samples" / "vocab" / "amcr_flat.json"
 )
@@ -47,7 +54,7 @@ ABSTAIN = "unspecified"
 GROUPS: Dict[str, Tuple[str, str]] = {
     "text": (
         "text",
-        "a page of text: a report, its annex, an expert or client report, a brief report or other text",
+        "a written document: a report, its annex, an expert or client report, a brief report or other text",
     ),
     "photograph": (
         "photograph",
@@ -62,7 +69,7 @@ GROUPS: Dict[str, Tuple[str, str]] = {
         "a plan of a region, site, excavation, trench or feature, or a map",
     ),
     "drawing": ("drawing", "a drawing of an object"),
-    "unspecified": ("unspecified", "none of the above can be told from the page"),
+    "unspecified": ("unspecified", "none of the above can be told"),
 }
 
 #: HES number -> (group, option id): the 32 types a PDF page can be (#8 plan, Phase A).
@@ -101,8 +108,21 @@ TYPE_MAP: Dict[str, Tuple[str, str]] = {
     "HES-001112": ("unspecified", ABSTAIN),
 }
 
-GROUP_INSTRUCTIONS = "What kind of document is the attached page, broadly?"
-TYPE_INSTRUCTIONS = "Which AMČR document type is the attached page?"
+GROUP_INSTRUCTIONS = "What kind of document is this, broadly?"
+TYPE_INSTRUCTIONS = "Which AMČR document type is this?"
+
+#: What each consumer puts in the request's state: the item the questions are about. Not in the digest.
+STATES: Dict[str, Dict[str, str]] = {
+    "pdf_page": {
+        "item": "one page of a PDF from an archaeological archive; its image is attached, "
+        "and `text` holds its text layer, if any",
+        "used_by": "ufal/atrium-digital-convert (#8)",
+    },
+    "document_text": {
+        "item": "the OCR text of one archaeological archive document; `text` holds its first lines, in order",
+        "used_by": "ufal/atrium-keyword-extract (#3)",
+    },
+}
 
 
 def schema_digest(questions: Mapping[str, Any]) -> str:
@@ -140,7 +160,7 @@ def load_scheme(vocab: Path) -> List[Dict[str, Any]]:
 
 
 def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
-    """The v0 list as a JSON-ready dict; raises ``SystemExit`` when the vocabulary and the map disagree."""
+    """The list as a JSON-ready dict; raises ``SystemExit`` when the vocabulary and the map disagree."""
     scheme = load_scheme(vocab)
     if not scheme:
         raise SystemExit(f"{vocab}: no terms of scheme {SCHEME!r}")
@@ -184,9 +204,11 @@ def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
     }
     return {
         "name": "document_type",
-        "version": 0,
+        "version": VERSION,
         "status": "draft: AMČR's agreement to the list is pending (ufal/atrium-project#83)",
         "generated_by": "tools/build_document_types.py",
+        "shared_with": list(SHARED_WITH),
+        "states": STATES,
         "source": {
             "repository": "ufal/atrium-keyword-extract",
             "path": "data_samples/vocab/amcr_flat.json",
@@ -220,7 +242,7 @@ def render(content: Mapping[str, Any]) -> str:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate decisions/document_type.v0.json (#8).")
+    parser = argparse.ArgumentParser(description="Generate decisions/document_type.v1.json (#8).")
     parser.add_argument(
         "--vocab", type=Path, default=DEFAULT_VOCAB, help="atrium-keyword-extract's amcr_flat.json"
     )

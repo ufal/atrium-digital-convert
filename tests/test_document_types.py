@@ -1,6 +1,6 @@
-"""tests/test_document_types.py — the document-type list v0 for decision models (#8; atrium-project#83).
+"""tests/test_document_types.py — the shared document-type list for decision models (#8; atrium-project#83).
 
-The committed ``decisions/document_type.v0.json`` is checked on its own, and, when an
+The committed ``decisions/document_type.v1.json`` is checked on its own, and, when an
 atrium-keyword-extract checkout sits next to this repository, against what
 ``tools/build_document_types.py`` generates from that checkout's vocabulary. That check is skipped
 when the checkout is absent (CI), like the parity tests of the vendored files.
@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-LIST = REPO_ROOT / "decisions" / "document_type.v0.json"
+LIST = REPO_ROOT / "decisions" / "document_type.v1.json"
 SIBLING_VOCAB = (
     REPO_ROOT.parent / "atrium-keyword-extract" / "data_samples" / "vocab" / "amcr_flat.json"
 )
@@ -81,6 +81,22 @@ def test_the_questions_match_the_list_and_their_digest(doc_types):
     for question in questions.values():
         assert question["type"] == "choice" and 2 <= len(question["criteria"]) <= 255
     assert doc_types["schema_digest"] == _builder().schema_digest(questions)
+
+
+def test_the_list_is_shared_and_its_questions_name_no_input(doc_types):
+    # keyword-extract asks the same questions about a document's text: the questions say "this",
+    # and each consumer's state (``states``) says what the item is, so one digest serves both
+    assert doc_types["version"] == 1
+    assert doc_types["shared_with"] == ["ufal/atrium-keyword-extract"]
+    assert set(doc_types["states"]) == {"pdf_page", "document_text"}
+    assert all(state["item"] for state in doc_types["states"].values())
+    for question in doc_types["questions"].values():
+        assert "page" not in question["instructions"] and "attached" not in question["instructions"]
+    assert all("page" not in text for text in doc_types["questions"]["group"]["criteria"].values())
+
+
+def test_only_one_version_of_the_list_is_committed():
+    assert sorted(p.name for p in LIST.parent.glob("document_type.v*.json")) == [LIST.name]
 
 
 @pytest.mark.skipif(

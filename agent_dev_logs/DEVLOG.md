@@ -1316,3 +1316,24 @@ Documentation only; no code, test or configuration change.
 * **Yours:** push; the fixed #8 body and the comment for @DanaKriv (the catalogue types of the 15 PDFs, the annotators),
   delivered in chat.
 * Not pushed: files delivered as per-repo zips.
+
+## 2026-11-08 — #8: the type list v1, shared with keyword-extract (atrium-project#83)
+
+* **Asked (K4TEL, in session):** the document type, from the archive system's list, is still a question for AMČR;
+  keyword-extract asks it too, from the same list.
+* **Written (not pushed):**
+  * **`tools/build_document_types.py`** writes `decisions/document_type.v1.json`; v0 is removed (never run):
+    * input-neutral questions ("this document"; the `text` group is "a written document");
+    * `states` (`pdf_page`, `document_text`), the item each consumer puts in its state;
+    * `shared_with: ["ufal/atrium-keyword-extract"]`;
+    * the same 32 types, 6 groups and abstain option; digest `6c5e8abb…`; provenance keyword-extract `f450496`.
+  * **Tests:** `tests/test_document_types.py` (9).
+* **Checked:**
+  * the full suite: 1,006 passed, 4 skipped;
+  * `--check` against the sibling checkout: up to date;
+  * ruff.
+* **Records:** `plans/8.plan.md`, `digests/8.digest.md`.
+* **Yours:** unpack and push. Then record this commit in keyword-extract's `ADOPTED` for the list: it stays `None`
+  there until the commit exists.
+* Not pushed: files delivered as per-repo archives.
+
