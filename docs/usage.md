@@ -192,23 +192,29 @@ image or in the service, so they have no counterpart in `/reformat` or `/describ
 the record. The list of types is a draft until AMČR agrees to it
 ([atrium-project#83](https://github.com/ufal/atrium-project/issues/83)).
 
+**Images only.** A document type is the document's form: a report, a site photograph, a trench plan, a map. Under
+the rule of atrium-project#83, form is read from images, by this repository and atrium-page-classification, and
+never from text; the tools that read text (keyword-extract, ocr-postprocess) decide content and text quality. So a
+request carries rendered pages and nothing else: the text layer is never sent.
+
 ### The list of types
 
-`tools/build_document_types.py` generates `decisions/document_type.v2.json` from atrium-keyword-extract's
+`tools/build_document_types.py` generates `decisions/document_type.v3.json` from atrium-keyword-extract's
 vocabulary build (`data_samples/vocab/amcr_flat.json`, AMČR's heslář, CC0), so the list is never written by hand.
 Of the 41 `dokument_typ` terms, the 9 data-only ones (geodetic, geophysical and GNSS data, 3D models and the like)
 are left out. Each of the other 32 keeps its AMČR URI and labels and gets an English id and one of 6 groups:
 `text`, `photograph`, `aerial_photograph`, `plan_or_map`, `drawing` and `unspecified`. `unspecified`
 (`neurčený dokument`) is the abstain option. The file records the vocabulary's commit and SHA-256, and holds one
-question set per input, a view, each with its digest (`schema_digest`):
+question set per level, a view, each with its digest (`schema_digest`):
 
-| View            | Used by                                        | Input                                                      | Questions                                                              |
-|-----------------|------------------------------------------------|------------------------------------------------------------|------------------------------------------------------------------------|
-| `pdf_page`      | `tools/decide_documents.py`, here              | the rendered page image, always; its text layer on request | `group` (6 options) and `document_type` (32, `unspecified` among them) |
-| `document_text` | atrium-keyword-extract, `dm_run.py --doc-type` | the document's OCR text, never an image                    | `document_type` over the 6 `text` types and `unspecified`; no `group`  |
+| View           | Level    | Input                               | Questions                                                                                              |
+|----------------|----------|-------------------------------------|--------------------------------------------------------------------------------------------------------|
+| `pdf_page`     | page     | one rendered page                   | `group` (6 options) and `image_type`: the 25 picture types and `unspecified`, also the answer for text |
+| `pdf_document` | document | the first rendered pages, at most 4 | `group` and `document_type`: all 32 types, the 6 written genres among them                             |
 
-OCR text cannot tell a photograph, a plan or a drawing apart, so the text view offers only the written-document
-types. keyword-extract keeps a copy of the file, pinned by its SHA-256.
+A page is not asked its written genre (field report, annex, expert or client report, brief report, other text):
+an inner page of a report rarely shows it, while a title page does. No other repository uses the list today;
+atrium-page-classification's track 2 (its #58) is to take the picture types.
 
 ```bash
 python3 tools/build_document_types.py --vocab ../atrium-keyword-extract/data_samples/vocab/amcr_flat.json
@@ -222,21 +228,20 @@ or a term has no group. A type AMČR adds is therefore placed on purpose.
 ### Ask a decision model: `tools/decide_documents.py`
 
 The tool renders each page of each PDF with pypdfium2 and sends it to a decision model served at
-`POST /v1/systemone`, through `decision_client.py` (vendored from atrium-page-classification). It asks the
-`pdf_page` questions at two levels, one request per item:
+`POST /v1/systemone`, through `decision_client.py` (vendored from atrium-page-classification). It asks at two
+levels, one request per item:
 
-* **page:** one rendered page;
-* **document:** the first `--doc-pages` pages of the PDF, at most 4.
+* **page:** one rendered page, the `pdf_page` questions;
+* **document:** the first `--doc-pages` pages of the PDF, at most 4, the `pdf_document` questions.
 
 The page answers are never merged into a document answer: which of the two is right is what the evaluation is to
-find out. By default a request carries the image alone; `--with-text` adds the text layer, so the two can be
-compared on the same pages. It needs `requirements_digital.txt` (pypdfium2, and Pillow through pdfplumber) and a
-server. Run it from the repository root:
+find out. A request carries the images alone. It needs `requirements_digital.txt` (pypdfium2, and Pillow through
+pdfplumber) and a server. Run it from the repository root:
 
 ```bash
 export DECISION_MODEL_URL=...      # the server; never recorded
 python3 tools/decide_documents.py --input <folder of PDFs> --out-dir <dir> --model clef-oQ8e --served-on cluster-job
-python3 tools/decide_documents.py --input <pdf> --out-dir <dir> --with-text --level page
+python3 tools/decide_documents.py --input <pdf> --out-dir <dir> --level page
 ```
 
 | Option                          | Meaning                                                                                                                      |
@@ -244,11 +249,10 @@ python3 tools/decide_documents.py --input <pdf> --out-dir <dir> --with-text --le
 | `--input`                       | a PDF, or a folder: every `.pdf` under it (required)                                                                         |
 | `--out-dir`                     | where the tables, the summary and the paradata go (required)                                                                 |
 | `--level`                       | `page`, `document` or `both` (default)                                                                                       |
-| `--with-text`                   | add each page's text layer, whole lines up to `--max-chars` (default 3000 a page); off, a request carries the image alone    |
 | `--max-side`                    | the rendered page's long side, in pixels (default 1024)                                                                      |
 | `--doc-pages`                   | the pages of a document request, from the first: 1 to 4 (default 4, a request's image limit)                                 |
 | `--gold`                        | a CSV of `file,document_type` to score the documents; a type as its id, its HES number or its Czech label                    |
-| `--page-gold`                   | a CSV of `file,page,document_type` to score the pages, the same way                                                          |
+| `--page-gold`                   | a CSV of `file,page,document_type` to score the pages, the same way; a written genre scores the page's group only            |
 | `--accept-at`, `--review-below` | the lane thresholds, both or neither (below)                                                                                 |
 | `--resume`                      | continue the tables in `--out-dir`, skipping the pages and documents they hold; without it, an existing table stops the run  |
 | `--url`, `--model`              | the server and the model (default `DECISION_MODEL_URL`, `DECISION_MODEL_NAME`)                                               |
@@ -258,9 +262,10 @@ python3 tools/decide_documents.py --input <pdf> --out-dir <dir> --with-text --le
 | `--image-style`                 | how the images travel: `data_uri` (default), `base64`, `url` or `image_url`; which one a server reads is the server's choice |
 | `--no-proxy`                    | ignore the proxy variables for this server                                                                                   |
 
-**The lanes.** With both thresholds, each row gets a `lane`: `accept` at or above `--accept-at`, `review` below
-`--review-below`, `escalate` in between. Each threshold is between 0 and 1, and `--review-below` is not above
-`--accept-at`. The thresholds belong to one model revision and one question wording, so set them on dev data.
+**The lanes.** With both thresholds, each row gets a `lane` from its type's confidence: `accept` at or above
+`--accept-at`, `review` below `--review-below`, `escalate` in between. Each threshold is between 0 and 1, and
+`--review-below` is not above `--accept-at`. The thresholds belong to one model revision and one question wording,
+so set them on dev data.
 
 A bad option ends the run before the first request, with exit code 2: a threshold out of range or without the
 other, a `--doc-pages` outside 1 to 4, no PDF at `--input`, or no server or model.
@@ -268,13 +273,15 @@ other, a `--doc-pages` outside 1 to 4, no PDF at `--input`, or no server or mode
 It writes into `--out-dir`:
 
 * `DECIDE_PAGES.csv`, a row per page, and `DECIDE_DOCS.csv`, a row per PDF (`pages_sent`: how many pages went).
-  A row holds the chosen `group` and `document_type` with every option's probability (`P_group_*`, `P_type_*`),
-  `type_group` (the chosen type's group), `confidence`, `top3`, `lane`, the gold, and the request's `status`,
-  `error`, `latency_ms`, `input_tokens`, `attempts` and `schema_digest`. Rows are written as the answers come.
-  A PDF that pdfium cannot open gets a `rejected` row in `DECIDE_DOCS.csv`, and the run goes on.
+  A row holds the chosen `group` and type (`image_type` on a page, `document_type` for a document) with every
+  option's probability (`P_group_*`, `P_type_*`), `type_group` (the chosen type's group), `consistent` (whether
+  the type falls in the chosen group; on a page, `unspecified` also agrees with `text`), `confidence`, `top3`,
+  `lane`, the gold, and the request's `status`, `error`, `latency_ms`, `input_tokens`, `attempts` and
+  `schema_digest`. Rows are written as the answers come. A PDF that pdfium cannot open gets a `rejected` row in
+  `DECIDE_DOCS.csv`, and the run goes on.
 * `decide_documents.summary.json`: per level, the statuses, the latency, the input tokens, the spread of groups
-  and types, the share that abstained and the rows whose group disagrees with their type's; with gold, the type,
-  group and type-group accuracy.
+  and types, the `unspecified` share and the inconsistent rows; with gold, the group accuracy and the type
+  accuracy (on pages, over the rows whose gold is a picture type, `type_rows`).
 * `paradata/`, the run's paradata record: program `digital-convert`, components `decision_model` and `pypdfium2`,
-  and the model, its revision, the list, the view and its digest, the level, `--with-text`, `--max-side`,
-  `--max-chars` and `--doc-pages`. The server is recorded by its kind (`--served-on`), never by its URL.
+  and the model, its revision, the list, the digest of each view asked, the level, `--max-side` and
+  `--doc-pages`. The server is recorded by its kind (`--served-on`), never by its URL.

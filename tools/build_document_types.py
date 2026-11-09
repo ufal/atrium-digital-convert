@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""tools/build_document_types.py — the shared document-type list for decision models (#8; ufal/atrium-project#83).
+"""tools/build_document_types.py — the document-type list for decision models (#8; ufal/atrium-project#83).
 
 A decision model gives each PDF page, and each document, a type chosen from a fixed list. That list
 is AMČR's heslář ``dokument_typ`` (41 terms). This script generates it, so it is never written by
-hand. The list is shared with atrium-keyword-extract (its #3), which pins a copy of the output
-(``tests/test_vendored_doctype_parity.py`` there). The source is atrium-keyword-extract's vocabulary
-build, ``data_samples/vocab/amcr_flat.json``, harvested from AMČR's OAI-PMH endpoint, CC0.
+hand. The source is atrium-keyword-extract's vocabulary build, ``data_samples/vocab/amcr_flat.json``,
+harvested from AMČR's OAI-PMH endpoint, CC0.
+
+**A form list, asked from images only.** ``dokument_typ`` says what a document *is* (a report, a
+site photograph, a trench plan, a map), not what it is about. Under the rule of
+ufal/atrium-project#83, form is decided by the tools that see images (this repository and
+atrium-page-classification) and never from text; the text-only tools decide content. So no view of
+the list carries text: the text layer is never sent.
 
 * **The 9 data-only types** are left out: those whose ``broader`` is ``HES-000217`` ("digitální
   soubor"), i.e. the ecofact-analysis, geodetic, geophysical, GNSS, fieldwork and vector-plan data and
@@ -15,22 +20,23 @@ build, ``data_samples/vocab/amcr_flat.json``, harvested from AMČR's OAI-PMH end
   is an error: when AMČR adds a type, it is placed here on purpose.
 * ``neurčený dokument`` (``unspecified``) is the abstain option.
 
-The output, ``decisions/document_type.v2.json``, records where it came from (the source repository's
+The output, ``decisions/document_type.v3.json``, records where it came from (the source repository's
 commit and the file's SHA-256). Its ``views`` hold the questions in the ``/v1/systemone`` wire format,
-one set per input, each with its digest, computed exactly as ``decision_client.schema_digest``
+one set per level, each with its digest, computed exactly as ``decision_client.schema_digest``
 computes it (``VIEWS``):
 
-* ``pdf_page`` (digital-convert, ``tools/decide_documents.py``): the rendered page image, always; its
-  text layer only on request. ``group`` (6) and ``document_type`` (32 types and the abstain option).
-* ``document_text`` (keyword-extract, ``dm_run.py --doc-type``): the document's OCR text, never an
-  image. Photographs, aerial photographs, plans, maps and drawings cannot be told from OCR text, so it
-  asks ``document_type`` over the ``text`` group only (6 types and the abstain option), with no
-  ``group`` question.
+* ``pdf_page`` (one rendered page): ``group`` (6) and ``image_type``, the 25 picture types
+  (photographs, aerial photographs, plans and maps, the object drawing) and the abstain option. A
+  written page's genre is not asked: an inner page of a report rarely shows it.
+* ``pdf_document`` (the first pages, at most 4, a request's image limit): ``group`` and
+  ``document_type``, all 32 types, the 6 written genres included, which a title page shows.
 
 The questions name no input ("this document"); the view's ``item`` says what it is, in the request's
-state. v2 (2026-11-08) adds the views; v1 had one question set for both tools, and v0 was never run.
-The list is a draft until AMČR agrees to it (ufal/atrium-project#83); nothing reaches the record
-before then.
+state. v3 (2026-11-09) asks images only, with a view per level; v2 had a text view for
+atrium-keyword-extract and an opt-in text layer here, v1 one question set for both tools, and v0 was
+never run. atrium-page-classification's track 2 (its #58) is the planned consumer of the picture
+types. The list is a draft until AMČR agrees to it (ufal/atrium-project#83); nothing reaches the
+record before then.
 
     python3 tools/build_document_types.py --vocab ../atrium-keyword-extract/data_samples/vocab/amcr_flat.json
     python3 tools/build_document_types.py --vocab <file> --check     # exit 1 if the committed list differs
@@ -47,9 +53,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = REPO_ROOT / "decisions" / "document_type.v2.json"
-VERSION = 2
-SHARED_WITH = ("ufal/atrium-keyword-extract",)
+OUTPUT = REPO_ROOT / "decisions" / "document_type.v3.json"
+VERSION = 3
+#: The repositories that vendor the list: none since v3 (page-classification's track 2 is planned).
+SHARED_WITH: Tuple[str, ...] = ()
 DEFAULT_VOCAB = (
     REPO_ROOT.parent / "atrium-keyword-extract" / "data_samples" / "vocab" / "amcr_flat.json"
 )
@@ -58,6 +65,12 @@ SCHEME = "dokument_typ"
 DATA_ONLY_BROADER = "HES-000217"  # digitální soubor
 EXPECTED_DATA_ONLY = 9
 ABSTAIN = "unspecified"
+#: The groups whose types an image of a single page can tell apart.
+PICTURE_GROUPS = ("photograph", "aerial_photograph", "plan_or_map", "drawing")
+SCOPE = (
+    "form: what kind of document this is, read from its page images only; never asked from text, "
+    "where the tools decide content (ufal/atrium-project#83)"
+)
 
 GROUPS: Dict[str, Tuple[str, str]] = {
     "text": (
@@ -118,29 +131,29 @@ TYPE_MAP: Dict[str, Tuple[str, str]] = {
 
 GROUP_INSTRUCTIONS = "What kind of document is this, broadly?"
 TYPE_INSTRUCTIONS = "Which AMČR document type is this?"
+IMAGE_TYPE_INSTRUCTIONS = (
+    "If this is a photograph, an aerial photograph, a plan, a map or a drawing, which AMČR document "
+    "type is it? Answer unspecified for written text, or when the type cannot be told."
+)
 
-#: The question sets, one per input. ``groups``: the type groups a view offers (``None``: all), the
-#: abstain option always included; ``ask_group``: whether the coarse ``group`` question is asked too.
+#: The question sets, one per level, images only. ``groups``: the type groups the type question
+#: offers (``None``: all), the abstain option always included; ``type_question``: its id.
 VIEWS: Dict[str, Dict[str, Any]] = {
     "pdf_page": {
-        "used_by": "ufal/atrium-digital-convert (#8, tools/decide_documents.py)",
-        "inputs": {
-            "image": "the rendered page, always",
-            "text": "the page's text layer, only on request (--with-text); off by default",
-        },
+        "used_by": "ufal/atrium-digital-convert (#8, tools/decide_documents.py, the page level)",
+        "inputs": {"image": "the rendered page", "text": "none"},
         "item": "the attached image of one page of a PDF from an archaeological archive",
-        "groups": None,
-        "ask_group": True,
+        "groups": PICTURE_GROUPS,
+        "type_question": "image_type",
+        "instructions": IMAGE_TYPE_INSTRUCTIONS,
     },
-    "document_text": {
-        "used_by": "ufal/atrium-keyword-extract (#3, dm_run.py --doc-type)",
-        "inputs": {
-            "image": "none",
-            "text": "the document's OCR text (its first lines, in order), always",
-        },
-        "item": "the OCR text of one archaeological archive document; `text` holds its first lines, in order",
-        "groups": ("text",),
-        "ask_group": False,
+    "pdf_document": {
+        "used_by": "ufal/atrium-digital-convert (#8, tools/decide_documents.py, the document level)",
+        "inputs": {"image": "the rendered first pages, at most 4, in order", "text": "none"},
+        "item": "the attached images of the first pages of one PDF from an archaeological archive, in order",
+        "groups": None,
+        "type_question": "document_type",
+        "instructions": TYPE_INSTRUCTIONS,
     },
 }
 
@@ -188,24 +201,24 @@ def view_options(
 
 
 def view_questions(types: Sequence[Mapping[str, Any]], view: Mapping[str, Any]) -> Dict[str, Any]:
-    """The questions of one view. ``document_type``'s criteria are the same text in every view."""
-    questions: Dict[str, Any] = {}
-    if view["ask_group"]:
-        questions["group"] = {
+    """The questions of one view: ``group``, then the type question. A type's criterion is the same
+    text in every view."""
+    by_id = {t["id"]: t for t in types}
+    return {
+        "group": {
             "type": "choice",
             "instructions": GROUP_INSTRUCTIONS,
             "criteria": {gid: f"{label}: {text}" for gid, (label, text) in GROUPS.items()},
-        }
-    by_id = {t["id"]: t for t in types}
-    questions["document_type"] = {
-        "type": "choice",
-        "instructions": TYPE_INSTRUCTIONS,
-        "criteria": {
-            tid: f"{by_id[tid]['en']} ({by_id[tid]['cs']})"
-            for tid in view_options(types, view["groups"])
+        },
+        view["type_question"]: {
+            "type": "choice",
+            "instructions": view["instructions"],
+            "criteria": {
+                tid: f"{by_id[tid]['en']} ({by_id[tid]['cs']})"
+                for tid in view_options(types, view["groups"])
+            },
         },
     }
-    return questions
 
 
 def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
@@ -246,6 +259,7 @@ def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
             "used_by": view["used_by"],
             "inputs": view["inputs"],
             "item": view["item"],
+            "type_question": view["type_question"],
             "questions": questions,
             "schema_digest": schema_digest(questions),
         }
@@ -254,6 +268,7 @@ def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
         "version": VERSION,
         "status": "draft: AMČR's agreement to the list is pending (ufal/atrium-project#83)",
         "generated_by": "tools/build_document_types.py",
+        "scope": SCOPE,
         "shared_with": list(SHARED_WITH),
         "source": {
             "repository": "ufal/atrium-keyword-extract",
@@ -278,6 +293,7 @@ def build(vocab: Path, source_commit: Optional[str] = None) -> Dict[str, Any]:
         },
         "types": types,
         "abstain": ABSTAIN,
+        "picture_groups": list(PICTURE_GROUPS),
         "views": views,
     }
 
@@ -288,7 +304,7 @@ def render(content: Mapping[str, Any]) -> str:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Generate decisions/document_type.v2.json (#8).")
+    parser = argparse.ArgumentParser(description="Generate decisions/document_type.v3.json (#8).")
     parser.add_argument(
         "--vocab", type=Path, default=DEFAULT_VOCAB, help="atrium-keyword-extract's amcr_flat.json"
     )

@@ -2,15 +2,14 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 title: "ATRIUM digital-convert"
 abstract: >-
-  digital-convert reads a born-digital document, one made on a computer, such as a PDF or an office
-  file. It writes the text as an ATRIUM document record: pages, lines in reading order, headings,
-  tables and, for a PDF, exact positions. Later ATRIUM stages add their results to the same record.
-  Use it when the text is already in the file. A scan belongs to the OCR route. It needs no OCR, no
-  model and no network.
+  digital-convert reads born-digital documents, files made on a computer such as PDFs and office
+  documents, and writes their text and layout as an ATRIUM document record, to which later ATRIUM
+  tools add their results. It assesses the text layer of every page, so that pages without usable text
+  can be sent to text recognition.
 keywords:
   - "born-digital documents"
   - "document conversion"
-  - "PDF text extraction"
+  - "text extraction"
   - "text-layer assessment"
   - "digital archives"
 version: "1.4.7-beta"

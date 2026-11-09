@@ -1397,3 +1397,27 @@ Documentation only; no code, test or configuration change.
 * **Yours:** re-pin the hub's reusables (Trivy from its ghcr.io image, the OpenAPI baseline through the GitHub API)
   in the same push; once its runs are green, tag `v1.4.7-beta`. keyword-extract's list pin names that release.
 * Committed locally, not pushed.
+
+## 2026-11-09 — #8: the document type from page images only; the list v3 (atrium-project#83)
+
+* **Asked (K4TEL):** terms about a document's form and terms about its content are two groups, never mixed. This
+  repository gets images and no text; keyword-extract gets text and no image, so it decides content only. The
+  schemes are to suit a historical documentary archive.
+* **Decided in session:** a written genre is asked of a document, from its first page images; a page gets its medium
+  and, for a picture, its picture type. keyword-extract drops its document type.
+* **Written (not pushed):**
+  * **`tools/build_document_types.py` → `decisions/document_type.v3.json`** (v2 deleted, never run). `scope` says
+    form, from page images only. Views: `pdf_page`, `group` + `image_type` (25 picture types and `unspecified`;
+    digest `a7e3cf74…`); `pdf_document`, `group` + `document_type` (32; digest `6c5e8abb…`, v2's page questions).
+    Both have `inputs.text: none`. `shared_with` is empty; `picture_groups` is new.
+  * **`tools/decide_documents.py`:** `--with-text`, `--max-chars` and `_text_layer()` removed; `load_views()`; pages
+    ask `pdf_page`, documents `pdf_document`; a `consistent` column; a written genre as a page's gold scores the
+    group only (`type_rows`); a view that sends text is refused; the paradata records each view's digest and
+    `inputs: images only`.
+  * **Tests:** `tests/test_document_types.py`, `tests/test_decide_documents.py`.
+  * **Docs:** `docs/usage.md` (the section), `docs/development.md` item 6, `README.md`.
+* **Checked:** the full suite, 1,034 passed, 4 skipped; `build_document_types.py --check` against the sibling
+  vocabulary (`810e7b7`, same SHA-256); ruff check and format.
+* **Records:** `plans/8.plan.md`, `digests/8.digest.md`.
+* **No release:** no repository pins the list now. page-classification's track 2 will need one with v3.
+* Committed locally, not pushed; files delivered as per-repo archives.

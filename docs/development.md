@@ -39,11 +39,12 @@ The converter is built in layers. Each module's docstring carries the detail.
 5. **The renderer.** `api_util/json_to_md.py`, `layout_md.py` and `xml_to_md.py` turn a record, or TEITOK or
    ALTO, into annotated Markdown. atrium-keyword-extract vendors them.
 6. **The document types, offline (#8).** `tools/build_document_types.py` generates
-   `decisions/document_type.v2.json`, AMČR's document types with one question set per input, from
-   atrium-keyword-extract's vocabulary build; keyword-extract vendors the list. `tools/decide_documents.py` asks a
-   decision model about PDF pages and documents through `decision_client.py`, vendored from
-   atrium-page-classification and pinned by `tests/test_vendored_decision_parity.py`. Neither tool is in an image
-   or the service ([usage](usage.md#document-types-for-decision-models-offline)).
+   `decisions/document_type.v3.json`, AMČR's document types with one question set per level (page, document),
+   from atrium-keyword-extract's vocabulary build. A type is the document's form, so it is asked from page images
+   only, never from text (atrium-project#83). `tools/decide_documents.py` asks a decision model about PDF pages and
+   documents through `decision_client.py`, vendored from atrium-page-classification and pinned by
+   `tests/test_vendored_decision_parity.py`. Neither tool is in an image or the service
+   ([usage](usage.md#document-types-for-decision-models-offline)).
 
 ## History of the repository
 

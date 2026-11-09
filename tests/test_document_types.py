@@ -1,6 +1,7 @@
-"""tests/test_document_types.py — the shared document-type list for decision models (#8; atrium-project#83).
+"""tests/test_document_types.py — the document-type list for decision models (#8; atrium-project#83).
 
-The committed ``decisions/document_type.v2.json`` is checked on its own, and, when an
+The list is a form list, asked from page images only (atrium-project#83: image tools decide form,
+text tools content). The committed ``decisions/document_type.v3.json`` is checked on its own, and, when an
 atrium-keyword-extract checkout sits next to this repository, against what
 ``tools/build_document_types.py`` generates from that checkout's vocabulary. That check is skipped
 when the checkout is absent (CI), like the parity tests of the vendored files.
@@ -14,7 +15,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-LIST = REPO_ROOT / "decisions" / "document_type.v2.json"
+LIST = REPO_ROOT / "decisions" / "document_type.v3.json"
 SIBLING_VOCAB = (
     REPO_ROOT.parent / "atrium-keyword-extract" / "data_samples" / "vocab" / "amcr_flat.json"
 )
@@ -78,39 +79,41 @@ def test_each_view_matches_the_list_and_its_digest(doc_types):
     builder = _builder()
     for name, view in doc_types["views"].items():
         questions = view["questions"]
+        assert list(questions) == ["group", view["type_question"]], name
         for question in questions.values():
             assert question["type"] == "choice" and 2 <= len(question["criteria"]) <= 255
         assert view["schema_digest"] == builder.schema_digest(questions), name
-    page = doc_types["views"]["pdf_page"]["questions"]
-    assert list(page["group"]["criteria"]) == list(doc_types["groups"])
-    assert list(page["document_type"]["criteria"]) == [t["id"] for t in doc_types["types"]]
+        assert list(questions["group"]["criteria"]) == list(doc_types["groups"])
+    document = doc_types["views"]["pdf_document"]["questions"]
+    assert list(document["document_type"]["criteria"]) == [t["id"] for t in doc_types["types"]]
 
 
-def test_the_page_view_is_the_image_and_the_text_view_is_text_only(doc_types):
+def test_every_view_is_image_only(doc_types):
     views = doc_types["views"]
-    assert set(views) == {"pdf_page", "document_text"}
-    assert doc_types["version"] == 2 and doc_types["shared_with"] == ["ufal/atrium-keyword-extract"]
-    page, text = views["pdf_page"], views["document_text"]
-    # digital-convert: the page image always, its text layer only on request
-    assert (
-        page["inputs"]["image"].startswith("the rendered page")
-        and "off by default" in page["inputs"]["text"]
-    )
-    assert "image" in page["item"]
-    # keyword-extract: OCR text only, so only the written-document types and the abstain option
-    assert text["inputs"]["image"] == "none" and "image" not in text["item"]
-    assert "group" not in text["questions"]
-    offered = list(text["questions"]["document_type"]["criteria"])
-    written = [t["id"] for t in doc_types["types"] if t["group"] == "text"]
-    assert offered == written + [doc_types["abstain"]] and len(offered) == 7
-    page_criteria = page["questions"]["document_type"]["criteria"]
-    assert all(
-        text["questions"]["document_type"]["criteria"][k] == page_criteria[k] for k in offered
-    )
-    assert (
-        text["questions"]["document_type"]["instructions"]
-        == page["questions"]["document_type"]["instructions"]
-    )
+    assert set(views) == {"pdf_page", "pdf_document"}
+    assert doc_types["version"] == 3 and doc_types["shared_with"] == []
+    assert doc_types["scope"].startswith("form:") and "never asked from text" in doc_types["scope"]
+    for name, view in views.items():
+        assert view["inputs"]["text"] == "none", name
+        assert view["inputs"]["image"].startswith("the rendered") and "image" in view["item"]
+
+
+def test_a_page_is_asked_its_picture_type_and_a_document_its_full_type(doc_types):
+    page = doc_types["views"]["pdf_page"]
+    document = doc_types["views"]["pdf_document"]
+    assert page["type_question"] == "image_type" and document["type_question"] == "document_type"
+    pictures = [t["id"] for t in doc_types["types"] if t["group"] in doc_types["picture_groups"]]
+    offered = list(page["questions"]["image_type"]["criteria"])
+    assert offered == pictures + [doc_types["abstain"]] and len(offered) == 26
+    written = {t["id"] for t in doc_types["types"] if t["group"] == "text"}
+    assert len(written) == 6 and not written & set(offered)
+    assert written <= set(document["questions"]["document_type"]["criteria"])
+    # a type reads the same in both views
+    page_criteria = page["questions"]["image_type"]["criteria"]
+    document_criteria = document["questions"]["document_type"]["criteria"]
+    assert all(page_criteria[k] == document_criteria[k] for k in offered)
+    # the document view asks what v2's page view asked, so its digest is unchanged
+    assert document["schema_digest"].startswith("6c5e8abb")
 
 
 def test_the_questions_name_no_input(doc_types):

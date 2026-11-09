@@ -34,7 +34,8 @@ record, the Markdown and the per-page assessment:
 Only the command line has the opt-in Docling engine (`--engine docling`, a local build); the service image runs
 the light engine. Every difference, and why: [docs/usage.md](docs/usage.md#the-command-line-and-the-service).
 Two offline research tools, outside the images and the service, ask a decision model the AMČR document type of
-PDF pages and documents ([usage](docs/usage.md#document-types-for-decision-models-offline)).
+PDF pages and documents, from the rendered pages alone
+([usage](docs/usage.md#document-types-for-decision-models-offline)).
 
 ## Quick start
 

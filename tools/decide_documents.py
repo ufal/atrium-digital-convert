@@ -4,29 +4,31 @@
 An offline experiment CLI, outside the service and its images. It renders each page of each PDF,
 sends it to a decision model served at ``POST /v1/systemone`` (``decision_client.py``, vendored from
 atrium-page-classification) and writes what the model chose from AMČR's ``dokument_typ`` list
-(``decisions/document_type.v2.json``, its ``pdf_page`` view: ``group``, 6 options, and
-``document_type``, 32 types and ``unspecified``, the abstain option).
+(``decisions/document_type.v3.json``).
 
-**The input is the page image.** By default the request carries the rendered page and nothing else.
-``--with-text`` adds the page's text layer (pypdfium2's, cut to ``--max-chars`` at a line break), so
-the two can be compared on the same pages; the text is untrusted input and never changes anything.
+**The input is the page image, and nothing else.** The type is the document's form, and form is
+read from images; the text layer is never sent (ufal/atrium-project#83: the image tools decide form,
+the text tools content). Two levels, each one request per item, each with its view of the list:
 
-Two levels, each one request per item, with the same two questions:
+* **page** (``DECIDE_PAGES.csv``, view ``pdf_page``): one rendered page; ``group`` (6 options) and
+  ``image_type``, the 25 picture types and ``unspecified``, the abstain option, which is also the
+  answer for a page of text. A written page's genre is not asked: an inner page rarely shows it.
+* **document** (``DECIDE_DOCS.csv``, view ``pdf_document``): the first ``--doc-pages`` pages (at most
+  4, a request's image limit); ``group`` and ``document_type``, all 32 types, the written genres
+  included, which a title page shows.
 
-* **page** (``DECIDE_PAGES.csv``): one rendered page;
-* **document** (``DECIDE_DOCS.csv``): the first ``--doc-pages`` pages (at most 4, a request's image
-  limit), with ``--with-text`` their text layers joined.
-
-The page answers are never merged into a document answer: which of the two is right is what the
-evaluation finds out (the #8 plan, Phase C). ``--gold`` (``file,document_type``) scores the documents
-and ``--page-gold`` (``file,page,document_type``) the pages; a type may be given as its id, its HES
-number or its Czech label. Beside the tables: ``decide_documents.summary.json`` and a paradata record
-(``decision_model``). The server is recorded by kind (``--served-on``), never by its URL. Run it from
-the repository root::
+Each row records whether its two answers agree (``consistent``: the type falls in the chosen group;
+on a page, ``unspecified`` also agrees with ``text``). The page answers are never merged into a
+document answer: which of the two is right is what the evaluation finds out (the #8 plan, Phase C).
+``--gold`` (``file,document_type``) scores the documents and ``--page-gold``
+(``file,page,document_type``) the pages; a type may be given as its id, its HES number or its Czech
+label. A written genre given as a page's gold scores the group only. Beside the tables:
+``decide_documents.summary.json`` and a paradata record (``decision_model``). The server is recorded
+by kind (``--served-on``), never by its URL. Run it from the repository root::
 
     python3 tools/decide_documents.py --input <folder of PDFs> --out-dir <dir> \\
         --model clef-oQ8e --served-on cluster-job                 # URL from $DECISION_MODEL_URL
-    python3 tools/decide_documents.py --input <pdf> --out-dir <dir> --with-text --level page
+    python3 tools/decide_documents.py --input <pdf> --out-dir <dir> --level page
 
 Which PDFs may be sent to which server is settled on ufal/atrium-project#83: the AMČR samples stay on
 the cluster. Nothing reaches a record: a ``document-type`` scheme waits for AMČR's agreement.
@@ -50,8 +52,8 @@ if str(REPO_ROOT) not in sys.path:
 
 import decision_client as dc  # noqa: E402 — vendored from atrium-page-classification
 
-LIST = REPO_ROOT / "decisions" / "document_type.v2.json"
-VIEW = "pdf_page"
+LIST = REPO_ROOT / "decisions" / "document_type.v3.json"
+VIEWS = {"page": "pdf_page", "document": "pdf_document"}  # level -> view of the list
 PROGRAM = "digital-convert"
 LEVELS = ("page", "document", "both")
 SERVED_ON = ("cluster-job", "ufal-endpoint", "local", "other")
@@ -61,25 +63,38 @@ DOCUMENT_ITEM = "the attached images of the first {sent} of the {total} pages of
 # ── the list ───────────────────────────────────────────────────────────────────────────────────
 
 
-def load_view(path: Path = LIST, view: str = VIEW) -> Dict[str, Any]:
-    """One view of the type list, its questions checked and their digest recomputed."""
+def load_view(path: Path = LIST, view: str = "pdf_page") -> Dict[str, Any]:
+    """One view of the type list, its questions checked and their digest recomputed. ``types`` is
+    the whole list (gold may name any type); ``offered``, the types its type question offers."""
     content = json.loads(path.read_text(encoding="utf-8"))
     entry = content["views"][view]
+    if entry["inputs"].get("text", "none") != "none":
+        raise SystemExit(f"{path}: the {view} view sends text; this tool sends images only")
     questions = dc.questions(entry["questions"])
     if dc.schema_digest(questions) != entry["schema_digest"]:
         raise SystemExit(
             f"{path}: the {view} questions do not match their digest; regenerate the list"
         )
+    type_question = entry["type_question"]
     return {
+        "name": view,
         "questions": questions,
+        "type_question": type_question,
+        "offered": list(entry["questions"][type_question]["criteria"]),
         "item": entry["item"],
         "inputs": entry["inputs"],
         "schema_digest": entry["schema_digest"],
         "version": content["version"],
         "types": content["types"],
         "groups": list(content["groups"]),
+        "picture_groups": list(content["picture_groups"]),
         "abstain": content["abstain"],
     }
+
+
+def load_views(path: Path = LIST) -> Dict[str, Dict[str, Any]]:
+    """``{"page": pdf_page, "document": pdf_document}``."""
+    return {level: load_view(path, view) for level, view in VIEWS.items()}
 
 
 def type_lookup(types: Sequence[Mapping[str, Any]]) -> Dict[str, str]:
@@ -116,29 +131,10 @@ def read_gold(
 # ── the pages ──────────────────────────────────────────────────────────────────────────────────
 
 
-def _text_layer(page: Any, max_chars: int) -> str:
-    """The page's text layer, whole lines up to *max_chars*."""
-    raw = page.get_textpage().get_text_range() or ""
-    lines = [line.strip() for line in raw.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
-    kept: List[str] = []
-    size = 0
-    for line in (x for x in lines if x):
-        extra = len(line) + (1 if kept else 0)
-        if size + extra > max_chars:
-            break
-        kept.append(line)
-        size += extra
-    return "\n".join(kept)
-
-
 def render_pages(
-    pdf: Path,
-    max_side: int = 1024,
-    with_text: bool = False,
-    max_chars: int = 3000,
-    limit: Optional[int] = None,
+    pdf: Path, max_side: int = 1024, limit: Optional[int] = None
 ) -> Iterator[Dict[str, Any]]:
-    """``{"page", "pages", "image", "text"}`` per page, rendered with pypdfium2 at *max_side* (long side)."""
+    """``{"page", "pages", "image"}`` per page, rendered with pypdfium2 at *max_side* (long side)."""
     import pypdfium2 as pdfium  # noqa: PLC0415 — optional dependency (requirements_digital.txt)
 
     document = pdfium.PdfDocument(str(pdf))
@@ -150,31 +146,21 @@ def render_pages(
                 width, height = page.get_size()
                 scale = max_side / max(width, height, 1.0)
                 image = page.render(scale=scale).to_pil().convert("RGB")
-                text = _text_layer(page, max_chars) if with_text else None
             finally:
                 page.close()
-            yield {"page": index + 1, "pages": total, "image": image, "text": text}
+            yield {"page": index + 1, "pages": total, "image": image}
     finally:
         document.close()
 
 
-def page_state(view: Mapping[str, Any], text: Optional[str]) -> Dict[str, Any]:
-    """The state of a page request: the item, and the text layer only when asked for."""
-    state: Dict[str, Any] = {"item": view["item"]}
-    if text is not None:
-        state["text"] = text
-    return state
+def page_state(view: Mapping[str, Any]) -> Dict[str, Any]:
+    """The state of a page request: what the attached image is, and no text."""
+    return {"item": view["item"]}
 
 
-def document_state(
-    view: Mapping[str, Any], sent: int, total: int, texts: Optional[Sequence[str]]
-) -> Dict[str, Any]:
-    """The state of a document request: the item names how many of its pages are attached; with
-    *texts*, their text layers, each under a ``[page N]`` line."""
-    state: Dict[str, Any] = {"item": DOCUMENT_ITEM.format(sent=sent, total=total)}
-    if texts is not None:
-        state["text"] = "\n\n".join(f"[page {i}]\n{t}" for i, t in enumerate(texts, start=1))
-    return state
+def document_state(sent: int, total: int) -> Dict[str, Any]:
+    """The state of a document request: the item names how many of its pages are attached."""
+    return {"item": DOCUMENT_ITEM.format(sent=sent, total=total)}
 
 
 # ── the answers ────────────────────────────────────────────────────────────────────────────────
@@ -182,19 +168,29 @@ def document_state(
 
 def columns(view: Mapping[str, Any], level: str) -> List[str]:
     """The header of ``DECIDE_PAGES.csv`` (*level* ``page``) or ``DECIDE_DOCS.csv``: the key, the
-    answers with one ``P_group_*`` column per group and one ``P_type_*`` per type, the gold, then the
-    request's status and operations."""
+    answers with one ``P_group_*`` column per group and one ``P_type_*`` per offered type, the gold,
+    then the request's status and operations. The type column is named after the view's type
+    question (``image_type`` on a page, ``document_type`` for a document)."""
     key = ["file", "page", "pages"] if level == "page" else ["file", "pages", "pages_sent"]
     groups = [f"P_group_{g}" for g in view["groups"]]
-    types = [f"P_type_{t['id']}" for t in view["types"]]
+    types = [f"P_type_{t}" for t in view["offered"]]
     return (
         key
-        + ["with_text", "chars", "group"]
+        + ["group"]
         + groups
-        + ["document_type", "type_group", "confidence", "top3", "lane", "gold_type", "gold_group"]
+        + [view["type_question"], "type_group", "consistent", "confidence", "top3", "lane"]
+        + ["gold_type", "gold_group"]
         + types
         + ["status", "error", "latency_ms", "input_tokens", "attempts", "schema_digest", "max_side"]
     )
+
+
+def consistent(group: str, kind: str, kind_group: str, view: Mapping[str, Any]) -> bool:
+    """Whether the two answers agree: the type falls in the chosen group, or, on a page, a page of
+    text (or of no telling) has no picture type."""
+    if kind_group == group:
+        return True
+    return view["type_question"] == "image_type" and group == "text" and kind == view["abstain"]
 
 
 def answer_fields(
@@ -204,16 +200,22 @@ def answer_fields(
     accept_at: Optional[float] = None,
     review_below: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """The answer columns of one row: the group and the type with their probabilities, the top three
-    types, the lane when both thresholds are given, the gold, and the request's status. A failed
-    request gives empty answers."""
+    """The answer columns of one row: the group and the type with their probabilities, whether they
+    agree, the top three types, the lane when both thresholds are given (from the type's
+    confidence), the gold, and the request's status. A failed request gives empty answers."""
+    type_question = view["type_question"]
     group_of = {t["id"]: t["group"] for t in view["types"]}
-    group, kind = d.answers.get("group"), d.answers.get("document_type")
+    group, kind = d.answers.get("group"), d.answers.get(type_question)
     row: Dict[str, Any] = {"group": group.choice if group else ""}
     for g in view["groups"]:
         row[f"P_group_{g}"] = group.probabilities.get(g, "") if group else ""
-    row["document_type"] = kind.choice if kind else ""
-    row["type_group"] = group_of.get(row["document_type"], "")
+    row[type_question] = kind.choice if kind else ""
+    row["type_group"] = group_of.get(row[type_question], "")
+    row["consistent"] = (
+        int(consistent(row["group"], row[type_question], row["type_group"], view))
+        if group and kind
+        else ""
+    )
     row["confidence"] = kind.confidence if kind else ""
     best = sorted(kind.probabilities.items(), key=lambda item: -item[1])[:3] if kind else []
     row["top3"] = "|".join(f"{k}:{p:.4f}" for k, p in best)
@@ -224,8 +226,8 @@ def answer_fields(
     )
     row["gold_type"] = gold_type
     row["gold_group"] = group_of.get(gold_type, "")
-    for t in view["types"]:
-        row[f"P_type_{t['id']}"] = kind.probabilities.get(t["id"], "") if kind else ""
+    for t in view["offered"]:
+        row[f"P_type_{t}"] = kind.probabilities.get(t, "") if kind else ""
     row.update(
         {
             "status": d.status,
@@ -271,11 +273,9 @@ def run(
     client: dc.DecisionClient,
     pdfs: Sequence[Path],
     out_dir: Path,
-    view: Mapping[str, Any],
+    views: Mapping[str, Mapping[str, Any]],
     level: str = "both",
-    with_text: bool = False,
     max_side: int = 1024,
-    max_chars: int = 3000,
     doc_pages: int = dc.MAX_IMAGES,
     gold: Optional[Mapping[Tuple[str, ...], str]] = None,
     page_gold: Optional[Mapping[Tuple[str, ...], str]] = None,
@@ -284,11 +284,13 @@ def run(
     resume: bool = False,
     progress: bool = False,
 ) -> Dict[str, List[Dict[str, Any]]]:
-    """Decide every page and/or document; rows are appended to the two tables as they come."""
+    """Decide every page and/or document, from images only; *views* is :func:`load_views`'s. Rows
+    are appended to the two tables as they come."""
     out_dir.mkdir(parents=True, exist_ok=True)
     # main() refuses a --doc-pages outside 1..MAX_IMAGES; a programmatic caller is held to what one
     # request takes instead.
     doc_pages = max(1, min(doc_pages, dc.MAX_IMAGES))
+    page_view, doc_view = views["page"], views["document"]
     pages_path, docs_path = out_dir / "DECIDE_PAGES.csv", out_dir / "DECIDE_DOCS.csv"
     want_pages, want_docs = level in ("page", "both"), level in ("document", "both")
     done_pages = _done(pages_path, ("file", "page")) if resume else set()
@@ -297,35 +299,30 @@ def run(
     handles = []
     try:
         if want_pages:
-            page_handle, page_writer = _writer(pages_path, columns(view, "page"), resume)
+            page_handle, page_writer = _writer(pages_path, columns(page_view, "page"), resume)
             handles.append(page_handle)
         if want_docs:
-            doc_handle, doc_writer = _writer(docs_path, columns(view, "document"), resume)
+            doc_handle, doc_writer = _writer(docs_path, columns(doc_view, "document"), resume)
             handles.append(doc_handle)
         for number, pdf in enumerate(pdfs, start=1):
             stem = pdf.stem
             sent_images: List[Any] = []
-            sent_texts: List[str] = []
             total = 0
             need_doc = want_docs and (stem,) not in done_docs
             limit = None if want_pages else doc_pages
             try:
-                rendered = list(render_pages(pdf, max_side, with_text, max_chars, limit))
+                rendered = list(render_pages(pdf, max_side, limit))
             except (
                 Exception
             ) as exc:  # a PDF pdfium cannot open: one rejected row per level, the run goes on
-                failed = dc.Decision(
-                    "rejected", view["schema_digest"], error=f"render: {type(exc).__name__}: {exc}"
-                )
                 if want_docs and need_doc:
-                    row = {
-                        "file": stem,
-                        "pages": "",
-                        "pages_sent": 0,
-                        "with_text": int(with_text),
-                        "chars": "",
-                    }
-                    row.update(answer_fields(failed, view, (gold or {}).get((stem,), "")))
+                    failed = dc.Decision(
+                        "rejected",
+                        doc_view["schema_digest"],
+                        error=f"render: {type(exc).__name__}: {exc}",
+                    )
+                    row = {"file": stem, "pages": "", "pages_sent": 0}
+                    row.update(answer_fields(failed, doc_view, (gold or {}).get((stem,), "")))
                     row["max_side"] = max_side
                     doc_writer.writerow(row)
                     new["document"].append(row)
@@ -334,24 +331,16 @@ def run(
                 total = item["pages"]
                 if len(sent_images) < doc_pages:
                     sent_images.append(item["image"])
-                    if with_text:
-                        sent_texts.append(item["text"] or "")
                 if not want_pages or (stem, str(item["page"])) in done_pages:
                     continue
                 d = client.decide(
-                    page_state(view, item["text"]), view["questions"], [item["image"]], max_side
+                    page_state(page_view), page_view["questions"], [item["image"]], max_side
                 )
-                row = {
-                    "file": stem,
-                    "page": item["page"],
-                    "pages": item["pages"],
-                    "with_text": int(with_text),
-                    "chars": len(item["text"]) if item["text"] is not None else "",
-                }
+                row = {"file": stem, "page": item["page"], "pages": item["pages"]}
                 row.update(
                     answer_fields(
                         d,
-                        view,
+                        page_view,
                         (page_gold or {}).get((stem, str(item["page"])), ""),
                         accept_at,
                         review_below,
@@ -362,18 +351,13 @@ def run(
                 page_handle.flush()
                 new["page"].append(row)
             if need_doc and sent_images:
-                texts = sent_texts if with_text else None
-                state = document_state(view, len(sent_images), total, texts)
-                d = client.decide(state, view["questions"], sent_images, max_side)
-                row = {
-                    "file": stem,
-                    "pages": total,
-                    "pages_sent": len(sent_images),
-                    "with_text": int(with_text),
-                    "chars": len(state["text"]) if texts is not None else "",
-                }
+                state = document_state(len(sent_images), total)
+                d = client.decide(state, doc_view["questions"], sent_images, max_side)
+                row = {"file": stem, "pages": total, "pages_sent": len(sent_images)}
                 row.update(
-                    answer_fields(d, view, (gold or {}).get((stem,), ""), accept_at, review_below)
+                    answer_fields(
+                        d, doc_view, (gold or {}).get((stem,), ""), accept_at, review_below
+                    )
                 )
                 row["max_side"] = max_side
                 doc_writer.writerow(row)
@@ -397,8 +381,10 @@ def _pct(values: List[float], q: float) -> Optional[float]:
     return round(ordered[min(len(ordered) - 1, int(round(q * (len(ordered) - 1))))], 1)
 
 
-def summarise(rows: Sequence[Mapping[str, Any]], abstain: str) -> Dict[str, Any]:
-    """Operations, the answers' spread and, where gold is given, type and group accuracy."""
+def summarise(rows: Sequence[Mapping[str, Any]], view: Mapping[str, Any]) -> Dict[str, Any]:
+    """Operations, the answers' spread and, where gold is given, group and type accuracy. On a page,
+    the type is scored only where the gold is a picture type: a written genre's page scores its group."""
+    type_question = view["type_question"]
     ok = [r for r in rows if r.get("status") == "ok"]
     latencies = [float(r["latency_ms"]) for r in ok if str(r.get("latency_ms", "")) != ""]
     tokens = [float(r["input_tokens"]) for r in ok if str(r.get("input_tokens", "")) != ""]
@@ -409,25 +395,30 @@ def summarise(rows: Sequence[Mapping[str, Any]], abstain: str) -> Dict[str, Any]
         "latency_ms_p95": _pct(latencies, 0.95),
         "input_tokens_mean": round(statistics.fmean(tokens), 1) if tokens else None,
         "groups": dict(Counter(r["group"] for r in ok)),
-        "types": dict(Counter(r["document_type"] for r in ok)),
-        "abstained": round(sum(r["document_type"] == abstain for r in ok) / len(ok), 4)
+        "types": dict(Counter(r[type_question] for r in ok)),
+        "unspecified": round(sum(r[type_question] == view["abstain"] for r in ok) / len(ok), 4)
         if ok
         else None,
-        "group_disagrees_with_type": sum(r["group"] != r["type_group"] for r in ok),
+        "inconsistent": sum(str(r.get("consistent")) in ("0", "False") for r in ok),
     }
     graded = [r for r in ok if r.get("gold_type")]
     if graded:
+        typed = (
+            [r for r in graded if r["gold_group"] in view["picture_groups"]]
+            if type_question == "image_type"
+            else graded
+        )
         out["gold"] = {
             "rows": len(graded),
-            "type_accuracy": round(
-                sum(r["document_type"] == r["gold_type"] for r in graded) / len(graded), 4
-            ),
             "group_accuracy": round(
                 sum(r["group"] == r["gold_group"] for r in graded) / len(graded), 4
             ),
-            "type_group_accuracy": round(
-                sum(r["type_group"] == r["gold_group"] for r in graded) / len(graded), 4
-            ),
+            "type_rows": len(typed),
+            "type_accuracy": round(
+                sum(r[type_question] == r["gold_type"] for r in typed) / len(typed), 4
+            )
+            if typed
+            else None,
         }
     return out
 
@@ -466,13 +457,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--level", choices=LEVELS, default="both")
     parser.add_argument(
-        "--with-text", action="store_true", help="add each page's text layer (off: the image alone)"
-    )
-    parser.add_argument(
         "--max-side", type=int, default=1024, help="the rendered page's long side, px"
-    )
-    parser.add_argument(
-        "--max-chars", type=int, default=3000, help="the text layer per page, with --with-text"
     )
     parser.add_argument(
         "--doc-pages", type=int, default=dc.MAX_IMAGES, help="pages per document request (1 to 4)"
@@ -539,9 +524,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     if not client.endpoint or not client.model:
         parser.error("set --url/--model (or DECISION_MODEL_URL/DECISION_MODEL_NAME)")
-    view = load_view()
-    gold = read_gold(args.gold, view["types"]) if args.gold else None
-    page_gold = read_gold(args.page_gold, view["types"], pages=True) if args.page_gold else None
+    views = load_views()
+    types = views["document"]["types"]
+    gold = read_gold(args.gold, types) if args.gold else None
+    page_gold = read_gold(args.page_gold, types, pages=True) if args.page_gold else None
+    levels = [lv for lv in ("page", "document") if args.level in (lv, "both")]
+    digests = {VIEWS[lv]: views[lv]["schema_digest"] for lv in levels}
     where = served_on(args.url, args.served_on)
 
     from atrium_paradata import ParadataLogger  # noqa: PLC0415
@@ -553,12 +541,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "decision_model": args.model,
             "decision_revision": args.model_revision,
             "served_on": where,
-            "decision_schema_digest": view["schema_digest"],
-            "list": f"decisions/document_type.v{view['version']}.json ({VIEW})",
+            "decision_schema_digest": digests,
+            "list": f"decisions/document_type.v{views['page']['version']}.json",
             "level": args.level,
-            "with_text": args.with_text,
+            "inputs": "images only",
             "max_side": args.max_side,
-            "max_chars": args.max_chars if args.with_text else None,
             "doc_pages": args.doc_pages,
             "documents": len(pdfs),
         },
@@ -571,11 +558,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         client,
         pdfs,
         args.out_dir,
-        view,
+        views,
         args.level,
-        args.with_text,
         args.max_side,
-        args.max_chars,
         args.doc_pages,
         gold,
         page_gold,
@@ -589,15 +574,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "model": args.model,
         "model_revision": args.model_revision,
         "served_on": where,
-        "schema_digest": view["schema_digest"],
-        "with_text": args.with_text,
+        "schema_digest": digests,
+        "inputs": "images only",
         "max_side": args.max_side,
     }
-    if args.level in ("page", "both"):
-        summary["pages"] = summarise(read_rows(args.out_dir / "DECIDE_PAGES.csv"), view["abstain"])
-    if args.level in ("document", "both"):
+    if "page" in levels:
+        summary["pages"] = summarise(read_rows(args.out_dir / "DECIDE_PAGES.csv"), views["page"])
+    if "document" in levels:
         summary["documents"] = summarise(
-            read_rows(args.out_dir / "DECIDE_DOCS.csv"), view["abstain"]
+            read_rows(args.out_dir / "DECIDE_DOCS.csv"), views["document"]
         )
     (args.out_dir / "decide_documents.summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"

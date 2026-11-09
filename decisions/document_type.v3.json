@@ -1,11 +1,10 @@
 {
   "name": "document_type",
-  "version": 2,
+  "version": 3,
   "status": "draft: AMČR's agreement to the list is pending (ufal/atrium-project#83)",
   "generated_by": "tools/build_document_types.py",
-  "shared_with": [
-    "ufal/atrium-keyword-extract"
-  ],
+  "scope": "form: what kind of document this is, read from its page images only; never asked from text, where the tools decide content (ufal/atrium-project#83)",
+  "shared_with": [],
   "source": {
     "repository": "ufal/atrium-keyword-extract",
     "path": "data_samples/vocab/amcr_flat.json",
@@ -356,14 +355,77 @@
     }
   ],
   "abstain": "unspecified",
+  "picture_groups": [
+    "photograph",
+    "aerial_photograph",
+    "plan_or_map",
+    "drawing"
+  ],
   "views": {
     "pdf_page": {
-      "used_by": "ufal/atrium-digital-convert (#8, tools/decide_documents.py)",
+      "used_by": "ufal/atrium-digital-convert (#8, tools/decide_documents.py, the page level)",
       "inputs": {
-        "image": "the rendered page, always",
-        "text": "the page's text layer, only on request (--with-text); off by default"
+        "image": "the rendered page",
+        "text": "none"
       },
       "item": "the attached image of one page of a PDF from an archaeological archive",
+      "type_question": "image_type",
+      "questions": {
+        "group": {
+          "type": "choice",
+          "instructions": "What kind of document is this, broadly?",
+          "criteria": {
+            "text": "text: a written document: a report, its annex, an expert or client report, a brief report or other text",
+            "photograph": "photograph: a photograph taken on the ground: landscape, site, trench, feature, object, people",
+            "aerial_photograph": "aerial photograph: a photograph taken from the air, of a landscape, site or crop marks",
+            "plan_or_map": "plan or map: a plan of a region, site, excavation, trench or feature, or a map",
+            "drawing": "drawing: a drawing of an object",
+            "unspecified": "unspecified: none of the above can be told"
+          }
+        },
+        "image_type": {
+          "type": "choice",
+          "instructions": "If this is a photograph, an aerial photograph, a plan, a map or a drawing, which AMČR document type is it? Answer unspecified for written text, or when the type cannot be told.",
+          "criteria": {
+            "photo_conservation": "photograph of conservation (fotografie konzervace)",
+            "photo_landscape": "photograph of landscape (fotografie krajiny)",
+            "photo_site": "photograph of site (fotografie lokality)",
+            "photo_feature": "photograph of feature (fotografie objektu)",
+            "photo_person": "photograph of person (fotografie osobní)",
+            "photo_fieldwork": "photograph of fieldwork (fotografie pracovní)",
+            "photo_object": "photograph of object (fotografie předmětu)",
+            "photo_event": "photograph of event (fotografie události)",
+            "photo_excavation": "photograph of excavation/trench (fotografie výzkumu/sondy)",
+            "aerial_landscape": "aerial photograph of landscape (letecká fotografie krajiny)",
+            "aerial_site": "aerial photograph of site (letecká fotografie lokality)",
+            "aerial_method": "aerial photograph of method (letecká fotografie metody)",
+            "aerial_fieldwork": "aerial photograph of fieldwork (letecká fotografie výzkumu)",
+            "aerial_soil_marks": "aerial photograph of soil marks (letecká fotografie půdních příznaků)",
+            "aerial_snow_marks": "aerial photograph of snow marks (letecká fotografie sněžných příznaků)",
+            "aerial_shadow_marks": "aerial photograph of shadow marks (letecká fotografie stínových příznaků)",
+            "aerial_vegetation_marks": "aerial photograph of vegetation marks (letecká fotografie vegetačních příznaků)",
+            "microphotograph": "microphotograph (mikrofotografie)",
+            "plan_region": "plan of region (plán regionu)",
+            "plan_site": "plan of site (plán lokality)",
+            "plan_fieldwork": "plan of fieldwork (plán výzkumu)",
+            "plan_trench": "plan of trench (plán sondy)",
+            "plan_feature": "plan of feature (plán objektu)",
+            "object_drawing": "object drawing (kresba předmětu)",
+            "map": "map (mapa)",
+            "unspecified": "unspecified document (neurčený dokument)"
+          }
+        }
+      },
+      "schema_digest": "a7e3cf743f32eef97f812e173eb6f91463d975c4bbda463c227799472bd2d0ef"
+    },
+    "pdf_document": {
+      "used_by": "ufal/atrium-digital-convert (#8, tools/decide_documents.py, the document level)",
+      "inputs": {
+        "image": "the rendered first pages, at most 4, in order",
+        "text": "none"
+      },
+      "item": "the attached images of the first pages of one PDF from an archaeological archive, in order",
+      "type_question": "document_type",
       "questions": {
         "group": {
           "type": "choice",
@@ -417,30 +479,6 @@
         }
       },
       "schema_digest": "6c5e8abb6b40a4c5ba6d4d517b150b23b918e3e13d3558d4bdb1447d465999b3"
-    },
-    "document_text": {
-      "used_by": "ufal/atrium-keyword-extract (#3, dm_run.py --doc-type)",
-      "inputs": {
-        "image": "none",
-        "text": "the document's OCR text (its first lines, in order), always"
-      },
-      "item": "the OCR text of one archaeological archive document; `text` holds its first lines, in order",
-      "questions": {
-        "document_type": {
-          "type": "choice",
-          "instructions": "Which AMČR document type is this?",
-          "criteria": {
-            "fieldwork_report": "fieldwork report (nálezová zpráva)",
-            "report_annex": "report annex (příloha zprávy/hlášení)",
-            "expert_report": "expert report (expertní posudek)",
-            "client_report": "client report (investorská zpráva)",
-            "brief_report": "brief report (hlášení)",
-            "other_text": "other text (jiný text)",
-            "unspecified": "unspecified document (neurčený dokument)"
-          }
-        }
-      },
-      "schema_digest": "34d454400f593f64975843acc7d771c05cc7b49387a7c9eec44e38ebe341a5c7"
     }
   }
 }

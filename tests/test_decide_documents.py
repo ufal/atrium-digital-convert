@@ -1,7 +1,8 @@
 """tests/test_decide_documents.py — the document type of PDF pages and documents (#8; atrium-project#83).
 
 No model or network: ``decision_client.FakeSystemOne`` answers on 127.0.0.1. The PDFs are written
-here: two pages, each with one line of text in its text layer, rendered by pypdfium2.
+here: two pages, each with one line of text in its text layer, rendered by pypdfium2. The text layer
+is never sent: the type is the document's form, read from its images (atrium-project#83).
 """
 
 import csv
@@ -53,54 +54,69 @@ def pdfs(tmp_path):
     return folder
 
 
-def test_the_view_is_the_pdf_page_view_of_the_list():
-    view = dd.load_view()
-    assert list(view["questions"]) == ["group", "document_type"]
-    assert len(view["questions"]["document_type"]["criteria"]) == 32
-    assert view["inputs"]["image"].startswith("the rendered page")
-    assert "off by default" in view["inputs"]["text"]
+def test_the_views_are_image_only_one_per_level():
+    views = dd.load_views()
+    page, document = views["page"], views["document"]
+    assert list(page["questions"]) == ["group", "image_type"] and len(page["offered"]) == 26
+    assert list(document["questions"]) == ["group", "document_type"]
+    assert len(document["offered"]) == 32 and len(page["types"]) == 32
+    assert "fieldwork_report" not in page["offered"] and "fieldwork_report" in document["offered"]
+    assert page["inputs"]["text"] == document["inputs"]["text"] == "none"
 
 
-def test_render_pages_gives_images_and_the_text_layer_only_when_asked(pdfs):
+def test_a_view_that_sends_text_is_refused(tmp_path):
+    content = json.loads(dd.LIST.read_text(encoding="utf-8"))
+    content["views"]["pdf_page"]["inputs"]["text"] = "the page's text layer"
+    bad = tmp_path / "list.json"
+    bad.write_text(json.dumps(content), encoding="utf-8")
+    with pytest.raises(SystemExit, match="images only"):
+        dd.load_view(bad, "pdf_page")
+
+
+def test_render_pages_gives_images_only(pdfs):
     plain = list(dd.render_pages(pdfs / "CTX1.pdf", max_side=200))
-    assert [p["page"] for p in plain] == [1, 2] and all(p["text"] is None for p in plain)
+    assert [p["page"] for p in plain] == [1, 2] and all(
+        set(p) == {"page", "pages", "image"} for p in plain
+    )
     assert max(plain[0]["image"].size) == 200
-    texts = list(dd.render_pages(pdfs / "CTX1.pdf", max_side=200, with_text=True))
-    assert [p["text"] for p in texts] == ["Nalezova zprava", "Priloha 1"]
-    assert list(dd.render_pages(pdfs / "CTX1.pdf", with_text=True, max_chars=5))[0]["text"] == ""
+    assert len(list(dd.render_pages(pdfs / "CTX1.pdf", max_side=200, limit=1))) == 1
+    assert "with_text" not in dd.build_parser().format_help()
 
 
-def test_by_default_a_request_carries_the_image_and_no_text(pdfs, tmp_path):
-    view = dd.load_view()
+def test_a_request_carries_images_and_no_text(pdfs, tmp_path):
+    views = dd.load_views()
     with dc.FakeSystemOne() as fake:
-        new = dd.run(_client(fake), dd.input_pdfs(pdfs), tmp_path / "out", view, max_side=200)
+        new = dd.run(_client(fake), dd.input_pdfs(pdfs), tmp_path / "out", views, max_side=200)
         requests = fake.requests
-    # two pages of CTX1, one of CTX2, then one document request each
+    # two pages of CTX1, then CTX1's document request; one page of CTX2, then its document request
     assert len(new["page"]) == 3 and len(new["document"]) == 2 and len(requests) == 5
     for request in requests:
-        assert "text" not in request["state"] and request["questions"] == view["questions"]
+        assert set(request["state"]) == {"item"}
+    asked = [list(r["questions"]) for r in requests]
+    assert asked == [["group", "image_type"]] * 2 + [["group", "document_type"]] + [
+        ["group", "image_type"],
+        ["group", "document_type"],
+    ]
     images = sorted(len(r["images"]) for r in requests)
     assert images == [1, 1, 1, 1, 2]  # CTX1's document request carries its two pages
     pages = _read(tmp_path / "out" / "DECIDE_PAGES.csv")
-    assert list(pages[0]) == dd.columns(view, "page")
-    assert {r["with_text"] for r in pages} == {"0"} and {r["chars"] for r in pages} == {""}
-    assert all(r["status"] == "ok" and r["document_type"] for r in pages)
-    assert all(r["schema_digest"] == view["schema_digest"] for r in pages)
+    assert list(pages[0]) == dd.columns(views["page"], "page")
+    assert all(r["status"] == "ok" and r["image_type"] in views["page"]["offered"] for r in pages)
+    assert all(r["schema_digest"] == views["page"]["schema_digest"] for r in pages)
+    assert {r["consistent"] for r in pages} <= {"0", "1"}
+    docs = _read(tmp_path / "out" / "DECIDE_DOCS.csv")
+    assert list(docs[0]) == dd.columns(views["document"], "document")
+    assert all(r["document_type"] in views["document"]["offered"] for r in docs)
+    assert all(r["schema_digest"] == views["document"]["schema_digest"] for r in docs)
 
 
-def test_with_text_adds_the_text_layer(pdfs, tmp_path):
-    view = dd.load_view()
-    with dc.FakeSystemOne() as fake:
-        dd.run(
-            _client(fake), dd.input_pdfs(pdfs), tmp_path / "out", view, with_text=True, max_side=200
-        )
-        states = [r["state"] for r in fake.requests]
-    assert states[0]["text"] == "Nalezova zprava"
-    assert states[2]["text"].startswith("[page 1]\nNalezova zprava")  # CTX1's document request
-    pages = _read(tmp_path / "out" / "DECIDE_PAGES.csv")
-    assert {r["with_text"] for r in pages} == {"1"} and pages[0]["chars"] == str(
-        len("Nalezova zprava")
-    )
+def test_consistent_reads_a_text_page_without_a_picture_type_as_agreeing():
+    page, document = dd.load_views()["page"], dd.load_views()["document"]
+    assert dd.consistent("photograph", "photo_site", "photograph", page)
+    assert not dd.consistent("photograph", "plan_site", "plan_or_map", page)
+    assert dd.consistent("text", "unspecified", "unspecified", page)
+    assert not dd.consistent("text", "map", "plan_or_map", page)
+    assert not dd.consistent("text", "unspecified", "unspecified", document)
 
 
 def test_a_document_request_holds_at_most_four_pages(tmp_path):
@@ -112,7 +128,7 @@ def test_a_document_request_holds_at_most_four_pages(tmp_path):
             _client(fake),
             [folder / "LONG.pdf"],
             tmp_path / "out",
-            dd.load_view(),
+            dd.load_views(),
             level="document",
             doc_pages=9,
         )
@@ -124,48 +140,55 @@ def test_a_document_request_holds_at_most_four_pages(tmp_path):
 
 
 def test_gold_scores_documents_and_pages(pdfs, tmp_path):
-    view = dd.load_view()
-    report = next(t for t in view["types"] if t["id"] == "fieldwork_report")
+    views = dd.load_views()
+    types = views["document"]["types"]
+    report = next(t for t in types if t["id"] == "fieldwork_report")
     gold = tmp_path / "gold.csv"
     gold.write_text(
         f"file,document_type\nCTX1.pdf,{report['hes']}\nCTX2,plan_trench\n", encoding="utf-8"
     )
     page_gold = tmp_path / "page_gold.csv"
-    page_gold.write_text(f"file,page,document_type\nCTX1,2,{report['cs']}\n", encoding="utf-8")
-    documents = dd.read_gold(gold, view["types"])
+    page_gold.write_text(
+        f"file,page,document_type\nCTX1,2,{report['cs']}\nCTX2,1,plan_trench\n", encoding="utf-8"
+    )
+    documents = dd.read_gold(gold, types)
     assert documents == {("CTX1",): "fieldwork_report", ("CTX2",): "plan_trench"}
-    pages = dd.read_gold(page_gold, view["types"], pages=True)
+    pages = dd.read_gold(page_gold, types, pages=True)
     with dc.FakeSystemOne() as fake:
         dd.run(
             _client(fake),
             dd.input_pdfs(pdfs),
             tmp_path / "out",
-            view,
+            views,
             gold=documents,
             page_gold=pages,
         )
     docs = _read(tmp_path / "out" / "DECIDE_DOCS.csv")
     assert {r["file"]: r["gold_group"] for r in docs} == {"CTX1": "text", "CTX2": "plan_or_map"}
-    summary = dd.summarise(docs, view["abstain"])
-    assert summary["gold"]["rows"] == 2 and 0 <= summary["gold"]["type_accuracy"] <= 1
+    summary = dd.summarise(docs, views["document"])
+    assert summary["gold"]["rows"] == summary["gold"]["type_rows"] == 2
+    assert 0 <= summary["gold"]["type_accuracy"] <= 1
     page_rows = _read(tmp_path / "out" / "DECIDE_PAGES.csv")
-    assert [r["gold_type"] for r in page_rows] == ["", "fieldwork_report", ""]
+    assert [r["gold_type"] for r in page_rows] == ["", "fieldwork_report", "plan_trench"]
+    # a written genre on a page scores its group only; the plan scores its type too
+    page_summary = dd.summarise(page_rows, views["page"])
+    assert page_summary["gold"]["rows"] == 2 and page_summary["gold"]["type_rows"] == 1
     bad = tmp_path / "bad.csv"
     bad.write_text("file,document_type\nCTX1,no such type\n", encoding="utf-8")
     with pytest.raises(SystemExit):
-        dd.read_gold(bad, view["types"])
+        dd.read_gold(bad, types)
 
 
 def test_resume_skips_what_is_done_and_a_broken_pdf_is_rejected(pdfs, tmp_path):
     (pdfs / "BROKEN.pdf").write_bytes(b"not a pdf")
-    view = dd.load_view()
+    views = dd.load_views()
     out = tmp_path / "out"
     with dc.FakeSystemOne() as fake:
-        dd.run(_client(fake), dd.input_pdfs(pdfs), out, view)
+        dd.run(_client(fake), dd.input_pdfs(pdfs), out, views)
         with pytest.raises(SystemExit):
-            dd.run(_client(fake), dd.input_pdfs(pdfs), out, view)
+            dd.run(_client(fake), dd.input_pdfs(pdfs), out, views)
         before = len(fake.requests)
-        again = dd.run(_client(fake), dd.input_pdfs(pdfs), out, view, resume=True)
+        again = dd.run(_client(fake), dd.input_pdfs(pdfs), out, views, resume=True)
         assert len(fake.requests) == before and again == {"page": [], "document": []}
     broken = [r for r in _read(out / "DECIDE_DOCS.csv") if r["file"] == "BROKEN"]
     assert (
@@ -183,7 +206,8 @@ def test_main_end_to_end_names_the_server_by_kind(pdfs, tmp_path):
         )
     assert code == 0
     summary = json.loads((out / "decide_documents.summary.json").read_text(encoding="utf-8"))
-    assert summary["served_on"] == "local" and summary["with_text"] is False
+    assert summary["served_on"] == "local" and summary["inputs"] == "images only"
+    assert set(summary["schema_digest"]) == {"pdf_page", "pdf_document"}
     assert summary["pages"]["rows"] == 3 and summary["documents"]["rows"] == 2
     assert fake.url not in json.dumps(summary)
     records = list((out / "paradata").glob("*.json"))
