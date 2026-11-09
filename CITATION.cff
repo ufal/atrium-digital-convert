@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "ATRIUM digital-convert: conversion of born-digital PDF and office documents into ATRIUM document records with per-page text-layer assessment"
+title: "ATRIUM digital-convert"
 abstract: >-
   digital-convert reads a born-digital document, one made on a computer, such as a PDF or an office
   file. It writes the text as an ATRIUM document record: pages, lines in reading order, headings,
