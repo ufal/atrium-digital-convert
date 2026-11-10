@@ -11,15 +11,23 @@
 # for is recorded beside it, the same way tools/ci/workflow_lint.py requires a `# vX`
 # comment next to every pinned action SHA:
 #
-#     v0.3.11 = f663958bd9a87cf4ceee27b9124bf646e5d1d32a   (tag object; highest published tag)
-#             → 50937b97b5efbd8b719faedd1886653cb99b80e1   (the commit it points to)
-#     main    = b0995bf1e7cf58d2a9374edc39964ec1a3124b51   (ahead of it, untagged; read 2026-11-02)
+#     v0.3.12 = e3629912f77a2632364970ac199c0c7824539573   (tag object; highest published tag)
+#             → 5cfc48392adcdae4f9046b395f511eea7257c3ec   (the commit it points to)
+#     main    = ffee2140ac1190e10402281afdfa641df01ae79b   (ahead of it, untagged; read 2026-11-09)
 #
 # MOVED 2026-11-02 from v0.3.10 to v0.3.11, the first tag with flexiconv's LICENSE file (MIT,
 # added upstream in 1aed8ca on 2026-10-29; atrium-project#6). v0.3.11 writes the same TEITOK
 # as v0.3.10 for the formats ATRIUM converts (ALTO, hOCR, PAGE XML, Markdown, DOCX, TXT;
 # compared on flexiconv's own examples, the `when` stamp aside), so the v0.3.10 fixtures
 # under tests/fixtures/teitok/flexiconv/ still stand.
+#
+# MOVED 2026-11-10 from v0.3.11 to v0.3.12 (ufal/flexiconv#1). Its pyproject.toml declares MIT
+# too (`license = "MIT"`, `license-files = ["LICENSE"]`), so `pip show` now reports MIT; it builds
+# with setuptools>=77. Its `load_teitok` reads the <dtok>s of a multi-word token as words
+# (tests/test_teitok_conformance.py). v0.3.12 writes the same TEITOK as v0.3.11 for ALTO, hOCR,
+# PAGE XML, Markdown, DOCX and TXT (nine inputs, flexiconv's examples and the fixtures' own, the
+# `when` stamp aside), so the fixtures still stand. `main` adds the ALTO page size and relative
+# `pct:` boxes, which the readers here already accept (api_util/page_boxes.py).
 #
 # Move the pin deliberately: bump the tag, re-resolve the SHA above, and run
 # tests/test_flexiconv_convert.py — they SKIP when flexiconv is absent, so a bad pin is
@@ -33,4 +41,4 @@
 # extras. Without them the flexiconv CLI used to `pip install flexiconv[<fmt>]` at run
 # time — an unpinned install in the middle of a pipeline run. The adapter now passes
 # --no-auto-install, so the extras have to be declared here.
-flexiconv[docx,odt,md,pdf,rtf] @ git+https://github.com/ufal/flexiconv.git@v0.3.11
+flexiconv[docx,odt,md,pdf,rtf] @ git+https://github.com/ufal/flexiconv.git@v0.3.12

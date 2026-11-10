@@ -35,21 +35,22 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 NLP_ENRICH = REPO_ROOT.parent / "atrium-nlp-enrich"
 
 #: The owner revision the copies were taken from (atrium-project#82): the
-#: atrium-nlp-enrich commit of 2026-11-02 that pins flexiconv v0.3.11 (atrium-project#6); its files have
-#: the digests below. Only requirements_flexiconv.txt changed since the 2026-10-21 adoption (477f68c,
-#: v1.1.3-beta). "release" is the nlp-enrich release that will first carry it, the one after v1.3.1-beta:
-#: correct it if that release takes another number.
+#: atrium-nlp-enrich commit of 2026-11-10 that pins flexiconv v0.3.12 (ufal/flexiconv#1); its files have
+#: the digests below. Only requirements_flexiconv.txt changed since the 2026-11-02 adoption (ba81709,
+#: v1.3.2-beta, flexiconv v0.3.11). "commit" still names ba81709 until that nlp-enrich commit exists:
+#: set it with `git -C ../atrium-nlp-enrich rev-parse HEAD`. "release" is the nlp-enrich release that
+#: will first carry it, the one after v1.3.4-beta: correct it if that release takes another number.
 ADOPTED = {
     "owner": "atrium-nlp-enrich",
     "commit": "ba81709cfc037ad7551a76cadde53fbe224f6c2b",
-    "release": "v1.3.2-beta",
+    "release": "v1.3.5-beta",
 }
 
 VENDORED = {
     "api_util/teitok_read.py": "801daba6a37138561d1bcdf65895cf9bbbffea6826705bf91cf616da78479c47",
     "api_util/flexiconv_convert.py": "e7152923d1b9cf8a04c54442774aa4d5adda4cc44d7e3852771a3bb831b4ed9b",
     "api_util/bbox_scale.py": "a3198dfdb8ab9dad0688139678514f4cdea86d066bc6a12c814f7e24937011f4",
-    "requirements_flexiconv.txt": "dd3811b36adf91f9f84d4e7337bdf878b826d33a1ec6e85d3f237fa8a400dce4",
+    "requirements_flexiconv.txt": "f2b35e605c8e4483762150ddb0417a5bde280d06682c4713a6e0620ce3458c59",
     "tests/test_flexiconv_convert.py": "9c35b68b5e414df303a81a9b055524a40e7c16473eeacdfbaea9c97841d33401",
     "tests/fixtures/teitok/flexiconv/alto.teitok.xml": "78a816383999f644e3c96834a2dc85e73f545c1672e94676b4190de607e0430a",
     "tests/fixtures/teitok/flexiconv/hocr.teitok.xml": "6269e0fc38b17bcc092c9bbd1c0980e6d4c6a4475b4f1d84207deb86cb0ad885",

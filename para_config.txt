@@ -58,8 +58,8 @@ docling-layout-heron = Apache-2.0          ; conditional ; layout model weights 
 docling-tableformer  = CDLA-Permissive-2.0 ; conditional ; table-structure model weights (docling-project/docling-models)
 #
 # ── flexiconv (optional; api_util/flexiconv_convert.py, vendored from nlp-enrich) ─
-# MIT: its LICENSE file, added upstream on 2026-10-29 (1aed8ca), is in the pinned v0.3.11
-# (atrium-project#6); its pyproject.toml still says GPL-3.0-or-later (raised on ufal/flexiconv#1).
+# MIT: its LICENSE file (since v0.3.11) and, from the pinned v0.3.12, its pyproject.toml say so, and
+# `pip show` reports MIT (atrium-project#6, ufal/flexiconv#1). It asks to be cited: its CITATION.cff.
 # Conditional: it is listed only for runs that actually convert documents with it -- and no stage
 # of this repo does (the adapter is vendored for its tests and for direct use; nothing here calls
 # log_component("flexiconv")), so the row never enters a run's component list here. Converting is

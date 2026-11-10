@@ -9,7 +9,7 @@
 > escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
 > **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** to **v1.4.2-beta** (10-29 to
 > 11-03) · **pilot release: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
-> v1.4.3-beta was tagged, not released. Hub workflows pinned to `51aad6c` (`v1`). Latest entry: 2026-11-06 (evening)._
+> v1.4.3-beta was tagged, not released. Hub workflows pinned to `4435ffb` (`v1`). Latest entry: 2026-11-10._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -1421,3 +1421,22 @@ Documentation only; no code, test or configuration change.
 * **Records:** `plans/8.plan.md`, `digests/8.digest.md`.
 * **No release:** no repository pins the list now. page-classification's track 2 will need one with v3.
 * Committed locally, not pushed; files delivered as per-repo archives.
+
+## 2026-11-10 — flexiconv v0.3.12 (ufal/flexiconv#1, atrium-project#6)
+
+* **Asked (K4TEL):** align the tools with the maintainer's 11-09 answer on ufal/flexiconv#1.
+* **Re-vendored from nlp-enrich:** `requirements_flexiconv.txt` pins v0.3.12 (`5cfc483`). Its `pyproject.toml` now
+  says MIT too, so `pip show` reports MIT. v0.3.12 writes the same TEITOK as v0.3.11 for every format this
+  repository reads, so the shared fixtures stand; `teitok_read.py`, `flexiconv_convert.py` and `bbox_scale.py`
+  are unchanged.
+* **`tests/test_vendored_teitok_parity.py`:** the new digest of `requirements_flexiconv.txt`; `ADOPTED["release"]`
+  is v1.3.5-beta. `ADOPTED["commit"]` still names `ba81709`.
+* **`para_config.txt`:** the flexiconv comment drops "pyproject still says GPL" and points to flexiconv's
+  CITATION.cff.
+* **Header:** the hub pin is `4435ffb`, and the latest entry is this one.
+* **Checked:** the suite with `requirements-test.txt` and the pinned flexiconv: 1,036 passed, 2 skipped (docling,
+  Tesseract); the parity test 24 of 24, with the byte comparison against `../atrium-nlp-enrich`.
+* **Yours:** commit nlp-enrich first; then set `ADOPTED["commit"]` here to that commit
+  (`git -C ../atrium-nlp-enrich rev-parse HEAD`) in the same commit as these files. Otherwise para-drift's owner
+  check stays red.
+* **No release.** Files delivered as per-repo archives.
