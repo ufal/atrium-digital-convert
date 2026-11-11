@@ -1,15 +1,15 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83). **#4** (PDF/DOCX
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; left: the C5 run, then close) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11). This repository's part of doc-schema-v2 (atrium-project, issue to be opened): `plans/doc-schema-v2.plan.md`. **#4** (PDF/DOCX
 > inputs, W1–W6) is closed; #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-10-21; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
 > **v1.1.1-beta** (2026-10-05, `fe494cd`) · **v1.1.2-beta** (2026-10-15, `8358f90`: #5's R, R2 and R3, #6's
 > escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
 > **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** to **v1.4.2-beta** (10-29 to
-> 11-03) · **pilot release: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
-> v1.4.3-beta was tagged, not released. Hub workflows pinned to `4435ffb` (`v1`). Latest entry: 2026-11-10._
+> 11-03) · **Starting set of the pilot phase: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
+> v1.4.3-beta was tagged, not released. Hub workflows pinned to `4435ffb` (`v1`). Latest entry: 2026-11-11._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -1440,3 +1440,33 @@ Documentation only; no code, test or configuration change.
   (`git -C ../atrium-nlp-enrich rev-parse HEAD`) in the same commit as these files. Otherwise para-drift's owner
   check stays red.
 * **No release.** Files delivered as per-repo archives.
+
+## 2026-11-11 — The output contract: this repository's part of doc-schema-v2 (atrium-project, issue to be opened)
+
+* **Asked (K4TEL):** the logs after the meeting of 11 November (ARÚP's output contract,
+  [meeting digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1111.md)):
+  this repository's slice of the consolidated schema issue, #5 and #8 refreshed, superseded statements marked.
+* **Decided in session:** plans only this round; the schema issue is not opened yet (placeholder name
+  `doc-schema-v2`); page classification runs on every PDF and image, bundled with the ATR call; this repository's
+  text-layer verdicts become a marker set of their own (`decode`, `decode_score`), and `categ` is ocr-postprocess's
+  only.
+* **Found:**
+  * inputs are PDF and seven office formats (`KINDS`, `api_util/digital_to_json.py:312`): no images, no CSV or TXT;
+  * `/describe` calls page-classification and ocr-postprocess when their URLs are set (`service/stages.py`); under
+    the contract this repository calls no other tool (H11);
+  * lines are numbered from 0 (`digital_ir.renumber_lines()`), their rows carry no `page_index`, and their
+    `categ`/`quality_score` are decode verdicts, not text quality;
+  * `source.sha256` comes from `sha256_file()`; `license_detail_for()` computes a licence (D2);
+  * the vendored reader's `ODF_REPEAT_CAP` writes a `trimmed` note, which D13 turns into a refusal.
+* **Written here (not pushed):**
+  * **`plans/doc-schema-v2.plan.md`:** new; the fields written here, eight tasks with their code, the paradata, what
+    it depends on (hub tasks, Q1, Q5), the superseded statements (closed issues' files listed, not edited), what is
+    parked.
+  * **`plans/5.plan.md`, `digests/5.digest.md`:** refreshed; C5 and closing are still what is left; `/describe`'s
+    stage calls, `reacquire_pages`, F's unscored lines, C3's `skipped` note and the post-pilot chunking issue marked
+    superseded.
+  * **`plans/8.plan.md`, `digests/8.digest.md`:** parked during the pilot phase; the timing, the stage, `regenerable`
+    and the list's SHA-256 marked superseded; the existing content kept as the record.
+  * **`DEVLOG.md`:** the header (open issues, the starting set of the pilot phase, the latest entry) and this entry.
+* **Not posted:** nothing on #5 or #8; the questions are in the hub plan's list (Q1, Q5).
+* Plans only; no code changed. Files delivered as full files.
