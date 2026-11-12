@@ -1,7 +1,7 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; left: the C5 run, then close) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11). This repository's part of doc-schema-v2 (atrium-project, issue to be opened): `plans/doc-schema-v2.plan.md`. **#4** (PDF/DOCX
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; left: the C5 run, then close) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11). This repository's part of doc-schema-v2 (atrium-project#84, opened 2026-11-12): `plans/84.plan.md` — a docproc producer from 12 November. **#4** (PDF/DOCX
 > inputs, W1–W6) is closed; #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-10-21; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
@@ -1469,4 +1469,29 @@ Documentation only; no code, test or configuration change.
     and the list's SHA-256 marked superseded; the existing content kept as the record.
   * **`DEVLOG.md`:** the header (open issues, the starting set of the pilot phase, the latest entry) and this entry.
 * **Not posted:** nothing on #5 or #8; the questions are in the hub plan's list (Q1, Q5).
+* Plans only; no code changed. Files delivered as full files.
+
+## 2026-11-12 — atrium-project#84: digital-convert becomes a docproc producer; #16 on `data_samples/`
+
+* **Asked (K4TEL):** align the logs with ARÚP's output contract of 12 November (the .docx of that day, replacing the
+  meeting document of 10 November) and with David Novák's comments of 11-12 (atrium-project#84 opened, #13, #16,
+  #78); `test` fetched first (all seven working branches = `test`).
+  Anchor: [contract digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1211.md) · [hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md).
+* **Decided in session:** the tool slices are named `plans/84.plan.md`; the translator keeps `amcr-fields.txt` as a
+  documented example that nothing loads (no default list, D34); the hub's #84 plan carries a reply draft agreeing on
+  points 1 and 2.
+* **Found:**
+  * the `ocr_text_layer` refusal (`api_util/digital_to_json.py:909`, called at 952) contradicts H12 ("never refuses a
+    document");
+  * `PDF_OBJECT_CAP` (`text_formats.py:2762-2850`) stops counting a page's objects at 20,000 and notes
+    `pdf_objects_capped`: the page verdict then rests on a sample (H12);
+  * no UserUnit, CropBox or `/Rotate` handling in `api_util/digital_pdf.py` (D28);
+  * the hub's Galaxy test PDFs built from this repository are synthetic (`tests/fixtures/digital/make_fixtures.py`).
+* **Written here (not pushed):**
+  * **`plans/84.plan.md`** (was `plans/doc-schema-v2.plan.md`, rewritten): docproc with lines, verdicts and
+    `needs_atr`; no refusal, no sampling; images skip it; the decode flag; one coordinate space; paradata per H14;
+  * **`plans/5.plan.md`, `digests/5.digest.md`:** 11-12 sections: `data_samples/` not approved (atrium-project#16)
+    and replaced by synthetic outputs; the 29 pages `needs_atr` in docproc's routing; the refusal superseded;
+  * **`DEVLOG.md`:** the header and this entry.
+* **Not posted:** nothing on GitHub; questions stay on the hub's list for the next meeting.
 * Plans only; no code changed. Files delivered as full files.
