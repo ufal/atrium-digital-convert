@@ -1,13 +1,15 @@
 """service/stages.py — the adjacent stages `POST /describe` calls, and the guard on what they return.
 
 `/reformat` calls no other service: in the AMČR deployment Temporal chains the stages
-(atrium-digital-convert#1, 30 September). `/describe` (#2, 2026-10-04) is the optional endpoint
-that converts a document AND asks the two stages that can describe its pages:
+(atrium-digital-convert#1, 30 September). `/describe` (#2, 2026-10-04; parked during the pilot) is the
+optional endpoint that converts a document AND asks the two stages that can describe its pages. Since
+atrium-project#84 "the record" below is the converter's development dict, record-shaped but no record:
+stages on record schema 2.0 may refuse it, which is reported per stage like any other failure.
 
   * **page-classification** — `POST /predict_document` with the PDF, the record and the pages to
     classify (`pages=` page indices; by default the pages without a usable text layer). It
     answers with each page's categories and, given the record, writes `page_categories` and
-    `pages[].category/category_confidence` into it under its own stamp.
+    `pages[].category/category_confidence` into it.
   * **ocr-postprocess** — `POST /score_record` with the record (W3, agreed on #4): the common
     line-quality model scores the converter's lines and writes only `lines[].categ/
     quality_score/lang` and `pages[].quality_score/quality_band`, never over a line that carries

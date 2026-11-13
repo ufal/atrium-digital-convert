@@ -83,7 +83,6 @@ class DigitalInputError(ValueError):
     EXIT_CODES: Dict[str, int] = {
         "unsupported": 3,
         "legacy_office_unsupported": 3,
-        "ocr_text_layer": 3,
         "source_digest_mismatch": 3,
         "invalid_record": 3,
         "dependency_missing": 2,
@@ -300,7 +299,9 @@ class DigitalDocument:
     origin: str
     media_type: str
     pages: List[DigitalPage] = field(default_factory=list)
-    sha256: str = ""
+    #: SHA-512 of the original's bytes (atrium-project#84: the original is named by its SHA-512
+    #: only, in the paradata; for DOC/XLS the uploaded file, not the converted one).
+    sha512: str = ""
     filename: str = ""
     reading_order: str = "layout"
     #: Which engine produced the structure: `light` (pdfplumber / python-docx) or `docling`.

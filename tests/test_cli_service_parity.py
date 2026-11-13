@@ -10,8 +10,8 @@ both through `service/describe.py`. What differs on purpose is pinned here too: 
 file on the command line and a `CreateAction` in the response (hub #71).
 
 v1.4.0-beta: the paradata's parameters and counts are the same (`d2j.run_config`; the service adds
-`endpoint`); an empty file, a record that cannot be opened, and an inherited invalid record end
-alike on both sides (`d2j.open_record`, `d2j.gate`).
+`endpoint`); an empty file and a seed that cannot be opened end alike on both sides
+(`d2j.open_record`). Since atrium-project#84 both write docproc, not a record.
 """
 
 from __future__ import annotations
@@ -38,9 +38,6 @@ from service import api  # noqa: E402
 client = TestClient(api.app)
 FIXTURES = make_fixtures.build_all()
 
-#: The blocks this converter writes; `assembled` and the run stamps differ per run by design.
-BLOCKS = ("doc_id", "source", "pages", "lines", "content", "tables")
-
 
 @pytest.fixture
 def no_stages(monkeypatch):
@@ -64,20 +61,17 @@ def _service(endpoint: str, name: str, **form) -> dict:
     return response.json()
 
 
-def _blocks(record: dict) -> dict:
-    return {key: record.get(key) for key in BLOCKS}
-
-
 @pytest.mark.parametrize(
     "name", ["minimal.pdf", "table.pdf", "garbled.pdf", "rich.docx", "headings.pdf"]
 )
-def test_the_record_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
+def test_the_docproc_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
+    """Byte for byte: the docproc carries no run data (atrium-project#84, ask 3)."""
     out = _cli(tmp_path, name)
     stem = Path(name).stem
-    cli_record = json.loads((out / f"{stem}.document.json").read_text(encoding="utf-8"))
+    cli_bytes = (out / f"{stem}.docproc.json").read_bytes()
     body = _service("/reformat", name)
-    assert _blocks(cli_record) == _blocks(body["document_json"])
-    assert cli_record["provenance"]["license"] == body["document_json"]["provenance"]["license"]
+    assert json.loads(cli_bytes) == body["docproc"]
+    assert cli_bytes == d2j.docproc_bytes(body["docproc"])
 
 
 @pytest.mark.parametrize("name", ["minimal.pdf", "rich.docx"])
@@ -144,10 +138,6 @@ def test_paradata_is_a_file_on_the_cli_and_a_create_action_in_the_service(tmp_pa
         (b"", None, 4, "corrupt"),
         (None, b"{not json", 3, "invalid_record"),
         (None, b'{"schema_version": "9.0", "doc_id": "x"}', 3, "invalid_record"),
-        # v1.4.1-beta: a record that opens but cannot be added to (atrium-project#72). The merge
-        # failed on `.get`: a traceback from the CLI and a 500 from the service.
-        (None, b'{"doc_id": "minimal", "pages": "1"}', 3, "invalid_record"),
-        (None, b'{"doc_id": "minimal", "lines": {"page": "1", "line": 0}}', 3, "invalid_record"),
     ],
 )
 def test_an_empty_file_or_an_unreadable_record_ends_alike(
@@ -169,17 +159,13 @@ def test_an_empty_file_or_an_unreadable_record_ends_alike(
     assert reason in (response.json().get("reason"), response.json().get("cause"))
 
 
-def test_an_inherited_invalid_record_is_converted_and_reported_by_both(tmp_path, capsys):
-    seed = {
-        "schema_version": "1.0",
-        "record_type": "atrium-document",
-        "doc_id": "minimal",
-        "translations": 5,
-    }
+def test_a_seed_is_read_alike_and_written_by_neither(tmp_path):
+    """Since atrium-project#84 nothing is accreted onto the seed: its doc_id names the output on
+    both sides, and neither writes a record."""
+    seed = {"doc_id": "C-1", "source": {"filename": "zprava.pdf"}}
     (tmp_path / "seed.json").write_text(json.dumps(seed), encoding="utf-8")
     out = _cli(tmp_path, "minimal.pdf", "--document-json", str(tmp_path / "seed.json"))
-    assert (out / "minimal.document.json").is_file()
-    assert "does not validate" in capsys.readouterr().err
+    assert [p.name for p in out.iterdir()] == ["C-1.docproc.json"]
     response = client.post(
         "/reformat",
         files={
@@ -187,5 +173,5 @@ def test_an_inherited_invalid_record_is_converted_and_reported_by_both(tmp_path,
             "document_json": ("seed.json", json.dumps(seed).encode(), "application/json"),
         },
     )
-    assert response.status_code == 200
-    assert response.json().get("document_json_schema_error")
+    assert response.status_code == 200 and response.json()["doc_id"] == "C-1"
+    assert "document_json" not in response.json()

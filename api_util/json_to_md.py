@@ -45,8 +45,7 @@ if _repo_root not in sys.path:
 
 from api_util import layout_md as L  # noqa: E402
 from api_util import xml_to_md  # noqa: E402
-from atrium_document import load_document  # noqa: E402
-from atrium_vocab import UNTRUSTWORTHY_LINE_CATEGORIES  # noqa: E402
+from atrium_vocab import DECODE_FLAGS, UNTRUSTWORTHY_LINE_CATEGORIES  # noqa: E402
 
 #: Line categories excluded from the rendered text by default — text this pipeline has
 #: already judged untrustworthy, which would only degrade the LLM's read of the page
@@ -62,7 +61,26 @@ from atrium_vocab import UNTRUSTWORTHY_LINE_CATEGORIES  # noqa: E402
 #: 2026-09-25). This was frozenset({"Garbage", "Inverted"}), the digital-convert set only, so
 #: on the OCR path it matched nothing and every `Trash` line reached the model. Filtering
 #: `Trash` changes what the model is shown on every OCR document — the point of the fix.
-DROP_CATEGORIES = frozenset(UNTRUSTWORTHY_LINE_CATEGORIES)
+#:
+#: Since record schema 2.0 (atrium-project#84) digital-convert's decode verdicts are line FLAGS
+#: (`lines[].flags`, as on docproc lines; `DROP_FLAGS`), never a category. A 1.x record or
+#: development dict that still carries them as `categ` is read the same way.
+DROP_CATEGORIES = frozenset(UNTRUSTWORTHY_LINE_CATEGORIES) | frozenset(DECODE_FLAGS)
+
+#: Line flags excluded from the rendered text: digital-convert's decode verdicts
+#: (`atrium_vocab.DECODE_FLAGS`: a text layer that decodes to wrong characters, or mirrored text).
+DROP_FLAGS = frozenset(DECODE_FLAGS)
+
+
+def load_json(path: str | Path) -> Dict[str, Any]:
+    """A record or development dict from a file, as written: no schema migration, because the
+    2.0 migration drops the layout cues (`group_id`, `style`, `tables`) this renderer reads."""
+    import json  # noqa: PLC0415
+
+    data = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: a record is a JSON object, not a {type(data).__name__}")
+    return data
 
 #: The recipe id a record's ``regenerable.markdown`` names for this converter. 1.1 added the
 #: ``standard``/``minimal`` profiles and LAYOUT_MARGIN; a 1.0 recipe renders as 1.1 ``full``
@@ -150,7 +168,7 @@ def _rows_from_lines(
     ordinals = ordinals if ordinals is not None else page_ordinals([], lines)
     rows: List[dict] = []
     for line in lines:
-        if line.get("categ") in DROP_CATEGORIES:
+        if line.get("categ") in DROP_CATEGORIES or DROP_FLAGS & set(line.get("flags") or ()):
             continue
         score = line.get("quality_score")
         if score is not None and score < min_quality:
@@ -492,7 +510,7 @@ def read_document_rows(
     renderer is shared rather than re-implemented. ``fallback_text`` is set only
     when ``lines[]`` yielded nothing usable.
     """
-    return rows_from_record(load_document(str(doc_json_path)), min_quality=min_quality)
+    return rows_from_record(load_json(doc_json_path), min_quality=min_quality)
 
 
 def render_record(
@@ -501,8 +519,8 @@ def render_record(
     """Render a record already in memory — what ``convert()`` does after loading the file.
 
     ``api_util/doc_to_visual_md.py`` renders PDF/DOCX through this, straight from
-    ``digital_to_json.build_record()``, so the Markdown the model reads and the record that
-    is stored come from one conversion (#10 G8). Raises ``ValueError`` for an unknown
+    ``digital_to_json.build_development()``, so the Markdown the model reads and the docproc
+    that is stored come from one reading (#10 G8). Raises ``ValueError`` for an unknown
     ``detail``.
     """
     L.check_detail(detail)
@@ -548,9 +566,7 @@ def convert(
     if doc_id.lower().endswith(".document.json"):
         doc_id = doc_id[: -len(".document.json")]
 
-    return render_record(
-        load_document(str(doc_json_path)), title=doc_id, detail=detail, min_quality=min_quality
-    )
+    return render_record(load_json(doc_json_path), title=doc_id, detail=detail, min_quality=min_quality)
 
 
 if __name__ == "__main__":

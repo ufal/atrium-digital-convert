@@ -33,7 +33,7 @@ def _light(lines, height=792.0):
         origin=d2j.ORIGIN_PDF,
         media_type="application/pdf",
         pages=[page],
-        sha256="c" * 64,
+        sha512="c" * 128,
         filename="S.pdf",
         components=["pdfplumber"],
     )
@@ -209,9 +209,17 @@ def test_mapped_record_passes_the_output_gate(tmp_path):
         ]
     )
     doc = d2j.normalize(dd.docling_to_digital(ir, light))
-    record, pages, lines = d2j.to_record(doc, out_dir=str(tmp_path), strict=True)
-    data = d2j._gate(record, pages, lines)
+    data = d2j.development_dict(doc)
     assert data["lines"][0]["style"]["heading_level"] == 1
+    # ...and the docproc it becomes validates, the title a heading block
+    block = _docproc_blocks(doc)[0]
+    assert (block["type"], block["level"]) == ("heading", 1)
+
+
+def _docproc_blocks(doc):
+    from api_util import docproc_writer
+
+    return [b for p in docproc_writer.build_docproc(doc)["pages"] for b in p["blocks"]]
 
 
 @pytest.mark.skipif(
@@ -233,8 +241,7 @@ def test_real_docling_ir_over_real_light_lines(tmp_path):
         assert texts.count(text) >= light_texts.count(text), f"light text lost: {text!r}"
     assert any(ln.region == "page_footer" for ln in doc.all_lines())
     assert any(ln.heading_level for ln in doc.all_lines())
-    record, pages, lines = d2j.to_record(doc, out_dir=str(tmp_path), strict=True)
-    d2j._gate(record, pages, lines)
+    _docproc_blocks(doc)  # validates against the proposal schema, else raises
 
 
 @pytest.mark.slow
@@ -252,7 +259,7 @@ def test_live_docling_conversion(tmp_path):
     fixtures.mkdir()
     (fixtures / "two_column.pdf").write_bytes(module.two_column_pdf())
     try:
-        data = d2j.build_record(str(fixtures / "two_column.pdf"), engine="docling")
+        data = d2j.build_development(str(fixtures / "two_column.pdf"), engine="docling")
     except dd.DoclingIncomplete:
         raise  # Docling is installed without a module it needs (#5: cv2): a broken install
     except RuntimeError as exc:

@@ -1,10 +1,12 @@
-# The record as annotated Markdown
+# The document as annotated Markdown
 
-The Markdown rendering of a record: its cues, the detail profiles and the TEITOK input.
+The Markdown rendering of a document: its cues, the detail profiles and the TEITOK input.
 
-`/reformat` with `markdown=true` returns the record rendered as **annotated Markdown**, the `full`
-profile. The converter's `--markdown` writes exactly that rendering beside the record; the renderer also runs
-on its own, and the TEITOK/ALTO renderer sits beside it:
+`/reformat` with `markdown=true` returns the document rendered as **annotated Markdown**, the `full`
+profile: a development view, not a stored output. Since [atrium-project#84](https://github.com/ufal/atrium-project/issues/84)
+it is rendered from the converter's development dict (record-shaped, with the layout cues docproc carries), not
+from a record. The converter's `--markdown` writes exactly that rendering beside the docproc; the renderer also
+runs on its own, on a record or a development dict, and the TEITOK/ALTO renderer sits beside it:
 
 ```bash
 python3 api_util/digital_to_json.py report.pdf --out-dir out/ --markdown      # = /reformat markdown=true
@@ -39,13 +41,14 @@ python3 api_util/doc_to_visual_md.py report.odt --output report.md         # con
   ([atrium-keyword-extract](https://github.com/ufal/atrium-keyword-extract)'s `openrouter_client.py` and
   `ollama_client.py`); its service works line by line on the record and does not need it. How the renderer
   is shared with that repository (vendored with a pin) is still to be settled (atrium-project#72 B).
-* **One source.** The rendering is a pure function of the record, so the Markdown cannot differ
-  from the JSON.
+* **One source.** The rendering is a pure function of the development dict, which the docproc is written from,
+  so the Markdown cannot differ from the stored layout. Lines with a decode flag (`Garbage`, `Inverted`) and
+  untrustworthy lines (`Trash`) are left out.
 
 ## Detail profiles (`--detail`)
 
-Three cue profiles, the values of the record's `regenerable.markdown.detail`
-(hub [#70](https://github.com/ufal/atrium-project/issues/70), item 1):
+Three cue profiles (hub [#70](https://github.com/ufal/atrium-project/issues/70), item 1; until record schema 2.0
+the values of the record's `regenerable.markdown.detail`):
 * the **text lines are the same in all three**; a lighter profile only drops cues;
 * the cue sets nest (minimal ⊂ standard ⊂ full);
 * `full` is the default.
@@ -68,8 +71,8 @@ What each profile costs, from `python3 scripts/detail_budget.py` (characters; �
 | `enrichable.pdf` fixture (JSON route)                      | 596             | 354 (−41 %)    | 282 (−53 %)    |
 | `rich.docx` fixture (JSON route; DOCX has no boxes)        | 632             | 632 (0 %)      | 628 (−1 %)     |
 
-* **The recipe.** The record's `regenerable.markdown` recipe (`json_to_md@1.1`) is written only when
-  the record can actually be rendered.
+* **No recipe.** Record schema 2.0 holds no `regenerable.markdown` recipe (it is run data, D1); the converter id
+  `json_to_md@1.1` stays the renderer's version.
 * **Unemitted cues.** Cues in the catalogue that no profile emits (`INDENT`, `LAYOUT_COLUMN`,
   `FONT`, `STYLE`, `WATERMARK`, strike, underline, alignment) are listed, each with its reason, in
   [`layout_md.RESERVED`](../../api_util/layout_md.py).

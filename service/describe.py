@@ -3,10 +3,15 @@ service/describe.py — the per-page assessment and the Markdown view, shared by
 
 `POST /describe` and `api_util/digital_to_json.py --describe` run the same code: the stage loop
 that asks page-classification and ocr-postprocess (through `service/stages.py`), the guard that
-adopts their record writes, and the report of `api_util/digital_report.py`. `POST /reformat`'s
-`markdown=true` and the CLI's `--markdown` render the record through the same function. The
-module imports no FastAPI, so the CLI image runs it as it is (atrium-project#72, the service–CLI
-alignment).
+adopts their writes, and the report of `api_util/digital_report.py`. `POST /reformat`'s
+`markdown=true` and the CLI's `--markdown` render the development dict through the same
+function. The module imports no FastAPI, so the CLI image runs it as it is (atrium-project#72).
+
+Since atrium-project#84 digital-convert writes docproc, not a record, and `/describe` is parked
+(not part of the pilot, H11): it works on the converter's development dict
+(`digital_to_json.development_dict()`), record-shaped but no record. The stages are sent that
+dict as their `document_json`; stages on record schema 2.0 may refuse it, which `/describe`
+reports per stage as for any stage failure, until the scope resumes.
 """
 
 from __future__ import annotations
@@ -15,14 +20,13 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from api_util.digital_ir import DigitalDocument
 from api_util.digital_report import build_report, furniture_only
-from atrium_document import validate_document
 from tool_limits import ROUTE_DAMAGED_WORD_SHARE, ROUTE_TRASH_SHARE, STAGE_TIMEOUT_S
 
 from . import stages
 
 
 def render_markdown(record: Dict[str, Any]) -> str:
-    """The record as annotated Markdown, the `full` profile of `api_util/json_to_md.py`.
+    """The development dict as annotated Markdown, the `full` profile of `api_util/json_to_md.py`.
 
     A document without text still gets its title line, so the answer is never empty.
     """
@@ -48,14 +52,6 @@ def reader_info(document: DigitalDocument, record: Dict[str, Any]) -> Dict[str, 
     }
 
 
-def validates(record: Dict[str, Any]) -> bool:
-    try:
-        validate_document(record)
-    except Exception:
-        return False
-    return True
-
-
 def run_stages(
     document: DigitalDocument,
     record: Dict[str, Any],
@@ -67,7 +63,7 @@ def run_stages(
 ) -> Tuple[
     Dict[str, Any], List[stages.StageOutcome], Dict[int, Dict[str, Any]], Dict[int, Dict[str, Any]]
 ]:
-    """Call the selected, configured stages in order; adopt each guarded record write."""
+    """Call the selected, configured stages in order; adopt each guarded write to the dict."""
     timeout = float(STAGE_TIMEOUT_S.get()) if timeout is None else timeout
     current = record
     outcomes: List[stages.StageOutcome] = []
@@ -137,14 +133,9 @@ def run_stages(
                 continue
             result = stages.run_ocr_postprocess(base, current, lines, timeout)
             quality = result.per_page
-        adopted = stages.adopt(result, current)
-        if adopted is not current and not validates(adopted):
-            result.outcome.status = stages.STATUS_REJECTED
-            result.outcome.record_adopted = False
-            result.outcome.reason = "schema"
-            result.outcome.detail = "the returned record does not validate against the schema; the record was kept as it was"
-            adopted = current
-        current = adopted
+        # The guard (`stages.guard`) is the check: the development dict is no record, so there
+        # is no record schema to validate it against (atrium-project#84).
+        current = stages.adopt(result, current)
         outcomes.append(result.outcome)
     return current, outcomes, categories, quality
 
@@ -158,7 +149,8 @@ def describe_document(
     classify_pages: str = "needs_ocr",
     include_text: bool = True,
 ) -> Dict[str, Any]:
-    """The assessment of `/describe`: the record as the stages left it, `pages`, `summary`, `stages`."""
+    """The assessment of `/describe`: the development dict as the stages left it (`document`),
+    `pages`, `summary`, `stages`."""
     current, outcomes, categories, quality = run_stages(
         document, record, data, name, selected, classify_pages
     )
@@ -171,7 +163,7 @@ def describe_document(
         damaged_word_limit=ROUTE_DAMAGED_WORD_SHARE.get(),
     )
     return {
-        "document_json": current,
+        "document": current,
         "pages": report["pages"],
         "summary": report["summary"],
         "stages": [outcome.to_dict() for outcome in outcomes],

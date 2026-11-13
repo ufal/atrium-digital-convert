@@ -28,10 +28,10 @@ regenerable-recipe path for a consumer that holds only the JSON, not a stored
 TEITOK/PDF/DOCX file.
 
 **One route (Issue #18 / #10 G8, 2026-09-25).** Every born-digital input goes through
-``digital_to_json.build_record()`` (in memory, schema-validated) and then
-``json_to_md.render_record()`` — the same conversion the hub's born-digital smoke and any
-stored ``*.document.json`` go through, so the Markdown the model reads can no longer differ
-from the record that is kept. Before, the clients' auto-convert ran the older direct
+``digital_to_json.build_development()`` (in memory) and then ``json_to_md.render_record()`` —
+the same reading the docproc is written from, so the Markdown the model reads can no longer
+differ from the layout that is kept (since atrium-project#84 digital-convert writes docproc,
+not a record). Before, the clients' auto-convert ran the older direct
 converters (``docx_to_md`` / ``pdf_to_md``), which miss the garbled-text-layer check, while
 the E2E ran the JSON route.
 
@@ -145,7 +145,7 @@ def convert_to_visual_md(
     ext = Path(path).suffix.lower()
     if ext not in CONVERTER_EXTENSIONS:
         # Another name: the converter decides by content (it would anyway, inside
-        # build_record); a file it does not recognise is refused here, before any reader runs.
+        # build_development); a file it does not recognise is refused here, before any reader runs.
         try:
             digital_to_json.sniff(str(path))
         except DigitalInputError as exc:
@@ -153,9 +153,9 @@ def convert_to_visual_md(
                 f"Unsupported input '{ext or '(none)'}' ({exc.reason}). Supported: the born-digital "
                 f"kinds {', '.join(sorted(CONVERTER_EXTENSIONS))} (by content), {_DOCUMENT_JSON_SUFFIX}."
             ) from exc
-    record = digital_to_json.build_record(str(path), engine=engine)
+    development = digital_to_json.build_development(str(path), engine=engine)
     return json_to_md.render_record(
-        record, title=Path(path).stem, detail=detail, min_quality=min_quality
+        development, title=Path(path).stem, detail=detail, min_quality=min_quality
     )
 
 

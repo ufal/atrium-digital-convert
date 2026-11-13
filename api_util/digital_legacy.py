@@ -11,7 +11,7 @@ licence and nothing to its shape.
 What the record keeps is the ORIGINAL's identity, never the intermediate's:
 
   * `source.filename`, `source.media_type` (`application/msword`, `application/vnd.ms-excel`)
-    and `source.sha256` describe the uploaded file;
+    and `sha512` describe the uploaded file;
   * `source.origin` is `digital-born-doc` / `digital-born-xls`;
   * the conversion itself (tool, target format, seconds) is reported beside the record
     (`DigitalDocument.conversion`, the service's `reader.conversion`). LibreOffice is declared
@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
-from api_util.digital_ir import DigitalDocument, DigitalInputError, sha256_file
+from api_util.digital_ir import DigitalDocument, DigitalInputError, sha512_file
 
 #: kind -> (LibreOffice filter target, the converted file's suffix, the kind it is then read as)
 TARGETS: Dict[str, Tuple[str, str, str]] = {
@@ -152,7 +152,7 @@ def extract_legacy(
     document.doc_id = doc_id
     document.origin = ORIGINS[kind]
     document.media_type = MEDIA_TYPES[kind]
-    document.sha256 = sha256_file(path)
+    document.sha512 = sha512_file(path)
     document.filename = os.path.basename(path)
     document.kind = kind
     document.conversion = facts

@@ -196,10 +196,9 @@ def test_json_route_closes_the_section_9_row(fixtures, row, name, required, forb
         assert needle not in md, f"{row}: {needle!r} must not appear in\n{md}"
 
 
-def test_ocr_layer_pdf_is_refused_on_the_json_route(fixtures):
-    """G7: the auto-convert must not render an OCR layer as born-digital text either."""
+def test_an_ocr_layer_renders_with_its_pages_marked_for_the_atr(fixtures):
+    """G7, since atrium-project#84 §1 (no refusal): the auto-convert renders an OCR layer with
+    each page's NEEDS_OCR cue, so the model is told the text is a prior OCR run's."""
     pytest.importorskip("pdfplumber")
-    from api_util.digital_ir import DigitalInputError
-
-    with pytest.raises(DigitalInputError, match="not born-digital"):
-        doc_to_visual_md.convert_to_visual_md(fixtures / "ocr_layer.pdf")
+    md = doc_to_visual_md.convert_to_visual_md(fixtures / "ocr_layer.pdf")
+    assert md.count("NEEDS_OCR") >= 2 and "prior OCR run" in md

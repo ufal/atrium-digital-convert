@@ -37,9 +37,9 @@ The flexiconv adapter (MIT, `requirements_flexiconv.txt`) is an optional TEITOK 
 ## Convert a file on the command line
 
 ```bash
-python3 api_util/digital_to_json.py report.pdf  --document-json-out report.document.json
-python3 api_util/digital_to_json.py report.odt  --document-json seed.json --document-json-out report.document.json
-python3 api_util/digital_to_json.py budget.xls  --out-dir records/
+python3 api_util/digital_to_json.py report.pdf  --docproc-out report.docproc.json
+python3 api_util/digital_to_json.py report.odt  --document-json seed.json --out-dir out/
+python3 api_util/digital_to_json.py budget.xls  --out-dir out/
 python3 api_util/digital_to_json.py report.pdf  --engine docling --paradata-dir paradata/
 python3 api_util/digital_to_json.py report.pdf  --out-dir out/ --markdown --describe
 PAGE_CLASSIFICATION_URL=http://localhost:8001 OCR_POSTPROCESS_URL=http://localhost:8002 \
@@ -48,14 +48,13 @@ PAGE_CLASSIFICATION_URL=http://localhost:8001 OCR_POSTPROCESS_URL=http://localho
 
 | Option                                               | Meaning                                                                                                                      |
 |------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `--document-json-out` (`--out`)                      | where to write the record (default `<out-dir>/<doc_id>.document.json`)                                                       |
-| `--document-json`                                    | the AMČR seed, or an earlier record of the same document, to accrete onto                                                    |
+| `--docproc-out` (`--out`)                            | where to write the docproc (default `<out-dir>/<doc_id>.docproc.json`); until atrium-project#84 `--document-json-out`         |
+| `--document-json`                                    | the AMČR seed, read only: its `doc_id` names the output, its `source.sha512` is checked                                      |
 | `--doc-id`                                           | override the doc_id derived from the file name (a seed's doc_id always wins)                                                 |
 | `--engine`                                           | `light` (default) or `docling` (PDF only, needs `requirements_digital_docling.txt` and its models)                           |
 | `--docx-page-breaks`                                 | DOCX pages: `auto` (explicit, section and Word's last rendered breaks), `explicit`, `none`                                   |
-| `--paradata-dir`                                     | also write the run's paradata record                                                                                         |
-| `--strict`                                           | raise instead of warning on a field-ownership violation                                                                      |
-| `--markdown [PATH]`                                  | also write the record as annotated Markdown, as `/reformat`'s `markdown=true` (default `<doc_id>.md` beside the record)      |
+| `--paradata-dir`                                     | also write the run's paradata record (the original read, the docproc written, by SHA-512)                                    |
+| `--markdown [PATH]`                                  | also write the document as annotated Markdown, as `/reformat`'s `markdown=true` (default `<doc_id>.md` beside the docproc)   |
 | `--describe [PATH]`                                  | also write the per-page assessment of `/describe`: `reader`, `pages`, `summary`, `stages` (default `<doc_id>.describe.json`) |
 | `--stages`                                           | with `--describe`: `page-classification`, `ocr-postprocess`, both comma-separated, or `none`; unset = every configured one   |
 | `--classify-pages`                                   | with `--describe`: `needs_ocr` (default) or `all`, the pages page-classification is asked about                              |
@@ -63,26 +62,22 @@ PAGE_CLASSIFICATION_URL=http://localhost:8001 OCR_POSTPROCESS_URL=http://localho
 | `--page-classification-url`, `--ocr-postprocess-url` | with `--describe`: the stages' base URLs (else `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`)                             |
 
 `--markdown` and `--describe` run the service's own code (`service/describe.py`), so a file gives the same
-Markdown and the same assessment on both sides. If a stage writes into the record during `--describe`, the same
-guard as in the service decides whether the record adopts it, and the record file then holds the result. A stage
+Markdown and the same assessment on both sides. If a stage writes into the development dict during `--describe`,
+the same guard as in the service decides whether to adopt it; nothing of it is stored. A stage
 that is not configured, is down or answers badly is reported in `stages[]`. The run still exits 0, as the service
 still answers 200.
 
 ### Exit codes
 
-* `0`: the record was written (and the views asked for).
+* `0`: the docproc was written (and the views asked for).
 * `2` (from argparse): an unknown `--stages` value, as the service's 422.
 * `2`: a dependency is missing (a reader, Docling's models, LibreOffice for DOC/XLS), with advice.
-* `3`: an input this converter does not take. That means an unsupported type, an OCR-layer PDF, an old binary
-  Office type it cannot convert, or a seed whose `source.sha512` does not match. It also means a
-  `--document-json` record that cannot be opened (`invalid_record`: not UTF-8 JSON, not an object, a newer
-  schema), or whose `pages` or `lines` is not a list of objects (`invalid_record` too, found when the conversion
-  adds its rows).
+* `3`: an input this converter does not take. That means an unsupported type (an image among them), an old
+  binary Office type it cannot convert, or a seed whose `source.sha512` does not match. It also means a
+  `--document-json` seed that cannot be opened (`invalid_record`: not UTF-8 JSON, not an object, a newer
+  schema). Since atrium-project#84 no PDF is refused for its prior-OCR pages: they are routed to the ATR.
 * `4`: an empty, corrupt or encrypted file, a file over the ZIP limits, a failed LibreOffice conversion, or a
-  file over a limit (`MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`).
-
-A `--document-json` record that opens but does not validate is accreted onto, as in the service. The run warns,
-writes the record and exits 0; the service answers 200 with `document_json_schema_error`.
+  file over a limit (`MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`, the ODF repeat cap, which would cut content).
 
 ## Call the service: `/reformat` and `/describe`
 
@@ -96,15 +91,15 @@ curl -F file=@report.pdf http://localhost:8000/describe
 
 | Endpoint                         | Does                                                                                                 | Calls other services                                              |
 |----------------------------------|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| `POST /reformat`                 | file (+ seed) → `document_json` (the record), Markdown on request, `paradata`                        | **never**                                                         |
-| `POST /describe`                 | the same conversion → `document_json`, `pages[]` (the assessment), `summary`, `stages[]`, `paradata` | page-classification and ocr-postprocess, **only when configured** |
+| `POST /reformat`                 | file (+ seed) → `docproc`, Markdown on request, `paradata`                                           | **never**                                                         |
+| `POST /describe` (parked)        | the same conversion → `docproc`, `document` (the development dict), `pages[]`, `summary`, `stages[]` | page-classification and ocr-postprocess, **only when configured** |
 | `GET /info`, `/health`, `/ready` | the ATRIUM service contract: identity, limits, readers, LibreOffice availability, stages configured  | —                                                                 |
 
-The command line gives every result of the two endpoints: the record, `--markdown` and `--describe` (above).
+The command line gives every result of the two endpoints: the docproc, `--markdown` and `--describe` (above).
 Where the two differ, and why: [The command line and the service](#the-command-line-and-the-service).
 
 The runbook, [service/README.md](../service/README.md), documents the fields, every response key, the error
-table (`ocr_text_layer`, `source_digest_mismatch`, `unsupported_media_type`, `limit_exceeded`, `busy`, …), the
+table (`source_digest_mismatch`, `unsupported_media_type`, `limit_exceeded`, `busy`, …), the
 limits and the shutdown behaviour. The typed contract is [service/openapi.json](../service/openapi.json),
 attached to every release.
 
@@ -120,7 +115,7 @@ The tag is the release **without** its leading `v` (`1.4.7-beta` for `v1.4.7-bet
 part of the image name.
 
 The batch image passes its arguments to `api_util/digital_to_json.py` (`docker run IMAGE /data/report.pdf
---document-json-out /data/report.document.json`). Since `v1.4.5-beta` its entry point is the hub-canonical
+--docproc-out /data/report.docproc.json`). Since `v1.4.5-beta` its entry point is the hub-canonical
 `container_entrypoint.py`, which names `api_util/digital_to_json.py` by its absolute path: a first argument that
 names a shell or Python runs that program instead (`docker run IMAGE /bin/sh job.sh`), which is how Galaxy starts a
 tool's container. Only those interpreters run: an input file that happens to be executable is still converted, as
@@ -130,7 +125,7 @@ tool's container. Only those interpreters run: an input file that happens to be 
 docker compose --profile api up                                     # the service on :8000
 docker compose --profile stub up                                    # the service + the stage stand-ins
 docker compose --profile digital run --rm digital-convert-digital \
-    /data/report.pdf --document-json-out /data/report.document.json
+    /data/report.pdf --docproc-out /data/report.docproc.json
 docker build --target digital-docling -t atrium-digital-convert-digital-docling .
 ```
 
@@ -148,30 +143,30 @@ docker build --target digital-docling -t atrium-digital-convert-digital-docling 
 > * Docker Desktop (macOS, Windows) needs neither.
 ## The command line and the service
 
-Both run one converter (`api_util/digital_to_json.py`: `prepare`, the output gate `gate`, the paradata's
-parameters `run_config`) and the views of `service/describe.py`. A scratch harness ran 240 combinations through
-both on 2026-10-28. The record, the Markdown, the assessment, the refusals and the paradata's parameters and
-counts were the same in every case. The combinations covered:
+Both run one converter (`api_util/digital_to_json.py`: `prepare`, the docproc writer `api_util/docproc_writer.py`,
+the paradata `run_config` and `record_run`) and the views of `service/describe.py`. A scratch harness ran 240
+combinations through both on 2026-10-28, when the output was still the record. The record, the Markdown, the
+assessment, the refusals and the paradata's parameters and counts were the same in every case. Since
+atrium-project#84 `tests/test_cli_service_parity.py` holds the two sides to the same docproc, byte for byte. The
+combinations covered:
 
 * **Files:** PDF, DOCX, ODT, RTF, DOC, XLSX, ODS and XLS made with LibreOffice, a name with diacritics and spaces,
   an empty file and a broken package.
 * **DOCX page breaks:** `auto`, `explicit` and `none`.
 * **Seeds:** no seed, a seed, a mismatched digest, an unreadable record, a newer schema and an invalid inherited
   record.
-* **Views:** the record alone, the record with Markdown, and `/describe` with no stage, with page-classification
+* **Views:** the output alone, with Markdown, and `/describe` with no stage, with page-classification
   only and with both; `classify_pages` `needs_ocr` and `all`; with and without the text. The stages were served by
   `tools/stage_stub.py`.
 
-`tests/test_cli_service_parity.py` holds the two sides to the same record, Markdown, assessment and refusals.
+`tests/test_cli_service_parity.py` holds the two sides to the same docproc, Markdown, assessment and refusals.
 
 | Input or setting                                           | Command line                                                                                     | Service                                                           | Same?                                                                  |
 |------------------------------------------------------------|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------|
 | The formats, recognised by content                         | PDF, DOCX, ODT, ODS, XLSX, RTF; DOC and XLS through LibreOffice                                  | the same                                                          | the same                                                               |
 | An empty file                                              | exit 4, `corrupt`                                                                                | 422, `cause: corrupt`                                             | the same                                                               |
-| A seed or an earlier record                                | `--document-json`; its `source.sha512` checked                                                   | the `document_json` part; checked the same way                    | the same                                                               |
-| A record that cannot be opened                             | exit 3, `invalid_record`                                                                         | 422 `invalid_record`                                              | the same                                                               |
-| A record whose `pages` or `lines` is not a list of objects | exit 3, `invalid_record`                                                                         | 422 `invalid_record`                                              | the same                                                               |
-| An inherited record that does not validate                 | a warning; the record is written, exit 0                                                         | 200 with `document_json_schema_error`                             | the same                                                               |
+| A seed                                                     | `--document-json`; its `source.sha512` checked; read only                                        | the `document_json` part; checked the same way                    | the same                                                               |
+| A seed that cannot be opened                               | exit 3, `invalid_record`                                                                         | 422 `invalid_record`                                              | the same                                                               |
 | DOCX pages                                                 | `--docx-page-breaks`                                                                             | `docx_page_breaks`                                                | the same                                                               |
 | The doc_id                                                 | from the file name; `--doc-id` overrides it; a seed's wins                                       | from the upload's name; a seed's wins                             | the same derivation; `--doc-id` is for a pipeline driver               |
 | Markdown                                                   | `--markdown`, the `full` profile; others with `api_util/json_to_md.py --detail`                  | `markdown=true`, the `full` profile                               | the same; with `--describe` as well, rendered after the stages' writes |

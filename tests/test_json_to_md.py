@@ -75,7 +75,11 @@ def test_convert_drops_trash_lines_on_the_ocr_path(tmp_path):
     md = json_to_md.convert(path)
     assert "Clear line." in md and "Noisy line." in md and "Non-text line." in md
     assert "~~ |||| 3" not in md
-    assert json_to_md.DROP_CATEGORIES == frozenset(UNTRUSTWORTHY_LINE_CATEGORIES)
+    # the hub's untrustworthy set, and digital-convert's decode verdicts as a 1.x record wrote
+    # them (since atrium-project#84 they are line flags: json_to_md.DROP_FLAGS)
+    assert json_to_md.DROP_CATEGORIES == frozenset(UNTRUSTWORTHY_LINE_CATEGORIES) | frozenset(
+        LINE_CATEGORY_ORIGINATORS["digital-convert"]
+    )
     for originator, labels in LINE_CATEGORY_ORIGINATORS.items():
         assert json_to_md.DROP_CATEGORIES & set(labels), (
             f"{originator}'s untrustworthy lines are not dropped"
@@ -688,7 +692,7 @@ def test_detail_profiles_on_the_digital_fixtures(name):
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / name
         path.write_bytes(blob)
-        record = digital_to_json.build_record(str(path))
+        record = digital_to_json.build_development(str(path))
     rendered = {
         d: json_to_md.render_record(json.loads(json.dumps(record)), name, detail=d)
         for d in ("full", "standard", "minimal")
@@ -701,3 +705,18 @@ def test_detail_profiles_on_the_digital_fixtures(name):
         assert rendered["standard"].count("BBOX") <= rendered["full"].count("BBOX")
     if name == "minimal.pdf":  # block one has two lines: one box instead of two
         assert rendered["standard"].count("BBOX") == rendered["full"].count("BBOX") - 1
+
+
+def test_lines_with_a_decode_flag_are_dropped(tmp_path):
+    """Since atrium-project#84 digital-convert's decode verdict is a line flag (the development
+    dict and docproc lines); such a line never reaches the model."""
+    path = _write_record(
+        tmp_path,
+        pages=[{"page": "1"}],
+        lines=[
+            {"page": "1", "line": 1, "text": "Clear line."},
+            {"page": "1", "line": 2, "text": "sondì høeby", "flags": ["Garbage"]},
+        ],
+    )
+    md = json_to_md.convert(path)
+    assert "Clear line." in md and "sondì" not in md

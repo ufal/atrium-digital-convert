@@ -10,9 +10,9 @@ startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.exampl
 checks that they agree.
 
 What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
-beside it. Five entries are POLICY thresholds rather than size caps
-(``OCR_LAYER_DOCUMENT_SHARE``, ``ROUTE_TRASH_SHARE``, ``ROUTE_DAMAGED_WORD_SHARE``,
-``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``): they are declared here all the same, because a value a deployment may change and a client must be
+beside it. Four entries are POLICY thresholds rather than size caps
+(``ROUTE_TRASH_SHARE``, ``ROUTE_DAMAGED_WORD_SHARE``, ``FURNITURE_ONLY_IMAGE_COVERAGE``,
+``BOLD_HEADING_MAX_SHARE``): they are declared here all the same, because a value a deployment may change and a client must be
 able to read back is exactly what ``/info`` ``limits`` is for.
 
 Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
@@ -53,15 +53,6 @@ LIBREOFFICE_TIMEOUT_S = limit(
 #: on all 529 pages of one report, 202 s (135 s on its 149 flagged pages): 360 is that × 1.5, up
 #: from 120.
 STAGE_TIMEOUT_S = limit("STAGE_TIMEOUT_S", 360, unit="s", kind=float, minimum=1)
-
-#: POLICY. Share of a PDF's text-bearing pages whose text layer is a prior OCR run's invisible
-#: text at or above which the whole document is refused, 422 ``ocr_text_layer`` (the AMČR route
-#: then sends it to OCR). Below it the document is converted and those pages carry
-#: ``needs_ocr`` with a prior-OCR reason. Mirrors atrium-ocr-postprocess
-#: ``default_source_origin``'s rule; 0.5 since llm-enrich 0.8.0.
-OCR_LAYER_DOCUMENT_SHARE = limit(
-    "OCR_LAYER_DOCUMENT_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1, status=422
-)
 
 #: POLICY (`/describe` only). A page whose text layer decodes is routed to NLP — unless the
 #: common quality model (ocr-postprocess) calls more than this share of its prose lines
@@ -105,7 +96,8 @@ BOLD_HEADING_MAX_SHARE = limit(
 #: Same variable names, units and defaults as atrium-ocr-postprocess's tool_limits.py: the reader
 #: module is byte-identical there and here (tests/test_vendored_reader_parity.py), and imports
 #: these two names from whichever ``tool_limits`` sits beside it.
-#: Most a repeated ODF cell/row (`table:number-columns-repeated`) is expanded → ``trimmed`` note.
+#: Most a repeated ODF cell/row (`table:number-columns-repeated`) is expanded; past it the
+#: conversion fails (D13, atrium-project#84: ``api_util/digital_text.py``), as no content is cut.
 ODF_REPEAT_CAP = limit(
     "ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP", 100, unit="repeats", key="odf_repeat_cap", minimum=1
 )
@@ -121,7 +113,6 @@ LIMITS = LimitSet(
     MAX_CONCURRENT_JOBS,
     LIBREOFFICE_TIMEOUT_S,
     STAGE_TIMEOUT_S,
-    OCR_LAYER_DOCUMENT_SHARE,
     ROUTE_TRASH_SHARE,
     ROUTE_DAMAGED_WORD_SHARE,
     FURNITURE_ONLY_IMAGE_COVERAGE,

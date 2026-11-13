@@ -104,9 +104,9 @@ def test_a_garbled_page_is_classified_and_routed_by_its_category(both_stages, mo
     assert page["route"] == "htr", page["route_reason"]
     stage = {s["stage"]: s for s in body["stages"]}["page-classification"]
     assert stage["status"] == "ok" and stage["record_adopted"] is True and stage["pages"] == [1]
-    record = body["document_json"]
+    record = body["document"]
     assert record["pages"][0]["category"] == "TEXT_HW"
-    assert record["assembled"]["blocks"]["page_categories"]["program"] == "page-classification"
+    assert record["page_categories"] == {"1": "TEXT_HW"}
     # every line keeps the converter's decode verdict: nothing for the quality model to score
     scorer = {s["stage"]: s for s in body["stages"]}["ocr-postprocess"]
     assert scorer["status"] == "skipped" and scorer["record_adopted"] is False
@@ -119,7 +119,7 @@ def test_clean_pages_skip_the_classifier_and_get_the_common_quality_model(both_s
     for page in body["pages"]:
         assert page["route"] == "nlp"
         assert page["quality"]["source"] == "ocr-postprocess" and page["quality"]["band"] == "Clear"
-    record = body["document_json"]
+    record = body["document"]
     assert all(row.get("categ") for row in record["lines"]), "the scorer wrote categ on every line"
     assert record["source"]["origin"] == "digital-born-pdf", "scoring never re-originates the plane"
 
@@ -162,8 +162,10 @@ def test_a_docx_has_no_page_images_to_classify(both_stages):
 
 def test_decode_verdicts_are_not_rescored(both_stages):
     body = _describe("garbled.pdf")
-    record = body["document_json"]
-    assert {row["categ"] for row in record["lines"]} <= {"Garbage", "Inverted"}
+    record = body["document"]
+    # the decode verdict is a flag (atrium-project#84), and no line was given a category
+    assert all(set(row["flags"]) <= {"Garbage", "Inverted"} for row in record["lines"])
+    assert not any("categ" in row for row in record["lines"])
 
 
 def test_stages_none_keeps_the_assessment_local(both_stages):
@@ -205,7 +207,7 @@ def test_a_stage_that_is_down_is_unavailable(monkeypatch):
     monkeypatch.setenv("OCR_POSTPROCESS_URL", f"http://127.0.0.1:{port}")
     body = _describe("garbled.pdf")
     assert _status(body) == {"page-classification": "unavailable", "ocr-postprocess": "unavailable"}
-    assert body["document_json"]["assembled"]["blocks"]["pages"]["program"] == "digital-convert"
+    assert body["document"]["record_type"] == "digital-convert-development"
 
 
 class _Reply:
@@ -276,7 +278,7 @@ def test_an_older_page_classification_is_used_for_the_report_but_not_the_record(
     stage = body["stages"][0]
     assert stage["status"] == "rejected" and stage["reason"] == "page_key_mismatch"
     assert stage["record_adopted"] is False
-    assert "page_categories" not in body["document_json"]
+    assert "page_categories" not in body["document"]
     flagged = [p for p in body["pages"] if p["needs_ocr"]]
     assert flagged and all(p["category"]["label"] == "TEXT_T" for p in flagged)
     assert all(p["category"] is None for p in body["pages"] if not p["needs_ocr"]), (
@@ -312,7 +314,7 @@ def test_an_older_ocr_postprocess_is_asked_page_by_page(monkeypatch):
         for p in body["pages"]
     )
     assert [p["quality"]["prose_lines_scored"] for p in body["pages"]] == [3, 1]
-    assert body["document_json"]["assembled"]["blocks"]["lines"]["program"] == "digital-convert"
+    assert all("categ" not in row for row in body["document"]["lines"]), "report only"
 
 
 def _score_record_all_trash(url, files=None, data=None, **_k):
@@ -376,7 +378,7 @@ def test_lines_that_could_not_be_scored_make_the_stage_partial_and_keep_the_conv
     monkeypatch,
 ):
     _patch_requests(monkeypatch, _score_record_some_unscored())
-    sent = _describe("minimal.pdf", stages="none")["document_json"]
+    sent = _describe("minimal.pdf", stages="none")["document"]
     body = _describe("minimal.pdf", stages="ocr-postprocess")
     stage = body["stages"][1]
     assert stage["status"] == "partial" and stage["record_adopted"] is True
@@ -384,7 +386,7 @@ def test_lines_that_could_not_be_scored_make_the_stage_partial_and_keep_the_conv
 
     before = {(str(r["page"]), r["line"]): r for r in sent["lines"]}
     scored_pages = set()
-    for n, row in enumerate(body["document_json"]["lines"]):
+    for n, row in enumerate(body["document"]["lines"]):
         if n % 3 == 0:  # unscored: as the converter sent it
             original = before[(str(row["page"]), row["line"])]
             assert {k: row.get(k) for k in stages.SCORED_LINE_FIELDS} == {
@@ -397,7 +399,7 @@ def test_lines_that_could_not_be_scored_make_the_stage_partial_and_keep_the_conv
     assert scored_pages and len(scored_pages) < len(sent_pages), (
         "the fixture has both kinds of page"
     )
-    for page in body["document_json"]["pages"]:
+    for page in body["document"]["pages"]:
         if str(page["page"]) in scored_pages:  # recomputed from the lines that were scored
             assert (page["quality_score"], page["quality_band"]) == (0.9, "Clear")
         else:  # nothing on it was scored: the converter's values
@@ -446,9 +448,7 @@ def test_when_no_line_could_be_scored_the_stage_is_an_error_and_the_record_is_ke
     stage = body["stages"][1]
     assert stage["status"] == "error" and stage["record_adopted"] is False
     assert "no line could be scored" in stage["detail"]
-    assert all(
-        "categ" not in row or row["categ"] != "Trash" for row in body["document_json"]["lines"]
-    )
+    assert all("categ" not in row or row["categ"] != "Trash" for row in body["document"]["lines"])
 
 
 def test_the_quality_model_moves_a_digital_page_only_for_its_prose(monkeypatch):
@@ -490,7 +490,7 @@ def test_lost_letters_flag_the_page_in_the_record_and_route_it_to_ocr(no_stages,
     assert "2 of its 10 words (20%) lose a letter" in page["needs_ocr_reason"]
     assert (page["layout"]["words"], page["layout"]["damaged_words"]) == (10, 2)
     assert page["route"] == "ocr" and "ROUTE_DAMAGED_WORD_SHARE 0.05" in page["route_reason"]
-    record_page = next(p for p in body["document_json"]["pages"] if p.get("page_index") == 2)
+    record_page = next(p for p in body["document"]["pages"] if p.get("page_index") == 2)
     assert (record_page["text_layer"], record_page["needs_ocr"]) == ("garbled", True)
     assert record_page["needs_ocr_reason"] == page["needs_ocr_reason"]
     monkeypatch.setenv("ROUTE_DAMAGED_WORD_SHARE", "0.5")
@@ -515,7 +515,7 @@ def test_a_stage_that_rewrites_converter_fields_is_rejected(monkeypatch):
     body = _describe("minimal.pdf", stages="ocr-postprocess")
     stage = body["stages"][1]
     assert stage["status"] == "rejected" and stage["reason"] == "converter_field_changed"
-    assert body["document_json"]["lines"][0]["text"] != "rewritten"
+    assert body["document"]["lines"][0]["text"] != "rewritten"
 
 
 # ── the guard on its own ────────────────────────────────────────────────────────────────────

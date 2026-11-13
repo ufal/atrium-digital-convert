@@ -215,22 +215,34 @@ def _pdf(name="minimal.pdf"):
     return make_fixtures.build_all()[name]
 
 
-def test_reformat_returns_the_record_and_its_run():
-    response = client.post("/reformat", files={"file": ("zprava.pdf", _pdf(), "application/pdf")})
+def test_reformat_returns_the_docproc_and_its_run():
+    """atrium-project#84: /reformat answers docproc (valid against the proposal schema) and no
+    record; the action names the original and the docproc by distribution name and SHA-512."""
+    from api_util import docproc_writer
+
+    data = _pdf()
+    response = client.post("/reformat", files={"file": ("zprava.pdf", data, "application/pdf")})
     body = _conforms("/reformat", 200, response)
-    record = body["document_json"]
-    assert body["service"] == SERVICE and body["doc_id"] == "zprava" == record["doc_id"]
-    assert record["source"]["origin"] == "digital-born-pdf"
-    assert record["assembled"]["blocks"]["lines"]["program"] == "digital-convert"
+    docproc = body["docproc"]
+    assert body["service"] == SERVICE and body["doc_id"] == "zprava"
+    assert "document_json" not in body
+    assert docproc_writer.problems(docproc) == []
     assert "markdown" not in body, "Markdown only on request"
     assert body["reader"]["kind"] == "pdf" and body["reader"]["pages"] == 2
     action = body["paradata"]
     assert atrium_rocrate.action_problems(action) == []
-    assert record["assembled"]["blocks"]["lines"]["run_uuid"] == action["@id"]
     assert [(e["name"], e["encodingFormat"]) for e in action["object"]] == [
-        ("zprava.pdf", "application/pdf")
+        ("original", "application/pdf")
     ]
-    assert "#block-lines" in {e["@id"] for e in action["result"]}
+    assert action["object"][0]["sha512"] == hashlib.sha512(data).hexdigest()
+    (result,) = action["result"]
+    assert result["name"] == "atr/docproc-json" and "stored" not in result  # stored: the default
+    assert (
+        result["sha512"]
+        == hashlib.sha512(
+            (json.dumps(docproc, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        ).hexdigest()
+    )
 
 
 def test_reformat_renders_markdown_on_request():
@@ -239,7 +251,8 @@ def test_reformat_renders_markdown_on_request():
         "/reformat", 200, client.post("/reformat", files=files, data={"markdown": "true"})
     )
     assert body["markdown"].startswith("# zprava")
-    assert "zprava.md" in {e["name"] for e in body["paradata"]["result"]}
+    # a development view: not a stored output, so not named in the result (#84 §4)
+    assert [e["name"] for e in body["paradata"]["result"]] == ["atr/docproc-json"]
 
 
 #: An AMČR seed (atrium-project#71): the file id and the archive's own view of the original.
@@ -263,13 +276,14 @@ def test_an_amcr_seed_keeps_its_identity_and_the_run_is_returned(tmp_path, monke
         "document_json": ("seed.document.json", json.dumps(seed).encode(), "application/json"),
     }
     body = _conforms("/reformat", 200, client.post("/reformat", files=files))
-    record = body["document_json"]
-    assert record["doc_id"] == seed["doc_id"] == body["doc_id"]
-    assert {k: v for k, v in record["source"].items() if k not in ("origin", "page_count")} == seed[
-        "source"
-    ]
-    assert "#record" in {e["@id"] for e in body["paradata"]["object"]}
-    assert "document_json_schema_error" not in body
+    assert body["doc_id"] == seed["doc_id"]
+    # the seed is read, not written: it is an input of the run, by the bytes sent
+    names = [e["name"] for e in body["paradata"]["object"]]
+    assert names == ["original", "atrium/document-json"]
+    assert (
+        body["paradata"]["object"][1]["sha512"]
+        == hashlib.sha512(json.dumps(seed).encode()).hexdigest()
+    )
     assert list(tmp_path.iterdir()) == [], "nothing is written to the working directory"
 
 
@@ -307,17 +321,22 @@ def test_source_digest_mismatch_is_the_canonical_registrys_not_this_services():
     assert "REASON_CODES" not in (root / "service" / "api.py").read_text(encoding="utf-8")
 
 
-def test_an_ocr_layer_pdf_is_422_ocr_text_layer():
+def test_an_ocr_layer_pdf_is_converted_and_routed_to_the_atr():
+    """#84 §1: no refusal (until #84, 422 `ocr_text_layer`). The pages go to the ATR, so this
+    docproc is not the stored one (`stored: false`, H14)."""
     files = {"file": ("scan.pdf", _pdf("ocr_layer.pdf"), "application/pdf")}
-    body = _conforms("/reformat", 422, client.post("/reformat", files=files))
-    assert body["reason"] == "ocr_text_layer"
+    body = _conforms("/reformat", 200, client.post("/reformat", files=files))
+    routes = {r["route"] for r in body["docproc"]["metadata"]["routing"]["pages"]}
+    assert routes == {"atr"}
+    (result,) = body["paradata"]["result"]
+    assert result["stored"] is False
 
 
 def test_a_garbled_page_is_flagged_not_refused():
     files = {"file": ("g.pdf", _pdf("garbled.pdf"), "application/pdf")}
     body = _conforms("/reformat", 200, client.post("/reformat", files=files))
-    page = body["document_json"]["pages"][0]
-    assert page["needs_ocr"] is True and page["needs_ocr_reason"]
+    page = body["docproc"]["pages"][0]
+    assert page["needsAtr"] is True and page["needsAtrReason"]
 
 
 def test_a_type_the_converter_does_not_read_is_415():
@@ -401,23 +420,6 @@ def test_describe_refuses_an_unknown_stage_name():
     response = client.post("/describe", files=files, data={"stages": "ocr-postprocess,translator"})
     body = _conforms("/describe", 422, response)
     assert "translator" in body["detail"]
-
-
-def test_ocr_text_layer_is_the_registered_code_of_the_converters_refusal(tmp_path):
-    """atrium-digital-convert#4 W6: AMČR's route step sends a document refused with the 422
-    `ocr_text_layer` to OCR, and relies on that code staying stable. The converter raises it,
-    /reformat answers it, the registry fixes it — so a rename on either side fails here."""
-    pytest.importorskip("pdfplumber")
-    from api_util import digital_to_json as d2j
-    from service.atrium_service import REASON_CODES, REASON_STATUSES
-
-    pdf = tmp_path / "ocr_layer.pdf"
-    pdf.write_bytes(_pdf("ocr_layer.pdf"))
-    with pytest.raises(d2j.DigitalInputError) as info:
-        d2j.extract(str(pdf))
-    assert info.value.reason == "ocr_text_layer"
-    assert info.value.reason in REASON_CODES and REASON_STATUSES[info.value.reason] == (422,)
-    assert info.value.reason in _SPEC["x-atrium-reason-codes"]
 
 
 def test_the_rename_from_llm_enrich_is_declared_in_the_spec():

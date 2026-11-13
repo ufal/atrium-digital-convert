@@ -18,7 +18,7 @@ what lost text on the old path. What this module fixes, against the #10 §9 meas
 * **Strict packages (G4).** python-docx refuses a package whose main part has no Override
   content type (alto-postprocess's `CTX000000010.docx`) — and, for the same check, every
   `.docm`, `.dotx` and `.dotm`. The package relationship still names the main part, so the
-  content type is repaired in memory and the package reopened. `source.sha256` stays the
+  content type is repaired in memory and the package reopened. `sha512` stays the
   hash of the file as given.
 * **Structure.** Every paragraph is one `group_id` (`p{n}`), split into lines at `w:br` /
   `w:cr`; headings come from the outline level (the paragraph's, then its style chain's),
@@ -54,7 +54,7 @@ from api_util.digital_ir import (
     DigitalTable,
     missing_dependency,
     renumber_lines,
-    sha256_file,
+    sha512_file,
 )
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -660,7 +660,7 @@ def extract_docx(path: str, doc_id: str, origin: str, page_breaks: str = "auto")
         doc_id=doc_id,
         origin=origin,
         media_type=MEDIA_TYPE,
-        sha256=sha256_file(path),
+        sha512=sha512_file(path),
         filename=os.path.basename(path),
         reading_order="flow",
     )
