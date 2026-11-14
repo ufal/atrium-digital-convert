@@ -35,7 +35,7 @@ OCR_POSTPROCESS = REPO_ROOT.parent / "atrium-ocr-postprocess"
 #: first carries it.
 ADOPTED = {
     "owner": "atrium-ocr-postprocess",
-    "commit": "2464756ce61664469f666d3fc6bc90cfc6f02f0b",
+    "commit": "3147c722d244e39a09ae22785828c0c129662da6",
     "release": "v2.0.0-beta",
 }
 
