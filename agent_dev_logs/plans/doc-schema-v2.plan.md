@@ -1,5 +1,6 @@
 # Strategy — [atrium-project#84](https://github.com/ufal/atrium-project/issues/84) (doc-schema-v2): digital-convert's part
 
+> _**Refreshed 2026-11-14**: "Status — PR (11-14)": the PR's checks and round 5's fixes._
 > _**Refreshed 2026-11-13**: "Status — round 2" (the code, pushed 11-13 to `doc-schema-v2`) and round 4's notes. The file keeps
 > the name `doc-schema-v2.plan.md` (it was `84.plan.md` on 11-12 and 11-13)._
 > _**Refreshed 2026-11-12** on ARÚP's output contract of 12 November and atrium-project#84 (motyc, 11-12), at this
@@ -11,7 +12,11 @@
 > issue existed), in which digital-convert wrote the born-digital record, read images and CSV, and kept the
 > `ocr_text_layer` refusal — all superseded below._
 
-**Status (2026-11-13)**: 🟡 **Implemented, pushed 11-13 to `doc-schema-v2`; see "Status — round 2". Deferred items are listed there.**
+**Status (2026-11-14)**: 🟡 **[atrium-digital-convert#10](https://github.com/ufal/atrium-digital-convert/pull/10) is open
+(`doc-schema-v2` into `test`); see "Status — PR". Drift clears once the hub's PR merges and the pins move; the
+record-major check clears at this tool's next release, which raises its major version.**
+
+**Status (2026-11-13)**: 🟡 **Implemented, pushed 11-13 to `doc-schema-v2`; see "Status — round 2". Deferred items are listed there.** _(superseded 11-14: the PR is open)_
 
 **Status (2026-11-12)**: 📋 **Planned, plans only. digital-convert becomes a docproc producer: it runs first on every
 PDF and office file, gives a verdict for every page, never refuses a document and never decides from a sample; a
@@ -124,6 +129,31 @@ Local branch from `test`, on the re-vendored shared modules (record 2.0, paradat
   does not decode. The suite passes (959). Points 4 and 5: [`9.plan.md`](9.plan.md).
 - **Q15 (hub, 11-13):** Kate's reply on atrium-project#84 has the stored docproc written by the ATR. Until that is
   answered, `stored` stays as H14 says (`true` when no page needs the ATR).
+
+## Status — PR (11-14)
+
+[atrium-digital-convert#10](https://github.com/ufal/atrium-digital-convert/pull/10), head `fd5951d`. Failing checks:
+check-drift (canonical), because the callers read the hub at `v1` (`4435ffb`) while the copies are v2; api-contract,
+because the record schema went from 1.0 to 2.0 without a major version; check-drift (vendored):
+`tests/test_vendored_teitok_parity.py` named nlp-enrich `ba81709` (flexiconv v0.3.11) while `requirements_flexiconv.txt`
+pins v0.3.12; api-contract also reports `document_json` gone from `/describe` and `/reformat`. The causes across all
+seven PRs:
+[hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md),
+"Status — PRs".
+
+Round 5 (not pushed):
+
+- `atrium_rocrate.py` and `tests/test_atrium_rocrate.py` re-vendored: a crate root that asserts no licence names
+  `#no-licence-asserted` again (RO-Crate 1.2 requires a root licence; atrium-project#6, motyc 11-12). The hub's PR
+  failed its RO-Crate check without it.
+- the TEITOK pin names nlp-enrich `c9e94ee` (2026-11-10, flexiconv v0.3.12): all 11 copies match it, and the pin test
+  passes against a checkout at that commit.
+- `digests/9.digest.md`, left out of the push, added back.
+
+The suite passes: 961. After the hub's PR merges, `v1` moves to its merge commit and
+`scripts/pin_hub_reusables.py --sha` pins this repository's callers to it: drift clears. The record-major check stays
+red until the release, which raises the major version in `para_config.txt` (`v1.4.7-beta` now), `CITATION.cff` and
+`service/openapi.json`'s `info.version`.
 
 ## Depends on
 

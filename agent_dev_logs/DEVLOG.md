@@ -1513,3 +1513,12 @@ Documentation only; no code, test or configuration change.
 * **Written here (not pushed):** `digests/9.digest.md`, `plans/9.plan.md` (new); `plans/doc-schema-v2.plan.md` (the round-1 text in place of the 11-11 one, the round-2 status, the push, #9, Q15); `plans/5.plan.md`, `digests/5.digest.md` (#5's lost-letters route superseded). This file: the round-2 entry of 11-13 and this one.
 * **Detail:** `plans/doc-schema-v2.plan.md`, "Status — round 2"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
 * **Not posted; not pushed.**
+
+## 2026-11-14 — atrium-project#84 round 5: the PR's checks
+
+* **Asked (K4TEL):** check the doc-schema-v2 PRs and fix their problems.
+* **Found:** [atrium-digital-convert#10](https://github.com/ufal/atrium-digital-convert/pull/10) fails drift (the hub pin at `v1`) and api-contract (record major 1.0 → 2.0, no major version yet); check-drift (vendored): `tests/test_vendored_teitok_parity.py` named nlp-enrich `ba81709` (flexiconv v0.3.11) while `requirements_flexiconv.txt` pins v0.3.12; api-contract also reports `document_json` gone from `/describe` and `/reformat`.
+* **Written here (not pushed):** the re-vendored `atrium_rocrate.py` and `tests/test_atrium_rocrate.py` (`#no-licence-asserted` on the crate root again), `tests/test_vendored_teitok_parity.py`, `digests/9.digest.md`; `plans/doc-schema-v2.plan.md`, "Status — PR".
+* **Checked:** the full suite, 961 passed.
+* **Next:** the pin commit after the hub's PR merges; the major version at the release. Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md), "Status — PRs".
+* **Not posted; not pushed.**
