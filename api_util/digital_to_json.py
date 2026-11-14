@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-api_util/digital_to_json.py — born-digital documents → `atrium_document` JSON.
+api_util/digital_to_json.py — born-digital documents → docproc (`atr/docproc-json`).
 
 Reads every born-digital type AMČR accepts (atrium-digital-convert#2): PDF and DOCX with this
 repository's structural readers (geometry, groups, styles, tables), ODT, ODS, XLSX and RTF with
@@ -9,15 +9,12 @@ the shared reader atrium-ocr-postprocess owns (`text_formats.py`, vendored; see
 (`api_util/digital_legacy.py`). An AMČR seed's `source.sha512` is checked against the bytes of
 the original before anything is read (`source_digest_mismatch`, see `verify_seed_digest()`).
 
-The `digital-convert` originator (hub issue #18 §1a, plan §2). `BLOCK_OWNERS` gives the
-positional plane — `pages`, `content`, `lines`, `tables` — two possible originators, and
-which one applies is fixed per document by `source.origin`:
-
-    ocr:* / vlm:* / ABBYY-ALTO   → alto-postprocess
-    digital-born* / pdf / docx   → digital-convert   ← this module
-
-The two are mutually exclusive per document, so nothing here is a second opinion on an
-ALTO document; it is the *only* writer of the plane for a born-digital one.
+Since ARÚP's output contract of 12 November 2026 (atrium-project#84 §1) the output is docproc,
+the layout format the ATR writes for scanned pages: pages, blocks and lines with the text-layer
+verdict of each page and `needs_atr` where its text cannot be used (`api_util/docproc_writer.py`).
+digital-convert writes no record and refuses no document: ocr-postprocess builds the record from
+docproc. The docproc of a document with pages that need the ATR is an intermediate (`stored:
+false` in the paradata, H14): the ATR's is the stored one.
 
 Four layers, per §2 of llm-enrich's #18 plan (this repository's name before v1.0.0-beta; the plan was
 not carried over to the new dev logs):
@@ -36,11 +33,12 @@ not carried over to the new dev logs):
      Imported lazily, so the base install and the fast lane never pay for either.
   B. **Normalization** — paragraph grouping from geometry, and the decode-sanity gate
      that turns "born-digital" into "born-digital and actually readable".
-  C. **Serialization** — into `DocumentRecord` as `program="digital-convert"`, writing
-     only this program's declared field grants, with the licence union of the components
-     this run actually used (accretion rule 5).
-  D. **Validation & export** — the §1b round-trip assertion *and*
-     `validate_document()`. If either fails, **no `doc.json` is emitted**.
+  C. **Serialization** — docproc (`api_util/docproc_writer.py`), and a record-shaped
+     development dict (`development_dict()`) that the Markdown and `/describe` views read.
+     No run data and no licence in either.
+  D. **Validation & export** — the docproc is validated against the proposal schema
+     (`schemas/docproc/`); a docproc that fails is never written. The run's paradata name
+     the original read and the docproc written by SHA-512 (`record_run()`).
 
 ## Born-digital ≠ trustworthy text
 
@@ -62,38 +60,33 @@ absent from it.
 
 Detection feeds two outputs, and deliberately not a third:
 
-  * `lines[].categ` = **`"Garbage"`** — the exact spelling `api_util/json_to_md.py`'s
-    `DROP_CATEGORIES` filters on. `categ` is an open string in the schema, so a synonym
-    would silently disable the filter instead of failing validation.
-  * `pages[].needs_ocr` + `pages[].needs_ocr_reason` — the documented digital→OCR
-    hand-off. Setting `needs_ocr` is what *authorises* `alto-postprocess` to re-originate
-    this record's plane, even though `source.origin` stays `digital-born-*` (which remains
-    truthful: it describes how the ORIGINAL was acquired). `pages[].ocr` is never granted
-    to this program, so "was this OCR'd" stays answerable from the record.
+  * the line flag **`Garbage`** (docproc `lines[].flags`; `Inverted` for mirrored text): the
+    decode verdict, never a line category (D18 rule 2: categories are the record builder's).
+    `json_to_md` drops such a line from the Markdown view.
+  * the page's `needsAtr` + `needsAtrReason` (in the development dict `needs_ocr` and its
+    reason) — the page goes to the ATR, and `metadata.routing` says so.
   * **Not** a silent repair. `decode_sanity()` returns the recovered string because it is
     the single most useful thing a human triaging the document can see, but this converter
     REPORTS; routing policy lives outside it. Rewriting text under the reader's feet would
-    make `source.sha256` describe a document whose text no longer matches it.
+    make the original's digest describe a document whose text no longer matches it.
 
 The same hand-off carries three more page verdicts (Issue #18, 2026-09-25 — the #10 §9 gap
 register): a page with no text layer but an image or vector paths on it (a scanned plate,
 text drawn as curves), a text layer of U+FFFD/control characters (a subset font without
 /ToUnicode; pdfminer's `(cid:N)` placeholders count, #5), and a text layer that is a prior OCR
 run's invisible text over a page image. A page whose only text is its running header or footer,
-over images that cover it, has no text layer either (#5).
-When OCR-layer pages are at least half of the text-bearing pages, the document is not
-born-digital at all and is refused (exit 3): its originator is alto-postprocess, as
-`ocr:pdf-text-layer` — the rule atrium-alto-postprocess `default_source_origin` applies.
+over images that cover it, has no text layer either (#5). No document is refused for its pages
+(#84 §1): until #84 a PDF mostly of prior-OCR pages was refused whole (`ocr_text_layer`).
 
-## Layout cues (the #18 mapping table)
+## Layout cues (the #18 mapping table), as docproc carries them
 
   * pages — PDF pages (with their `/PageLabels`), DOCX pages from explicit breaks, section
     breaks and Word's `lastRenderedPageBreak` (the rules alto-postprocess #31 uses);
-  * `lines[].group_id` — PDF text blocks (per column), DOCX paragraphs, table cells;
-  * `lines[].style` — `bold`, `italic`, `heading_level` (PDF: by size; DOCX: outline level
-    or style name) and `region` ∈ {page_header, page_footer, footnote};
-  * `tables[]` — DOCX tables and ruled PDF tables (Docling: any table), shape only;
-  * `lines[].bbox` + `pages[].canvas` — PDF only.
+  * blocks — PDF text blocks (per column), DOCX paragraphs, sheets (the IR's `group_id`);
+  * block types — `heading` with `level` (PDF: by size; DOCX: outline level or style name),
+    `header`, `footer`, `footnote` (the IR's `region`), `paragraph`;
+  * `table` blocks with `cellGrid` — DOCX tables and ruled PDF tables (Docling: any table);
+  * line and block boxes, page sizes — PDF only.
 
 ## Coordinates
 
@@ -101,22 +94,21 @@ born-digital at all and is refused (exit 3): its originator is alto-postprocess,
 that page's `canvas.unit`. For pdfplumber that means `top`/`bottom` — never `y0`/`y1`, which
 are PDF user space (origin bottom-left) and are the specific mistake the schema description
 calls out. DOCX has no page geometry without rendering, so a DOCX document carries no
-`bbox` and therefore no `canvas` either.
+box and no page size (the proposal schema allows it for flow documents, ask 13).
 
 ## Exit codes
 
-    0  record written
+    0  docproc written
     2  a dependency is missing (advice printed, no traceback) — LibreOffice for DOC/XLS too
-    3  not an input this converter takes: unsupported format, an OCR-layer PDF, a seed
-       whose source.sha512 is not the file's digest (source_digest_mismatch), or a
-       --document-json record that cannot be opened, or whose `pages` or `lines` is not a
-       list of objects (invalid_record)
+    3  not an input this converter takes: unsupported format, a seed whose source.sha512 is
+       not the file's digest (source_digest_mismatch), or a --document-json seed that cannot
+       be opened (invalid_record)
     4  the file is broken: empty, corrupt, encrypted, over the ZIP limits, a failed
-       conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S)
+       conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S, the ODF repeat cap)
 
 Usage:
-    python api_util/digital_to_json.py report.pdf --document-json-out report.document.json
-    python api_util/digital_to_json.py report.docx --document-json prev.json --out out.json
+    python api_util/digital_to_json.py report.pdf --docproc-out report.docproc.json
+    python api_util/digital_to_json.py report.docx --document-json seed.document.json --out-dir out/
     python api_util/digital_to_json.py report.pdf --engine docling --paradata-dir paradata/
 """
 
@@ -126,7 +118,6 @@ import argparse
 import json
 import os
 import sys
-import tempfile
 import unicodedata
 import zipfile
 from dataclasses import dataclass
@@ -152,24 +143,17 @@ from api_util.digital_ir import (  # noqa: E402  (re-exported: `d2j.DigitalLine`
     DigitalLine,
     DigitalPage,
     DigitalTable,
-    damaged_body_words,
     font_flags,
     is_inverted,
     missing_dependency,
-    sha256_file,
     sha512_file,
     text_layer_of,
 )
 from atrium_document import (  # noqa: E402
     SCHEMA_VERSION,
-    DocumentRecord,
-    InvalidRecordError,
     canonical_doc_id,
-    load_document,
-    validate_baseline,
-    validate_document,
 )
-from atrium_limits import LimitExceeded  # noqa: E402
+from atrium_limits import ContentLimitError, LimitExceeded  # noqa: E402
 
 __all__ = [
     "REGION_FOOTER",
@@ -191,7 +175,6 @@ __all__ = [
 
 #: Kept for callers of the pre-split names.
 _missing = missing_dependency
-_sha256 = sha256_file
 _font_flags = font_flags
 _is_inverted = is_inverted
 
@@ -302,12 +285,6 @@ BAND_NOISY_AT = 0.50
 #: is used rather than an absolute, because the gap scales with the font.
 PARAGRAPH_GAP_RATIO = 1.8
 
-#: The `ocr` text-layer verdict needs at least this share of the text-bearing pages before the
-#: whole DOCUMENT is refused — ocr-postprocess `default_source_origin`'s rule. The default only:
-#: the effective value is the `OCR_LAYER_DOCUMENT_SHARE` setting (tool_limits.py, reported in
-#: the service's /info), read per document by `ocr_layer_document_share()`.
-OCR_LAYER_DOCUMENT_SHARE = 0.5
-
 #: Every input kind `sniff()` answers: every born-digital type AMČR accepts.
 KINDS: Tuple[str, ...] = ("pdf", "docx", "odt", "ods", "xlsx", "rtf", "doc", "xls")
 
@@ -322,15 +299,6 @@ MEDIA_TYPES: Dict[str, str] = {
     "doc": "application/msword",
     "xls": "application/vnd.ms-excel",
 }
-
-
-def ocr_layer_document_share() -> float:
-    """The effective `OCR_LAYER_DOCUMENT_SHARE` (the setting, else the module default)."""
-    try:
-        import tool_limits  # noqa: PLC0415  (repo root)
-    except ImportError:  # pragma: no cover - the repo root is on sys.path above
-        return OCR_LAYER_DOCUMENT_SHARE
-    return float(tool_limits.OCR_LAYER_DOCUMENT_SHARE.get())
 
 
 def _czech_letters() -> frozenset:
@@ -549,20 +517,6 @@ def _reason_furniture_only(page: DigitalPage) -> str:
     )
 
 
-#: The default of `ROUTE_DAMAGED_WORD_SHARE` (tool_limits.py): a `digital` page with this share of
-#: its body words losing a letter to an unmapped glyph is flagged `needs_ocr` in the record (#5).
-ROUTE_DAMAGED_WORD_SHARE = 0.05
-
-
-def damaged_word_share() -> float:
-    """The effective `ROUTE_DAMAGED_WORD_SHARE` (the setting, else the module default)."""
-    try:
-        import tool_limits  # noqa: PLC0415  (repo root)
-    except ImportError:  # pragma: no cover - the repo root is on sys.path when the CLI runs
-        return ROUTE_DAMAGED_WORD_SHARE
-    return float(tool_limits.ROUTE_DAMAGED_WORD_SHARE.get())
-
-
 def assess_page(page: DigitalPage) -> None:
     """Fill in `quality_score`, `quality_band`, `needs_ocr` and its reason, in place.
 
@@ -580,10 +534,12 @@ def assess_page(page: DigitalPage) -> None:
     cells has none), so the flag is exactly the `garbled`, `ocr` and `none` pages of
     `pages[].text_layer` (`digital_ir.text_layer_of`). That includes a `none` page that HAS lines:
     its only text is its running header or footer, over images that cover the page
-    (`digital_pdf._mark_furniture_only`, #5); its lines are scored like any other. And a page whose
-    body words lose letters to glyphs without a Unicode mapping, at `ROUTE_DAMAGED_WORD_SHARE` or
-    more (`lost_letters`): its text layer decodes, but it is incomplete (#5, 10-22: before, only
-    `/describe` sent such a page to OCR, and a step that read only the record never saw it).
+    (`digital_pdf._mark_furniture_only`, #5); its lines are scored like any other.
+
+    A page whose words lose letters to glyphs without a Unicode mapping (U+FFFD) but which decodes
+    otherwise is not flagged: since atrium-digital-convert#9 (point 3, agreed 11-13) that is a
+    question of text quality, answered by ocr-postprocess's scoring of its lines, not a reason to
+    send the page to the ATR. (#5 flagged it from 10-22, at `ROUTE_DAMAGED_WORD_SHARE`.)
     """
     reasons: List[str] = []
     if not page.lines:
@@ -618,17 +574,6 @@ def assess_page(page: DigitalPage) -> None:
                 f"characters (a font without /ToUnicode?). The page has a text layer; it does "
                 f"not decode."
             )
-        if page.text_layer == TEXT_LAYER_DIGITAL:
-            damaged, words = damaged_body_words(page)
-            share = damaged_word_share()
-            if words and damaged and damaged / words >= share:
-                page.lost_letters = True
-                reasons.append(
-                    f"the text layer decodes, but {damaged} of its {words} words ({damaged / words:.0%}) "
-                    f"lose a letter to a glyph without a Unicode mapping (U+FFFD; "
-                    f"ROUTE_DAMAGED_WORD_SHARE {share:g}). Re-acquire the page through the OCR "
-                    f"originator (ocr-postprocess)."
-                )
         if page.text_layer == TEXT_LAYER_NONE:
             # The page's content has no text layer; its lines are a page number or a running
             # header. Scoring them would call a scan `Clear`, so the page carries no score.
@@ -815,21 +760,6 @@ def open_record(baseline: Optional[str]) -> Optional[Dict[str, Any]]:
     return record
 
 
-def inherited_schema_problem(record: Optional[Dict[str, Any]]) -> Optional[str]:
-    """Why the record handed in does not validate (as a seed or a full record), or None.
-
-    Not fatal (rule 6): the record is accreted onto, and the output gate then reports a schema
-    error instead of refusing the result, on the command line and in the service alike.
-    """
-    if record is None:
-        return None
-    try:
-        validate_baseline(record)
-    except Exception as exc:  # noqa: BLE001  (any failure to validate is the inherited problem)
-        return getattr(exc, "message", None) or str(exc)
-    return None
-
-
 def verify_seed_digest(input_path: str, baseline: Optional[str]) -> Optional[str]:
     """Refuse a seed whose `source.sha512` is not the digest of the file received.
 
@@ -839,12 +769,10 @@ def verify_seed_digest(input_path: str, baseline: Optional[str]) -> Optional[str
     without `sha512` passes (the field is optional in the schema), as does a missing baseline.
     Returns the verified digest, or None when there was nothing to verify.
     """
-    if not baseline or not os.path.exists(baseline):
+    seed = open_record(baseline)
+    if seed is None:
         return None
-    try:
-        source = load_document(baseline).get("source") or {}
-    except Exception:  # a baseline that cannot be opened is DocumentRecord.open()'s to refuse
-        return None
+    source = seed.get("source") or {}
     expected = source.get("sha512") if isinstance(source, dict) else None
     if not isinstance(expected, str) or not expected.strip():
         return None
@@ -906,21 +834,6 @@ def extract_docx(
     return _extract(path, doc_id or canonical_doc_id(path), ORIGIN_DOCX, page_breaks=page_breaks)
 
 
-def _refuse_ocr_layer(document: DigitalDocument) -> None:
-    """An OCR-layer PDF is not born-digital: refuse it rather than stamp it so (G7)."""
-    with_text = [p for p in document.pages if p.text_layer in (TEXT_LAYER_DIGITAL, TEXT_LAYER_OCR)]
-    ocr = [p for p in with_text if p.text_layer == TEXT_LAYER_OCR]
-    share = ocr_layer_document_share()
-    if ocr and len(ocr) >= share * len(with_text):
-        raise DigitalInputError(
-            "ocr_text_layer",
-            f"{len(ocr)} of {len(with_text)} text-bearing pages are a prior OCR run's invisible "
-            f"text over a page image (OCR_LAYER_DOCUMENT_SHARE {share:g}), so this PDF is not "
-            f"born-digital: send it to OCR. Its originator is ocr-postprocess (source.origin "
-            f"ocr:pdf-text-layer).",
-        )
-
-
 def extract(
     path: str,
     doc_id: Optional[str] = None,
@@ -949,7 +862,9 @@ def extract(
                     "docling", "docling", "requirements_digital_docling.txt"
                 ) from exc
             document = refine_with_docling(path, document)
-        _refuse_ocr_layer(document)
+        # No refusal (atrium-project#84 §1): a page whose text layer is a prior OCR run needs
+        # the ATR like any page whose text cannot be used (`assess_page`, `needs_atr`). Until
+        # #84 a PDF mostly of such pages was refused whole (422 `ocr_text_layer`).
     elif kind in ("doc", "xls"):
         from api_util.digital_legacy import extract_legacy  # noqa: PLC0415
 
@@ -986,7 +901,7 @@ def _read_native(path: str, doc_id: str, kind: str, docx_page_breaks: str) -> Di
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Layer C — serialization into DocumentRecord
+# Layer C — the development dict (the Markdown and /describe views) and docproc
 # ──────────────────────────────────────────────────────────────────────────────
 
 
@@ -994,22 +909,16 @@ def _page_rows(doc: DigitalDocument) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for page in doc.pages:
         row: Dict[str, Any] = {"page": page.page, "page_index": page.page_index}
-        # Absent, never null: the schema types both as number/enum, and a line-less page
-        # has nothing to score.
+        # Absent, never null: a line-less page has nothing to score.
         if page.quality_score is not None:
             row["quality_score"] = page.quality_score
         if page.quality_band is not None:
             row["quality_band"] = page.quality_band
-        # `canvas.unit` is mandatory whenever any bbox exists on the page, and meaningless
-        # when none does (DOCX) — so the whole block is conditional on the adapter knowing a
-        # page size. A PDF page with no lines (a scan) still has one, and says so.
         if page.width and page.height:
             row["canvas"] = {"width": page.width, "height": page.height, "unit": page.unit}
         if page.needs_ocr:
             row["needs_ocr"] = True
             row["needs_ocr_reason"] = page.needs_ocr_reason
-        # The verdict as a closed enum (hub schema since 2026-10-05), so a routing step reads a
-        # value instead of `needs_ocr_reason`'s prose; `/describe` reports the same function's.
         row["text_layer"] = text_layer_of(page)
         rows.append(row)
     return rows
@@ -1023,16 +932,17 @@ def _line_rows(doc: DigitalDocument) -> List[Dict[str, Any]]:
             row["bbox"] = line.bbox
         if line.group_id is not None:
             row["group_id"] = line.group_id
+        # The decode verdict is a flag, as on docproc lines (D18 rule 2): `json_to_md` drops
+        # the line, and no line category is written (that is the record builder's).
         if line.categ:
-            row["categ"] = line.categ
+            row["flags"] = [line.categ]
         if line.quality_score is not None:
             row["quality_score"] = line.quality_score
         if line.lang:
             row["lang"] = line.lang
         # Semantic style only — bold/italic/heading_level, plus `region` for page furniture
-        # and footnotes (see `api_util/digital_ir.py` for why it lives here). Typeface and
-        # point size are deliberately dropped: a reader can act on "this was a heading" and
-        # cannot act on "this was Helvetica 12pt".
+        # and footnotes. Typeface and point size are deliberately dropped: a reader can act on
+        # "this was a heading" and cannot act on "this was Helvetica 12pt".
         style: Dict[str, Any] = {}
         if line.bold:
             style["bold"] = True
@@ -1079,81 +989,97 @@ def _content_text(doc: DigitalDocument) -> str:
     )
 
 
-def to_record(
-    doc: DigitalDocument,
+#: `record_type` of the development dict: record-shaped, never a record (atrium-project#84).
+DEVELOPMENT_RECORD_TYPE = "digital-convert-development"
+
+
+def development_dict(doc: DigitalDocument) -> Dict[str, Any]:
+    """The document as a record-shaped development dict: what `json_to_md` renders as Markdown
+    and `/describe` assesses. It is not the ATRIUM record and is never stored: since record
+    schema 2.0 (atrium-project#84) digital-convert writes docproc, and the record is built from
+    it by ocr-postprocess. No run data and no licence; the layout cues (`group_id`, `style`,
+    `tables`) and the page verdicts docproc carries are kept for the views."""
+    return {
+        "record_type": DEVELOPMENT_RECORD_TYPE,
+        "doc_id": doc.doc_id,
+        "source": {
+            k: v
+            for k, v in {
+                "sha512": doc.sha512,
+                "filename": doc.filename,
+                "media_type": doc.media_type,
+                "origin": doc.origin,
+                "page_count": len(doc.pages),
+            }.items()
+            if v not in ("", None)
+        },
+        "pages": _page_rows(doc),
+        "lines": _line_rows(doc),
+        "content": {"text": _content_text(doc) or None, "reading_order": doc.reading_order},
+        "tables": _table_rows(doc),
+    }
+
+
+def seed_doc_id(seed: Optional[Dict[str, Any]]) -> Optional[str]:
+    """The seed's `doc_id` (AMČR's file id), which wins over one derived from a file name."""
+    if not isinstance(seed, dict):
+        return None
+    value = seed.get("doc_id")
+    return str(value) if isinstance(value, str) and value.strip() else None
+
+
+def prepare(
+    input_path: str,
     baseline: Optional[str] = None,
-    run_id: Optional[str] = None,
-    paradata_ref: str = "",
-    out_dir: str = ".",
-    strict: bool = False,
-    license_detail: Optional[Dict[str, Any]] = None,
-    run_uuid: Optional[str] = None,
-) -> Tuple[DocumentRecord, List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Build the record. Returns it with the page and line rows, for Layer D to re-check.
+    doc_id: Optional[str] = None,
+    engine: str = "light",
+    docx_page_breaks: str = "auto",
+) -> Tuple[DigitalDocument, Dict[str, Any]]:
+    """Layers A–C for one file: the normalised document and its development dict.
 
-    `DocumentRecord.open()` handles the baseline for us: a missing or absent path is not an
-    error (rule 3, standalone-safe), and when one IS given every other tool's blocks are
-    deep-copied through untouched (rule 2). Note that `open()` also decides the doc_id — a
-    baseline's own id wins over the one derived here, because our id came from a LOCAL
-    FILENAME and the record already knows what document it is.
+    A seed (``baseline``) is read, never written: its `source.sha512` is verified against the
+    original first (`verify_seed_digest`), so a mismatched seed never reaches a reader, and its
+    `doc_id` names the document."""
+    verify_seed_digest(input_path, baseline)
+    doc_id = seed_doc_id(open_record(baseline)) or doc_id
+    document = normalize(
+        extract(input_path, doc_id=doc_id, engine=engine, docx_page_breaks=docx_page_breaks)
+    )
+    if not document.sha512:
+        document.sha512 = sha512_file(input_path)
+    document.use("jsonschema")  # the docproc gate runs on every output
+    return document, development_dict(document)
 
-    `set_source()` is called FIRST. The module re-checks blocks written before an origin
-    arrives, so this is no longer strictly required — but `source.origin` is what authorises
-    this program to write the plane at all, and writing it first keeps the authorisation
-    visible in the code rather than dependent on a deferred re-check. It is also
-    first-writer-wins, so on a re-run the original acquisition facts are preserved and only
-    a genuine contradiction is reported.
 
-    `license_detail` is this run's component licence union (rule 5). Without it the record
-    reports the conservative CC BY-NC 4.0 default, which is what every digital-born record
-    said until 2026-09-25: nothing here ever contributed the MIT/Apache stack it runs on.
+def build_development(
+    input_path: str,
+    baseline: Optional[str] = None,
+    doc_id: Optional[str] = None,
+    engine: str = "light",
+    docx_page_breaks: str = "auto",
+) -> Dict[str, Any]:
+    """The development dict, written nowhere — for in-memory consumers.
 
-    `run_uuid` is the run's `ParadataLogger.run_uuid` (atrium-project#71), stamped with every
-    block and the contributor entry beside `run_id`.
-    """
-    record = DocumentRecord.open(
-        doc.doc_id,
-        PROGRAM,
+    `api_util/doc_to_visual_md.py` renders PDF/DOCX to Markdown through this, so the LLM's
+    diet and the docproc come from one reading (G8). A seed (`baseline`) is checked as for a
+    conversion."""
+    _, dev = prepare(
+        input_path,
         baseline=baseline,
-        run_id=run_id,
-        run_uuid=run_uuid,
-        paradata_ref=paradata_ref,
-        out_dir=out_dir,
-        strict=strict,
+        doc_id=doc_id,
+        engine=engine,
+        docx_page_breaks=docx_page_breaks,
     )
-    record.set_source(
-        sha256=doc.sha256,
-        filename=doc.filename,
-        media_type=doc.media_type,
-        origin=doc.origin,
-        page_count=len(doc.pages),
-    )
-    if license_detail:
-        record.add_license_detail(license_detail)
-
-    page_rows = _page_rows(doc)
-    line_rows = _line_rows(doc)
-
-    # pages[] and lines[] are FIELD-SPLIT (page-classification contributes category;
-    # nlp-enrich contributes morphology), so merge_block — set_block would erase a
-    # co-contributor's fields on a re-run over an existing record.
-    record.merge_block("pages", page_rows)
-    record.merge_block("lines", line_rows)
-
-    # `content` has a single owner per document and `tables` is declared for the two
-    # ORIGINATORS only — which are mutually exclusive per record — so neither has a
-    # co-contributor to erase and set_block is both correct and quiet for them.
-    body = _content_text(doc)
-    record.set_block("content", {"text": body or None, "reading_order": doc.reading_order})
-
-    tables = _table_rows(doc)
-    if tables:
-        record.set_block("tables", tables)
-
-    return record, page_rows, line_rows
+    return dev
 
 
-# ── provenance: the licence of what actually ran ─────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Layer D — docproc, validated, and the run's paradata
+# ──────────────────────────────────────────────────────────────────────────────
+
+#: AMČR distribution names (atrium-project#84). The original's name is open (#84, Q11).
+ORIGINAL_DISTRIBUTION = "original"
+RECORD_DISTRIBUTION = "atrium/document-json"
 
 
 def _paradata_logger(paradata_dir: str, config: Dict[str, Any]) -> Optional[Any]:
@@ -1164,100 +1090,6 @@ def _paradata_logger(paradata_dir: str, config: Dict[str, Any]) -> Optional[Any]
     return ParadataLogger(PROGRAM, config, paradata_dir=paradata_dir, config_dir=REPO_ROOT)
 
 
-def license_detail_for(
-    components: Sequence[str], logger: Optional[Any] = None
-) -> Optional[Dict[str, Any]]:
-    """The licence union (accretion rule 5) of the `para_config.txt` components used.
-
-    Through `ParadataLogger`, so the licences come from the same `[components]` rows and the
-    same `para_licenses` ranking every other stage uses. With no logger of the caller's, a
-    throwaway one in a temporary directory computes the block and writes nothing.
-    """
-    if logger is not None:
-        for name in components:
-            logger.log_component(name)
-        return logger.get_license_block()
-    with tempfile.TemporaryDirectory(prefix="digital_convert_") as scratch:
-        scratch_logger = _paradata_logger(scratch, {})
-        if scratch_logger is None:
-            return None
-        return license_detail_for(components, scratch_logger)
-
-
-def prepare(
-    input_path: str,
-    baseline: Optional[str] = None,
-    doc_id: Optional[str] = None,
-    run_id: Optional[str] = None,
-    paradata_ref: str = "",
-    out_dir: str = ".",
-    strict: bool = False,
-    engine: str = "light",
-    docx_page_breaks: str = "auto",
-    logger: Optional[Any] = None,
-    run_uuid: Optional[str] = None,
-) -> Tuple[DigitalDocument, DocumentRecord, List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Layers A–C for one file: the normalised document, the record and its rows.
-
-    A seed's `source.sha512` is verified against the original first (`verify_seed_digest`),
-    so a mismatched seed never reaches a reader.
-    """
-    verify_seed_digest(input_path, baseline)
-    document = normalize(
-        extract(input_path, doc_id=doc_id, engine=engine, docx_page_breaks=docx_page_breaks)
-    )
-    document.use("jsonschema")  # Layer D's gate runs on every record
-    record, page_rows, line_rows = to_record(
-        document,
-        baseline=baseline,
-        run_id=run_id,
-        paradata_ref=paradata_ref,
-        out_dir=out_dir,
-        strict=strict,
-        license_detail=license_detail_for(document.components, logger),
-        run_uuid=run_uuid,
-    )
-    return document, record, page_rows, line_rows
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Layer D — validation and export
-# ──────────────────────────────────────────────────────────────────────────────
-
-
-def _gate(
-    record: DocumentRecord, page_rows: List[Dict[str, Any]], line_rows: List[Dict[str, Any]]
-) -> Dict[str, Any]:
-    return gate(record, page_rows, line_rows)[0]
-
-
-def gate(
-    record: DocumentRecord,
-    page_rows: List[Dict[str, Any]],
-    line_rows: List[Dict[str, Any]],
-    inherited_invalid: bool = False,
-) -> Tuple[Dict[str, Any], Optional[str]]:
-    """The output gate of both entry points: `(record, schema error or None)`.
-
-    The round-trip assertion and the schema always run. A schema failure raises, unless the
-    record handed in was already invalid (`inherited_invalid`): the failure is then almost
-    certainly the inherited one, and it is returned as the schema error instead (the service's
-    `document_json_schema_error`, the command line's warning), so this stage's work is kept.
-    """
-    record.assert_fields_survived("lines", line_rows)
-    record.assert_fields_survived("pages", page_rows)
-    data = record.to_dict()
-    try:
-        validate_document(data)
-    except RuntimeError:
-        raise  # validation itself is unavailable (jsonschema missing): never a pass
-    except Exception as exc:
-        if not inherited_invalid:
-            raise
-        return data, getattr(exc, "message", None) or str(exc)
-    return data, None
-
-
 def run_config(
     input_name: str,
     engine: str,
@@ -1265,7 +1097,7 @@ def run_config(
     markdown: bool = False,
     describe: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """The run's parameters as its paradata records them, for the command line and the service
+    """The run's configuration as its paradata records it, for the command line and the service
     alike (atrium-project#72); the service adds the `endpoint` it was called on."""
     config: Dict[str, Any] = {
         "input": os.path.basename(input_name),
@@ -1279,53 +1111,37 @@ def run_config(
     return config
 
 
-def emit(
-    record: DocumentRecord,
-    page_rows: List[Dict[str, Any]],
-    line_rows: List[Dict[str, Any]],
-    out_path: Optional[str] = None,
-) -> str:
-    """The output gate: round-trip assertion, then schema validation, then write.
+def record_run(
+    logger: Any,
+    document: DigitalDocument,
+    docproc: Dict[str, Any],
+    original: Dict[str, Any],
+    docproc_data: bytes,
+    seed: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Paradata 3.0 of one conversion (atrium-project#84, H14): the original read (`original`,
+    and the seed if one was sent, by SHA-512), the docproc written (`atr/docproc-json`, marked
+    `stored: false` when a page needs the ATR: the ATR's docproc is then the stored one), the
+    parameters that shaped it, and the components used, as facts."""
+    from api_util import docproc_writer  # noqa: PLC0415
 
-    Both checks run BEFORE `finalize()`, so a record that fails either is never written —
-    not written-then-flagged. They catch different things and neither subsumes the other:
-
-      * `assert_fields_survived()` catches a **field-ownership drop**, which the schema
-        structurally cannot. `lines[]` requires only `page`+`line`, so a row stripped of its
-        `text` by a too-narrow grant is a *valid* row. That exact bug shipped once already:
-        an earlier draft granted this program only `["group_id"]` on `lines`, `merge_block()`
-        honoured it silently, and the resulting text-free records validated clean.
-      * `validate_document()` catches everything the schema does describe — and it raises
-        rather than passing when `jsonschema` is absent, because a gate that quietly
-        no-ops is indistinguishable from a passing one.
-    """
-    _gate(record, page_rows, line_rows)
-    return record.finalize(out_path)
-
-
-def build_record(
-    input_path: str,
-    baseline: Optional[str] = None,
-    doc_id: Optional[str] = None,
-    engine: str = "light",
-    docx_page_breaks: str = "auto",
-    strict: bool = False,
-) -> Dict[str, Any]:
-    """The validated record as a dict, written nowhere — for in-memory consumers.
-
-    `api_util/doc_to_visual_md.py` renders PDF/DOCX to Markdown through this, so the LLM's
-    diet and the stored record come from one route (G8). Same gates as `emit()`: a record
-    that fails the round-trip assertion or the schema is never returned.
-    """
-    _, record, page_rows, line_rows = prepare(
-        input_path,
-        baseline=baseline,
-        doc_id=doc_id,
-        strict=strict,
-        engine=engine,
-        docx_page_breaks=docx_page_breaks,
+    logger.add_input(ORIGINAL_DISTRIBUTION, **original)
+    if seed is not None:
+        logger.add_input(RECORD_DISTRIBUTION, **seed)
+    logger.add_output(
+        docproc_writer.DISTRIBUTION,
+        docproc_data,
+        media_type="application/json",
+        stored=not docproc_writer.needs_atr(docproc),
     )
-    return _gate(record, page_rows, line_rows)
+    logger.set_parameter("engine", document.engine)
+    for name in document.components:
+        logger.log_component(name)
+
+
+def docproc_bytes(docproc: Dict[str, Any]) -> bytes:
+    """The bytes a docproc is written and named (SHA-512) by."""
+    return (json.dumps(docproc, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
 def convert(
@@ -1333,34 +1149,28 @@ def convert(
     out_path: Optional[str] = None,
     baseline: Optional[str] = None,
     doc_id: Optional[str] = None,
-    run_id: Optional[str] = None,
-    paradata_ref: str = "",
     out_dir: str = ".",
-    strict: bool = False,
     engine: str = "light",
     docx_page_breaks: str = "auto",
     paradata_dir: Optional[str] = None,
-    run_uuid: Optional[str] = None,
     markdown_out: Optional[str] = None,
     describe_out: Optional[str] = None,
     describe_stages: Optional[str] = None,
     classify_pages: str = "needs_ocr",
     include_text: bool = True,
 ) -> str:
-    """A → B → C → D for one file. Returns the written record's path.
+    """A → D for one file. Returns the written docproc's path (`<doc_id>.docproc.json` in
+    `out_dir` unless `out_path` names one).
 
-    With `paradata_dir`, the run also writes its paradata record there (the pair the
-    accretion model expects of every stage): its `run_id` and file name stamp the blocks
-    unless the caller passed its own.
+    With `paradata_dir`, the run also writes its paradata record there (`record_run()`). A
+    failed conversion writes no docproc, and its paradata say `failed` (D13).
 
     The two views `POST /reformat` and `POST /describe` add, run by the same code
-    (`service/describe.py`, atrium-project#72): `markdown_out` writes the record as annotated
-    Markdown (`markdown=true`), `describe_out` the per-page assessment (`pages`, `summary`,
-    `stages`, `reader`). `describe_stages`, `classify_pages` and `include_text` are the
-    endpoint's `stages`, `classify_pages` and `include_text`; the stage URLs come from
-    `PAGE_CLASSIFICATION_URL` and `OCR_POSTPROCESS_URL`. A record write a stage makes is
-    adopted under the same guard, and the record file then holds it.
+    (`service/describe.py`, atrium-project#72): `markdown_out` writes the development dict as
+    annotated Markdown (`markdown=true`), `describe_out` the per-page assessment.
     """
+    from api_util import docproc_writer  # noqa: PLC0415
+
     selected: List[str] = []
     if describe_out is not None:
         from service import stages as describe_stages_module  # noqa: PLC0415
@@ -1380,57 +1190,35 @@ def convert(
             ),
         )
         logger = _paradata_logger(paradata_dir, config)
-        if logger is not None:
-            # The logger's run_uuid goes with its run_id: blocks a caller stamps with its own
-            # run_id belong to the caller's run, not to this logger's.
-            if not run_id:
-                run_uuid = run_uuid or logger.run_uuid
-            run_id = run_id or logger.run_id
-            paradata_ref = paradata_ref or f"{logger.run_id}_{PROGRAM}.json"
     try:
-        # What the service checks before it converts, in its order: an empty file, then a record
-        # that cannot be opened (atrium-project#72; both used to end differently here).
+        # What the service checks before it converts, in its order: an empty file, then a seed
+        # that cannot be opened (atrium-project#72).
         if os.path.isfile(input_path) and os.path.getsize(input_path) == 0:
             raise DigitalInputError(
                 "corrupt", f"the file {os.path.basename(input_path)!r} is empty"
             )
-        inherited = open_record(baseline)
-        if inherited is None:
+        seed = open_record(baseline)
+        if seed is None:
             baseline = None  # an empty file counts as none, as an empty part does
-        inherited_problem = inherited_schema_problem(inherited)
-        if inherited_problem:
-            print(
-                f"[digital-convert] WARNING - the record handed in does not validate ({inherited_problem}); "
-                "accreting onto it anyway (rule 6).",
-                file=sys.stderr,
-            )
-        document, record, page_rows, line_rows = prepare(
+        document, dev = prepare(
             input_path,
             baseline=baseline,
             doc_id=doc_id,
-            run_id=run_id,
-            paradata_ref=paradata_ref,
-            out_dir=out_dir,
-            strict=strict,
             engine=engine,
             docx_page_breaks=docx_page_breaks,
-            logger=logger,
-            run_uuid=run_uuid,
         )
-        _, schema_error = gate(
-            record, page_rows, line_rows, inherited_invalid=bool(inherited_problem)
-        )
-        if schema_error:
-            print(
-                f"[digital-convert] WARNING - the record does not validate ({schema_error}); written anyway, "
-                "since the record handed in was already invalid (the service's document_json_schema_error).",
-                file=sys.stderr,
-            )
-        written = record.finalize(out_path)
+        docproc = docproc_writer.build_docproc(document)
+        data = docproc_bytes(docproc)
+        written = out_path or os.path.join(out_dir, f"{document.doc_id}.docproc.json")
+        os.makedirs(os.path.dirname(written) or ".", exist_ok=True)
+        tmp_path = f"{written}.tmp"
+        with open(tmp_path, "wb") as fh:
+            fh.write(data)
+        os.replace(tmp_path, written)
         if markdown_out is not None or describe_out is not None:
             _write_views(
                 document,
-                record.to_dict(),
+                dev,
                 input_path,
                 written,
                 markdown_out,
@@ -1442,18 +1230,26 @@ def convert(
             )
     except Exception as exc:
         if logger is not None:
-            logger.log_skip(input_path, getattr(exc, "reason", type(exc).__name__))
+            logger.fail(f"{getattr(exc, 'reason', type(exc).__name__)}: {exc}")
             logger.finalize(input_total=1, processed_total=0)
         raise
     if logger is not None:
-        logger.log_success("document_json")
+        record_run(
+            logger,
+            document,
+            docproc,
+            {"path": input_path, "media_type": document.media_type},
+            data,
+            {"path": baseline, "media_type": "application/json"} if baseline else None,
+        )
+        logger.log_success("docproc_json")
         logger.log_document_success()
         logger.finalize(input_total=1)
     return written
 
 
 def _write_json(path: str, data: Dict[str, Any]) -> None:
-    """Write-then-rename, as `DocumentRecord.finalize()` writes a record."""
+    """Write-then-rename."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     tmp_path = f"{path}.tmp"
     with open(tmp_path, "w", encoding="utf-8") as fh:
@@ -1461,18 +1257,18 @@ def _write_json(path: str, data: Dict[str, Any]) -> None:
     os.replace(tmp_path, path)
 
 
-def view_path(record_path: str, doc_id: str, requested: str, suffix: str) -> str:
-    """The path of a view: the one asked for, or `<doc_id><suffix>` beside the record."""
+def view_path(output_path: str, doc_id: str, requested: str, suffix: str) -> str:
+    """The path of a view: the one asked for, or `<doc_id><suffix>` beside the docproc."""
     if requested:
         return requested
-    return os.path.join(os.path.dirname(record_path) or ".", f"{doc_id}{suffix}")
+    return os.path.join(os.path.dirname(output_path) or ".", f"{doc_id}{suffix}")
 
 
 def _write_views(
     document: DigitalDocument,
     data: Dict[str, Any],
     input_path: str,
-    record_path: str,
+    output_path: str,
     markdown_out: Optional[str],
     describe_out: Optional[str],
     selected: List[str],
@@ -1496,9 +1292,7 @@ def _write_views(
             classify_pages=classify_pages,
             include_text=include_text,
         )
-        if assessed["document_json"] is not data:  # a stage's guarded write was adopted
-            data = assessed["document_json"]
-            _write_json(record_path, data)
+        data = assessed["document"]  # with a stage's guarded write, when one was adopted
         report = {
             "doc_id": doc_id,
             "reader": views.reader_info(document, data),
@@ -1506,13 +1300,13 @@ def _write_views(
             "summary": assessed["summary"],
             "stages": assessed["stages"],
         }
-        target = view_path(record_path, doc_id, describe_out, ".describe.json")
+        target = view_path(output_path, doc_id, describe_out, ".describe.json")
         _write_json(target, report)
         print(f"[digital-convert] wrote {target}")
         if logger is not None:
             logger.log_success("describe_json")
     if markdown_out is not None:
-        target = view_path(record_path, doc_id, markdown_out, ".md")
+        target = view_path(output_path, doc_id, markdown_out, ".md")
         os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
         with open(target, "w", encoding="utf-8") as fh:
             fh.write(views.render_markdown(data))
@@ -1530,49 +1324,39 @@ def build_parser() -> argparse.ArgumentParser:
     """Exposed separately so `--help` is testable in-process (repo convention I1)."""
     parser = argparse.ArgumentParser(
         prog="digital_to_json.py",
-        description="Convert a born-digital PDF, DOCX, ODT, ODS, XLSX, RTF, DOC or XLS into an "
-        "atrium_document JSON record.",
+        description="Convert a born-digital PDF, DOCX, ODT, ODS, XLSX, RTF, DOC or XLS into docproc "
+        "(atr/docproc-json): its pages, blocks and lines with the text-layer verdict of each page "
+        "(atrium-project#84). The ATRIUM record is built from it by ocr-postprocess.",
         epilog="Exit codes: 0 written; 2 dependency missing (LibreOffice for DOC/XLS too); 3 not a "
         "born-digital input this converter takes, a seed whose source.sha512 does not match "
-        "(source_digest_mismatch), or a --document-json record that cannot be opened or "
-        "added to (invalid_record); 4 empty, corrupt, encrypted, over the ZIP limits, a failed "
-        "conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S).",
+        "(source_digest_mismatch), or a --document-json seed that cannot be opened "
+        "(invalid_record); 4 empty, corrupt, encrypted, over the ZIP limits, a failed "
+        "conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S, ODF repeats).",
     )
     parser.add_argument(
         "input", help="path to the born-digital file (.pdf .docx .odt .ods .xlsx .rtf .doc .xls)"
     )
-    # W9: `--document-json-out` is the CANONICAL name, `--out` a retained alias.
-    #
-    # Every other stage in the ecosystem takes the PAIR --document-json /
-    # --document-json-out (alto-postprocess, translator, page-classification,
-    # nlp-enrich, llm-enrich). This converter took --document-json in and `--out`
-    # out, so the one asymmetric spelling in the ecosystem sat on the newest tool —
-    # and a pipeline step written by pattern-matching the others would silently write
-    # to the default path instead of the requested one.
-    #
-    # `--out` still works: it is in digital_born/README.md and in the existing tests.
-    # argparse resolves both to `args.out` via the shared dest.
     parser.add_argument(
-        "--document-json-out",
+        "--docproc-out",
         "--out",
         dest="out",
         default=None,
-        help="output path for the record (default <out-dir>/<doc_id>.document.json). "
-        "`--out` is a retained alias for the canonical --document-json-out.",
+        help="output path for the docproc (default <out-dir>/<doc_id>.docproc.json). `--out` is an "
+        "alias. Until atrium-project#84 this wrote the record (--document-json-out).",
     )
     parser.add_argument(
         "--document-json",
         default=None,
-        help="previous version of the record to accrete onto (rule 1); missing is not an error",
+        help="the AMČR seed (or a record) of the document: its doc_id names the output, and its "
+        "source.sha512 is checked against the file. Read only; missing is not an error",
     )
     parser.add_argument("--doc-id", default=None, help="override the derived doc_id")
     parser.add_argument("--out-dir", default=".", help="directory for the default output path")
-    parser.add_argument("--run-id", default=None, help="paradata run id to stamp blocks with")
-    parser.add_argument("--paradata-ref", default="", help="paradata record this run wrote")
     parser.add_argument(
         "--paradata-dir",
         default=None,
-        help="also write this run's paradata record into DIR (the paradata half of the pair)",
+        help="also write this run's paradata record into DIR (paradata 3.0: the original read "
+        "and the docproc written, by distribution name and SHA-512)",
     )
     parser.add_argument(
         "--engine",
@@ -1588,11 +1372,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="DOCX pages: auto = explicit breaks + Word's last rendered breaks (default); "
         "explicit = explicit breaks only; none = one page",
     )
-    parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="raise instead of warning on an ownership violation",
-    )
     views = parser.add_argument_group(
         "views (what POST /reformat's markdown=true and POST /describe return)"
     )
@@ -1602,7 +1381,7 @@ def build_parser() -> argparse.ArgumentParser:
         const="",
         default=None,
         metavar="PATH",
-        help="also write the record as annotated Markdown (default <doc_id>.md beside the record)",
+        help="also write the document as annotated Markdown (default <doc_id>.md beside the docproc)",
     )
     views.add_argument(
         "--describe",
@@ -1611,7 +1390,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="PATH",
         help="also write the per-page assessment of POST /describe (default <doc_id>.describe.json "
-        "beside the record); the stages are called when PAGE_CLASSIFICATION_URL / "
+        "beside the docproc); the stages are called when PAGE_CLASSIFICATION_URL / "
         "OCR_POSTPROCESS_URL (or the two flags below) are set",
     )
     views.add_argument(
@@ -1665,10 +1444,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             out_path=args.out,
             baseline=args.document_json,
             doc_id=args.doc_id,
-            run_id=args.run_id,
-            paradata_ref=args.paradata_ref,
             out_dir=args.out_dir,
-            strict=args.strict,
             engine=args.engine,
             docx_page_breaks=args.docx_page_breaks,
             paradata_dir=args.paradata_dir,
@@ -1681,13 +1457,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except DigitalInputError as exc:
         print(f"[digital-convert] {exc.reason}: {exc}", file=sys.stderr)
         return exc.exit_code
-    except InvalidRecordError as exc:
-        # The record opened, but a block the merge adds rows to is not a list of objects
-        # (atrium-project#72): exit 3, as the service's 422 invalid_record. It was a traceback.
-        print(f"[digital-convert] invalid_record: {exc}", file=sys.stderr)
-        return DigitalInputError.EXIT_CODES["invalid_record"]
     except LimitExceeded as exc:
         print(f"[digital-convert] limit_exceeded: {exc.detail}", file=sys.stderr)
+        return 4
+    except ContentLimitError as exc:
+        # D13 (atrium-project#84): a limit that would cut content fails the run; nothing written.
+        print(f"[digital-convert] limit_exceeded: {exc}", file=sys.stderr)
         return 4
     except RuntimeError as exc:  # a missing optional dependency, reported as advice
         print(f"[digital-convert] {exc}", file=sys.stderr)

@@ -23,8 +23,6 @@ from typing import Any, Iterable, List, Sequence, Tuple
 GRID = 256
 #: Form XObject depth searched for images (`digital_pdf._census` uses the same).
 FORM_DEPTH = 4
-#: Image objects of one page put on the raster (the reader's PDF_OBJECT_CAP default).
-IMAGE_CAP = 20_000
 
 Box = Tuple[float, float, float, float]
 
@@ -67,9 +65,7 @@ def image_boxes(page: Any) -> List[Box]:
     import pypdfium2.raw as pdfium_c  # noqa: PLC0415  (light-engine dependency, imported on use)
 
     boxes: List[Box] = []
-    for obj in page.get_objects(filter=(pdfium_c.FPDF_PAGEOBJ_IMAGE,), max_depth=FORM_DEPTH):
-        if len(boxes) >= IMAGE_CAP:
-            break
+    for obj in page.get_objects(filter=(pdfium_c.FPDF_PAGEOBJ_IMAGE,), max_depth=FORM_DEPTH):  # every one (#84)
         try:
             bounds = getattr(obj, "get_bounds", None) or obj.get_pos  # pypdfium2 5.x / 4.x
             box: Box = tuple(bounds())  # type: ignore[assignment]

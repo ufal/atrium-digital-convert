@@ -30,7 +30,7 @@ def _stub_json_route(monkeypatch):
 
     called = {}
 
-    def fake_build_record(path, engine="light", **_kwargs):
+    def fake_build_development(path, engine="light", **_kwargs):
         called["path"] = str(path)
         called["engine"] = engine
         return {"doc_id": "a"}
@@ -41,7 +41,7 @@ def _stub_json_route(monkeypatch):
         called["min_quality"] = min_quality
         return f"# {title} via json route\n"
 
-    monkeypatch.setattr(digital_to_json, "build_record", fake_build_record)
+    monkeypatch.setattr(digital_to_json, "build_development", fake_build_development)
     monkeypatch.setattr(doc_to_visual_md.json_to_md, "render_record", fake_render)
     return called
 

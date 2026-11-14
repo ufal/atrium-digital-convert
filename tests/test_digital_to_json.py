@@ -165,6 +165,11 @@ def _document(with_table: bool = False, garbled: bool = False) -> d2j.DigitalDoc
         d2j.DigitalLine(page="1", line=1, text="Vrstva ornice.", bbox=[72, 76, 274, 88]),
     ]
     if with_table:
+        page.lines.append(
+            d2j.DigitalLine(
+                page="1", line=2, text="Nálezy", bbox=[72, 90, 140, 100], group_id="tbl0-r0c0"
+            )
+        )
         page.tables = [
             d2j.DigitalTable(
                 table_id="t0",
@@ -181,113 +186,103 @@ def _document(with_table: bool = False, garbled: bool = False) -> d2j.DigitalDoc
             origin=d2j.ORIGIN_PDF,
             media_type="application/pdf",
             pages=[page],
-            sha256="a" * 64,
+            sha512="a" * 128,
             filename="CTX000000001.pdf",
         )
     )
 
 
-def test_record_is_authorised_by_source_origin(tmp_path):
-    """§1a: the plane is written by whoever `source.origin` authorises — and it must resolve.
-
-    An origin no `ORIGIN_ORIGINATORS` prefix matches makes the check ABSTAIN, which is how
-    §1a silently stops applying to a whole class of documents. So this asserts the routing,
-    not merely the string.
-    """
-    from atrium_document import resolve_originator
-
-    record, _, _ = to_record_in(tmp_path, _document())
-    data = record.to_dict()
-    assert data["source"]["origin"] == d2j.ORIGIN_PDF
-    assert resolve_originator(data["source"]["origin"]) == "digital-convert"
+def test_the_development_dict_is_no_record(tmp_path):
+    """atrium-project#84: digital-convert writes docproc, not a record. Its development dict
+    (the Markdown and /describe views) is record-shaped but says it is none, carries no run
+    data and no licence, and names the original by SHA-512 only."""
+    dev = d2j.development_dict(_document())
+    assert dev["record_type"] == d2j.DEVELOPMENT_RECORD_TYPE and "schema_version" not in dev
+    assert not {"provenance", "assembled", "derived_from", "regenerable"} & set(dev)
+    assert dev["source"]["sha512"] == "a" * 128 and "sha256" not in dev["source"]
+    assert dev["source"]["origin"] == d2j.ORIGIN_PDF
 
 
-def to_record_in(tmp_path, doc, baseline=None):
-    return d2j.to_record(doc, baseline=baseline, run_id="r1", out_dir=str(tmp_path), strict=True)
+def _docproc(doc):
+    from api_util import docproc_writer
+
+    return docproc_writer.build_docproc(doc)
 
 
-def test_lines_survive_the_round_trip_with_text_and_bbox(tmp_path):
-    """The §1b regression: a grant of only `["group_id"]` silently dropped text and bbox.
-
-    `merge_block()` filters unowned fields SILENTLY, and `lines[]` requires only page+line,
-    so the resulting text-free rows validated clean. This is the assertion that catches it.
-    """
-    record, _, line_rows = to_record_in(tmp_path, _document())
-    written = {(r["page"], r["line"]): r for r in record.to_dict()["lines"]}
-    for row in line_rows:
-        got = written[(row["page"], row["line"])]
-        assert got["text"] == row["text"]
-        assert got["bbox"] == row["bbox"]
-    record.assert_fields_survived("lines", line_rows)
+def test_lines_keep_their_text_and_box_in_both_outputs():
+    doc = _document()
+    dev = d2j.development_dict(doc)
+    docproc_lines = [ln for p in _docproc(doc)["pages"] for b in p["blocks"] for ln in b["lines"]]
+    for dev_line, line in zip(dev["lines"], docproc_lines, strict=True):
+        assert line["text"] == dev_line["text"]
+        assert line["bbox"] == dev_line["bbox"] and line["bboxPrecision"] == "measured"
 
 
-def test_style_is_semantic_only(tmp_path):
+def test_style_is_semantic_only():
     """bold/italic/heading_level are actionable; typeface and point size are not."""
-    record, _, _ = to_record_in(tmp_path, _document())
-    style = record.to_dict()["lines"][0]["style"]
+    style = d2j.development_dict(_document())["lines"][0]["style"]
     assert style == {"bold": True}
     assert "font" not in style and "size" not in style
 
 
-def test_canvas_unit_is_written_whenever_a_bbox_is(tmp_path):
-    record, _, _ = to_record_in(tmp_path, _document())
-    canvas = record.to_dict()["pages"][0]["canvas"]
+def test_the_page_size_is_written_whenever_a_box_is():
+    doc = _document()
+    canvas = d2j.development_dict(doc)["pages"][0]["canvas"]
     assert canvas["unit"] == "pt"
     assert canvas["width"] == 595.0 and canvas["height"] == 842.0
+    page = _docproc(doc)["pages"][0]
+    assert (page["width"], page["height"], page["coordinateUnit"]) == (595.0, 842.0, "pt")
 
 
-def test_no_canvas_without_geometry(tmp_path):
-    """A DOCX-shaped document has no coordinates, so `canvas` must be absent, not faked."""
+def test_no_page_size_or_box_without_geometry():
+    """A DOCX-shaped document has no coordinates: no canvas, no page size, no block box, not
+    faked (the proposal schema allows it for flow documents, ask 13)."""
     page = d2j.DigitalPage(page="1", page_index=1)
     page.lines = [d2j.DigitalLine(page="1", line=0, text="Zpráva")]
     doc = d2j.normalize(
-        d2j.DigitalDocument(doc_id="D", origin=d2j.ORIGIN_DOCX, media_type="", pages=[page])
+        d2j.DigitalDocument(
+            doc_id="D", origin=d2j.ORIGIN_DOCX, media_type="", pages=[page], kind="docx"
+        )
     )
-    record, _, _ = to_record_in(tmp_path, doc)
-    assert "canvas" not in record.to_dict()["pages"][0]
+    assert "canvas" not in d2j.development_dict(doc)["pages"][0]
+    docproc_page = _docproc(doc)["pages"][0]
+    assert "width" not in docproc_page and "bbox" not in docproc_page["blocks"][0]
+    assert docproc_page["blocks"][0]["lines"][0]["bboxPrecision"] == "absent"
 
 
-def test_garbage_lines_are_kept_as_rows_but_excluded_from_content(tmp_path):
-    """The row stays (with its `categ`, so a reader can see what was rejected and why);
-    the mojibake must not be concatenated into `content.text` as if it were readable."""
-    record, _, _ = to_record_in(tmp_path, _document(garbled=True))
-    data = record.to_dict()
-    assert data["lines"][0]["categ"] == "Garbage"
-    assert "sondì" not in (data["content"]["text"] or "")
-    assert "Vrstva ornice." in data["content"]["text"]
+def test_garbage_lines_are_kept_with_their_flag_but_excluded_from_content():
+    """The line stays, with its decode verdict as a FLAG (D18 rule 2: never a line category),
+    so a reader can see what was rejected and why; the mojibake is not concatenated into
+    `content.text` as if it were readable. The page goes to the ATR."""
+    doc = _document(garbled=True)
+    dev = d2j.development_dict(doc)
+    assert dev["lines"][0]["flags"] == ["Garbage"] and "categ" not in dev["lines"][0]
+    assert "sondì" not in (dev["content"]["text"] or "")
+    assert "Vrstva ornice." in dev["content"]["text"]
+    page = _docproc(doc)["pages"][0]
+    assert page["blocks"][0]["lines"][0]["flags"] == ["Garbage"]
+    assert page["needsAtr"] is True and page["needsAtrReason"]
 
 
-def test_accretion_preserves_another_tools_blocks(tmp_path):
-    """Rule 2: everything this program does not own is deep-copied through untouched."""
-    baseline = tmp_path / "CTX000000001.document.json"
-    baseline.write_text(
-        json.dumps(
-            {
-                "schema_version": "1.0",
-                "record_type": "atrium-document",
-                "doc_id": "CTX000000001",
-                "page_categories": {"1": "DRAW"},
-                "pages": [{"page": "1", "category": "DRAW", "category_confidence": 0.9}],
-                "assembled": {"blocks": {"page_categories": {"program": "page-classification"}}},
-            }
-        ),
-        encoding="utf-8",
+def test_a_seed_is_read_never_written(tmp_path, digital_fixtures):
+    """The seed names the output (its doc_id) and nothing is written into it (#84)."""
+    seed = tmp_path / "seed.document.json"
+    seed.write_text(json.dumps({"doc_id": "C-202400123A", "source": {}}), encoding="utf-8")
+    before = seed.read_bytes()
+    written = d2j.convert(
+        str(digital_fixtures / "minimal.pdf"), baseline=str(seed), out_dir=str(tmp_path)
     )
-    record, _, _ = to_record_in(tmp_path, _document(), baseline=str(baseline))
-    data = record.to_dict()
-
-    assert data["page_categories"] == {"1": "DRAW"}
-    # ...and the co-owned pages[] row keeps page-classification's fields alongside ours.
-    page = data["pages"][0]
-    assert page["category"] == "DRAW" and page["category_confidence"] == 0.9
-    assert page["quality_band"] == "Clear" and page["page_index"] == 1
+    assert Path(written).name == "C-202400123A.docproc.json"
+    assert seed.read_bytes() == before
 
 
-def test_tables_block_is_written_when_present(tmp_path):
-    record, _, _ = to_record_in(tmp_path, _document(with_table=True))
-    tables = record.to_dict()["tables"]
+def test_a_table_is_one_block_with_its_cell_grid():
+    doc = _document(with_table=True)
+    tables = d2j.development_dict(doc)["tables"]
     assert tables[0]["table_id"] == "t0"
     assert tables[0]["cells"][0]["group_id"] == "tbl0-r0c0"
+    (table,) = [b for p in _docproc(doc)["pages"] for b in p["blocks"] if b["type"] == "table"]
+    assert table["cellGrid"]["rows"][0]["cells"][0]["isHeader"] is True
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -295,43 +290,33 @@ def test_tables_block_is_written_when_present(tmp_path):
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def test_valid_record_is_written_and_validates(tmp_path):
-    pytest.importorskip("jsonschema")
-    record, page_rows, line_rows = to_record_in(tmp_path, _document())
-    written = d2j.emit(record, page_rows, line_rows)
+def test_a_valid_docproc_is_written_and_validates(tmp_path, digital_fixtures):
+    from api_util import docproc_writer
+
+    written = d2j.convert(str(digital_fixtures / "minimal.pdf"), out_dir=str(tmp_path))
     data = json.loads(Path(written).read_text(encoding="utf-8"))
-    assert data["doc_id"] == "CTX000000001"
-    assert data["assembled"]["blocks"]["lines"]["program"] == "digital-convert"
+    assert docproc_writer.problems(data) == []
+    assert data["version"] == docproc_writer.DOCPROC_VERSION
+    # no run data (ask 3): the run, the original and its digest are the paradata's
+    assert not {"processedAt", "pipeline", "sourceFile", "sourceHash"} & set(data)
 
 
-def test_invalid_record_is_not_written_at_all(tmp_path):
-    """ "No doc.json is emitted if validation fails" — not written-then-flagged.
+def test_an_invalid_docproc_is_not_written_at_all(tmp_path, digital_fixtures, monkeypatch):
+    """ "No output is emitted if validation fails" — not written-then-flagged."""
+    from api_util import docproc_writer
 
-    Also asserts no stray `.tmp` survives: `finalize()` writes to a temp path and renames,
-    so a gate that fired after the write would leave one behind.
-    """
-    jsonschema = pytest.importorskip("jsonschema")
-    doc = _document()
-    record, page_rows, line_rows = to_record_in(tmp_path, doc)
-    record._data["pages"][0]["quality_score"] = "not-a-number"  # schema says number
+    original = docproc_writer._page
 
-    # The specific exception, not a blind `Exception`: the point of this test is that the
-    # SCHEMA rejected the record, and a bare Exception would pass just as happily on a typo
-    # in emit() itself.
-    with pytest.raises(jsonschema.exceptions.ValidationError):
-        d2j.emit(record, page_rows, line_rows)
+    def broken(page):
+        out = original(page)
+        out["pageNumber"] = 0  # the schema says >= 1
+        return out
 
-    assert list(tmp_path.glob("*.document.json")) == []
+    monkeypatch.setattr(docproc_writer, "_page", broken)
+    with pytest.raises(docproc_writer.DocprocError, match="pageNumber"):
+        d2j.convert(str(digital_fixtures / "minimal.pdf"), out_dir=str(tmp_path))
+    assert list(tmp_path.glob("*.docproc.json")) == []
     assert list(tmp_path.glob("*.tmp")) == []
-
-
-def test_field_ownership_drop_is_caught_before_validation(tmp_path):
-    """A row stripped of its `text` is a VALID row (lines[] requires only page+line),
-    so the schema cannot catch this class — only the round-trip assertion can."""
-    record, page_rows, line_rows = to_record_in(tmp_path, _document())
-    record._data["lines"][0].pop("text")
-    with pytest.raises(RuntimeError, match="dropped by merge_block"):
-        d2j.emit(record, page_rows, line_rows)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -339,10 +324,12 @@ def test_field_ownership_drop_is_caught_before_validation(tmp_path):
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def test_cli_exposes_the_accretion_flags():
+def test_cli_exposes_the_docproc_flags():
     help_text = d2j.build_parser().format_help()
-    for flag in ("--document-json", "--out", "--doc-id", "--run-id", "--paradata-ref"):
+    for flag in ("--docproc-out", "--document-json", "--out", "--doc-id", "--paradata-dir"):
         assert flag in help_text
+    # no run data is passed in any more (atrium-project#84)
+    assert "--run-id" not in help_text and "--paradata-ref" not in help_text
 
 
 def test_unsupported_format_fails_loudly(tmp_path):
@@ -633,12 +620,15 @@ def test_every_page_row_carries_its_text_layer_and_it_matches_needs_ocr():
     )
 
 
-def test_the_record_validates_with_text_layer_on_the_garbled_fixture(digital_fixtures, tmp_path):
+def test_the_docproc_carries_the_verdict_on_the_garbled_fixture(digital_fixtures, tmp_path):
+    """The page verdict and the routing are in the docproc (#84 §1): a garbled page is
+    `textLayer: garbled`, `needsAtr`, routed `atr`; no document is refused for it."""
     pytest.importorskip("pdfplumber")
     out = d2j.convert(str(digital_fixtures / "garbled.pdf"), out_dir=str(tmp_path))
-    record = json.loads(Path(out).read_text(encoding="utf-8"))
-    assert {row["text_layer"] for row in record["pages"] if row.get("needs_ocr")} == {"garbled"}
-    assert all("text_layer" in row for row in record["pages"])
+    docproc = json.loads(Path(out).read_text(encoding="utf-8"))
+    assert {p["textLayer"] for p in docproc["pages"] if p.get("needsAtr")} == {"garbled"}
+    assert all("textLayer" in p for p in docproc["pages"])
+    assert {r["route"] for r in docproc["metadata"]["routing"]["pages"]} == {"atr"}
 
 
 def test_group_ids_are_unique_across_pages_and_split_on_column_and_region():
@@ -676,15 +666,17 @@ def test_region_lives_in_style_and_furniture_stays_out_of_content(tmp_path):
             origin=d2j.ORIGIN_PDF,
             media_type="application/pdf",
             pages=[page],
-            sha256="b" * 64,
+            sha512="b" * 128,
             filename="R.pdf",
         )
     )
-    record, _, _ = to_record_in(tmp_path, doc)
-    data = record.to_dict()
+    data = d2j.development_dict(doc)
     regions = [ln.get("style", {}).get("region") for ln in data["lines"]]
     assert regions == ["page_header", None, "footnote", "page_footer"]
     assert data["content"]["text"] == "Body text.\nA footnote."
+    # in docproc the region is the block type
+    types = [b["type"] for p in _docproc(doc)["pages"] for b in p["blocks"]]
+    assert types == ["header", "paragraph", "footnote", "footer"]
 
 
 def test_sniffing_is_by_content_not_extension(tmp_path):
@@ -718,38 +710,43 @@ def test_cli_exit_codes_name_the_problem(tmp_path, capsys):
 
 def test_cli_exposes_the_engine_and_page_break_flags():
     help_text = d2j.build_parser().format_help()
-    for flag in ("--engine", "--docx-page-breaks", "--paradata-dir", "--document-json-out"):
+    for flag in ("--engine", "--docx-page-breaks", "--paradata-dir", "--docproc-out"):
         assert flag in help_text
 
 
-def test_license_detail_reflects_the_components_used():
-    """P11: nothing on this path ever logged a component, so every digital-born record
-    carried the CC BY-NC 4.0 default. The light stack is permissive — and says so now."""
-    detail = d2j.license_detail_for(["pdfplumber", "pdfminer.six", "pypdfium2", "jsonschema"])
-    assert detail is not None
-    assert detail["effective_license"] in ("MIT", "Apache-2.0")
-    assert not detail.get("unknown_licenses")
+def _components_logged(tmp_path, names):
+    from atrium_paradata import ParadataLogger
+
+    logger = ParadataLogger(d2j.PROGRAM, {}, paradata_dir=str(tmp_path), config_dir=d2j.REPO_ROOT)
+    for name in names:
+        logger.log_component(name)
+    return json.loads(Path(logger.finalize()).read_text(encoding="utf-8"))
 
 
-def test_heavy_engine_licence_is_recorded_truthfully():
-    """TableFormer's weights are CDLA-Permissive-2.0, recorded as that — never rounded to
-    Apache-2.0. The hub's para_licenses ranks it with MIT since 2026-09-25 (it places no
-    terms on Results); before that it resolved as unknown, which reads as non-commercial and
-    share-alike, and every `--engine docling` record claimed both."""
-    components = [
+def test_the_components_used_are_listed_with_their_own_terms(tmp_path):
+    """P11, since paradata 3.0 (atrium-project#84, D2): the run lists what it used, each with
+    its own licence, as facts; no licence of the output is computed."""
+    data = _components_logged(tmp_path, ["pdfplumber", "pdfminer.six", "pypdfium2", "jsonschema"])
+    assert [c["name"] for c in data["components"]] == [
         "pdfplumber",
-        "docling",
-        "docling-parse",
-        "docling-layout-heron",
-        "docling-tableformer",
+        "pdfminer.six",
+        "pypdfium2",
+        "jsonschema",
     ]
-    detail = d2j.license_detail_for(components)
-    assert detail is not None
-    licences = {c["name"]: c["license"] for c in detail["components"]}
+    assert all(c.get("license") for c in data["components"])
+    assert not {"license", "license_url", "license_detail"} & set(data)
+
+
+def test_heavy_engine_licence_is_recorded_truthfully(tmp_path):
+    """TableFormer's weights are CDLA-Permissive-2.0, recorded as that — never rounded to
+    Apache-2.0, and never merged into a licence of the output."""
+    data = _components_logged(
+        tmp_path,
+        ["pdfplumber", "docling", "docling-parse", "docling-layout-heron", "docling-tableformer"],
+    )
+    licences = {c["name"]: c["license"] for c in data["components"]}
     assert licences["docling-tableformer"] == "CDLA-Permissive-2.0"
-    assert not detail.get("unknown_licenses")
-    assert detail["effective_license"] == "MIT"
-    assert detail["is_non_commercial"] is False and detail["is_share_alike"] is False
+    assert "license" not in data
 
 
 def test_pdf_words_are_separated_and_columns_read_in_order(digital_fixtures):
@@ -832,14 +829,17 @@ def test_layout_frames_are_not_tables(digital_fixtures):
     assert digital_pdf._plausible_table(small, {(0, 0): cell}, [word], area)
 
 
-def test_ocr_layer_pdf_is_refused_as_not_born_digital(digital_fixtures, tmp_path):
-    """G7: invisible text over page images is OCR output — alto-postprocess's to originate."""
+def test_an_ocr_layer_pdf_is_converted_with_its_pages_routed_to_the_atr(digital_fixtures, tmp_path):
+    """G7, since atrium-project#84 §1: invisible text over page images is a prior OCR run, so
+    those pages need the ATR (`textLayer: ocr`, routed `atr`); the document is not refused.
+    Until #84 a PDF mostly of such pages was refused whole (`ocr_text_layer`, exit 3)."""
     pytest.importorskip("pdfplumber")
-    with pytest.raises(d2j.DigitalInputError) as info:
-        d2j.extract(str(digital_fixtures / "ocr_layer.pdf"))
-    assert info.value.reason == "ocr_text_layer"
-    assert d2j.main([str(digital_fixtures / "ocr_layer.pdf"), "--out-dir", str(tmp_path)]) == 3
-    assert list(tmp_path.glob("*.document.json")) == []
+    assert d2j.main([str(digital_fixtures / "ocr_layer.pdf"), "--out-dir", str(tmp_path)]) == 0
+    (out,) = tmp_path.glob("*.docproc.json")
+    docproc = json.loads(out.read_text(encoding="utf-8"))
+    assert {p["textLayer"] for p in docproc["pages"]} == {"ocr"}
+    assert all(p["needsAtr"] for p in docproc["pages"])
+    assert docproc["sourceFormat"] == "pdf-scanned"
 
 
 def test_docx_pages_follow_explicit_section_and_rendered_breaks(digital_fixtures):
@@ -901,48 +901,79 @@ def test_docx_without_the_main_override_opens(digital_fixtures):
         docx.Document(str(digital_fixtures / "bare.docx"))
     doc = d2j.extract_docx(str(digital_fixtures / "bare.docx"))
     assert "Zpráva o sondě" in [ln.text for ln in doc.all_lines()]
-    assert doc.sha256 == d2j.sha256_file(str(digital_fixtures / "bare.docx"))
+    assert doc.sha512 == d2j.sha512_file(str(digital_fixtures / "bare.docx"))
 
 
-def test_every_fixture_converts_to_a_valid_record(digital_fixtures, tmp_path):
-    """The Layer D gate over every digital fixture except the refused OCR layer."""
+def test_every_fixture_converts_to_a_valid_docproc(digital_fixtures, tmp_path):
+    """The docproc gate over every digital fixture: valid against the proposal schema, and
+    every page routed (H15): in `pages[]`, or routed `empty`."""
     pytest.importorskip("pdfplumber")
     pytest.importorskip("docx")
     pytest.importorskip("jsonschema")
+    from api_util import docproc_writer
+
     for name in sorted(p.name for p in digital_fixtures.iterdir()):
-        if name == "ocr_layer.pdf":
-            continue
-        out = tmp_path / f"{name}.document.json"
+        out = tmp_path / f"{name}.docproc.json"
         d2j.convert(str(digital_fixtures / name), out_path=str(out))
         data = json.loads(out.read_text(encoding="utf-8"))
-        assert data["source"]["origin"] in (d2j.ORIGIN_PDF, d2j.ORIGIN_DOCX), name
-        assert data["provenance"]["license"] in ("MIT", "Apache-2.0", "BSD-3-Clause"), name
+        assert docproc_writer.problems(data) == [], name
+        routed = {r["page"]: r["route"] for r in data["metadata"]["routing"]["pages"]}
+        listed = {p["pageNumber"] for p in data["pages"]}
+        assert {n for n, r in routed.items() if r != "empty"} == listed, name
 
 
-def test_paradata_dir_writes_the_paradata_half_of_the_pair(digital_fixtures, tmp_path):
+def test_paradata_name_the_original_read_and_the_docproc_written(digital_fixtures, tmp_path):
+    """Paradata 3.0 (atrium-project#84): the original as `original` and the docproc as
+    `atr/docproc-json`, each by SHA-512 and never by a path; the components as facts."""
     pytest.importorskip("pdfplumber")
     pytest.importorskip("jsonschema")
-    out = tmp_path / "m.document.json"
+    src = digital_fixtures / "minimal.pdf"
+    out = tmp_path / "m.docproc.json"
+    d2j.convert(str(src), out_path=str(out), paradata_dir=str(tmp_path / "para"))
+    [paradata] = list((tmp_path / "para").glob("*_digital-convert.json"))
+    para = json.loads(paradata.read_text(encoding="utf-8"))
+    (original,) = para["inputs"]
+    (docproc,) = para["outputs"]
+    assert (original["name"], original["sha512"]) == (
+        "original",
+        hashlib.sha512(src.read_bytes()).hexdigest(),
+    )
+    assert docproc["name"] == "atr/docproc-json" and docproc["stored"] is True
+    assert docproc["sha512"] == hashlib.sha512(out.read_bytes()).hexdigest()
+    assert str(tmp_path) not in json.dumps(para["inputs"] + para["outputs"])
+    assert para["statistics"]["successfully_processed"] == 1
+    assert {c["name"] for c in para["components"]} >= {"pdfplumber", "jsonschema"}
+
+
+def test_a_docproc_with_pages_for_the_atr_is_not_the_stored_one(digital_fixtures, tmp_path):
+    """H14: when a page needs the ATR, the ATR's docproc is stored; this one is an
+    intermediate, recorded with its SHA-512 and `stored: false`."""
+    pytest.importorskip("pdfplumber")
     d2j.convert(
-        str(digital_fixtures / "minimal.pdf"),
-        out_path=str(out),
+        str(digital_fixtures / "image_only.pdf"),
+        out_dir=str(tmp_path),
         paradata_dir=str(tmp_path / "para"),
     )
     [paradata] = list((tmp_path / "para").glob("*_digital-convert.json"))
+    (docproc,) = json.loads(paradata.read_text(encoding="utf-8"))["outputs"]
+    assert docproc["stored"] is False
+
+
+def test_a_failed_conversion_writes_nothing_and_its_run_is_failed(tmp_path):
+    """D13: a failed step writes no output, and its paradata say `failed`."""
+    broken = tmp_path / "broken.docx"
+    broken.write_bytes(b"PK\x03\x04 not really a zip")
+    with pytest.raises(d2j.DigitalInputError):
+        d2j.convert(str(broken), out_dir=str(tmp_path), paradata_dir=str(tmp_path / "para"))
+    [paradata] = list((tmp_path / "para").glob("*_digital-convert.json"))
     para = json.loads(paradata.read_text(encoding="utf-8"))
-    record = json.loads(out.read_text(encoding="utf-8"))
-    contributor = record["provenance"]["contributors"][-1]
-    assert contributor["paradata_ref"] == paradata.name
-    assert contributor["run_id"] == para["run_id"]
-    assert para["statistics"]["successfully_processed"] == 1
-    assert {c["name"] for c in para["license_detail"]["components"]} >= {"pdfplumber", "jsonschema"}
+    assert para["action_status"] == "failed" and para["outputs"] == []
+    assert list(tmp_path.glob("*.docproc.json")) == []
 
 
-def test_a_strict_run_accepts_an_amcr_seed_and_stamps_the_run(digital_fixtures, tmp_path, capsys):
-    """atrium-project#71: the converter reads the original, so on a seed it is the stage that
-    adds the origin. Strict as in the pipeline, it keeps the seed's doc_id, digest, file name and
-    media type (a different file name is a NOTE, no longer a refusal), adds no sha256 beside the
-    archive's sha512, and stamps the paradata logger's run_uuid."""
+def test_a_seed_names_the_docproc_and_is_an_input_of_the_run(digital_fixtures, tmp_path, capsys):
+    """atrium-project#71/#84: a seed gives the doc_id and is read, never written; its digest is
+    checked against the file, and the run's paradata name it as the record version read."""
     pytest.importorskip("pdfplumber")
     pytest.importorskip("jsonschema")
     # The archive's digest of the very file sent: since atrium-digital-convert#2 a seed whose
@@ -954,24 +985,17 @@ def test_a_strict_run_accepts_an_amcr_seed_and_stamps_the_run(digital_fixtures, 
     }
     baseline = tmp_path / "seed.document.json"
     baseline.write_text(json.dumps(seed), encoding="utf-8")
-    out = tmp_path / "m.document.json"
-    d2j.convert(
+    written = d2j.convert(
         str(digital_fixtures / "minimal.pdf"),
-        out_path=str(out),
         baseline=str(baseline),
-        strict=True,
+        out_dir=str(tmp_path),
         paradata_dir=str(tmp_path / "para"),
     )
-    record = json.loads(out.read_text(encoding="utf-8"))
+    assert Path(written).name == "AMCR-F-minimal.docproc.json"
     [paradata] = list((tmp_path / "para").glob("*_digital-convert.json"))
-    run_uuid = json.loads(paradata.read_text(encoding="utf-8"))["run_uuid"]
-    assert record["doc_id"] == seed["doc_id"]
-    assert {k: v for k, v in record["source"].items() if k != "page_count"} == {
-        **seed["source"],
-        "origin": d2j.ORIGIN_PDF,
-    }
-    assert {stamp["run_uuid"] for stamp in record["assembled"]["blocks"].values()} == {run_uuid}
-    assert record["provenance"]["contributors"][-1]["run_uuid"] == run_uuid
+    inputs = json.loads(paradata.read_text(encoding="utf-8"))["inputs"]
+    assert [i["name"] for i in inputs] == ["original", "atrium/document-json"]
+    assert inputs[0]["sha512"] == digest
     assert "WARNING" not in capsys.readouterr().err
 
 
@@ -1197,7 +1221,7 @@ def test_headings_are_judged_on_the_body_text_of_digital_pages():
 def test_the_rerun_fixtures_read_as_their_pages_show(digital_fixtures):
     """headings.pdf, small_caps.pdf and rotated.pdf through the whole converter (#5)."""
     pytest.importorskip("pdfplumber")
-    record = d2j.build_record(str(digital_fixtures / "headings.pdf"))
+    record = d2j.build_development(str(digital_fixtures / "headings.pdf"))
     headings = [
         (ln["page"], ln["text"], ln["style"]["heading_level"])
         for ln in record["lines"]
@@ -1207,7 +1231,8 @@ def test_the_rerun_fixtures_read_as_their_pages_show(digital_fixtures):
     assert [p["text_layer"] for p in record["pages"]] == ["digital", "ocr", "digital"]
 
     texts = [
-        ln["text"] for ln in d2j.build_record(str(digital_fixtures / "small_caps.pdf"))["lines"]
+        ln["text"]
+        for ln in d2j.build_development(str(digital_fixtures / "small_caps.pdf"))["lines"]
     ]
     assert texts == [
         "OBRÁZEK 12",
@@ -1218,7 +1243,7 @@ def test_the_rerun_fixtures_read_as_their_pages_show(digital_fixtures):
         "KAPITOLA A",
     ]
 
-    rotated = d2j.build_record(str(digital_fixtures / "rotated.pdf"))
+    rotated = d2j.build_development(str(digital_fixtures / "rotated.pdf"))
     texts = [ln["text"] for ln in rotated["lines"]]
     assert {"K_číslo", "Datace", "12", "Halstat", "Obr. 18 Turnov"} <= set(texts)
     assert not [t for t in texts if len(t) == 1], "no line of a single character"
@@ -1227,7 +1252,7 @@ def test_the_rerun_fixtures_read_as_their_pages_show(digital_fixtures):
 
 
 def _headings(path):
-    record = d2j.build_record(str(path))
+    record = d2j.build_development(str(path))
     return [
         (ln["page"], ln["text"], ln["style"]["heading_level"])
         for ln in record["lines"]
@@ -1289,40 +1314,40 @@ def test_a_few_unmapped_glyphs_do_not_condemn_a_line_and_mostly_unmapped_ones_do
     assert many.is_undecodable and many.is_garbage
 
 
-def test_unmapped_pdf_flags_both_pages_for_their_own_reasons(digital_fixtures):
-    """Page 1 does not decode; page 2 decodes but loses letters (2 of its 10 words): since #5 of
-    10-22 the record flags it too, with its own reason."""
+def test_unmapped_pdf_flags_the_page_that_does_not_decode_only(digital_fixtures):
+    """Page 1 does not decode; page 2 decodes but loses letters (2 of its 10 words). #5 flagged
+    page 2 too (10-22); since #9 (11-13) words losing letters are scoring's question, not a reason
+    for the ATR, so page 2 stays `digital` with its text as read."""
     pytest.importorskip("pdfplumber")
-    record = d2j.build_record(str(digital_fixtures / "unmapped.pdf"))
-    assert [p["text_layer"] for p in record["pages"]] == ["garbled", "garbled"]
+    record = d2j.build_development(str(digital_fixtures / "unmapped.pdf"))
+    assert [p["text_layer"] for p in record["pages"]] == ["garbled", "digital"]
     assert "over 15% glyphs without a Unicode mapping" in record["pages"][0]["needs_ocr_reason"]
-    assert record["pages"][1]["needs_ocr_reason"].startswith(
-        "the text layer decodes, but 2 of its 10 words (20%) lose a letter to a glyph without a Unicode mapping"
-    )
+    assert not record["pages"][1].get("needs_ocr")
     assert not any("(cid:" in line["text"] for line in record["lines"])
-    assert record["lines"][1]["text"] == "Zprava o sond� cislo 3, vrstva m�la mocnost 30 cm."
-
-
-def test_a_page_losing_letters_reaches_the_ocr_handoff(digital_fixtures, monkeypatch):
-    """The regression test #5 asked for (10-22): the 29 pages of CTX202000362 lose their Czech
-    letters, and the hand-off (`atrium_document.ocr_handoff_pages`) is what ocr-postprocess
-    re-originates. The page is in it, consistent with its `text_layer`; below the share it is not."""
-    pytest.importorskip("pdfplumber")
-    import atrium_document
-
-    record = d2j.build_record(str(digital_fixtures / "unmapped.pdf"))
-    page_two = record["pages"][1]
-    assert page_two["page"] in atrium_document.ocr_handoff_pages(record["pages"])
-    assert (page_two["text_layer"], page_two["needs_ocr"]) == ("garbled", True)
-    atrium_document.validate_document(record)
-
-    monkeypatch.setenv("ROUTE_DAMAGED_WORD_SHARE", "0.5")
-    record = d2j.build_record(str(digital_fixtures / "unmapped.pdf"))
-    assert record["pages"][1]["page"] not in atrium_document.ocr_handoff_pages(record["pages"])
-    assert (record["pages"][1]["text_layer"], record["pages"][1].get("needs_ocr", False)) == (
-        "digital",
-        False,
+    assert (
+        record["lines"][1]["text"] == "Zprava o sond\ufffd cislo 3, vrstva m\ufffdla mocnost 30 cm."
     )
+
+
+def _routes(path):
+    from api_util import docproc_writer
+
+    document, _ = d2j.prepare(str(path))
+    docproc = docproc_writer.build_docproc(document)
+    return {r["page"]: r["route"] for r in docproc["metadata"]["routing"]["pages"]}, docproc
+
+
+def test_a_page_losing_letters_stays_on_its_text_layer(digital_fixtures):
+    """atrium-digital-convert#9 point 3 (11-13): a page whose words lose letters to unmapped glyphs
+    decodes, so it is not routed to the ATR (#5 routed it from 10-22, at a share of 5 %): its lines,
+    with their U+FFFD characters, go to ocr-postprocess's scoring."""
+    pytest.importorskip("pdfplumber")
+    routes, docproc = _routes(digital_fixtures / "unmapped.pdf")
+    page_two = next(p for p in docproc["pages"] if p["pageNumber"] == 2)
+    assert (routes[1], routes[2]) == ("atr", "text-layer")
+    assert (page_two["textLayer"], page_two.get("needsAtr", False)) == ("digital", False)
+    (line,) = [ln for block in page_two["blocks"] for ln in block.get("lines") or []]
+    assert line["text"] == "Zprava o sond\ufffd cislo 3, vrstva m\ufffdla mocnost 30 cm."
 
 
 def test_a_header_that_loses_letters_flags_nothing():
@@ -1333,13 +1358,13 @@ def test_a_header_that_loses_letters_flags_nothing():
     )
     page = d2j.DigitalPage(page="1", page_index=1, lines=[header, body])
     d2j.assess_page(page)
-    assert (page.needs_ocr, page.lost_letters, d2j.text_layer_of(page)) == (False, False, "digital")
+    assert (page.needs_ocr, d2j.text_layer_of(page)) == (False, "digital")
 
 
 def test_a_page_number_over_a_full_page_image_is_none_and_flagged(digital_fixtures):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("pdfplumber")
-    record = d2j.build_record(str(digital_fixtures / "stamped_scan.pdf"))
+    record = d2j.build_development(str(digital_fixtures / "stamped_scan.pdf"))
     pages = record["pages"]
     assert [p["text_layer"] for p in pages] == ["none", "digital", "digital"]
     assert pages[0]["needs_ocr"] is True and "quality_band" not in pages[0]
@@ -1357,7 +1382,7 @@ def test_the_coverage_threshold_is_the_setting(digital_fixtures, monkeypatch):
     pytest.importorskip("pypdfium2")
     pytest.importorskip("pdfplumber")
     monkeypatch.setenv("FURNITURE_ONLY_IMAGE_COVERAGE", "0.4")
-    record = d2j.build_record(str(digital_fixtures / "stamped_scan.pdf"))
+    record = d2j.build_development(str(digital_fixtures / "stamped_scan.pdf"))
     assert [p["text_layer"] for p in record["pages"]] == ["none", "digital", "none"]
     assert "images cover 50% of the page" in record["pages"][2]["needs_ocr_reason"]
 

@@ -2,18 +2,19 @@
 
 One declaration, read by the service (``service/api.py``), the converter
 (``api_util/digital_to_json.py`` and its adapters) and the vendored reader
-(``text_formats.py``, which imports ``ODF_REPEAT_CAP`` and ``PDF_OBJECT_CAP`` from here exactly as
-it does in atrium-ocr-postprocess), and reported by ``GET /info`` (``limits`` and
+(``text_formats.py``, which imports ``ODF_REPEAT_CAP`` from here exactly as it does in
+atrium-ocr-postprocess), and reported by ``GET /info`` (``limits`` and
 ``limits_meta``). Each one is an environment setting; a malformed value stops the process at
 startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.example`` and
 ``service/README.md``'s ``## Limits`` table list the same set; ``tests/test_limits_contract.py``
 checks that they agree.
 
 What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
-beside it. Five entries are POLICY thresholds rather than size caps
-(``OCR_LAYER_DOCUMENT_SHARE``, ``ROUTE_TRASH_SHARE``, ``ROUTE_DAMAGED_WORD_SHARE``,
-``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``): they are declared here all the same, because a value a deployment may change and a client must be
-able to read back is exactly what ``/info`` ``limits`` is for.
+beside it. Three entries are POLICY thresholds rather than size caps
+(``ROUTE_TRASH_SHARE``, ``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``): they are declared here all
+the same, because a value a deployment may change and a client must be able to read back is exactly what ``/info``
+``limits`` is for. ``ROUTE_DAMAGED_WORD_SHARE`` (#5, 10-22) is gone: words that lose letters route nothing since
+atrium-digital-convert#9.
 
 Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
 CLI converter imports this too.
@@ -54,15 +55,6 @@ LIBREOFFICE_TIMEOUT_S = limit(
 #: from 120.
 STAGE_TIMEOUT_S = limit("STAGE_TIMEOUT_S", 360, unit="s", kind=float, minimum=1)
 
-#: POLICY. Share of a PDF's text-bearing pages whose text layer is a prior OCR run's invisible
-#: text at or above which the whole document is refused, 422 ``ocr_text_layer`` (the AMČR route
-#: then sends it to OCR). Below it the document is converted and those pages carry
-#: ``needs_ocr`` with a prior-OCR reason. Mirrors atrium-ocr-postprocess
-#: ``default_source_origin``'s rule; 0.5 since llm-enrich 0.8.0.
-OCR_LAYER_DOCUMENT_SHARE = limit(
-    "OCR_LAYER_DOCUMENT_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1, status=422
-)
-
 #: POLICY (`/describe` only). A page whose text layer decodes is routed to NLP — unless the
 #: common quality model (ocr-postprocess) calls more than this share of its prose lines
 #: ``Trash``; then the page is routed to OCR instead. Prose lines are those outside tables, of at
@@ -71,17 +63,6 @@ OCR_LAYER_DOCUMENT_SHARE = limit(
 #: atrium-digital-convert#5: counted over every line, the rule sent 612 of 1,981 born-digital AMČR
 #: pages to OCR for their table cells, codes and coordinates.
 ROUTE_TRASH_SHARE = limit("ROUTE_TRASH_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1)
-
-#: POLICY. A page whose text layer decodes but whose body words (outside the running header and
-#: footer) lose a letter to a glyph without a Unicode mapping (U+FFFD in the record; a font
-#: without /ToUnicode), at least this share of them, is flagged ``needs_ocr`` in the record (its
-#: ``text_layer`` is then ``garbled``, with the damaged words in the reason) and routed to OCR by
-#: ``/describe`` whatever its page type. Before 2026-10-22 only ``/describe`` sent it to OCR. One
-#: AMČR report loses every ř, ě, č and ů this way: 29 pages reach the default, at 19 % of their
-#: words in the median (#5).
-ROUTE_DAMAGED_WORD_SHARE = limit(
-    "ROUTE_DAMAGED_WORD_SHARE", 0.05, unit="share", kind=float, minimum=0, maximum=1
-)
 
 #: POLICY. A PDF page whose only text is its running header or footer (a page number, a stamp)
 #: is ``none`` — no text layer under the furniture, ``needs_ocr`` — when its images cover at
@@ -102,18 +83,16 @@ BOLD_HEADING_MAX_SHARE = limit(
 )
 
 # ── the vendored reader's own caps (text_formats.py, from atrium-ocr-postprocess) ────────────
-#: Same variable names, units and defaults as atrium-ocr-postprocess's tool_limits.py: the reader
+#: Same variable name, unit and default as atrium-ocr-postprocess's tool_limits.py: the reader
 #: module is byte-identical there and here (tests/test_vendored_reader_parity.py), and imports
-#: these two names from whichever ``tool_limits`` sits beside it.
-#: Most a repeated ODF cell/row (`table:number-columns-repeated`) is expanded → ``trimmed`` note.
+#: this name from whichever ``tool_limits`` sits beside it.
+#: Most a repeated ODF cell/row (`table:number-columns-repeated`) is expanded; past it the
+#: conversion fails (D13, atrium-project#84: ``api_util/digital_text.py``), as no content is cut.
 ODF_REPEAT_CAP = limit(
     "ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP", 100, unit="repeats", key="odf_repeat_cap", minimum=1
 )
-#: Most objects of one PDF page scanned to judge its text layer (the text itself is always
-#: read in full); a page with more is judged on the first N → ``sampled`` note.
-PDF_OBJECT_CAP = limit(
-    "ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP", 20000, unit="objects", key="pdf_object_cap", minimum=1
-)
+#: (``ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP`` is gone: a PDF page's text layer is judged on all its objects,
+#: never a sample of them, atrium-project#84 "never samples".)
 
 LIMITS = LimitSet(
     MAX_UPLOAD,
@@ -121,11 +100,8 @@ LIMITS = LimitSet(
     MAX_CONCURRENT_JOBS,
     LIBREOFFICE_TIMEOUT_S,
     STAGE_TIMEOUT_S,
-    OCR_LAYER_DOCUMENT_SHARE,
     ROUTE_TRASH_SHARE,
-    ROUTE_DAMAGED_WORD_SHARE,
     FURNITURE_ONLY_IMAGE_COVERAGE,
     BOLD_HEADING_MAX_SHARE,
     ODF_REPEAT_CAP,
-    PDF_OBJECT_CAP,
 )

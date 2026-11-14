@@ -12,10 +12,14 @@ and in this repository's live smoke:
     ``STUB_PAGE_CATEGORY`` (default ``TEXT_P``), or ``STUB_NEEDS_OCR_CATEGORY`` (default
     ``TEXT_T``) when the record flags it ``needs_ocr``. Given ``document_json``, it writes
     ``page_categories`` and ``pages[].category/category_confidence`` under the record's own
-    labels, stamped ``page-classification``.
+    labels.
   * ``POST /score_record``      — ocr-postprocess's W3 scorer: each line not carrying a decode
-    verdict (``Garbage``/``Inverted``) gets a category from a crude letter-share heuristic, and
-    the record gets the scoring fields only, stamped ``ocr-postprocess``.
+    verdict (a ``Garbage``/``Inverted`` flag, or ``categ`` in a 1.x record) gets a category from
+    a crude letter-share heuristic, and the record gets the scoring fields only.
+
+Since atrium-project#84 `/describe` sends digital-convert's development dict, not a record, so
+the stub edits what it is sent as a plain dict: no ``DocumentRecord`` (whose 2.0 migration would
+drop the dict's layout cues) and no stamps.
   * ``POST /process``           — ocr-postprocess's text path (``task_type=text``), for the
     per-page fallback.
 
@@ -29,6 +33,7 @@ NOT a model, and not in any image: it exists to exercise the plumbing. Run it wi
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import sys
@@ -40,8 +45,6 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from fastapi import FastAPI, File, Form, UploadFile  # noqa: E402
-
-from atrium_document import DocumentRecord  # noqa: E402
 
 app = FastAPI(title="ATRIUM stage stub", version="0.1.0")
 
@@ -139,24 +142,24 @@ async def predict_document(
         results.append(entry)
     response: Dict[str, Any] = {"type": "document", "pages": results, "limits_applied": []}
     if record is not None:
-        doc = DocumentRecord(
-            str(record.get("doc_id") or "stub"), "page-classification", baseline=record
-        )
+        out = copy.deepcopy(record)
+        rows = {str(p.get("page")): p for p in out.get("pages") or [] if isinstance(p, dict)}
         categories = {}
-        patches = []
         for entry in results:
             key = entry.get("page_label") or str(entry["page"])
             top = entry["predictions"][0]
             categories[key] = top["label"]
-            patches.append(
-                {"page": key, "category": top["label"], "category_confidence": top["score"]}
-            )
-        doc.set_block("page_categories", {**(record.get("page_categories") or {}), **categories})
-        doc.merge_block(
-            "pages", patches, key_fields=["page"], own_fields=["category", "category_confidence"]
-        )
-        response["document_json"] = doc.to_dict()
+            if key in rows:
+                rows[key].update(category=top["label"], category_confidence=top["score"])
+        out["page_categories"] = {**(record.get("page_categories") or {}), **categories}
+        response["document_json"] = out
     return response
+
+
+def _decode_verdict(row: Dict[str, Any]) -> bool:
+    return row.get("categ") in _DECODE_VERDICTS or bool(
+        _DECODE_VERDICTS & set(row.get("flags") or ())
+    )
 
 
 @app.post("/score_record")
@@ -170,7 +173,7 @@ async def score_record(document_json: UploadFile = File(...)) -> Dict[str, Any]:
         page = str(row["page"])
         if page not in order:
             order.append(page)
-        if row.get("categ") in _DECODE_VERDICTS:
+        if _decode_verdict(row):
             skipped[page] = skipped.get(page, 0) + 1
             continue
         if not str(row.get("text") or "").strip():
@@ -213,30 +216,24 @@ async def score_record(document_json: UploadFile = File(...)) -> Dict[str, Any]:
                 "quality_band": band,
             }
         )
-    doc = DocumentRecord(str(record.get("doc_id") or "stub"), "ocr-postprocess", baseline=record)
-    if cleaned:
-        doc.merge_block(
-            "lines",
-            [
-                {
-                    "page": r["page"],
-                    "line": r["line"],
-                    "categ": r["category"],
-                    "quality_score": r["quality_score"],
-                    "lang": r["lang"],
-                }
-                for r in cleaned
-            ],
-            own_fields=["categ", "quality_score", "lang"],
-        )
-        doc.merge_block("pages", page_rows, own_fields=["quality_score", "quality_band"])
+    out = copy.deepcopy(record)
+    scored = {(r["page"], r["line"]): r for r in cleaned}
+    for row in out.get("lines") or []:
+        hit = scored.get((str(row["page"]), row["line"]))
+        if hit is not None:
+            row.update(categ=hit["category"], quality_score=hit["quality_score"], lang=hit["lang"])
+    by_label = {r["page"]: r for r in page_rows}
+    for row in out.get("pages") or []:
+        hit = by_label.get(str(row.get("page")))
+        if hit is not None:
+            row.update({k: v for k, v in hit.items() if k != "page"})
     return {
         "type": "record",
         "doc_id": str(record.get("doc_id") or ""),
         "cleaned_lines": cleaned,
         "pages": pages_summary,
         "limits_applied": [],
-        "document_json": doc.to_dict(),
+        "document_json": out,
         "paradata": None,
     }
 

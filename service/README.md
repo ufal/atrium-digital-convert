@@ -1,16 +1,16 @@
 # digital-convert API service
 
-The HTTP service of the born-digital stage (`api-digital`). It reads born-digital documents into the
-ATRIUM document record (`atrium_document`). On a second endpoint it assesses every page: can its text be
-used as it is, what kind of page is it, does its text read, and where should it go next. The version it
-reports is read from `para_config.txt`.
+The HTTP service of the born-digital stage (`api-digital`). It reads born-digital documents into docproc
+(`atr/docproc-json`), the layout format the ATR writes for scanned pages; ocr-postprocess builds the ATRIUM record
+from it (ARÚP's output contract of 12 November 2026,
+[atrium-project#84](https://github.com/ufal/atrium-project/issues/84)). On a second, parked endpoint it assesses
+every page. The version it reports is read from `para_config.txt`.
 
 * **`POST /reformat`** — the production endpoint the AMČR route calls. File (and optionally the
-  AMČR seed) in, record out; Markdown on request; run `paradata`. **Calls no other service** —
+  AMČR seed) in, docproc out; Markdown on request; run `paradata`. **Calls no other service** —
   in the AMČR deployment Temporal chains the stages.
-* **`POST /describe`** — the same conversion, then the per-page assessment, asking
-  page-classification and ocr-postprocess **when their URLs are configured**. A stage that is
-  not configured or not running is reported, never a failed request.
+* **`POST /describe`** — parked (not part of the pilot): the same conversion, then the per-page
+  assessment, asking page-classification and ocr-postprocess **when their URLs are configured**.
 
 Inputs, by content (the extension only names the file): PDF, DOCX, ODT, ODS, XLSX, RTF, and the
 legacy DOC/XLS through headless LibreOffice. No model, no network, no GPU.
@@ -60,40 +60,42 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 | Method | Path        | Purpose                                                                    |
 |--------|-------------|----------------------------------------------------------------------------|
 | GET    | `/info`     | identity, version, endpoints, limits and settings, capabilities            |
-| GET    | `/health`   | liveness; `?deep=true` checks the readers and the record schema            |
+| GET    | `/health`   | liveness; `?deep=true` checks the readers and the schemas                  |
 | GET    | `/ready`    | readiness: 503 before start-up checks pass and while draining              |
-| POST   | `/reformat` | born-digital file → record (+ Markdown on request)                         |
-| POST   | `/describe` | born-digital file → record + per-page assessment + what each stage did     |
+| POST   | `/reformat` | born-digital file → docproc (+ Markdown on request)                        |
+| POST   | `/describe` | parked: born-digital file → docproc + per-page assessment + stages         |
 
 ### `POST /reformat` (multipart form)
 
-| Field              | Required | Meaning                                                                                                                                     |
-|--------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| `file`             | yes      | the document                                                                                                                                |
-| `document_json`    | no       | the AMČR seed (`doc_id`, `source.sha512`, `filename`, `media_type`) or an earlier record of the same document; an empty part counts as none |
-| `markdown`         | no       | `true` to also get the record rendered as annotated Markdown (`json_to_md`)                                                                 |
-| `docx_page_breaks` | no       | DOCX pages: `auto` (default), `explicit`, `none`                                                                                            |
+| Field              | Required | Meaning                                                                                                      |
+|--------------------|----------|--------------------------------------------------------------------------------------------------------------|
+| `file`             | yes      | the document                                                                                                 |
+| `document_json`    | no       | the AMČR seed (`doc_id`, `source.sha512`, `filename`, `media_type`), read only; an empty part counts as none |
+| `markdown`         | no       | `true` to also get the document rendered as annotated Markdown (`json_to_md`; a development view)            |
+| `docx_page_breaks` | no       | DOCX pages: `auto` (default), `explicit`, `none`                                                             |
 
 The response:
 
-| Field                        | Meaning                                                                                                                          |
-|------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| `service`                    | `atrium-digital-convert`                                                                                                         |
-| `doc_id`                     | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                        |
-| `document_json`              | the record: digital-convert's `source`, `pages`, `content`, `lines`, `tables`; every other block of a sent record passed through |
-| `reader`                     | how the file was read: `kind`, `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS), `notes`                        |
-| `markdown`                   | only with `markdown=true`                                                                                                        |
-| `document_json_schema_error` | only when the sent record did not validate and the result inherits that                                                          |
-| `limits_applied`             | every limit that shaped the result without refusing it (always `[]`: each limit refuses)                                         |
-| `paradata`                   | the call's Process Run Crate `CreateAction`; its `@id` is the `run_uuid` stamped into the record. No paradata file is written    |
+| Field            | Meaning                                                                                                               |
+|------------------|-----------------------------------------------------------------------------------------------------------------------|
+| `service`        | `atrium-digital-convert`                                                                                              |
+| `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                             |
+| `docproc`        | the docproc: pages, blocks with their `lines[]`, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md)) |
+| `reader`         | how the file was read: `kind`, `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS), `notes`             |
+| `markdown`       | only with `markdown=true`                                                                                             |
+| `limits_applied` | the sampling and splitting the result rests on (always `[]`: a limit that would cut content fails the call, D13)      |
+| `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                        |
 
-**The seed.** Its `doc_id`, `source.sha512`, `filename` and `media_type` are kept; the converter adds
-`source.origin` and `page_count` (and no `sha256` beside the archive's `sha512`). The seed's `sha512`
-is compared with the uploaded bytes **before anything is read** (for a DOC/XLS, before the
-LibreOffice conversion). A mismatch is refused (422 `source_digest_mismatch`), so a record never
-describes one file under another file's identity.
+**The seed.** Read, never written: its `doc_id` names the result, and its `sha512` is compared with the
+uploaded bytes **before anything is read** (for a DOC/XLS, before the LibreOffice conversion). A mismatch is
+refused (422 `source_digest_mismatch`), so nothing is produced for the wrong file.
 
-**The text layer.** Every page carries the converter's verdict in `pages[].text_layer`:
+**`paradata`** (paradata schema 3.0, #84): `object` names the upload as `original` and the seed as
+`atrium/document-json`, `result` the docproc as `atr/docproc-json`, each by SHA-512. When a page needs the ATR
+the docproc is an intermediate, `stored: false` (H14): the ATR's docproc is the stored one. `paradataRecord`
+lists the components used, each with its own terms; no licence of the output is computed.
+
+**The text layer.** Every page carries the converter's verdict in `pages[].textLayer`:
 
 * `digital`: the layer decodes;
 * `garbled`: the layer does not decode (CP1250 read as CP1252, U+FFFD and control characters);
@@ -101,11 +103,9 @@ describes one file under another file's identity.
 * `none`: no text layer;
 * `blank`: an empty page of a format without page images.
 
-The `garbled`, `ocr` and `none` pages also carry `pages[].needs_ocr: true` with a `needs_ocr_reason`. A PDF
-whose text-bearing pages are at least `OCR_LAYER_DOCUMENT_SHARE` (0.5) prior-OCR layers (invisible text over a
-page image) is refused, 422 `ocr_text_layer`, so the route step sends it to OCR. Below that share the document
-is converted and those pages are flagged. atrium-ocr-postprocess (v1.9.1-beta or later) then merges the ATR
-ALTO of a flagged page back into the same record, that page only.
+The `garbled`, `ocr` and `none` pages also carry `needsAtr: true` with a `needsAtrReason`, and are routed `atr` in
+`metadata.routing.pages[]`; an empty page is routed `empty` and is not in `pages[]`. No document is refused for
+its pages: until #84 a PDF mostly of prior-OCR pages was refused (422 `ocr_text_layer`).
 
 ### `POST /describe` (multipart form)
 
@@ -117,7 +117,8 @@ The fields of `/reformat` (without `markdown`), plus:
 | `classify_pages` | `needs_ocr` (default): page-classification is asked about the pages without a usable text layer, and the pages whose only text is a running header or footer over an image; `all`: about every page |
 | `include_text`   | `false` to leave `pages[].text` out                                                                                                                                                                 |
 
-The response is `/reformat`'s plus:
+The response is `/reformat`'s plus `document` (the converter's development dict, record-shaped but no record, as
+the stages left it) and:
 
 * `pages[]` — one per page:
   * `page`, `page_index`;
@@ -146,13 +147,8 @@ Categories are read through the page-category facets of `atrium_vocab.COLLECTION
 (handwritten / printed / typed / graphical / tabular), so a category added to the registry is routed
 without a code change.
 
-A page whose text layer decodes goes to `ocr` instead of `nlp` when either holds:
+A page whose text layer decodes goes to `ocr` instead of `nlp` when:
 
-* **Lost letters.** At least `ROUTE_DAMAGED_WORD_SHARE` (0.05) of the words of its body text (outside
-  the running header and footer) lose a letter to a glyph without a Unicode mapping (U+FFFD; a font
-  without /ToUnicode). This is the converter's own evidence, so it holds with `stages=none` too. The
-  record flags the page itself: `needs_ocr: true`, `text_layer: garbled` and a reason naming the damaged
-  words, so it reaches the OCR hand-off; `/describe` routes it to `ocr` whatever its page type.
 * **The quality model.** ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose*
   lines `Trash`, and the page has at least 5 of them. A prose line is outside a table, at least 20
   characters long, mostly letters and not a table-of-contents line. The model judges running text;
@@ -186,12 +182,12 @@ recomputed from the lines that were scored (the page keeps the converter's value
 it is left out of the page's `quality`, and the stage reads `partial` with `lines_unscored`, the
 count. When no line could be scored the stage is `error` and the record is not written.
 
-**What the stages may write.** Each stage is sent the current record and writes only its own fields
-through its own accretion: page-classification `page_categories` and `pages[].category/
-category_confidence`; ocr-postprocess `lines[].categ/quality_score/lang` and `pages[].quality_score/
-quality_band`, never over a line carrying the converter's decode verdict (`Garbage`/`Inverted`).
-The returned record is adopted only when it is the same document with the converter's part intact, and when it
-validates. Intact means the same `doc_id`, `source`, `content`, `tables`, page and line rows, and the
+**What the stages may write.** Each stage is sent the development dict as its `document_json` and writes only
+its own fields: page-classification `page_categories` and `pages[].category/category_confidence`; ocr-postprocess
+`lines[].categ/quality_score/lang` and `pages[].quality_score/quality_band`, never over a line carrying the
+converter's decode verdict (the `Garbage`/`Inverted` flag). Stages on record schema 2.0 may refuse the dict
+(atrium-project#84), which is reported per stage; `/describe` is parked until that scope resumes.
+The returned dict is adopted only when it is the same document with the converter's part intact. Intact means the same `doc_id`, `source`, `content`, `tables`, page and line rows, and the
 converter's own fields unchanged (`text`, `bbox`, `group_id`, `style`, `page_index`, `canvas`, `needs_ocr`,
 `needs_ocr_reason`, `text_layer`). Otherwise the stage is `rejected`, and the record stays as it was. The
 stage's answer still goes into `pages[]`. An example is `page_key_mismatch`: an older page-classification keys
@@ -211,10 +207,9 @@ cause in `cause`. Each row gives the status, the cause and what to do.
 |--------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
 | 413    | `limit_exceeded`         | a part over `MAX_UPLOAD_MB`                                                                                                                | raise `MAX_UPLOAD_MB` for large originals (see Large documents), or split the file |
 | 415    | `unsupported_media_type` | not a born-digital type the converter reads (`cause`: `unsupported`, `legacy_office_unsupported`; `accepted` lists the types)              | send a type in `accepted`; a scanned document goes to OCR                          |
-| 422    | `ocr_text_layer`         | a PDF whose text layer is an earlier OCR run (route it to OCR)                                                                             | send the document to the OCR route                                                 |
 | 422    | `source_digest_mismatch` | the seed's `source.sha512` is not the uploaded file's                                                                                      | send the file the seed was made for, or a new seed                                 |
-| 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major), or its `pages` or `lines` is not a list of objects | send the seed AMČR made; update this service if the record is newer                |
-| 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`                                                                                                | raise the setting `limit.env` names, or split the document                         |
+| 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major)                                                     | send the seed AMČR made; update this service if the record is newer                |
+| 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`; a repeated ODF cell or row past the repeat cap (`limit.effect` `trimmed`: no content is cut)  | raise the setting `limit.env` names, or split the document                         |
 | 422    | `null`                   | an empty or broken file (`cause`: `corrupt`, `encrypted`, `zip_limits_exceeded`, `conversion_failed`); an unknown `stages` name            | repair or decrypt the file `cause` names; fix the `stages` value                   |
 | 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                               | retry after `Retry-After`; raise `MAX_CONCURRENT_JOBS` if memory allows            |
 | 501    | `null`                   | a DOC/XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                           | use the image (it has LibreOffice), or convert DOC/XLS to DOCX/XLSX first          |
@@ -238,13 +233,10 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `max_concurrent_jobs`           | `MAX_CONCURRENT_JOBS`               | 2       | jobs    | 429 `busy` with `Retry-After`                                                                                                     |
 | `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — a DOC/XLS LibreOffice did not convert in time                                                              |
 | `stage_timeout_s`               | `STAGE_TIMEOUT_S`                   | 360     | s       | `/describe`: the stage is reported `unavailable`; the request still succeeds                                                      |
-| `ocr_layer_document_share`      | `OCR_LAYER_DOCUMENT_SHARE`          | 0.5     | share   | policy: at or above it a PDF with prior-OCR pages is refused (422 `ocr_text_layer`); below it those pages carry `needs_ocr`       |
 | `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its prose lines `Trash` |
-| `route_damaged_word_share`      | `ROUTE_DAMAGED_WORD_SHARE`          | 0.05    | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when this share of its body's words lose a letter (U+FFFD)   |
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needs_ocr`) when its images cover this share of it |
 | `bold_heading_max_share`        | `BOLD_HEADING_MAX_SHARE`            | 0.25    | share   | policy: a bold body-size line that reads as a title is a heading while bold body-size text is at most this share; 0 = off         |
 | `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                           |
-| `pdf_object_cap`                | `ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP` | 20000   | objects | the shared reader judges a PDF page's text layer on its first N objects                                                           |
 
 **Large documents** (measured on 15 AMČR excavation reports, up to 156 MB and 529 pages;
 [what they showed](../docs/evaluation/amcr-samples.md)):
@@ -275,18 +267,18 @@ checks this table against `tool_limits.py` and `.env.example`.
   that document's stage `error`; the request still answers 200. Set the stages' limits together
   with this service's.
 
-## Partial results
+## What a 200 carries
 
-A 200 can carry less than was asked for. Read these before using the result:
+Since ARÚP's output contract of 12 November 2026 (D13) a limit that would cut content fails the call. Read these
+before using the result:
 
-- `needs_ocr` pages (and `summary.needs_ocr_pages`) have no usable text layer; with `/describe`,
-  `summary.reacquire_pages` lists every page OCR should read again, including pages whose letters do
+- `needsAtr` pages have no usable text layer and are routed `atr`; the ATR's docproc is then the stored one. With
+  `/describe`, `summary.reacquire_pages` lists every page OCR should read again, including pages whose letters do
   not decode.
 - A `/describe` stage other than `ok` (see [Stage statuses](#post-describe-multipart-form)): `partial`
   (some pages failed, or `lines_unscored` lines kept the converter's values), `not_configured`,
-  `unavailable`, `skipped`, `error` or `rejected`. The converter's record is still returned.
-- `limits_applied` lists each limit that shaped the result without refusing it. It is always empty: each
-  limit refuses.
+  `unavailable`, `skipped`, `error` or `rejected`. The docproc is still returned.
+- `limits_applied` is always empty.
 
 ## Known limits
 
@@ -294,8 +286,9 @@ A 200 can carry less than was asked for. Read these before using the result:
   gets fewer headings than a layout model finds; `BOLD_HEADING_MAX_SHARE=0` switches the bold-title rule
   off.
 - Only a PDF gives line boxes; the other formats give pages and lines without positions.
-- A PDF page whose fonts do not map to Unicode loses its letters: from `ROUTE_DAMAGED_WORD_SHARE` of its
-  body words on, the record flags it `needs_ocr` (`garbled`), and OCR reads it again.
+- A PDF page whose fonts do not map to Unicode for some letters keeps its text layer, the lost letters shown as
+  U+FFFD: since atrium-digital-convert#9 that is left to ocr-postprocess's scoring, not a reason for the ATR. A
+  layer that does not decode at all is `garbled` and goes to the ATR (`needsAtr`).
 - Unruled tables are read by column, and letter-spaced captions and map labels split into pieces.
 - The upload is held in memory: the default 250 MB accepts most reports, and larger originals need
   `MAX_UPLOAD_MB` raised per deployment; above 250 MB that is not yet tested (see Large documents).
@@ -314,7 +307,7 @@ A 200 can carry less than was asked for. Read these before using the result:
 | `OCR_POSTPROCESS_URL`     | —         | base URL of atrium-ocr-postprocess, for `/describe`; unset → `not_configured`     |
 | `LIBREOFFICE_BIN`         | —         | the LibreOffice binary for DOC/XLS; unset → `soffice` or `libreoffice` on `PATH`  |
 
-Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `OCR_LAYER_DOCUMENT_SHARE` and the rest — is
+Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `ROUTE_TRASH_SHARE` and the rest — is
 listed under [Limits](#limits); `.env.example` is the complete ledger.
 
 > **Note:** `HOST=127.0.0.1` yields a container that reports **healthy** and serves nobody:
@@ -325,27 +318,26 @@ listed under [Limits](#limits); `.env.example` is the complete ledger.
 `/reformat` and `/describe` run the same converter as the command line
 (`api_util/digital_to_json.py`), in a worker thread, inside one of `MAX_CONCURRENT_JOBS` slots:
 
-1. **Input check** — an empty file (`corrupt`), a record that cannot be opened (`invalid_record`), then the
+1. **Input check** — an empty file (`corrupt`), a seed that cannot be opened (`invalid_record`), then the
    seed's `source.sha512` against the original's bytes.
 2. **Read** — PDF and DOCX with this repository's structural readers (`digital_pdf.py`: words,
    lines, columns, running headers and footers, headings, ruled tables, the per-page census;
    `digital_docx.py`), ODT/ODS/XLSX/RTF with the shared reader atrium-ocr-postprocess owns
    (`text_formats.py`, vendored byte-identical; `digital_text.py`), DOC/XLS after a headless
    LibreOffice conversion with a throw-away profile (`digital_legacy.py`).
-3. **Check the text layer** — decode sanity per line, `needs_ocr` per page, the prior-OCR refusal.
-4. **Build and gate the record** — only digital-convert's fields; the field-survival assertion
-   and the schema; the components that ran, each with its licence (`para_config.txt`). A record whose
-   `pages` or `lines` is not a list of objects cannot be added to, and is refused here with 422
-   `invalid_record`.
+3. **Check the text layer** — decode sanity per line, `needsAtr` per page; no document is refused for its pages.
+4. **Build and gate the docproc** — `api_util/docproc_writer.py`, validated against the proposal schema; a
+   docproc that fails is never returned. The paradata name the original and the docproc by SHA-512 and list the
+   components that ran, each with its own terms (`para_config.txt`).
 5. `/describe` only: **the stages** (`service/stages.py`), then the **report**
    (`api_util/digital_report.py`), both run from `service/describe.py`.
 
 The command line runs the same steps, the same output gate and the same two views: `--markdown` is
 `markdown=true`, `--describe` is `/describe`, with `--stages`, `--classify-pages` and `--no-text` for its fields
 and the same `PAGE_CLASSIFICATION_URL` / `OCR_POSTPROCESS_URL`. It refuses the same inputs (an empty file exit 4,
-an unreadable record exit 3) and records the same paradata parameters. What differs, and why:
+an unreadable seed exit 3) and records the same paradata parameters. What differs, and why:
 [docs/usage.md](../docs/usage.md#the-command-line-and-the-service). `tests/test_cli_service_parity.py` holds the
-two sides to the same record, Markdown, assessment and refusals.
+two sides to the same docproc (byte for byte), Markdown, assessment and refusals.
 
 ## Shutdown behaviour
 

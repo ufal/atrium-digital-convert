@@ -118,8 +118,9 @@ def test_the_collections_come_from_the_vocabulary_registry():
     [
         ("minimal.pdf", [("digital", "nlp"), ("digital", "nlp")]),
         ("garbled.pdf", [("garbled", "ocr")]),
-        # atrium-digital-convert#5: page 2 decodes, but 2 of its 10 words lose a letter (U+FFFD).
-        ("unmapped.pdf", [("garbled", "ocr"), ("garbled", "ocr")]),
+        # page 2 decodes, but 2 of its 10 words lose a letter (U+FFFD): routed `ocr` by #5 (10-22),
+        # left to scoring since atrium-digital-convert#9 (11-13).
+        ("unmapped.pdf", [("garbled", "ocr"), ("digital", "nlp")]),
     ],
 )
 def test_the_report_over_the_fixtures(tmp_path, fixture, expected):
@@ -171,16 +172,11 @@ def test_a_line_is_prose_only_outside_tables_long_and_mostly_letters(text, group
 
 
 @pytest.mark.parametrize("category", ["DRAW", "PHOTO", "TEXT_P", None])
-def test_a_page_the_record_flags_for_lost_letters_goes_to_ocr_whatever_its_type(category):
-    """#5 (10-22): the 29 pages of CTX202000362 are `garbled` in the record now, and 5 of them are
-    drawings or photos; their text is printed, so they stay on `ocr` instead of `none`."""
-    route, reason = R.route_page(
-        "garbled", category, None, damaged_words=(2, 10), lost_letters=True
-    )
-    assert route == "ocr" and "so the record flags it" in reason
-    # a page garbled for another reason is still routed by its type
-    if category in ("DRAW", "PHOTO"):
-        assert R.route_page("garbled", category, None, damaged_words=(2, 10))[0] == "none"
+def test_a_garbled_page_is_routed_by_its_type(category):
+    """A layer that does not decode: the page goes where its type says (#5's lost-letters exception
+    is gone with #9)."""
+    route, _ = R.route_page("garbled", category, None)
+    assert route == ("none" if category in ("DRAW", "PHOTO") else "ocr")
 
 
 def test_a_damaged_word_holds_a_replacement_character_and_a_letter():
@@ -232,25 +228,15 @@ def test_without_prose_flags_the_rule_counts_every_scored_line():
     assert route == "ocr" and "of its scored lines Trash" in reason
 
 
-def test_lost_letters_send_a_decoding_page_to_ocr_whatever_its_quality():
-    clear = _quality(clear=5)
-    route, reason = R.route_page("digital", None, clear, damaged_words=(6, 100))
-    assert route == "ocr"
-    assert "6 of its 100 words (6%)" in reason and "ROUTE_DAMAGED_WORD_SHARE 0.05" in reason
-    assert R.route_page("digital", None, clear, damaged_words=(4, 100))[0] == "nlp"
-    assert R.route_page("digital", None, None, damaged_words=(5, 100))[0] == "ocr", "at the limit"
-    assert (
-        R.route_page("digital", None, None, damaged_words=(4, 100), damaged_word_limit=0.04)[0]
-        == "ocr"
-    )
-    assert R.route_page("digital", None, None, damaged_words=(0, 0))[0] == "nlp"
-    route, reason = R.route_page("garbled", "DRAW", None, damaged_words=(90, 100))
-    assert route == "none", "a page without usable text is routed by its category"
+def test_words_losing_letters_route_nothing():
+    """atrium-digital-convert#9 point 3: a decoding page goes by the quality model alone."""
+    assert R.route_page("digital", None, _quality(clear=5))[0] == "nlp"
+    assert R.route_page("digital", None, None)[0] == "nlp"
 
 
 def test_lost_letters_count_on_the_body_text_not_the_running_header():
-    """#5: 36 figure pages of one AMČR report lose letters only in their running header; the
-    header is not re-acquired for that, a body that loses them is."""
+    """#5: 36 figure pages of one AMČR report lose letters only in their running header. The report
+    counts the body's damaged words only, and since #9 they route nothing."""
     from api_util.digital_ir import REGION_HEADER, DigitalDocument, DigitalLine, DigitalPage
 
     header = DigitalLine(page="1", line=0, text="Praha � Nov� M�sto", region=REGION_HEADER)
@@ -266,7 +252,7 @@ def test_lost_letters_count_on_the_body_text_not_the_running_header():
     assert (first["layout"]["words"], first["layout"]["damaged_words"]) == (0, 0)
     assert first["route"] == "nlp"
     assert (second["layout"]["words"], second["layout"]["damaged_words"]) == (12, 4)
-    assert second["route"] == "ocr" and "4 of its 12 words" in second["route_reason"]
+    assert second["route"] == "nlp"
 
 
 def _furniture_page(index=1, images=1, vector_paths=0, body=False):

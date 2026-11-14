@@ -60,7 +60,7 @@ from api_util.digital_ir import (
     is_inverted,
     missing_dependency,
     renumber_lines,
-    sha256_file,
+    sha512_file,
     unmapped_to_replacement,
 )
 from api_util.pdf_coverage import image_coverage
@@ -938,7 +938,7 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
         doc_id=doc_id,
         origin=origin,
         media_type="application/pdf",
-        sha256=sha256_file(path),
+        sha512=sha512_file(path),
         filename=os.path.basename(path),
     )
     document.use("pdfplumber", "pdfminer.six")

@@ -4,28 +4,26 @@ Two operations, one converter:
 
 * ``POST /reformat`` — the production endpoint the AMČR route calls. A born-digital file (PDF,
   DOCX, ODT, ODS, XLSX, RTF; DOC and XLS through LibreOffice) and optionally the AMČR seed in;
-  the ``atrium_document`` record out, with Markdown only on request and the run's Process Run
-  Crate ``CreateAction`` as ``paradata``. It calls NO other service: in the AMČR deployment
-  Temporal chains the stages (atrium-digital-convert#1, 30 September).
-* ``POST /describe`` — the same conversion, then a per-page assessment
-  (``api_util/digital_report.py``): is each page's text layer usable, what kind of page it is
-  (page-classification), does its text read (ocr-postprocess), and where should it go next —
-  ``nlp``, ``ocr``, ``htr`` or ``none``. The two stages are called only when their URLs are
-  configured, through ``service/stages.py``, and every stage failure is a ``stages[]`` entry,
-  never a failed request. Each stage writes into the record only through its own accretion, and
-  the converter guards what comes back.
+  the document's layout out as docproc (``atr/docproc-json``: pages, blocks and lines with each
+  page's text-layer verdict and ``needsAtr``; atrium-project#84), with Markdown only on request
+  and the run's Process Run Crate ``CreateAction`` as ``paradata``. No record: ocr-postprocess
+  builds it from the docproc. It calls NO other service: in the AMČR deployment Temporal
+  chains the stages (atrium-digital-convert#1, 30 September).
+* ``POST /describe`` — parked (not part of the pilot): the same conversion, then a per-page
+  assessment (``api_util/digital_report.py``) of the converter's development dict, with the
+  two adjacent stages called when their URLs are configured (``service/stages.py``).
 
 The common contract (atrium-project#32/#53/#55/#71): ``/health``, ``/ready``, ``/info`` with every
 setting of ``tool_limits.py``; typed responses documented in the committed
 ``service/openapi.json``; the §4.4 error body with registered reasons; a SIGTERM drain. Refusals:
 
-* 415 ``unsupported_media_type`` — not a born-digital type this service reads (``cause``:
-  ``unsupported`` or ``legacy_office_unsupported``; ``accepted`` lists the types);
-* 422 ``ocr_text_layer`` — a PDF whose text layer is an earlier OCR run (``OCR_LAYER_DOCUMENT_SHARE``);
+* 415 ``unsupported_media_type`` — not a born-digital type this service reads, an image among them
+  (``cause``: ``unsupported`` or ``legacy_office_unsupported``; ``accepted`` lists the types);
 * 422 ``source_digest_mismatch`` — the seed's ``source.sha512`` is not the file's digest;
 * 422 ``invalid_record`` — a ``document_json`` part that cannot be opened;
 * 422 (``cause``: ``encrypted``, ``corrupt``, ``zip_limits_exceeded``, ``conversion_failed``);
-* 413/422 ``limit_exceeded`` — ``MAX_UPLOAD_MB``, ``MAX_PAGES``, ``LIBREOFFICE_TIMEOUT_S``;
+* 413/422 ``limit_exceeded`` — ``MAX_UPLOAD_MB``, ``MAX_PAGES``, ``LIBREOFFICE_TIMEOUT_S``, and the
+  ODF repeat cap, which would cut content (D13);
 * 429 ``busy`` — ``MAX_CONCURRENT_JOBS`` conversions already running;
 * 501 (``cause``: ``dependency_missing``) — LibreOffice is not installed for a DOC/XLS;
 * 503 — the service is draining.
@@ -52,6 +50,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 import atrium_rocrate
 from api_util import digital_to_json as d2j
+from api_util import docproc_writer
 from api_util.digital_ir import DigitalDocument, DigitalInputError
 from atrium_document import canonical_doc_id
 from atrium_limits import LimitExceeded
@@ -67,7 +66,6 @@ from . import stages
 # Shared ATRIUM meta-contract helpers (§4). Byte-identical across every service,
 # enforced by para-drift.reusable.yml.
 from .atrium_service import (
-    AtriumDocument,
     AtriumHTTPError,
     CreateAction,
     InfoBase,
@@ -121,7 +119,6 @@ SUPPORTED_SUFFIXES: Tuple[str, ...] = (
 _REFUSALS: Dict[str, Tuple[int, Optional[str]]] = {
     "unsupported": (415, "unsupported_media_type"),
     "legacy_office_unsupported": (415, "unsupported_media_type"),
-    "ocr_text_layer": (422, "ocr_text_layer"),
     "source_digest_mismatch": (422, "source_digest_mismatch"),
     "dependency_missing": (501, None),
     "encrypted": (422, None),
@@ -165,36 +162,36 @@ class ReaderInfo(BaseModel):
 
 
 class ReformatResponse(BaseModel):
-    """`/reformat`: the document's record, and its Markdown when asked for."""
+    """`/reformat`: the document's layout as docproc, and its Markdown when asked for."""
 
     model_config = ConfigDict(extra="allow")
 
     service: str = Field(description="`atrium-digital-convert`.")
     doc_id: str = Field(
-        description="The record's `doc_id`: the seed's when one was sent, else derived from the file name."
+        description="The document's id: the seed's `doc_id` when one was sent, else derived from the file name."
     )
-    document_json: AtriumDocument = Field(
+    docproc: Dict[str, Any] = Field(
         description=(
-            "The ATRIUM document record: digital-convert's `source`, `pages`, `content`, `lines` and `tables` "
-            "written, every other block of a sent record passed through."
+            "The document's layout as docproc (`atr/docproc-json`, atrium-project#84): pages with the text-layer "
+            "verdict (`textLayer`) and, where the text cannot be used, `needsAtr` with its reason; blocks with their "
+            "`lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`). Valid against "
+            "`schemas/docproc/document.atrium-proposal.schema.json` (the ATR's schema with asks 3 and 13). No record "
+            "is written: ocr-postprocess builds it from this."
         )
     )
     reader: ReaderInfo
     markdown: Optional[str] = Field(
         None,
-        description="Only with `markdown=true`: the record rendered as annotated Markdown (json_to_md).",
-    )
-    document_json_schema_error: Optional[str] = Field(
-        None,
-        description="Only when the sent record did not validate and the result inherits that: the schema error.",
+        description="Only with `markdown=true`: the document rendered as annotated Markdown (json_to_md).",
     )
     limits_applied: List[LimitNote] = Field(
-        description="Every limit that shaped the result without refusing it."
+        description="The sampling and splitting the result rests on; none for this converter (D13)."
     )
     paradata: CreateAction = Field(
         description=(
-            "The call's provenance: its Process Run Crate `CreateAction` (atrium-project#71), whose `@id` is the "
-            "`run_uuid` stamped into `document_json`."
+            "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` "
+            "is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc "
+            "(`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14)."
         )
     )
 
@@ -278,8 +275,8 @@ class PageLayout(BaseModel):
     )
     damaged_words: int = Field(
         description="Of those, the words that lost a letter to a glyph without a Unicode mapping "
-        "(U+FFFD). When their share reaches `ROUTE_DAMAGED_WORD_SHARE` the record flags the page "
-        "`needs_ocr` (`garbled`) and it goes to `ocr`."
+        "(U+FFFD). Counted for information: they route nothing (atrium-digital-convert#9); whether "
+        "the text reads is ocr-postprocess's scoring."
     )
 
 
@@ -342,7 +339,7 @@ class StageOutcomeModel(BaseModel):
     service_version: Optional[str]
     pages: Optional[List[int]] = Field(description="`page_index` of the pages sent.")
     record_adopted: bool = Field(
-        description="Whether the stage's record write was taken into `document_json`."
+        description="Whether the stage's write was taken into `document` (the development dict)."
     )
     paradata: Optional[Dict[str, Any]] = Field(
         description="The stage's own `CreateAction`, when it returned one."
@@ -356,7 +353,15 @@ class StageOutcomeModel(BaseModel):
 
 
 class DescribeResponse(ReformatResponse):
-    """`/describe`: the record, plus the per-page assessment and what each stage did."""
+    """`/describe` (parked): the docproc, the development dict, the per-page assessment and what
+    each stage did."""
+
+    document: Dict[str, Any] = Field(
+        description=(
+            "The converter's development dict as the stages left it: record-shaped (`pages`, `lines` with "
+            "`group_id`, `style` and decode `flags`, `content`, `tables`), never a record and never stored."
+        )
+    )
 
     pages: List[PageReport] = Field(description="One entry per page, in page order.")
     summary: DescribeSummary
@@ -382,10 +387,11 @@ class DigitalInfo(InfoBase):
 
 
 _RECORD_PART_HELP = (
-    "Optional ATRIUM document record: the AMČR seed (`doc_id`, `source` with `sha512`, `filename`, "
-    "`media_type`) or an earlier record of the same document. The seed's identity is kept; its `sha512` "
-    "must be the uploaded file's (else 422 `source_digest_mismatch`). Every other tool's block passes "
-    "through. A record that cannot be opened is refused (422 `invalid_record`); an empty part counts as none."
+    "Optional: the AMČR seed of the document (`doc_id`, `source` with `sha512`, `filename`, `media_type`), "
+    "read only. Its `doc_id` names the result; its `sha512` must be the uploaded file's (else 422 "
+    "`source_digest_mismatch`). Nothing is written into it: since atrium-project#84 the record is built by "
+    "ocr-postprocess from the docproc. A part that cannot be opened is refused (422 `invalid_record`); an "
+    "empty part counts as none."
 )
 _FILE_HELP = "The born-digital document: PDF, DOCX, ODT, ODS, XLSX, RTF, or legacy DOC/XLS (decided by content)."
 _BREAKS_HELP = (
@@ -506,7 +512,7 @@ def _doc_id(filename: Optional[str]) -> str:
 
     `atrium_document.canonical_doc_id()` on the upload's own name — the same derivation the CLI
     and every other tool use, so a service upload and a batch run over the same file land on
-    the same record. A seed's `doc_id` still wins (DocumentRecord inherits it).
+    the same output. A seed's `doc_id` still wins (`d2j.prepare`).
     """
     return canonical_doc_id(_safe_name(filename)) or "upload"
 
@@ -536,12 +542,12 @@ def _convert(
     endpoint: str,
     markdown: bool = False,
     describe: Optional[Dict[str, Any]] = None,
-) -> Tuple[DigitalDocument, Dict[str, Any], Optional[str], ParadataLogger]:
-    """Layers A–D for one upload (blocking): the IR, the gated record, a schema error, the run.
+) -> Tuple[DigitalDocument, Dict[str, Any], Dict[str, Any], bytes, ParadataLogger]:
+    """Layers A–D for one upload (blocking): the IR, the development dict, the validated docproc
+    and its bytes, and the run.
 
-    The run's parameters and the output gate are the command line's (`d2j.run_config`,
-    `d2j.gate`, atrium-project#72), so both record the same keys and treat an inherited
-    invalid record alike."""
+    The run's configuration and the docproc gate are the command line's (`d2j.run_config`,
+    `docproc_writer.validate`, atrium-project#72)."""
     run = ParadataLogger(
         program=PROGRAM,
         config={
@@ -554,74 +560,71 @@ def _convert(
         config_dir=_PARA_CONFIG_DIR,
     )
     baseline_path: Optional[str] = None
-    inherited_problem = d2j.inherited_schema_problem(baseline)
-    if inherited_problem:  # inherited, not ours: reported, not fatal (rule 6)
-        logger.warning("the sent record does not validate (%s); continuing", inherited_problem)
     if baseline is not None:
-        baseline_path = str(work / "baseline.document.json")
+        baseline_path = str(work / "seed.document.json")
         Path(baseline_path).write_text(json.dumps(baseline, ensure_ascii=False), encoding="utf-8")
     try:
-        document, record, page_rows, line_rows = d2j.prepare(
+        document, dev = d2j.prepare(
             str(upload),
             baseline=baseline_path,
             doc_id=_doc_id(upload.name),
-            run_id=run.run_id,
-            run_uuid=run.run_uuid,
-            paradata_ref=run.paradata_ref,
-            out_dir=str(work),
             docx_page_breaks=docx_page_breaks,
-            logger=run,
         )
     except RuntimeError as exc:
         if "is required to convert this input" in str(exc):
             raise AtriumHTTPError(501, str(exc), cause="dependency_missing") from exc
         raise
     try:
-        data, schema_error = d2j.gate(
-            record, page_rows, line_rows, inherited_invalid=bool(inherited_problem)
-        )
-    except RuntimeError:
-        raise
-    except Exception as exc:
-        message = getattr(exc, "message", None) or str(exc)
-        raise HTTPException(500, f"Document record rejected by its own schema: {message}") from exc
-    run.log_success("document_json")
+        docproc = docproc_writer.build_docproc(document)
+    except docproc_writer.DocprocError as exc:
+        raise HTTPException(500, f"docproc rejected by its own schema: {exc}") from exc
+    run.log_success("docproc_json")
     run.log_document_success()
-    return document, data, schema_error, run
+    return document, dev, docproc, d2j.docproc_bytes(docproc), run
 
 
 def _action(
     run: ParadataLogger,
-    upload_name: str,
     upload_bytes: bytes,
-    media_type: str,
-    baseline_sent: bool,
-    record: Dict[str, Any],
-    extra_outputs: Optional[List[Dict[str, Any]]] = None,
+    document: DigitalDocument,
+    docproc: Dict[str, Any],
+    docproc_data: bytes,
+    seed_bytes: Optional[bytes],
 ) -> Dict[str, Any]:
-    """The call's CreateAction (atrium-project#71): what it read and what it wrote."""
+    """The call's CreateAction (paradata 3.0, atrium-project#84): the original read and the
+    docproc written, by distribution name and SHA-512 (`d2j.record_run`, as the command line).
+    The seed, when one was sent, is an input as the bytes of the part (`atrium/document-json`).
+    The Markdown is a development output and is not named."""
+    seed = None
+    if seed_bytes is not None:
+        seed = {"data": seed_bytes, "media_type": "application/json"}
+    d2j.record_run(
+        run,
+        document,
+        docproc,
+        {"data": upload_bytes, "media_type": document.media_type},
+        docproc_data,
+        seed,
+    )
     run.finalize()
-    inputs = [atrium_rocrate.file_entity(upload_name, upload_bytes, media_type=media_type)]
-    if baseline_sent:
-        inputs.append(atrium_rocrate.record_entity(str(record.get("doc_id"))))
-    outputs = atrium_rocrate.block_entities(atrium_rocrate.blocks_written(record, run.run_uuid))
-    outputs.extend(extra_outputs or [])
-    return atrium_rocrate.create_action(run.record, inputs=inputs, outputs=outputs)
+    return atrium_rocrate.action_from_paradata(run.record)
 
 
 async def _read_parts(
     file: UploadFile, document_json: Optional[UploadFile]
-) -> Tuple[str, bytes, Optional[Dict[str, Any]]]:
+) -> Tuple[str, bytes, Optional[Dict[str, Any]], Optional[bytes]]:
+    """The upload's name and bytes, and the seed part opened and as sent (None, None without one)."""
     upload_mb = MAX_UPLOAD.get()
     name = _safe_name(file.filename)
     data = await read_upload_bounded(file, upload_mb, "File")
     if not data:
         raise AtriumHTTPError(422, "The uploaded file is empty.", cause="corrupt")
     baseline: Optional[Dict[str, Any]] = None
+    raw: Optional[bytes] = None
     if document_json is not None:
         raw = await read_upload_bounded(document_json, upload_mb, "document_json")
         baseline = parse_record_part(raw, "document_json")
-    return name, data, baseline
+    return name, data, baseline, raw if baseline is not None else None
 
 
 async def _run_blocking(func, *args):
@@ -684,17 +687,18 @@ async def reformat(
         json_schema_extra={"contentMediaType": "application/json"},
     ),
     markdown: bool = Form(
-        False, description="Also return the record rendered as annotated Markdown."
+        False, description="Also return the document rendered as annotated Markdown (a development view)."
     ),
     docx_page_breaks: Literal["auto", "explicit", "none"] = Form("auto", description=_BREAKS_HELP),
 ):
-    """Convert a born-digital document into its ATRIUM document record (§4.2).
+    """Convert a born-digital document into docproc (§4.2; atrium-project#84).
 
-    Calls no other service. Pages whose text layer does not decode, or that have none, carry
-    `needs_ocr` with a reason; a PDF whose text layer is an earlier OCR run is refused (422
-    `ocr_text_layer`) so the route can send it to OCR.
+    Calls no other service. A page whose text layer cannot be used (it does not decode, it is a
+    prior OCR run, there is none) carries `needsAtr` with its reason and is routed `atr`; no
+    document is refused for its pages. No record is written: ocr-postprocess builds it from the
+    docproc.
     """
-    name, data, baseline = await _read_parts(file, document_json)
+    name, data, baseline, seed_bytes = await _read_parts(file, document_json)
 
     def work() -> Dict[str, Any]:
         with tempfile.TemporaryDirectory(prefix="digital_convert_") as tmp:
@@ -702,33 +706,20 @@ async def reformat(
             upload = workdir / "in" / name
             upload.parent.mkdir()
             upload.write_bytes(data)
-            document, record, schema_error, run = _convert(
+            document, dev, docproc, docproc_data, run = _convert(
                 workdir, upload, baseline, docx_page_breaks, "/reformat", markdown=markdown
             )
             result: Dict[str, Any] = {
                 "service": SERVICE,
-                "doc_id": record["doc_id"],
-                "document_json": record,
-                "reader": reader_info(document, record),
+                "doc_id": document.doc_id,
+                "docproc": docproc,
+                "reader": reader_info(document, dev),
                 "limits_applied": [],
             }
-            extra = []
             if markdown:
-                rendered = render_markdown(record)
-                result["markdown"] = rendered
+                result["markdown"] = render_markdown(dev)
                 run.log_success("markdown")
-                extra.append(
-                    atrium_rocrate.file_entity(
-                        f"{record['doc_id']}.md",
-                        rendered.encode("utf-8"),
-                        media_type="text/markdown",
-                    )
-                )
-            if schema_error:
-                result["document_json_schema_error"] = schema_error
-            result["paradata"] = _action(
-                run, name, data, document.media_type, baseline is not None, record, extra
-            )
+            result["paradata"] = _action(run, data, document, docproc, docproc_data, seed_bytes)
             return result
 
     return await _run_blocking(work)
@@ -770,18 +761,20 @@ async def describe(
     include_text: bool = Form(True, description="Include each page's text in `pages[].text`."),
     docx_page_breaks: Literal["auto", "explicit", "none"] = Form("auto", description=_BREAKS_HELP),
 ):
-    """Convert a born-digital document and assess every page (§4.2).
+    """Convert a born-digital document and assess every page (§4.2). Parked: not part of the
+    pilot (atrium-project#84, H11).
 
     For each page: whether its text layer can be used, what kind of page it is
     (page-classification), whether its text reads (ocr-postprocess), and where it should go
     next (`nlp`, `ocr`, `htr`, `none`). A stage that is not configured, not running or answers
-    badly is reported in `stages[]`; the request still succeeds.
+    badly is reported in `stages[]`; the request still succeeds. The stages are sent the
+    converter's development dict, which stages on record schema 2.0 may refuse.
     """
     try:
         selected = stages.select_stages(stages_requested)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    name, data, baseline = await _read_parts(file, document_json)
+    name, data, baseline, seed_bytes = await _read_parts(file, document_json)
 
     def work() -> Dict[str, Any]:
         with tempfile.TemporaryDirectory(prefix="digital_describe_") as tmp:
@@ -789,7 +782,7 @@ async def describe(
             upload = workdir / "in" / name
             upload.parent.mkdir()
             upload.write_bytes(data)
-            document, record, schema_error, run = _convert(
+            document, dev, docproc, docproc_data, run = _convert(
                 workdir,
                 upload,
                 baseline,
@@ -802,26 +795,23 @@ async def describe(
                 },
             )
             assessed = describe_document(
-                document, record, data, name, selected, classify_pages, include_text
+                document, dev, data, name, selected, classify_pages, include_text
             )
             # The run ends with the assessment, as the command line's --describe run does.
             run.log_success("describe_json")
-            paradata = _action(run, name, data, document.media_type, baseline is not None, record)
-            current = assessed["document_json"]
-            result: Dict[str, Any] = {
+            current = assessed["document"]
+            return {
                 "service": SERVICE,
-                "doc_id": current["doc_id"],
-                "document_json": current,
+                "doc_id": document.doc_id,
+                "docproc": docproc,
+                "document": current,
                 "reader": reader_info(document, current),
                 "pages": assessed["pages"],
                 "summary": assessed["summary"],
                 "stages": assessed["stages"],
                 "limits_applied": [],
-                "paradata": paradata,
+                "paradata": _action(run, data, document, docproc, docproc_data, seed_bytes),
             }
-            if schema_error:
-                result["document_json_schema_error"] = schema_error
-            return result
 
     return await _run_blocking(work)
 

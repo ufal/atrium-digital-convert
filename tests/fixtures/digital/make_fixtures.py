@@ -584,8 +584,8 @@ def unmapped_pdf() -> bytes:
     (see `enrichable_pdf`). Page 1 is one line of such codes (0x80-0x8F), the shape of an AMČR
     report's pages that are 89-100 % unmapped: `garbled`, `needs_ocr`. Page 2 is ASCII with
     two `ě` in cp1250 bytes (0xEC, undefined there), under GARBLE_CHAR_SHARE, the two glyphs shown
-    as U+FFFD: 2 of its 10 words lose a letter, over ROUTE_DAMAGED_WORD_SHARE, so it is flagged
-    `needs_ocr` and `garbled` too (#5, 2026-10-22).
+    as U+FFFD: 2 of its 10 words lose a letter. #5 (2026-10-22) flagged such a page `garbled`; since
+    #9 (2026-11-13) it stays `digital`, its lines left to scoring.
     """
     return _build_pdf(
         [

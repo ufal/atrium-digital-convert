@@ -83,7 +83,6 @@ class DigitalInputError(ValueError):
     EXIT_CODES: Dict[str, int] = {
         "unsupported": 3,
         "legacy_office_unsupported": 3,
-        "ocr_text_layer": 3,
         "source_digest_mismatch": 3,
         "invalid_record": 3,
         "dependency_missing": 2,
@@ -251,10 +250,6 @@ class DigitalPage:
     #: Share of the page under its images, measured only for a page whose only text is its
     #: running header or footer (`digital_pdf._mark_furniture_only`); None when not measured.
     image_coverage: Optional[float] = None
-    #: Flagged `needs_ocr` because its body words lose letters to unmapped glyphs (U+FFFD;
-    #: `digital_to_json.assess_page`, atrium-digital-convert#5): the page is `garbled`, and
-    #: `/describe` sends it to OCR whatever its page type.
-    lost_letters: bool = False
 
     @property
     def has_geometry(self) -> bool:
@@ -300,7 +295,9 @@ class DigitalDocument:
     origin: str
     media_type: str
     pages: List[DigitalPage] = field(default_factory=list)
-    sha256: str = ""
+    #: SHA-512 of the original's bytes (atrium-project#84: the original is named by its SHA-512
+    #: only, in the paradata; for DOC/XLS the uploaded file, not the converted one).
+    sha512: str = ""
     filename: str = ""
     reading_order: str = "layout"
     #: Which engine produced the structure: `light` (pdfplumber / python-docx) or `docling`.

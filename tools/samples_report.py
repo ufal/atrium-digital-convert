@@ -76,8 +76,9 @@ PC_MAX_IMAGE_PIXELS = 178_956_970
 #: repository's upload default is 250 since 2026-10-22 (200 from the #5 run, 50 before), its stage
 #: timeout 360 since the re-run (120 before).
 DEFAULTS = {"upload": 250, "pages": 2000, "stage_timeout": 360, "pc_upload": 10, "pc_pages": 50}
-#: ROUTE_DAMAGED_WORD_SHARE's default (tool_limits.py): a `digital` page with this share of its
-#: body's words losing a letter (U+FFFD) goes to OCR.
+#: The share of a `digital` page's body words losing a letter (U+FFFD) at which #5 sent the page to
+#: OCR (ROUTE_DAMAGED_WORD_SHARE, 10-22 to 11-13; removed by #9: such pages are left to scoring). Kept
+#: here to report the #5 samples as they were measured.
 DAMAGED_WORD_SHARE = 0.05
 OP_UPLOAD_DEFAULT = 25
 

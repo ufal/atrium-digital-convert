@@ -38,7 +38,7 @@ def _stamp_pdf() -> bytes:
 def _signals(tmp_path: Path, name: str, data: bytes) -> list:
     path = tmp_path / name
     path.write_bytes(data)
-    record = d2j.build_record(str(path))
+    record = d2j.build_development(str(path))
     return sr.page_signals(path.stem, path, record, {}, RULE)
 
 
@@ -140,7 +140,7 @@ def test_reason_kinds_and_page_ranges():
 def test_parity_names_the_first_difference(tmp_path):
     path = tmp_path / "minimal.pdf"
     path.write_bytes(mf.minimal_pdf())
-    record = d2j.build_record(str(path))
+    record = d2j.build_development(str(path))
     assert sr.parity(record, json.loads(json.dumps(record))) == "same"
     changed = json.loads(json.dumps(record))
     changed["lines"][1]["text"] = "something else"
@@ -159,7 +159,7 @@ def test_inventory_and_report_on_a_small_run(tmp_path):
 
     cli = run / sr.CLI
     cli.mkdir()
-    record = d2j.build_record(str(samples / "CTX1.pdf"))
+    record = d2j.build_development(str(samples / "CTX1.pdf"))
     (cli / "CTX1.document.json").write_text(json.dumps(record), encoding="utf-8")
     (cli / "CTX1.run.json").write_text('{"rc": 0, "wall_s": 1.5, "peak_rss_mb": 60.2}')
     (cli / "CTX2.run.json").write_text('{"rc": 3, "wall_s": 0.4, "peak_rss_mb": 40.0}')
@@ -233,7 +233,7 @@ def test_each_stage_column_comes_from_its_own_run(tmp_path):
     """The 10-14 report paired stage 62's page type with stage 61's route; never again."""
     path = tmp_path / "minimal.pdf"
     path.write_bytes(mf.minimal_pdf())
-    record = d2j.build_record(str(path))
+    record = d2j.build_development(str(path))
     quality = {"source": "ocr-postprocess", "band": "Trash", "lines_by_category": {"Trash": 3}}
     reports = {
         "none": _describe_page("nlp", "trustworthy text layer (decode check passed; …)"),

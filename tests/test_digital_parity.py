@@ -101,16 +101,15 @@ CASES = [
         ["Ji č", "P ř", "slova1", "**Jičín"],
     ),
     (
-        "#5 unmapped glyphs: a page of them flagged, a page losing letters flagged too, never (cid:N)",
+        "#5/#9 unmapped glyphs: a page of them flagged, a page losing letters kept as read, never (cid:N)",
         "unmapped.pdf",
         [
             "NEEDS_OCR: pg_1 (garbled text layer: 1 of 1 lines are over 15% glyphs without a "
             "Unicode mapping",
             "## Page 2",
-            "NEEDS_OCR: pg_2 (the text layer decodes, but 2 of its 10 words (20%) lose a letter",
             "Zprava o sond\ufffd cislo 3, vrstva m\ufffdla mocnost 30 cm.",
         ],
-        ["(cid:"],
+        ["(cid:", "NEEDS_OCR: pg_2"],
     ),
     (
         "#5 a page number over a full-page image is a scan; text and half-covered pages are not",
@@ -196,10 +195,9 @@ def test_json_route_closes_the_section_9_row(fixtures, row, name, required, forb
         assert needle not in md, f"{row}: {needle!r} must not appear in\n{md}"
 
 
-def test_ocr_layer_pdf_is_refused_on_the_json_route(fixtures):
-    """G7: the auto-convert must not render an OCR layer as born-digital text either."""
+def test_an_ocr_layer_renders_with_its_pages_marked_for_the_atr(fixtures):
+    """G7, since atrium-project#84 §1 (no refusal): the auto-convert renders an OCR layer with
+    each page's NEEDS_OCR cue, so the model is told the text is a prior OCR run's."""
     pytest.importorskip("pdfplumber")
-    from api_util.digital_ir import DigitalInputError
-
-    with pytest.raises(DigitalInputError, match="not born-digital"):
-        doc_to_visual_md.convert_to_visual_md(fixtures / "ocr_layer.pdf")
+    md = doc_to_visual_md.convert_to_visual_md(fixtures / "ocr_layer.pdf")
+    assert md.count("NEEDS_OCR") >= 2 and "prior OCR run" in md

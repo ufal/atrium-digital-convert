@@ -1,0 +1,911 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/ufal/atrium-digital-convert/schemas/docproc/document.atrium-proposal.schema.json",
+    "title": "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3 and 13)",
+    "description": "Structured document produced by docproc /convert, schema v1. Tightened to the values the service actually emits on its local (PDF/image/DOCX/PPTX) and cloud-fallback paths. ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required) and 13 (other producers, formats, the page verdict, block lines, flow documents) applied.",
+    "type": "object",
+    "required": [
+        "version",
+        "pages"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "version": {
+            "description": "Schema version, semver MAJOR.MINOR. Consumers MUST check the major and accept any minor >= the one they were built against. v1.x is additive-only.",
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+$"
+        },
+        "pipeline": {
+            "description": "Producer id: 'pipeline-e2e' locally, 'pipeline-e2e/<variant>' on the cloud fallback. ATRIUM proposal: any producer id, e.g. `digital-convert`.",
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9-]*(/[a-z0-9-]+)?$"
+        },
+        "pipelineVersion": {
+            "description": "Optional producer build identifier (git SHA, image tag). Independent of schema version.",
+            "type": "string"
+        },
+        "processedAt": {
+            "description": "UTC ISO 8601. Exact format differs per input path (+00:00, Z, or with microseconds).",
+            "type": "string",
+            "format": "date-time"
+        },
+        "sourceFile": {
+            "description": "PDF/image path: full temp path of the file the pipeline read (image: '<name>.__pe2e_wrap.pdf'). DOCX/PPTX/cloud fallback: bare file name.",
+            "type": "string"
+        },
+        "sourceFormat": {
+            "description": "pdf-scanned only when every page classifies as scanned, otherwise pdf-digital (mixed PDFs are pdf-digital). Uploaded images go local as pdf-scanned; 'image' only comes from the cloud fallback.",
+            "type": "string",
+            "enum": [
+                "pdf-digital",
+                "pdf-scanned",
+                "docx",
+                "pptx",
+                "image",
+                "odt",
+                "ods",
+                "xlsx",
+                "rtf",
+                "doc",
+                "xls"
+            ]
+        },
+        "sourceHash": {
+            "description": "SHA-256 of the file the pipeline read. For images this is the wrapped PDF, not the uploaded bytes.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+        },
+        "documentLanguage": {
+            "description": "Dominant document language, ISO 639-1. Absent when it cannot be detected and on PPTX.",
+            "type": "string",
+            "pattern": "^[a-z]{2}$"
+        },
+        "pages": {
+            "type": "array",
+            "minItems": 0,
+            "items": {
+                "$ref": "#/$defs/Page"
+            }
+        },
+        "warnings": {
+            "description": "Producer-emitted soft-failure notices. Each entry is human-readable; consumers MAY log but MUST NOT treat as fatal.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Document provenance. Which keys appear depends on the path.",
+            "properties": {
+                "routing": {
+                    "description": "PDF/image only, always. Per-page routing decisions.",
+                    "type": "object",
+                    "properties": {
+                        "pages": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "page": {
+                                        "type": "integer"
+                                    },
+                                    "route": {
+                                        "type": "string"
+                                    },
+                                    "classifier_label": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "classifier_confidence": {
+                                        "type": [
+                                            "number",
+                                            "null"
+                                        ]
+                                    },
+                                    "conf_tier": {
+                                        "type": "string"
+                                    },
+                                    "qc_required": {
+                                        "type": "boolean"
+                                    },
+                                    "text_layer": {
+                                        "type": "boolean"
+                                    },
+                                    "recovered_to_photo": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "counts": {
+                            "type": "object",
+                            "properties": {
+                                "conf_high": {
+                                    "type": "integer"
+                                },
+                                "conf_mid": {
+                                    "type": "integer"
+                                },
+                                "conf_low": {
+                                    "type": "integer"
+                                },
+                                "conf_missing": {
+                                    "type": "integer"
+                                },
+                                "recovered": {
+                                    "type": "integer"
+                                },
+                                "by_route": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "integer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "readingOrderExtensions": {
+                    "description": "Local paths only, always. Footnote/sidebar detection.",
+                    "type": "object",
+                    "properties": {
+                        "runCount": {
+                            "type": "integer"
+                        },
+                        "minConfidence": {
+                            "type": "number"
+                        },
+                        "proximityPt": {
+                            "type": "number"
+                        },
+                        "totals": {
+                            "type": "object",
+                            "properties": {
+                                "footnotes": {
+                                    "type": "integer"
+                                },
+                                "captions": {
+                                    "type": "integer",
+                                    "description": "always 0"
+                                },
+                                "sidebars": {
+                                    "type": "integer"
+                                },
+                                "pull_quotes": {
+                                    "type": "integer"
+                                }
+                            }
+                        },
+                        "pages": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "pageNumber": {
+                                        "type": "integer"
+                                    },
+                                    "footnotes": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "pageNumber": {
+                                                    "type": "integer"
+                                                },
+                                                "marker": {},
+                                                "markerKind": {},
+                                                "content": {
+                                                    "type": "string"
+                                                },
+                                                "bodyRefBlockIds": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "confidence": {
+                                                    "type": "number"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "captionLinks": {
+                                        "type": "array",
+                                        "maxItems": 0,
+                                        "description": "always empty"
+                                    },
+                                    "sidebars": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "blockId": {
+                                                    "type": "string"
+                                                },
+                                                "role": {
+                                                    "type": "string"
+                                                },
+                                                "reason": {
+                                                    "type": "string"
+                                                },
+                                                "confidence": {
+                                                    "type": "number"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "warnings": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "crossPageClusters": {
+                    "description": "PDF/image, only when non-empty. Running furniture / continuation clusters across pages.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "clusterId": {},
+                            "kind": {
+                                "type": "string"
+                            },
+                            "pageRange": {},
+                            "blockIds": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "confidence": {
+                                "type": "number"
+                            },
+                            "metadata": {
+                                "type": "object",
+                                "description": "coverage, position_bucket, normalized_text, edges, demoted_from"
+                            }
+                        }
+                    }
+                },
+                "extractor": {
+                    "type": "string",
+                    "description": "DOCX/PPTX only: extractor identifier."
+                },
+                "blocksTotal": {
+                    "type": "integer",
+                    "description": "DOCX/PPTX only."
+                },
+                "slideCount": {
+                    "type": "integer",
+                    "description": "PPTX only."
+                },
+                "engine": {
+                    "type": "string",
+                    "description": "Cloud fallback only: engine identifier."
+                },
+                "fallback": {
+                    "description": "Cloud fallback only.",
+                    "type": "object",
+                    "properties": {
+                        "provider": {
+                            "type": "string"
+                        },
+                        "model": {
+                            "type": "string"
+                        },
+                        "reason": {
+                            "enum": [
+                                "forced",
+                                "prefer",
+                                "upstream_open",
+                                "pressure",
+                                "error",
+                                "deadline"
+                            ]
+                        },
+                        "usage": {
+                            "type": "object",
+                            "properties": {
+                                "pagesProcessed": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ]
+                                },
+                                "docSizeBytes": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "providerPageDpi": {
+                            "type": "array",
+                            "items": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        },
+                        "providerMarkdownSha256": {
+                            "type": "string"
+                        },
+                        "requested": {
+                            "type": "string",
+                            "description": "only when set"
+                        },
+                        "localError": {
+                            "type": "string",
+                            "description": "only when set"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "$defs": {
+        "BBox": {
+            "description": "Axis-aligned bounding box [x1, y1, x2, y2] in the page's coordinate space (top-left origin, units defined by Page.coordinateUnit).",
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+                "type": "number"
+            }
+        },
+        "Polygon": {
+            "description": "Optional oriented hull, [[x, y], ...] with at least 3 vertices. Used for rotated or non-rectangular blocks; bbox is always the axis-aligned envelope.",
+            "type": "array",
+            "minItems": 3,
+            "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                    "type": "number"
+                }
+            }
+        },
+        "Language": {
+            "description": "ISO 639-1 two-letter code (lowercased).",
+            "type": "string",
+            "pattern": "^[a-z]{2}$"
+        },
+        "BlockId": {
+            "description": "Stable per-document block identifier. Recommended form: 'p{pageNumber}-b{blockIndex}' (1-based page, 0-based block) so reading order is implied by sort. MUST be unique within the document.",
+            "type": "string",
+            "pattern": "^p[0-9]+-b[0-9]+(\\.[a-z0-9]+)?$"
+        },
+        "Confidence": {
+            "description": "Producer confidence in [0, 1]. Native text extraction (PDF text layer, DOCX, PPTX) is 1.0; otherwise the score of the stage that produced the block.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+        },
+        "SourceEngine": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque identifier of the stage that produced the block (text layer, OCR, table, formula, layout, office extractor, cloud fallback). 'other' covers native text-layer extraction. Treat as an opaque label; do not branch on specific values."
+        },
+        "Page": {
+            "type": "object",
+            "required": [
+                "pageNumber",
+                "blocks"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "pageNumber": {
+                    "description": "1-based page index.",
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "width": {
+                    "description": "Page width in coordinateUnit (default: PDF points, 1pt = 1/72 inch).",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "height": {
+                    "description": "Page height in coordinateUnit (default: PDF points).",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                },
+                "coordinateUnit": {
+                    "description": "Always 'pt' locally. Cloud fallback: 'pt' for PDFs with known page size, else 'px'.",
+                    "type": "string",
+                    "enum": [
+                        "pt",
+                        "px"
+                    ],
+                    "default": "pt"
+                },
+                "rotation": {
+                    "description": "Only DOCX/PPTX, always 0. Never on PDF/image or the cloud fallback.",
+                    "type": "integer",
+                    "enum": [
+                        0
+                    ]
+                },
+                "language": {
+                    "description": "PDF/image only: page language, ISO 639-1. Overrides documentLanguage.",
+                    "$ref": "#/$defs/Language"
+                },
+                "renderDpi": {
+                    "description": "PDF/image pages rendered for layout/OCR (default 200); absent on born-digital fast-path pages, so one document can mix both. Cloud fallback: only when unit is px.",
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                },
+                "blocks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Block"
+                    }
+                },
+                "textLayer": {
+                    "description": "ATRIUM proposal (ask 13): the page's text-layer verdict: `digital` (decodes), `garbled` (does not decode), `ocr` (a prior OCR run's invisible text), `none` (no text layer), `blank` (an empty page).",
+                    "type": "string",
+                    "enum": [
+                        "digital",
+                        "garbled",
+                        "ocr",
+                        "none",
+                        "blank"
+                    ]
+                },
+                "needsAtr": {
+                    "description": "ATRIUM proposal (ask 13): the page's text cannot be used; it goes to the ATR.",
+                    "type": "boolean"
+                },
+                "needsAtrReason": {
+                    "description": "ATRIUM proposal (ask 13): why the page needs the ATR; present exactly when needsAtr is true.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "userUnit": {
+                    "description": "ATRIUM proposal (asks 10, 13): the PDF page's UserUnit; coordinates are in 1/72 inch x userUnit.",
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "default": 1
+                }
+            }
+        },
+        "Block": {
+            "type": "object",
+            "description": "A typed content block. Type-specific REQUIRED fields are enforced by the conditional `allOf` rules at the end of this definition; value constraints (enums, ranges) are enforced on the properties; `additionalProperties` is false so unknown keys are rejected.",
+            "required": [
+                "id",
+                "type",
+                "readingOrder"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "$ref": "#/$defs/BlockId",
+                    "description": "p{page}-b{n}, optional suffix .f{i} (form re-split), .h{i} (heading-stack split), .c{i} (column split), .t0 (figure OCR child)."
+                },
+                "type": {
+                    "description": "Never emitted: seal, abstract, handwriting. Default PDF path: text, title, heading, list_item, table, figure, formula, caption, header, footer, footnote, toc, code, other (+ paragraph/form_field from the text layer). image/chart only when a whole page is treated as one picture; list/reference only from non-default presets or the cloud fallback. DOCX/PPTX use paragraph, not text.",
+                    "type": "string",
+                    "enum": [
+                        "text",
+                        "paragraph",
+                        "heading",
+                        "title",
+                        "list",
+                        "list_item",
+                        "table",
+                        "image",
+                        "figure",
+                        "chart",
+                        "formula",
+                        "caption",
+                        "header",
+                        "footer",
+                        "footnote",
+                        "reference",
+                        "code",
+                        "toc",
+                        "form_field",
+                        "other"
+                    ]
+                },
+                "bbox": {
+                    "$ref": "#/$defs/BBox"
+                },
+                "polygon": {
+                    "$ref": "#/$defs/Polygon",
+                    "description": "Optional oriented hull; effectively never emitted."
+                },
+                "readingOrder": {
+                    "description": "0-based reading-order index within the page. SHALL be dense (0..N-1).",
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "confidence": {
+                    "$ref": "#/$defs/Confidence"
+                },
+                "sourceEngine": {
+                    "$ref": "#/$defs/SourceEngine"
+                },
+                "language": {
+                    "description": "Per-block language override, ISO 639-1 (most specific wins).",
+                    "$ref": "#/$defs/Language"
+                },
+                "continuedFrom": {
+                    "description": "Id of the head block on a previous page when this block continues it (in practice: tables).",
+                    "$ref": "#/$defs/BlockId"
+                },
+                "continuedTo": {
+                    "description": "When this block has a continuation on the next page, the id of the tail block.",
+                    "$ref": "#/$defs/BlockId"
+                },
+                "parent": {
+                    "description": "Id of the immediate geometrically-enclosing block (nesting). Set by the nesting detector (e.g. a text/caption block inside a figure). Page-local; cross-page nesting is not represented.",
+                    "$ref": "#/$defs/BlockId"
+                },
+                "children": {
+                    "description": "Ids of the blocks directly nested inside this block. Mirror of `parent`. Consumers MAY rely on either direction.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/BlockId"
+                    }
+                },
+                "parentBlockId": {
+                    "description": "For a caption block, the id of the figure/table/image it captions. Distinct from `parent` (generic nesting) so renderers can inline captions under their target.",
+                    "$ref": "#/$defs/BlockId"
+                },
+                "captionBlockId": {
+                    "description": "For a figure/table/image block, the id of its linked caption block.",
+                    "$ref": "#/$defs/BlockId"
+                },
+                "readingOrderRole": {
+                    "description": "Semantic role from reading-order analysis.",
+                    "type": "string",
+                    "enum": [
+                        "caption",
+                        "footnote",
+                        "sidebar",
+                        "pull_quote"
+                    ]
+                },
+                "flags": {
+                    "description": "Open vocabulary of advisory tags; ignore unknown values. Parameterised forms look like 'name:<value>'.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "metadata": {
+                    "description": "PDF/image: never written. DOCX: footnoteId. PPTX: sourceEngineDetail. Cloud fallback: provider block-type details.",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "content": {
+                    "description": "Text content. Table format is NOT uniform: HTML, markdown pipe table, or plain text lines depending on the path; prefer cellGrid when present. Image-class blocks: usually ''. Empty content + flag all_engines_failed = text extraction failed for that block.",
+                    "type": "string"
+                },
+                "level": {
+                    "description": "Heading/title depth 1-6 (1 = top).",
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                },
+                "level_source": {
+                    "description": "How `level` was derived. Also mirrored into flags as 'level_source:<value>'.",
+                    "type": "string",
+                    "enum": [
+                        "numbered",
+                        "font_size",
+                        "font_size_sibling",
+                        "heuristic",
+                        "mvp_fallback",
+                        "default"
+                    ]
+                },
+                "level_confidence": {
+                    "$ref": "#/$defs/Confidence"
+                },
+                "listLevel": {
+                    "description": "List indent depth, 1-based.",
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "listMarker": {
+                    "description": "Original list marker (e.g. '1.', 'a)', '-', '•') when preserved.",
+                    "type": "string"
+                },
+                "imageRef": {
+                    "description": "Usually 'assets/{blockId}.png'. Placeholders exist: 'unavailable' (photo route error), 'unknown', 'slide{N}_shape{id}' (PPTX empty blob). May not match the final id if the block was re-numbered.",
+                    "type": "string",
+                    "minLength": 1
+                },
+                "imageData": {
+                    "description": "Base64 PNG; DOCX/PPTX only in the service.",
+                    "type": "string",
+                    "contentEncoding": "base64"
+                },
+                "mimeType": {
+                    "description": "MIME type of the referenced/embedded image.",
+                    "type": "string",
+                    "enum": [
+                        "image/png",
+                        "image/jpeg",
+                        "image/webp",
+                        "image/svg+xml",
+                        "image/tiff"
+                    ]
+                },
+                "caption": {
+                    "description": "PDF path only: set on the figure/table when a caption block lies within 20 pt.",
+                    "type": "string"
+                },
+                "cellGrid": {
+                    "description": "Structured table. Emitted for tables from the PDF text layer (spans 1, row 0 is header) and from DOCX (cells may carry bbox).",
+                    "type": "object",
+                    "required": [
+                        "rows"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                        "rows": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "cells"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "cells": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "required": [
+                                                "text"
+                                            ],
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "text": {
+                                                    "type": "string"
+                                                },
+                                                "rowSpan": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "colSpan": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "isHeader": {
+                                                    "type": "boolean"
+                                                },
+                                                "bbox": {
+                                                    "$ref": "#/$defs/BBox"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "format": {
+                    "description": "Formula blocks only, always 'latex' — even when content is plain digital/OCR text because formula recognition was unavailable.",
+                    "type": "string",
+                    "enum": [
+                        "latex"
+                    ]
+                },
+                "lines": {
+                    "description": "ATRIUM proposal (asks 7, 13): the block's lines in reading order, so a consumer keeps the line breaks and the box of each line, and knows how the box was obtained.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Line"
+                    }
+                }
+            },
+            "allOf": [
+                {
+                    "$comment": "Text-like blocks require content.",
+                    "if": {
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "enum": [
+                                    "text",
+                                    "paragraph",
+                                    "abstract",
+                                    "caption",
+                                    "footnote",
+                                    "header",
+                                    "footer",
+                                    "reference",
+                                    "handwriting",
+                                    "code",
+                                    "form_field",
+                                    "other",
+                                    "toc"
+                                ]
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "content"
+                        ]
+                    }
+                },
+                {
+                    "$comment": "Headings require content + level.",
+                    "if": {
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "const": "heading"
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "content",
+                            "level"
+                        ]
+                    }
+                },
+                {
+                    "$comment": "Titles require content.",
+                    "if": {
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "const": "title"
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "content"
+                        ]
+                    }
+                },
+                {
+                    "$comment": "List items/lists require content.",
+                    "if": {
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "enum": [
+                                    "list",
+                                    "list_item"
+                                ]
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "content"
+                        ]
+                    }
+                },
+                {
+                    "$comment": "Tables require content (HTML).",
+                    "if": {
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "const": "table"
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "content"
+                        ]
+                    }
+                },
+                {
+                    "$comment": "Formulae require content (LaTeX/MathML).",
+                    "if": {
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "const": "formula"
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "content"
+                        ]
+                    }
+                },
+                {
+                    "$comment": "Image-class blocks require imageRef.",
+                    "if": {
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "enum": [
+                                    "image",
+                                    "figure",
+                                    "chart",
+                                    "seal"
+                                ]
+                            }
+                        }
+                    },
+                    "then": {
+                        "required": [
+                            "imageRef"
+                        ]
+                    }
+                }
+            ]
+        },
+        "Line": {
+            "type": "object",
+            "description": "ATRIUM proposal (ask 13): one visual line of a block.",
+            "required": [
+                "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+                "text": {
+                    "type": "string"
+                },
+                "bbox": {
+                    "$ref": "#/$defs/BBox"
+                },
+                "bboxPrecision": {
+                    "description": "`measured` for the line by its producer, `derived` from its block, `absent`.",
+                    "type": "string",
+                    "enum": [
+                        "measured",
+                        "derived",
+                        "absent"
+                    ]
+                },
+                "language": {
+                    "$ref": "#/$defs/Language"
+                },
+                "flags": {
+                    "description": "Open vocabulary of advisory tags, as on blocks. digital-convert's decode verdicts: `Garbage` (the text layer decodes to wrong characters), `Inverted` (mirrored or rotated text).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

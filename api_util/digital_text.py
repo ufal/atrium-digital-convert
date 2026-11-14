@@ -39,7 +39,7 @@ from api_util.digital_ir import (
     DigitalInputError,
     DigitalLine,
     DigitalPage,
-    sha256_file,
+    sha512_file,
 )
 
 #: The kinds this adapter reads, i.e. the born-digital types beyond PDF/DOCX that AMČR accepts.
@@ -104,12 +104,23 @@ def extract_text_document(
         raise DigitalInputError(
             reason, f"{spec.label} could not be read ({exc.code}: {exc.message})"
         ) from exc
+    if "sheet_repeat_capped" in text_doc.notes:
+        # D13 (atrium-project#84): a repeated row or column past the cap is content the reader
+        # did not read. The step fails; until #84 the rest was dropped with a note.
+        from atrium_limits import ContentLimitError  # noqa: PLC0415  (repo root)
+
+        raise ContentLimitError(
+            "odf_repeat_cap",
+            "trimmed",
+            1,
+            f"{spec.label}: a cell or row repeats more than ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP times",
+        )
 
     document = DigitalDocument(
         doc_id=doc_id,
         origin=spec.default_origin,
         media_type=spec.media_type,
-        sha256=sha256_file(path),
+        sha512=sha512_file(path),
         filename=os.path.basename(path),
         reading_order="logical",
         kind=kind,

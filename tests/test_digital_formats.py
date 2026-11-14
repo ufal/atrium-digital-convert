@@ -201,12 +201,12 @@ def test_a_presentation_is_not_an_accepted_type(tmp_path):
 )
 def test_text_documents_become_records_with_lines(tmp_path, maker, origin, expected):
     path = maker(tmp_path / f"doc.{origin.rsplit('-', 1)[-1]}")
-    record = d2j.build_record(str(path))
+    record = d2j.build_development(str(path))
     assert record["source"]["origin"] == origin
     assert _lines(record) == expected
     assert all("bbox" not in row for row in record["lines"]), "no geometry is fabricated"
     assert all("canvas" not in page for page in record["pages"])
-    assert record["assembled"]["blocks"]["lines"]["program"] == "digital-convert"
+    assert "assembled" not in record  # a development dict, never a record (atrium-project#84)
 
 
 @pytest.mark.parametrize(
@@ -214,7 +214,7 @@ def test_text_documents_become_records_with_lines(tmp_path, maker, origin, expec
 )
 def test_a_sheet_is_a_page_and_a_row_a_line(tmp_path, maker, origin):
     path = maker(tmp_path / f"sheet.{origin.rsplit('-', 1)[-1]}")
-    record = d2j.build_record(str(path))
+    record = d2j.build_development(str(path))
     assert record["source"]["origin"] == origin
     assert [page["page"] for page in record["pages"]] == ["Nálezy"]
     assert _lines(record) == ["Sonda\tNález", "S3\tstřep"], (
@@ -248,26 +248,23 @@ def test_a_legacy_doc_keeps_the_originals_identity(tmp_path, monkeypatch):
     docx.write_bytes(make_fixtures.minimal_docx())
     _fake_soffice(tmp_path, docx, monkeypatch)
     original = make_doc_stub(tmp_path / "stara-zprava.doc")
-    record = d2j.build_record(str(original))
+    record = d2j.build_development(str(original))
     source = record["source"]
     assert source["origin"] == "digital-born-doc"
     assert source["media_type"] == "application/msword"
     assert source["filename"] == "stara-zprava.doc"
-    assert source["sha256"] == hashlib.sha256(original.read_bytes()).hexdigest(), (
+    assert source["sha512"] == hashlib.sha512(original.read_bytes()).hexdigest(), (
         "the ORIGINAL's digest"
     )
     assert _lines(record), "the converted DOCX was read"
-    detail = json.dumps(record["provenance"]["license_detail"])
-    assert "libreoffice" not in detail, (
-        "a converter of the container adds nothing to the record's licence"
-    )
-    assert record["provenance"]["license"] in ("MIT", "Apache-2.0")
+    # no licence is computed (atrium-project#84, D2): nothing licence-shaped in the output
+    assert "provenance" not in record and "license" not in json.dumps(record)
 
 
 def test_a_legacy_xls_is_read_as_a_spreadsheet(tmp_path, monkeypatch):
     xlsx = make_xlsx(tmp_path / "converted.xlsx")
     _fake_soffice(tmp_path, xlsx, monkeypatch)
-    record = d2j.build_record(str(make_xls_stub(tmp_path / "nalezy.xls")))
+    record = d2j.build_development(str(make_xls_stub(tmp_path / "nalezy.xls")))
     assert record["source"]["origin"] == "digital-born-xls"
     assert record["source"]["media_type"] == "application/vnd.ms-excel"
     assert _lines(record) == ["Sonda\tNález", "S3\tstřep"]
@@ -318,7 +315,7 @@ def test_a_seed_with_the_files_digest_is_accepted(tmp_path):
     pdf = tmp_path / "minimal.pdf"
     pdf.write_bytes(make_fixtures.minimal_pdf())
     seed = _seed(pdf, hashlib.sha512(pdf.read_bytes()).hexdigest())
-    record = d2j.build_record(str(pdf), baseline=str(seed))
+    record = d2j.build_development(str(pdf), baseline=str(seed))
     assert record["doc_id"] == "AMCR-F-1"
     assert "sha256" not in record["source"], "the archive's sha512 stays the only digest"
 
@@ -330,12 +327,12 @@ def test_a_seed_for_another_file_is_source_digest_mismatch(tmp_path, monkeypatch
     read = []
     monkeypatch.setattr(d2j, "extract", lambda *a, **k: read.append(a))
     with pytest.raises(d2j.DigitalInputError) as info:
-        d2j.build_record(str(pdf), baseline=str(seed))
+        d2j.build_development(str(pdf), baseline=str(seed))
     assert info.value.reason == "source_digest_mismatch" and info.value.exit_code == 3
     assert read == [], "refused before any reader ran"
     out = tmp_path / "out.json"
-    assert d2j.main([str(pdf), "--document-json", str(seed), "--document-json-out", str(out)]) == 3
-    assert not out.exists(), "no record is written for the wrong file"
+    assert d2j.main([str(pdf), "--document-json", str(seed), "--docproc-out", str(out)]) == 3
+    assert not out.exists(), "nothing is written for the wrong file"
 
 
 def test_a_seed_without_sha512_is_not_checked(tmp_path):
@@ -353,7 +350,7 @@ def test_the_legacy_digest_is_checked_before_the_conversion(tmp_path, monkeypatc
     original = make_doc_stub(tmp_path / "x.doc")
     seed = _seed(original, "f" * 128)
     with pytest.raises(d2j.DigitalInputError) as info:
-        d2j.build_record(str(original), baseline=str(seed))
+        d2j.build_development(str(original), baseline=str(seed))
     assert info.value.reason == "source_digest_mismatch", (
         "not dependency_missing: no conversion was tried"
     )
@@ -369,7 +366,7 @@ def test_a_document_over_max_pages_is_refused(tmp_path, monkeypatch):
     with pytest.raises(LimitExceeded) as info:
         d2j.extract(str(pdf))
     assert info.value.key == "max_pages" and info.value.http_status == 422
-    assert d2j.main([str(pdf), "--document-json-out", str(tmp_path / "o.json")]) == 4
+    assert d2j.main([str(pdf), "--docproc-out", str(tmp_path / "o.json")]) == 4
 
 
 def _mixed_pdf() -> bytes:
@@ -383,20 +380,20 @@ def _mixed_pdf() -> bytes:
     return make_fixtures._build_pdf_ex([digital, ocr])
 
 
-def test_the_ocr_layer_share_is_a_setting(tmp_path, monkeypatch):
-    """1 of 2 text-bearing pages is a prior OCR layer: refused at the default 0.5 (1 >= 0.5 x 2),
-    converted with that page flagged at 0.75 (1 < 1.5) — motyc's two readings on #2, one setting."""
+def test_a_mixed_pdf_is_converted_with_its_ocr_page_routed_to_the_atr(tmp_path):
+    """1 of 2 text-bearing pages is a prior OCR layer. Since atrium-project#84 no document is
+    refused for its pages (the OCR_LAYER_DOCUMENT_SHARE setting is gone): that page is flagged
+    and routed to the ATR, the other one is read."""
+    from api_util import docproc_writer
+
     pdf = tmp_path / "mixed.pdf"
     pdf.write_bytes(_mixed_pdf())
-    with pytest.raises(d2j.DigitalInputError) as info:
-        d2j.extract(str(pdf))
-    assert info.value.reason == "ocr_text_layer"
-    assert "OCR_LAYER_DOCUMENT_SHARE 0.5" in str(info.value)
-    monkeypatch.setenv("OCR_LAYER_DOCUMENT_SHARE", "0.75")
-    record = d2j.build_record(str(pdf))
+    document, record = d2j.prepare(str(pdf))
     flagged = [page for page in record["pages"] if page.get("needs_ocr")]
     assert [page["page_index"] for page in flagged] == [2]
     assert "prior OCR run" in flagged[0]["needs_ocr_reason"]
+    routing = docproc_writer.build_docproc(document)["metadata"]["routing"]["pages"]
+    assert [(r["page"], r["route"]) for r in routing] == [(1, "text-layer"), (2, "atr")]
 
 
 def test_the_reader_limits_follow_the_service_limits(monkeypatch):
