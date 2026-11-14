@@ -28,23 +28,25 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OCR_POSTPROCESS = REPO_ROOT.parent / "atrium-ocr-postprocess"
 
-#: The owner revision the copy was taken from (atrium-project#82): the ocr-postprocess commit of
-#: 2026-10-05 whose text_formats.py has the digest below, first released in v1.9.0-beta.
+#: The owner revision the copy was taken from (atrium-project#82): the ocr-postprocess commit whose
+#: text_formats.py has the digest below, the one that judges a PDF page on all its objects
+#: (atrium-project#84). "commit" names ocr-postprocess's merge of its #84 PR on `test` once it exists
+#: (2464756, of 2026-10-05, v1.9.0-beta, until then); "release" is the ocr-postprocess release that
+#: first carries it.
 ADOPTED = {
     "owner": "atrium-ocr-postprocess",
     "commit": "2464756ce61664469f666d3fc6bc90cfc6f02f0b",
-    "release": "v1.9.0-beta",
+    "release": "v2.0.0-beta",
 }
 
 VENDORED = {
-    "text_formats.py": "3e6bfa36f66e84c6bbd20e1eb9f23ea4274d0ba7f118fe98841f1dd4947a0a3a",
+    "text_formats.py": "d0111bb7a74d3f6a683b8f04bdd3000b5c5bb1cee1c9b3a7441822aaaeb0b1e1",
 }
 
 #: The names the vendored module imports from this repository's `tool_limits.py`; they must keep
 #: ocr-postprocess's variable names and defaults (see tool_limits.py).
 TOOL_LIMITS_CONTRACT = {
     "ODF_REPEAT_CAP": ("ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP", 100),
-    "PDF_OBJECT_CAP": ("ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP", 20000),
 }
 
 

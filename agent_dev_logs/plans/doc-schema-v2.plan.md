@@ -1,5 +1,6 @@
 # Strategy — [atrium-project#84](https://github.com/ufal/atrium-project/issues/84) (doc-schema-v2): digital-convert's part
 
+> _**Refreshed 2026-11-14 (afternoon)**: "Status — round 6 (11-14)": the hub merged, the pins moved, round 6._
 > _**Refreshed 2026-11-14**: "Status — PR (11-14)": the PR's checks and round 5's fixes._
 > _**Refreshed 2026-11-13**: "Status — round 2" (the code, pushed 11-13 to `doc-schema-v2`) and round 4's notes. The file keeps
 > the name `doc-schema-v2.plan.md` (it was `84.plan.md` on 11-12 and 11-13)._
@@ -12,9 +13,13 @@
 > issue existed), in which digital-convert wrote the born-digital record, read images and CSV, and kept the
 > `ocr_text_layer` refusal — all superseded below._
 
+**Status (2026-11-14, afternoon)**: 🟡 **The hub's PR is merged and this repository is pinned to it: drift is green.
+Round 6 completes this repository's part where no answer is pending; see "Status — round 6". The release (v2.0.0-beta)
+is cut at K4TEL's cadence.**
+
 **Status (2026-11-14)**: 🟡 **[atrium-digital-convert#10](https://github.com/ufal/atrium-digital-convert/pull/10) is open
 (`doc-schema-v2` into `test`); see "Status — PR". Drift clears once the hub's PR merges and the pins move; the
-record-major check clears at this tool's next release, which raises its major version.**
+record-major check clears at this tool's next release, which raises its major version.** _(superseded 11-14 afternoon)_
 
 **Status (2026-11-13)**: 🟡 **Implemented, pushed 11-13 to `doc-schema-v2`; see "Status — round 2". Deferred items are listed there.** _(superseded 11-14: the PR is open)_
 
@@ -111,7 +116,7 @@ Local branch from `test`, on the re-vendored shared modules (record 2.0, paradat
 - **Task 2:** no refusal (`ocr_text_layer`, `OCR_LAYER_DOCUMENT_SHARE` gone): such pages are `needsAtr` with a
   reason; `metadata.routing.pages[]` lists every page (`text-layer`, `atr`, `empty`).
 - **Task 3, in part:** `ODF_REPEAT_CAP` raises. **Open:** `PDF_OBJECT_CAP` still judges a page with over 20,000
-  objects on its first ones (`sampled`).
+  objects on its first ones (`sampled`). _(gone 11-14, round 6)_
 - **Task 4:** the decode verdict is a line flag (`Garbage`, `Inverted`); no bands.
 - **Task 5, deferred:** UserUnit, CropBox, `/Rotate` (ask 10, D28).
 - **Tasks 6–8:** images get `415 unsupported_media_type` (H13); CSV and TXT unchanged (Q9); SHA-512 only; no licence
@@ -154,6 +159,28 @@ The suite passes: 961. After the hub's PR merges, `v1` moves to its merge commit
 `scripts/pin_hub_reusables.py --sha` pins this repository's callers to it: drift clears. The record-major check stays
 red until the release, which raises the major version in `para_config.txt` (`v1.4.7-beta` now), `CITATION.cff` and
 `service/openapi.json`'s `info.version`.
+
+## Status — round 6 (11-14)
+
+The hub's PR (atrium-project#86) merged; `v1` moved to it and K4TEL pinned this repository's callers: drift green. Round
+6 (local, delivered as an archive):
+
+- `atrium_document.py`, its schema and `tests/test_document_originators.py` re-vendored: rows may carry
+  `lines[].unit: "block"` (rule 5, written by ocr-postprocess only), and `quality_summary.lines` counts them as
+  `block_units`. `v2.0.0-beta` as the unreleased version: `para_config.txt`, `CITATION.cff`, `service/openapi.json`
+  (re-exported) and a CONTRIBUTING.md row marked Unreleased; api-contract passes with it.
+- No object sampling (#84: "never samples"): `text_formats.py` re-vendored from ocr-postprocess, which judges a PDF page
+  on all its objects; `PDF_OBJECT_CAP` gone from `tool_limits.py`, `.env.example` and the service README;
+  `api_util/pdf_coverage.py`'s `IMAGE_CAP` gone.
+- The reader pin (`tests/test_vendored_reader_parity.py`) carries the new digest; its `ADOPTED["commit"]` is set to
+  ocr-postprocess's merge commit of #11 on `test` once it exists (a squash merge drops the branch commits).
+- The hub's born-digital E2E lane now runs this image's `--docproc-out` and `/reformat` and builds the record with
+  ocr-postprocess (atrium-project task 7).
+
+The suite passes: 962. Next: the hub's second PR for #84 (the E2E lanes, rule 5's mark), then `v1` and the pins again;
+then this PR. Hub:
+[plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md),
+"Status — round 6".
 
 ## Depends on
 

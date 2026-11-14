@@ -237,7 +237,6 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needs_ocr`) when its images cover this share of it |
 | `bold_heading_max_share`        | `BOLD_HEADING_MAX_SHARE`            | 0.25    | share   | policy: a bold body-size line that reads as a title is a heading while bold body-size text is at most this share; 0 = off         |
 | `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                           |
-| `pdf_object_cap`                | `ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP` | 20000   | objects | the shared reader judges a PDF page's text layer on its first N objects                                                           |
 
 **Large documents** (measured on 15 AMČR excavation reports, up to 156 MB and 529 pages;
 [what they showed](../docs/evaluation/amcr-samples.md)):

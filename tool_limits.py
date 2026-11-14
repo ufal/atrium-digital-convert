@@ -2,8 +2,8 @@
 
 One declaration, read by the service (``service/api.py``), the converter
 (``api_util/digital_to_json.py`` and its adapters) and the vendored reader
-(``text_formats.py``, which imports ``ODF_REPEAT_CAP`` and ``PDF_OBJECT_CAP`` from here exactly as
-it does in atrium-ocr-postprocess), and reported by ``GET /info`` (``limits`` and
+(``text_formats.py``, which imports ``ODF_REPEAT_CAP`` from here exactly as it does in
+atrium-ocr-postprocess), and reported by ``GET /info`` (``limits`` and
 ``limits_meta``). Each one is an environment setting; a malformed value stops the process at
 startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.example`` and
 ``service/README.md``'s ``## Limits`` table list the same set; ``tests/test_limits_contract.py``
@@ -83,19 +83,16 @@ BOLD_HEADING_MAX_SHARE = limit(
 )
 
 # ── the vendored reader's own caps (text_formats.py, from atrium-ocr-postprocess) ────────────
-#: Same variable names, units and defaults as atrium-ocr-postprocess's tool_limits.py: the reader
+#: Same variable name, unit and default as atrium-ocr-postprocess's tool_limits.py: the reader
 #: module is byte-identical there and here (tests/test_vendored_reader_parity.py), and imports
-#: these two names from whichever ``tool_limits`` sits beside it.
+#: this name from whichever ``tool_limits`` sits beside it.
 #: Most a repeated ODF cell/row (`table:number-columns-repeated`) is expanded; past it the
 #: conversion fails (D13, atrium-project#84: ``api_util/digital_text.py``), as no content is cut.
 ODF_REPEAT_CAP = limit(
     "ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP", 100, unit="repeats", key="odf_repeat_cap", minimum=1
 )
-#: Most objects of one PDF page scanned to judge its text layer (the text itself is always
-#: read in full); a page with more is judged on the first N → ``sampled`` note.
-PDF_OBJECT_CAP = limit(
-    "ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP", 20000, unit="objects", key="pdf_object_cap", minimum=1
-)
+#: (``ATRIUM_TEXT_INGEST_PDF_OBJECT_CAP`` is gone: a PDF page's text layer is judged on all its objects,
+#: never a sample of them, atrium-project#84 "never samples".)
 
 LIMITS = LimitSet(
     MAX_UPLOAD,
@@ -107,5 +104,4 @@ LIMITS = LimitSet(
     FURNITURE_ONLY_IMAGE_COVERAGE,
     BOLD_HEADING_MAX_SHARE,
     ODF_REPEAT_CAP,
-    PDF_OBJECT_CAP,
 )
