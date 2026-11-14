@@ -1314,18 +1314,19 @@ def test_a_few_unmapped_glyphs_do_not_condemn_a_line_and_mostly_unmapped_ones_do
     assert many.is_undecodable and many.is_garbage
 
 
-def test_unmapped_pdf_flags_both_pages_for_their_own_reasons(digital_fixtures):
-    """Page 1 does not decode; page 2 decodes but loses letters (2 of its 10 words): since #5 of
-    10-22 the record flags it too, with its own reason."""
+def test_unmapped_pdf_flags_the_page_that_does_not_decode_only(digital_fixtures):
+    """Page 1 does not decode; page 2 decodes but loses letters (2 of its 10 words). #5 flagged
+    page 2 too (10-22); since #9 (11-13) words losing letters are scoring's question, not a reason
+    for the ATR, so page 2 stays `digital` with its text as read."""
     pytest.importorskip("pdfplumber")
     record = d2j.build_development(str(digital_fixtures / "unmapped.pdf"))
-    assert [p["text_layer"] for p in record["pages"]] == ["garbled", "garbled"]
+    assert [p["text_layer"] for p in record["pages"]] == ["garbled", "digital"]
     assert "over 15% glyphs without a Unicode mapping" in record["pages"][0]["needs_ocr_reason"]
-    assert record["pages"][1]["needs_ocr_reason"].startswith(
-        "the text layer decodes, but 2 of its 10 words (20%) lose a letter to a glyph without a Unicode mapping"
-    )
+    assert not record["pages"][1].get("needs_ocr")
     assert not any("(cid:" in line["text"] for line in record["lines"])
-    assert record["lines"][1]["text"] == "Zprava o sond� cislo 3, vrstva m�la mocnost 30 cm."
+    assert (
+        record["lines"][1]["text"] == "Zprava o sond\ufffd cislo 3, vrstva m\ufffdla mocnost 30 cm."
+    )
 
 
 def _routes(path):
@@ -1336,21 +1337,17 @@ def _routes(path):
     return {r["page"]: r["route"] for r in docproc["metadata"]["routing"]["pages"]}, docproc
 
 
-def test_a_page_losing_letters_is_routed_to_the_atr(digital_fixtures, monkeypatch):
-    """The regression test #5 asked for (10-22): the 29 pages of CTX202000362 lose their Czech
-    letters. Since atrium-project#84 the page is routed to the ATR in the docproc
-    (`needsAtr`, consistent with its `textLayer`); below the share it is not."""
+def test_a_page_losing_letters_stays_on_its_text_layer(digital_fixtures):
+    """atrium-digital-convert#9 point 3 (11-13): a page whose words lose letters to unmapped glyphs
+    decodes, so it is not routed to the ATR (#5 routed it from 10-22, at a share of 5 %): its lines,
+    with their U+FFFD characters, go to ocr-postprocess's scoring."""
     pytest.importorskip("pdfplumber")
     routes, docproc = _routes(digital_fixtures / "unmapped.pdf")
     page_two = next(p for p in docproc["pages"] if p["pageNumber"] == 2)
-    assert routes[2] == "atr"
-    assert (page_two["textLayer"], page_two["needsAtr"]) == ("garbled", True)
-
-    monkeypatch.setenv("ROUTE_DAMAGED_WORD_SHARE", "0.5")
-    routes, docproc = _routes(digital_fixtures / "unmapped.pdf")
-    page_two = next(p for p in docproc["pages"] if p["pageNumber"] == 2)
-    assert routes[2] == "text-layer"
+    assert (routes[1], routes[2]) == ("atr", "text-layer")
     assert (page_two["textLayer"], page_two.get("needsAtr", False)) == ("digital", False)
+    (line,) = [ln for block in page_two["blocks"] for ln in block.get("lines") or []]
+    assert line["text"] == "Zprava o sond\ufffd cislo 3, vrstva m\ufffdla mocnost 30 cm."
 
 
 def test_a_header_that_loses_letters_flags_nothing():
@@ -1361,7 +1358,7 @@ def test_a_header_that_loses_letters_flags_nothing():
     )
     page = d2j.DigitalPage(page="1", page_index=1, lines=[header, body])
     d2j.assess_page(page)
-    assert (page.needs_ocr, page.lost_letters, d2j.text_layer_of(page)) == (False, False, "digital")
+    assert (page.needs_ocr, d2j.text_layer_of(page)) == (False, "digital")
 
 
 def test_a_page_number_over_a_full_page_image_is_none_and_flagged(digital_fixtures):

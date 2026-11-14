@@ -1,7 +1,7 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; left: the C5 run, then close) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11). This repository's part of doc-schema-v2 (atrium-project#84, opened 2026-11-12): `plans/84.plan.md` — a docproc producer from 12 November. **#4** (PDF/DOCX
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; left: the C5 run, then close) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11) and **#9** (inputs and the first-pass page check, opened 2026-11-12; motyc's five points agreed 11-13: `digests/9.digest.md`). This repository's part of doc-schema-v2 (atrium-project#84, opened 2026-11-12): `plans/doc-schema-v2.plan.md` — a docproc producer from 12 November. **#4** (PDF/DOCX
 > inputs, W1–W6) is closed; #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-10-21; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
@@ -1476,7 +1476,7 @@ Documentation only; no code, test or configuration change.
 * **Asked (K4TEL):** align the logs with ARÚP's output contract of 12 November (the .docx of that day, replacing the
   meeting document of 10 November) and with David Novák's comments of 11-12 (atrium-project#84 opened, #13, #16,
   #78); `test` fetched first (all seven working branches = `test`).
-  Anchor: [contract digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1211.md) · [hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md).
+  Anchor: [contract digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1211.md) · [hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
 * **Decided in session:** the tool slices are named `plans/84.plan.md`; the translator keeps `amcr-fields.txt` as a
   documented example that nothing loads (no default list, D34); the hub's #84 plan carries a reply draft agreeing on
   points 1 and 2.
@@ -1495,3 +1495,21 @@ Documentation only; no code, test or configuration change.
   * **`DEVLOG.md`:** the header and this entry.
 * **Not posted:** nothing on GitHub; questions stay on the hub's list for the next meeting.
 * Plans only; no code changed. Files delivered as full files.
+
+## 2026-11-13 — atrium-project#84 round 2: docproc in place of the record
+
+* **Asked (K4TEL):** adapt the tool repositories to the hub side of doc-schema-v2, on the re-vendored shared
+  modules; every new or edited file delivered, the vendored ones excepted. Decided: adapt plus the tasks that need
+  no docproc answer from ARÚP; windows as `split`, prompt budgets as `sampled`, every other cut fails (D13).
+* **Done (local branch, delivered as an archive):** docproc 1.1 against the ATRIUM proposal schema (comment 1 plus asks 3 and 13); no refusal, pages routed `atr`; decode verdicts as line flags; paradata per H14.
+* **Checked:** the full test suite; ruff; the regenerated spec; the local chain check (the docproc of a two-column PDF).
+* **Detail and what is deferred:** `plans/doc-schema-v2.plan.md`, "Status — round 2". Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
+* **Not posted; not pushed.**
+
+## 2026-11-13 — atrium-project#84 round 4: the push checked; #9 points 1–3
+
+* **Asked (K4TEL):** fetch the pushed branches and the comments since 12 November, and bring the logs up to them, and make #9 points 1–3.
+* **Found:** the push of 11-13 on `doc-schema-v2` left out the docproc writer, its schemas, `tools/docproc_proposal.py` and their test, and lacks the addendum's re-vendored shared files; `.github/production-image.json` did not declare the writer (the hub's image-closure test). Restored; then #9 points 1–3 (a page whose words lose letters is no longer sent to the ATR, `ROUTE_DAMAGED_WORD_SHARE` removed, `garbled` narrowed): 959 pass, ruff clean, the spec regenerated, the local chain passes.
+* **Written here (not pushed):** `digests/9.digest.md`, `plans/9.plan.md` (new); `plans/doc-schema-v2.plan.md` (the round-1 text in place of the 11-11 one, the round-2 status, the push, #9, Q15); `plans/5.plan.md`, `digests/5.digest.md` (#5's lost-letters route superseded). This file: the round-2 entry of 11-13 and this one.
+* **Detail:** `plans/doc-schema-v2.plan.md`, "Status — round 2"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
+* **Not posted; not pushed.**

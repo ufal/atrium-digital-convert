@@ -10,10 +10,11 @@ startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.exampl
 checks that they agree.
 
 What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
-beside it. Four entries are POLICY thresholds rather than size caps
-(``ROUTE_TRASH_SHARE``, ``ROUTE_DAMAGED_WORD_SHARE``, ``FURNITURE_ONLY_IMAGE_COVERAGE``,
-``BOLD_HEADING_MAX_SHARE``): they are declared here all the same, because a value a deployment may change and a client must be
-able to read back is exactly what ``/info`` ``limits`` is for.
+beside it. Three entries are POLICY thresholds rather than size caps
+(``ROUTE_TRASH_SHARE``, ``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``): they are declared here all
+the same, because a value a deployment may change and a client must be able to read back is exactly what ``/info``
+``limits`` is for. ``ROUTE_DAMAGED_WORD_SHARE`` (#5, 10-22) is gone: words that lose letters route nothing since
+atrium-digital-convert#9.
 
 Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
 CLI converter imports this too.
@@ -63,17 +64,6 @@ STAGE_TIMEOUT_S = limit("STAGE_TIMEOUT_S", 360, unit="s", kind=float, minimum=1)
 #: pages to OCR for their table cells, codes and coordinates.
 ROUTE_TRASH_SHARE = limit("ROUTE_TRASH_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1)
 
-#: POLICY. A page whose text layer decodes but whose body words (outside the running header and
-#: footer) lose a letter to a glyph without a Unicode mapping (U+FFFD in the record; a font
-#: without /ToUnicode), at least this share of them, is flagged ``needs_ocr`` in the record (its
-#: ``text_layer`` is then ``garbled``, with the damaged words in the reason) and routed to OCR by
-#: ``/describe`` whatever its page type. Before 2026-10-22 only ``/describe`` sent it to OCR. One
-#: AMČR report loses every ř, ě, č and ů this way: 29 pages reach the default, at 19 % of their
-#: words in the median (#5).
-ROUTE_DAMAGED_WORD_SHARE = limit(
-    "ROUTE_DAMAGED_WORD_SHARE", 0.05, unit="share", kind=float, minimum=0, maximum=1
-)
-
 #: POLICY. A PDF page whose only text is its running header or footer (a page number, a stamp)
 #: is ``none`` — no text layer under the furniture, ``needs_ocr`` — when its images cover at
 #: least this share of the page: a scan the PDF's producer numbered (atrium-digital-convert#5).
@@ -114,7 +104,6 @@ LIMITS = LimitSet(
     LIBREOFFICE_TIMEOUT_S,
     STAGE_TIMEOUT_S,
     ROUTE_TRASH_SHARE,
-    ROUTE_DAMAGED_WORD_SHARE,
     FURNITURE_ONLY_IMAGE_COVERAGE,
     BOLD_HEADING_MAX_SHARE,
     ODF_REPEAT_CAP,

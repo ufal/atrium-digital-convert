@@ -41,7 +41,8 @@
     "api_util/pdf_coverage.py",
     "api_util/json_to_md.py",
     "api_util/layout_md.py",
-    "api_util/xml_to_md.py"
+    "api_util/xml_to_md.py",
+    "api_util/docproc_writer.py"
   ],
   "vendored": {
     "text_formats.py": "atrium-ocr-postprocess",

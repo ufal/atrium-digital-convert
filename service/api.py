@@ -275,8 +275,8 @@ class PageLayout(BaseModel):
     )
     damaged_words: int = Field(
         description="Of those, the words that lost a letter to a glyph without a Unicode mapping "
-        "(U+FFFD). When their share reaches `ROUTE_DAMAGED_WORD_SHARE` the record flags the page "
-        "`needs_ocr` (`garbled`) and it goes to `ocr`."
+        "(U+FFFD). Counted for information: they route nothing (atrium-digital-convert#9); whether "
+        "the text reads is ocr-postprocess's scoring."
     )
 
 

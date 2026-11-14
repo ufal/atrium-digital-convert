@@ -70,7 +70,9 @@ run's paradata in `out/paradata/`: the original read and the docproc written, by
 Each page's text layer is checked before anything is trusted:
 
 - `digital`: the layer decodes;
-- `garbled`: it does not (broken font encodings, glyphs without a Unicode mapping, words losing letters);
+- `garbled`: it does not decode (broken font encodings, glyphs without a Unicode mapping). A layer that decodes but
+  whose words lose some letters stays `digital`: whether its text reads is ocr-postprocess's scoring
+  (atrium-digital-convert#9);
 - `ocr`: it is an earlier OCR run;
 - `none`: the page has no text, or its only text is a page number over a scan;
 - `blank`: an empty page.

@@ -143,7 +143,6 @@ from api_util.digital_ir import (  # noqa: E402  (re-exported: `d2j.DigitalLine`
     DigitalLine,
     DigitalPage,
     DigitalTable,
-    damaged_body_words,
     font_flags,
     is_inverted,
     missing_dependency,
@@ -518,20 +517,6 @@ def _reason_furniture_only(page: DigitalPage) -> str:
     )
 
 
-#: The default of `ROUTE_DAMAGED_WORD_SHARE` (tool_limits.py): a `digital` page with this share of
-#: its body words losing a letter to an unmapped glyph is flagged `needs_ocr` in the record (#5).
-ROUTE_DAMAGED_WORD_SHARE = 0.05
-
-
-def damaged_word_share() -> float:
-    """The effective `ROUTE_DAMAGED_WORD_SHARE` (the setting, else the module default)."""
-    try:
-        import tool_limits  # noqa: PLC0415  (repo root)
-    except ImportError:  # pragma: no cover - the repo root is on sys.path when the CLI runs
-        return ROUTE_DAMAGED_WORD_SHARE
-    return float(tool_limits.ROUTE_DAMAGED_WORD_SHARE.get())
-
-
 def assess_page(page: DigitalPage) -> None:
     """Fill in `quality_score`, `quality_band`, `needs_ocr` and its reason, in place.
 
@@ -549,10 +534,12 @@ def assess_page(page: DigitalPage) -> None:
     cells has none), so the flag is exactly the `garbled`, `ocr` and `none` pages of
     `pages[].text_layer` (`digital_ir.text_layer_of`). That includes a `none` page that HAS lines:
     its only text is its running header or footer, over images that cover the page
-    (`digital_pdf._mark_furniture_only`, #5); its lines are scored like any other. And a page whose
-    body words lose letters to glyphs without a Unicode mapping, at `ROUTE_DAMAGED_WORD_SHARE` or
-    more (`lost_letters`): its text layer decodes, but it is incomplete (#5, 10-22: before, only
-    `/describe` sent such a page to OCR, and a step that read only the record never saw it).
+    (`digital_pdf._mark_furniture_only`, #5); its lines are scored like any other.
+
+    A page whose words lose letters to glyphs without a Unicode mapping (U+FFFD) but which decodes
+    otherwise is not flagged: since atrium-digital-convert#9 (point 3, agreed 11-13) that is a
+    question of text quality, answered by ocr-postprocess's scoring of its lines, not a reason to
+    send the page to the ATR. (#5 flagged it from 10-22, at `ROUTE_DAMAGED_WORD_SHARE`.)
     """
     reasons: List[str] = []
     if not page.lines:
@@ -587,17 +574,6 @@ def assess_page(page: DigitalPage) -> None:
                 f"characters (a font without /ToUnicode?). The page has a text layer; it does "
                 f"not decode."
             )
-        if page.text_layer == TEXT_LAYER_DIGITAL:
-            damaged, words = damaged_body_words(page)
-            share = damaged_word_share()
-            if words and damaged and damaged / words >= share:
-                page.lost_letters = True
-                reasons.append(
-                    f"the text layer decodes, but {damaged} of its {words} words ({damaged / words:.0%}) "
-                    f"lose a letter to a glyph without a Unicode mapping (U+FFFD; "
-                    f"ROUTE_DAMAGED_WORD_SHARE {share:g}). Re-acquire the page through the OCR "
-                    f"originator (ocr-postprocess)."
-                )
         if page.text_layer == TEXT_LAYER_NONE:
             # The page's content has no text layer; its lines are a page number or a running
             # header. Scoring them would call a scan `Clear`, so the page carries no score.

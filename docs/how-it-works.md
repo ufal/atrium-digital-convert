@@ -116,14 +116,12 @@ into mojibake), with no stage configured:
   The categories are read through the page-category facets of `atrium_vocab.COLLECTIONS`, so a
   category added to the vocabulary registry is routed without a code change.
 
-  A page whose text layer decodes still goes to `ocr` in two cases:
-  * **lost letters:** at least `ROUTE_DAMAGED_WORD_SHARE` (0.05) of the words of its body text
-    (outside the running header and footer) lose a letter to a glyph without a Unicode mapping
-    (U+FFFD). The converter sees this itself, without any stage;
-  * **the quality model:** ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose*
-    lines `Trash`, on a page with at least 5 of them. A prose line is outside a table, has at least
-    20 characters, is mostly letters and is not a table-of-contents line. Table cells, codes and
-    coordinates read as `Trash` to a model of running text, but on a born-digital page they are exact.
+  A page whose text layer decodes still goes to `ocr` when the quality model says so: ocr-postprocess
+  calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose* lines `Trash`, on a page with at least 5 of
+  them. A prose line is outside a table, has at least 20 characters, is mostly letters and is not a
+  table-of-contents line. Table cells, codes and coordinates read as `Trash` to a model of running text,
+  but on a born-digital page they are exact. Words that lose a letter to a glyph without a Unicode mapping
+  route nothing since atrium-digital-convert#9: they are counted, and their quality is scoring's question.
 * **Layout and text** (`layout`, `text`): the converter's counts per page, and the page's text in
   reading order (`include_text=false` leaves the text out).
 * **Stages** (`stages[]`), one entry per stage:

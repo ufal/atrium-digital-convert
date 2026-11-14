@@ -250,10 +250,6 @@ class DigitalPage:
     #: Share of the page under its images, measured only for a page whose only text is its
     #: running header or footer (`digital_pdf._mark_furniture_only`); None when not measured.
     image_coverage: Optional[float] = None
-    #: Flagged `needs_ocr` because its body words lose letters to unmapped glyphs (U+FFFD;
-    #: `digital_to_json.assess_page`, atrium-digital-convert#5): the page is `garbled`, and
-    #: `/describe` sends it to OCR whatever its page type.
-    lost_letters: bool = False
 
     @property
     def has_geometry(self) -> bool:

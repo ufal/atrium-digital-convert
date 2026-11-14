@@ -147,13 +147,8 @@ Categories are read through the page-category facets of `atrium_vocab.COLLECTION
 (handwritten / printed / typed / graphical / tabular), so a category added to the registry is routed
 without a code change.
 
-A page whose text layer decodes goes to `ocr` instead of `nlp` when either holds:
+A page whose text layer decodes goes to `ocr` instead of `nlp` when:
 
-* **Lost letters.** At least `ROUTE_DAMAGED_WORD_SHARE` (0.05) of the words of its body text (outside
-  the running header and footer) lose a letter to a glyph without a Unicode mapping (U+FFFD; a font
-  without /ToUnicode). This is the converter's own evidence, so it holds with `stages=none` too. The
-  record flags the page itself: `needs_ocr: true`, `text_layer: garbled` and a reason naming the damaged
-  words, so it reaches the OCR hand-off; `/describe` routes it to `ocr` whatever its page type.
 * **The quality model.** ocr-postprocess calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose*
   lines `Trash`, and the page has at least 5 of them. A prose line is outside a table, at least 20
   characters long, mostly letters and not a table-of-contents line. The model judges running text;
@@ -239,7 +234,6 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — a DOC/XLS LibreOffice did not convert in time                                                              |
 | `stage_timeout_s`               | `STAGE_TIMEOUT_S`                   | 360     | s       | `/describe`: the stage is reported `unavailable`; the request still succeeds                                                      |
 | `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its prose lines `Trash` |
-| `route_damaged_word_share`      | `ROUTE_DAMAGED_WORD_SHARE`          | 0.05    | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when this share of its body's words lose a letter (U+FFFD)   |
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needs_ocr`) when its images cover this share of it |
 | `bold_heading_max_share`        | `BOLD_HEADING_MAX_SHARE`            | 0.25    | share   | policy: a bold body-size line that reads as a title is a heading while bold body-size text is at most this share; 0 = off         |
 | `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                           |
@@ -293,8 +287,9 @@ before using the result:
   gets fewer headings than a layout model finds; `BOLD_HEADING_MAX_SHARE=0` switches the bold-title rule
   off.
 - Only a PDF gives line boxes; the other formats give pages and lines without positions.
-- A PDF page whose fonts do not map to Unicode loses its letters: from `ROUTE_DAMAGED_WORD_SHARE` of its
-  body words on, the docproc routes it to the ATR (`needsAtr`, `garbled`).
+- A PDF page whose fonts do not map to Unicode for some letters keeps its text layer, the lost letters shown as
+  U+FFFD: since atrium-digital-convert#9 that is left to ocr-postprocess's scoring, not a reason for the ATR. A
+  layer that does not decode at all is `garbled` and goes to the ATR (`needsAtr`).
 - Unruled tables are read by column, and letter-spaced captions and map labels split into pieces.
 - The upload is held in memory: the default 250 MB accepts most reports, and larger originals need
   `MAX_UPLOAD_MB` raised per deployment; above 250 MB that is not yet tested (see Large documents).

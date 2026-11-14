@@ -17,10 +17,10 @@ For every page of a converted document it says, in one place:
       `ocr`  re-acquire the page with ATR (printed or typed text, or unknown);
       `htr`  re-acquire it with a handwriting model;
       `none` there is no text to read (a blank page, a drawing or photo).
-    A page whose body words (outside its running header and footer) lose a letter to a glyph
-    without a Unicode mapping, at ROUTE_DAMAGED_WORD_SHARE or more, goes to `ocr` whatever its
-    page type (atrium-digital-convert#5): the record flags it `needs_ocr`, so it is `garbled`
-    (`lost_letters`), and the evidence is the converter's own, so it holds without any stage.
+    Words of the body text (outside the running header and footer) that lose a letter to a glyph
+    without a Unicode mapping are counted (`layout.damaged_words`) but route nothing: since
+    atrium-digital-convert#9 (point 3, 11-13) they are a question of text quality, for
+    ocr-postprocess's scoring (#5 routed such a page to `ocr` from 10-22).
     A `digital` page also goes to `ocr` instead of `nlp`
     when the quality model calls more than ROUTE_TRASH_SHARE of its *prose* lines Trash. A prose
     line is outside a table, at least `PROSE_MIN_CHARS` long, mostly letters and not a dot
@@ -99,7 +99,6 @@ LINE_KINDS = ("table", "short", "few letters", "dot leaders", "prose")
 #: How a quality-rule reroute's `route_reason` starts (`tools/samples_report.py` counts them).
 QUALITY_ROUTE_PREFIX = "the text layer decodes, but the quality model calls"
 #: How a lost-letter reroute's `route_reason` starts.
-DAMAGED_ROUTE_PREFIX = "the text layer decodes, but"
 
 
 def line_kind(text: str, group_id: Optional[str] = None) -> str:
@@ -319,38 +318,17 @@ def route_page(
     trash_share_limit: float = 0.5,
     collections: Optional[Mapping[str, frozenset]] = None,
     drew_anything: bool = True,
-    damaged_words: Optional[Tuple[int, int]] = None,
-    damaged_word_limit: float = 0.05,
     min_prose_lines: int = MIN_PROSE_LINES,
     furniture_only: bool = False,
-    lost_letters: bool = False,
 ) -> tuple:
     """`(route, reason)` for one page. Deterministic; see the module docstring.
 
-    `damaged_words` is the page's `count_damaged_words` (`(damaged, words)`): a `digital` page
-    at or over `damaged_word_limit` goes to `ocr` whatever the quality model says, and so does
-    a `garbled` page the record flagged for it (`lost_letters`, `DigitalPage.lost_letters`):
-    its text is printed, whatever page-classification calls the page.
     `furniture_only` (the module's `furniture_only()`): a `digital` page whose only text is its
     running header or footer goes where its page type says, when that type carries text.
     """
     if text_layer == TEXT_LAYER_BLANK:
         return ROUTE_NONE, "empty page; nothing to read"
-    damaged, words = damaged_words or (0, 0)
-    damaged_rule = words and damaged and damaged / words >= damaged_word_limit
-    if text_layer == TEXT_LAYER_GARBLED and lost_letters and damaged_rule:
-        return ROUTE_OCR, (
-            f"{DAMAGED_ROUTE_PREFIX} {damaged} of its {words} words ({damaged / words:.0%}) "
-            "lose a letter to a glyph without a Unicode mapping (U+FFFD; "
-            f"ROUTE_DAMAGED_WORD_SHARE {damaged_word_limit:g}), so the record flags it: re-acquire it"
-        )
     if text_layer == TEXT_LAYER_DIGITAL:
-        if damaged_rule:
-            return ROUTE_OCR, (
-                f"{DAMAGED_ROUTE_PREFIX} {damaged} of its {words} words ({damaged / words:.0%}) "
-                "lose a letter to a glyph without a Unicode mapping (U+FFFD; "
-                f"ROUTE_DAMAGED_WORD_SHARE {damaged_word_limit:g}): re-acquire it"
-            )
         if furniture_only and category:
             routed = _route_by_category(
                 category,
@@ -417,14 +395,12 @@ def build_report(
     quality: Optional[Mapping[int, Mapping[str, Any]]] = None,
     trash_share_limit: float = 0.5,
     include_text: bool = True,
-    damaged_word_limit: float = 0.05,
 ) -> Dict[str, Any]:
     """`{"pages": [...], "summary": {...}}` for a converted document.
 
     `categories` and `quality` are keyed by `page_index` (1-based): what page-classification
     and ocr-postprocess answered for that page, as `stages.py` normalises it.
-    `trash_share_limit` and `damaged_word_limit` are ROUTE_TRASH_SHARE and
-    ROUTE_DAMAGED_WORD_SHARE (`tool_limits.py`).
+    `trash_share_limit` is ROUTE_TRASH_SHARE (`tool_limits.py`).
     """
     categories = categories or {}
     quality = quality or {}
@@ -442,10 +418,7 @@ def build_report(
             trash_share_limit=trash_share_limit,
             collections=collections,
             drew_anything=bool(page.images or page.vector_paths or page.lines),
-            damaged_words=(layout["damaged_words"], layout["words"]),
-            damaged_word_limit=damaged_word_limit,
             furniture_only=furniture_only(page),
-            lost_letters=page.lost_letters,
         )
         entry: Dict[str, Any] = {
             "page": page.page,

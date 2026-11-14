@@ -101,16 +101,15 @@ CASES = [
         ["Ji č", "P ř", "slova1", "**Jičín"],
     ),
     (
-        "#5 unmapped glyphs: a page of them flagged, a page losing letters flagged too, never (cid:N)",
+        "#5/#9 unmapped glyphs: a page of them flagged, a page losing letters kept as read, never (cid:N)",
         "unmapped.pdf",
         [
             "NEEDS_OCR: pg_1 (garbled text layer: 1 of 1 lines are over 15% glyphs without a "
             "Unicode mapping",
             "## Page 2",
-            "NEEDS_OCR: pg_2 (the text layer decodes, but 2 of its 10 words (20%) lose a letter",
             "Zprava o sond\ufffd cislo 3, vrstva m\ufffdla mocnost 30 cm.",
         ],
-        ["(cid:"],
+        ["(cid:", "NEEDS_OCR: pg_2"],
     ),
     (
         "#5 a page number over a full-page image is a scan; text and half-covered pages are not",

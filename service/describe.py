@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from api_util.digital_ir import DigitalDocument
 from api_util.digital_report import build_report, furniture_only
-from tool_limits import ROUTE_DAMAGED_WORD_SHARE, ROUTE_TRASH_SHARE, STAGE_TIMEOUT_S
+from tool_limits import ROUTE_TRASH_SHARE, STAGE_TIMEOUT_S
 
 from . import stages
 
@@ -160,7 +160,6 @@ def describe_document(
         quality=quality,
         trash_share_limit=ROUTE_TRASH_SHARE.get(),
         include_text=include_text,
-        damaged_word_limit=ROUTE_DAMAGED_WORD_SHARE.get(),
     )
     return {
         "document": current,
