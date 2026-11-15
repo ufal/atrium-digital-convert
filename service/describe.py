@@ -39,7 +39,8 @@ def render_markdown(record: Dict[str, Any]) -> str:
 
 
 def reader_info(document: DigitalDocument, record: Dict[str, Any]) -> Dict[str, Any]:
-    """Which reader read the file: kind, media type, origin, engine, pages, any conversion."""
+    """Which reader read the file: kind, workflow, media type, origin, engine, pages, any conversion
+    or rendering (atrium-digital-convert#9)."""
     source = record.get("source") or {}
     return {
         "kind": document.kind,
@@ -47,7 +48,9 @@ def reader_info(document: DigitalDocument, record: Dict[str, Any]) -> Dict[str, 
         "origin": source.get("origin") or document.origin,
         "engine": document.engine,
         "pages": len(document.pages),
+        "workflow": document.workflow,
         "conversion": document.conversion,
+        "rendering": document.rendering,
         "notes": list(document.notes),
     }
 

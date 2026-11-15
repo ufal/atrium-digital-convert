@@ -78,7 +78,8 @@ The record is ocr-postprocess's; the Markdown view stays a development output (c
 6. **Inputs** (H12, H13). Every PDF and office file (`KINDS`, `digital_to_json.py:312`: PDF, DOCX, ODT, ODS, XLSX,
    RTF, DOC, XLS; `sniff()`, 709). Images skip digital-convert (H13): the 11-11 task "add images" is withdrawn. CSV,
    TSV and TXT are not named by the contract: the hub's Q9. _(11-13, #9 point 4: they skip the visual steps and go
-   straight to scoring; who reads them into the record is still Q9.)_
+   straight to scoring; who reads them into the record is still Q9.)_ _(11-14: digital-convert extracts TXT, CSV,
+   TSV and JSON as they are, the textual workflow with the spreadsheets; [`9.plan.md`](9.plan.md).)_
 7. **SHA-512** (#84 §4): `sha256_file()` (`digital_ir.py:148`) leaves the output; the original is named in the
    paradata by its SHA-512 (`sha512_file()`, 152); `verify_seed_digest()` (`digital_to_json.py:833`) stays.
 8. **No licence, no run data** (D1, D2): `license_detail_for()` (`digital_to_json.py:1167`, calls at 1184, 1217)
@@ -89,7 +90,8 @@ The record is ocr-postprocess's; the Markdown view stays a development output (c
 10. **Office files rendered for page geometry** (#9 point 5, 11-13): DOCX and the other office files are rendered,
     so their pages and lines get boxes in pt as a PDF's do; only the pages that need the ATR go to page-classification
     and the ATR, not every page with an embedded image. Ask 13's "flow document without a page size" then concerns
-    the text-only inputs alone. Detail: [`9.plan.md`](9.plan.md).
+    the text-only inputs alone. Detail: [`9.plan.md`](9.plan.md). _(11-14: implemented, native text placed on the
+    rendered pages; the rendered PDF named `stored: false`.)_
 
 ## Paradata (H14; #84 §4)
 

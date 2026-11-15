@@ -40,6 +40,8 @@ The flexiconv adapter (MIT, `requirements_flexiconv.txt`) is an optional TEITOK 
 python3 api_util/digital_to_json.py report.pdf  --docproc-out report.docproc.json
 python3 api_util/digital_to_json.py report.odt  --document-json seed.json --out-dir out/
 python3 api_util/digital_to_json.py budget.xls  --out-dir out/
+python3 api_util/digital_to_json.py report.docx --out-dir out/ --rendered-out out/report.rendered.pdf
+python3 api_util/digital_to_json.py finds.csv   --out-dir out/
 python3 api_util/digital_to_json.py report.pdf  --engine docling --paradata-dir paradata/
 python3 api_util/digital_to_json.py report.pdf  --out-dir out/ --markdown --describe
 PAGE_CLASSIFICATION_URL=http://localhost:8001 OCR_POSTPROCESS_URL=http://localhost:8002 \
@@ -48,11 +50,11 @@ PAGE_CLASSIFICATION_URL=http://localhost:8001 OCR_POSTPROCESS_URL=http://localho
 
 | Option                                               | Meaning                                                                                                                      |
 |------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `--docproc-out` (`--out`)                            | where to write the docproc (default `<out-dir>/<doc_id>.docproc.json`); until atrium-project#84 `--document-json-out`         |
+| `--docproc-out` (`--out`)                            | where to write the docproc (default `<out-dir>/<doc_id>.docproc.json`); until atrium-project#84 `--document-json-out`        |
 | `--document-json`                                    | the AMČR seed, read only: its `doc_id` names the output, its `source.sha512` is checked                                      |
 | `--doc-id`                                           | override the doc_id derived from the file name (a seed's doc_id always wins)                                                 |
 | `--engine`                                           | `light` (default) or `docling` (PDF only, needs `requirements_digital_docling.txt` and its models)                           |
-| `--docx-page-breaks`                                 | DOCX pages: `auto` (explicit, section and Word's last rendered breaks), `explicit`, `none`                                   |
+| `--rendered-out`                                     | also write an office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc refers to, for the visual steps    |
 | `--paradata-dir`                                     | also write the run's paradata record (the original read, the docproc written, by SHA-512)                                    |
 | `--markdown [PATH]`                                  | also write the document as annotated Markdown, as `/reformat`'s `markdown=true` (default `<doc_id>.md` beside the docproc)   |
 | `--describe [PATH]`                                  | also write the per-page assessment of `/describe`: `reader`, `pages`, `summary`, `stages` (default `<doc_id>.describe.json`) |
@@ -71,13 +73,14 @@ still answers 200.
 
 * `0`: the docproc was written (and the views asked for).
 * `2` (from argparse): an unknown `--stages` value, as the service's 422.
-* `2`: a dependency is missing (a reader, Docling's models, LibreOffice for DOC/XLS), with advice.
+* `2`: a dependency is missing (a reader, Docling's models, LibreOffice for an office document or an XLS), with advice.
 * `3`: an input this converter does not take. That means an unsupported type (an image among them), an old
   binary Office type it cannot convert, or a seed whose `source.sha512` does not match. It also means a
   `--document-json` seed that cannot be opened (`invalid_record`: not UTF-8 JSON, not an object, a newer
   schema). Since atrium-project#84 no PDF is refused for its prior-OCR pages: they are routed to the ATR.
-* `4`: an empty, corrupt or encrypted file, a file over the ZIP limits, a failed LibreOffice conversion, or a
-  file over a limit (`MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`, the ODF repeat cap, which would cut content).
+* `4`: an empty, corrupt or encrypted file, a CSV or JSON that does not parse, a reading that would skip content,
+  a file over the ZIP limits, a failed LibreOffice conversion or rendering, or a file over a limit (`MAX_PAGES`,
+  `LIBREOFFICE_TIMEOUT_S`, the ODF repeat cap, which would cut content).
 
 ## Call the service: `/reformat` and `/describe`
 
@@ -152,7 +155,6 @@ combinations covered:
 
 * **Files:** PDF, DOCX, ODT, RTF, DOC, XLSX, ODS and XLS made with LibreOffice, a name with diacritics and spaces,
   an empty file and a broken package.
-* **DOCX page breaks:** `auto`, `explicit` and `none`.
 * **Seeds:** no seed, a seed, a mismatched digest, an unreadable record, a newer schema and an invalid inherited
   record.
 * **Views:** the output alone, with Markdown, and `/describe` with no stage, with page-classification
@@ -161,23 +163,23 @@ combinations covered:
 
 `tests/test_cli_service_parity.py` holds the two sides to the same docproc, Markdown, assessment and refusals.
 
-| Input or setting                                           | Command line                                                                                     | Service                                                           | Same?                                                                  |
-|------------------------------------------------------------|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------|
-| The formats, recognised by content                         | PDF, DOCX, ODT, ODS, XLSX, RTF; DOC and XLS through LibreOffice                                  | the same                                                          | the same                                                               |
-| An empty file                                              | exit 4, `corrupt`                                                                                | 422, `cause: corrupt`                                             | the same                                                               |
-| A seed                                                     | `--document-json`; its `source.sha512` checked; read only                                        | the `document_json` part; checked the same way                    | the same                                                               |
-| A seed that cannot be opened                               | exit 3, `invalid_record`                                                                         | 422 `invalid_record`                                              | the same                                                               |
-| DOCX pages                                                 | `--docx-page-breaks`                                                                             | `docx_page_breaks`                                                | the same                                                               |
-| The doc_id                                                 | from the file name; `--doc-id` overrides it; a seed's wins                                       | from the upload's name; a seed's wins                             | the same derivation; `--doc-id` is for a pipeline driver               |
-| Markdown                                                   | `--markdown`, the `full` profile; others with `api_util/json_to_md.py --detail`                  | `markdown=true`, the `full` profile                               | the same; with `--describe` as well, rendered after the stages' writes |
-| The assessment                                             | `--describe`, `--stages`, `--classify-pages`, `--no-text`                                        | `/describe`, `stages`, `classify_pages`, `include_text`           | the same                                                               |
-| Which reader read it (`reader`)                            | in the `--describe` file                                                                         | in both answers                                                   | the same object                                                        |
-| The stages' URLs                                           | `--page-classification-url`, `--ocr-postprocess-url`, or the variables                           | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`                  | differs: set per deployment                                            |
-| The engine                                                 | `light`, or `--engine docling` (a local build)                                                   | `light`                                                           | differs: Docling is not in the image                                   |
-| Field ownership                                            | a warning; `--strict` makes it an error                                                          | a warning                                                         | differs: `--strict` is for testing a new block                         |
-| The run's stamps                                           | its own, or `--run-id`, `--paradata-ref` from a pipeline driver                                  | its own                                                           | differs: a driver may stamp several stages with one run                |
-| Limits                                                     | `MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`; `MAX_UPLOAD_MB` in the shared reader (ODT, ODS, XLSX, RTF) | all, and the upload itself, `MAX_CONCURRENT_JOBS`                 | differs: the service bounds what it accepts                            |
-| Paradata                                                   | a file, with `--paradata-dir`                                                                    | the answer's `paradata`, a `CreateAction`; config adds `endpoint` | the same parameters and counts                                         |
+| Input or setting                   | Command line                                                                                                   | Service                                                           | Same?                                                                  |
+|------------------------------------|----------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------|
+| The formats, recognised by content | visual: PDF, DOCX, DOC, ODT, RTF; textual: ODS, XLSX, XLS, TXT, CSV, TSV, JSON                                 | the same                                                          | the same                                                               |
+| An office document's rendered PDF  | `--rendered-out PATH`                                                                                          | `rendered_pdf` when a page needs the ATR, or with `rendered=true` | the same bytes and SHA-512                                             |
+| An empty file                      | exit 4, `corrupt`                                                                                              | 422, `cause: corrupt`                                             | the same                                                               |
+| A seed                             | `--document-json`; its `source.sha512` checked; read only                                                      | the `document_json` part; checked the same way                    | the same                                                               |
+| A seed that cannot be opened       | exit 3, `invalid_record`                                                                                       | 422 `invalid_record`                                              | the same                                                               |
+| The doc_id                         | from the file name; `--doc-id` overrides it; a seed's wins                                                     | from the upload's name; a seed's wins                             | the same derivation; `--doc-id` is for a pipeline driver               |
+| Markdown                           | `--markdown`, the `full` profile; others with `api_util/json_to_md.py --detail`                                | `markdown=true`, the `full` profile                               | the same; with `--describe` as well, rendered after the stages' writes |
+| The assessment                     | `--describe`, `--stages`, `--classify-pages`, `--no-text`                                                      | `/describe`, `stages`, `classify_pages`, `include_text`           | the same                                                               |
+| Which reader read it (`reader`)    | in the `--describe` file                                                                                       | in both answers                                                   | the same object                                                        |
+| The stages' URLs                   | `--page-classification-url`, `--ocr-postprocess-url`, or the variables                                         | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`                  | differs: set per deployment                                            |
+| The engine                         | `light`, or `--engine docling` (a local build)                                                                 | `light`                                                           | differs: Docling is not in the image                                   |
+| Field ownership                    | a warning; `--strict` makes it an error                                                                        | a warning                                                         | differs: `--strict` is for testing a new block                         |
+| The run's stamps                   | its own, or `--run-id`, `--paradata-ref` from a pipeline driver                                                | its own                                                           | differs: a driver may stamp several stages with one run                |
+| Limits                             | `MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`, `RENDER_TEXT_COVERAGE`, `MAX_LINE_CHARS`; `MAX_UPLOAD_MB` in the readers | all, and the upload itself, `MAX_CONCURRENT_JOBS`                 | differs: the service bounds what it accepts                            |
+| Paradata                           | a file, with `--paradata-dir`                                                                                  | the answer's `paradata`, a `CreateAction`; config adds `endpoint` | the same parameters and counts                                         |
 
 ## Document types for decision models (offline)
 

@@ -82,18 +82,24 @@ USER atrium
 # ---------------------------------------------------------------------------
 # Born-digital converter, command line — published as :<version>-digital
 #
-# api_util/digital_to_json.py turns a born-digital document directly into an
-# atrium_document record. It is the ORIGINATOR of a born-digital record's positional
-# plane: with an AMČR seed (--document-json) it keeps the seed's identity and checks its
-# source.sha512 against the file; without one it creates the record.
+# api_util/digital_to_json.py turns a born-digital document into docproc
+# (atr/docproc-json, atrium-project#84); ocr-postprocess builds the record from it. With an
+# AMČR seed (--document-json) it checks the seed's source.sha512 against the file;
+# --rendered-out writes an office document's rendered PDF (atrium-digital-convert#9).
 #
 # The image carries the LIGHT engine only — requirements_digital.txt: pdfplumber,
 # pypdfium2, python-docx, jsonschema, lxml, all permissive, no models, no network — plus
 # headless LibreOffice for the legacy DOC/XLS (atrium-digital-convert#4, accepted by AMČR
-# 2026-09-26: MPL-2.0, a conditional component in para_config.txt, it only converts the
-# file). `-core` alone cannot load a document ("source file could not be loaded"): the
-# writer and calc filters are what convert DOC and XLS, so both are installed, in their
-# `-nogui` builds. The opt-in heavy engine is its own stage below.
+# 2026-09-26: MPL-2.0, a conditional component in para_config.txt) and, since
+# atrium-digital-convert#9, for rendering office documents (DOCX, DOC, ODT, RTF) to PDF: their
+# native text is placed on the rendered pages, and the PDF is what page-classification and the
+# ATR read for a page that needs the ATR. `-core` alone cannot load a document ("source file
+# could not be loaded"): the writer and calc filters are installed, in their `-nogui` builds.
+# The fonts are metric-compatible with the ones office documents name (Liberation for Times New
+# Roman, Arial and Courier New; Carlito for Calibri; Caladea for Cambria; DejaVu as the
+# fallback), all with the Czech letters, so a rendering breaks lines and pages close to the
+# author's. No hyphenation dictionary is installed, so LibreOffice never hyphenates a word the
+# native text has whole. The opt-in heavy engine is its own stage below.
 # ---------------------------------------------------------------------------
 FROM base AS digital
 
@@ -102,6 +108,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libreoffice-writer-nogui \
         libreoffice-calc-nogui \
+        fonts-liberation \
+        fonts-crosextra-carlito \
+        fonts-crosextra-caladea \
+        fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 COPY requirements_digital.txt ./
 RUN pip install -r requirements_digital.txt

@@ -49,6 +49,11 @@
     "note": "page image + invisible (3 Tr) text on both pages — G7 OCR layer",
     "sha256": "fe1a3a2dce800f9c5c8b80c3cbec55abe6d8a4a175cf8abdc1b6451ea1269cc2"
   },
+  "photo_text.docx": {
+    "bytes": 5903,
+    "note": "a long paragraph, a photo, a caption on one page — visual lines, no ATR for a photo (#9)",
+    "sha256": "2016ed842b08dd73bd076b8ab47014b569068a09dd79e88ea92ca7ff04ab9e07"
+  },
   "rich.docx": {
     "bytes": 8678,
     "note": "title/localized headings, ins/del, footnote, text box, header/footer, 4 pages",
@@ -58,6 +63,31 @@
     "bytes": 1881,
     "note": "vertical table headers (ttb with a second subset, btt); a btt caption (#5)",
     "sha256": "b996845333e95560d805a517bd02796b01a1a91820165fb16998b9b0f096b12b"
+  },
+  "sample.csv": {
+    "bytes": 131,
+    "note": "a header row and rows with a text column among others — every column kept (#9)",
+    "sha256": "2c1d8c26acffcd0a95493156befbb8cd347f8334b3509254f2944093a4eb1a05"
+  },
+  "sample.json": {
+    "bytes": 262,
+    "note": "string values in objects and lists, with keys and numbers — every string kept (#9)",
+    "sha256": "526f274e30019a6c1a04604eba133b45650c8fa56475ec795f40d34d9b09b8f6"
+  },
+  "sample.tsv": {
+    "bytes": 59,
+    "note": "the CSV's rows as tab-separated values (#9)",
+    "sha256": "88a0cc05a59a13fb013d5c0dc5a9cb58fec946a5a92cb876b9b7d717c4dfade4"
+  },
+  "sample.txt": {
+    "bytes": 151,
+    "note": "two paragraphs, a form feed, a second page — the textual workflow (#9)",
+    "sha256": "5326ea85e85256898b99e9cce2a4460f5fa40de4774fa7b47488ba3d2872b81e"
+  },
+  "scan_page.docx": {
+    "bytes": 6683,
+    "note": "text page, a page of one picture (a pasted scan), text page — only the picture page needs the ATR (#9)",
+    "sha256": "3f6932a3362e95750f6d2481f53edae6c13d80bbe167d1870a320eb6815fe113"
   },
   "small_caps.pdf": {
     "bytes": 1847,

@@ -516,6 +516,13 @@ def _line_from_words(words: List[Dict[str, Any]], page_label: str) -> DigitalLin
         inverted=any(w.get("inverted") for w in words),
         vertical=any(w.get("vertical") for w in words),
         bold_share=round(bold_chars / chars, 3) if chars else 0.0,
+        words=[
+            (
+                str(w["text"]),
+                [float(w["x0"]), float(w["top"]), float(w["x1"]), float(w["bottom"])],
+            )
+            for w in words
+        ],
     )
 
 

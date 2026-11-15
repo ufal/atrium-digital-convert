@@ -1,22 +1,34 @@
 # ATRIUM digital-convert: born-digital documents into docproc layout
 
 digital-convert reads a [born-digital](https://ufal.github.io/atrium-project/glossary/) document, one made on a
-computer, such as a PDF or an office file. It writes the document's layout as docproc (`atr/docproc-json`), the
-format the ATR writes for scanned pages: pages, blocks and lines in reading order, headings, tables and, for a PDF,
-exact positions, with a verdict on each page's text layer. ocr-postprocess builds the ATRIUM record from it. Use it
-when the text is already in the file; a page whose text cannot be used is routed to the ATR. It needs no OCR, no
-model and no network.
+computer, such as a PDF, an office file, a spreadsheet or a text file. It writes the document's layout as docproc
+(`atr/docproc-json`), the format the ATR writes for scanned pages: pages, blocks and lines in reading order,
+headings, tables and, for a PDF or an office document, exact positions, with a verdict on each page's text layer.
+ocr-postprocess builds the ATRIUM record from it. Use it when the text is already in the file; a page whose text
+cannot be used is routed to the ATR. It needs no OCR, no model and no network.
 
 [Releases](https://github.com/ufal/atrium-digital-convert/releases) · [MIT licence](LICENSE) ·
 [ATRIUM documentation](https://ufal.github.io/atrium-project/workflows/digital-convert/)
 
 ## Inputs and outputs
 
-| Input                                                                                  | Output                                                                                                                                       |
-|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| PDF, DOCX, ODT, ODS, XLSX, RTF, recognised by content; DOC and XLS through LibreOffice | docproc: pages, blocks with their `lines[]`, tables as `cellGrid`; validated against [the proposal schema](schemas/docproc/README.md)        |
-| optionally, AMČR's seed (`doc_id`, `source.sha512`), checked against the file          | per page, `textLayer` and, where the text cannot be used, `needsAtr` with its reason; `metadata.routing` routes every page                   |
-|                                                                                        | on request, the document as annotated Markdown; with `/describe` (parked), a per-page assessment                                             |
+| Input                                                                                        | Output                                                                                                                                |
+|----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| **visual**: PDF; DOCX, DOC, ODT, RTF (native text on the pages of a LibreOffice rendering)   | docproc: pages, blocks with their `lines[]`, tables as `cellGrid`; validated against [the proposal schema](schemas/docproc/README.md) |
+| **textual**: ODS, XLSX, XLS; TXT, CSV, TSV, JSON (extracted as they are; no pages to render) | per page, `textLayer` and, where the text cannot be used, `needsAtr` with its reason; `metadata.routing` routes every page            |
+| recognised by content; images are not inputs (they go to the ATR)                            | an office document's rendered PDF, for page-classification and the ATR (`rendered_pdf`, `--rendered-out`)                             |
+| optionally, AMČR's seed (`doc_id`, `source.sha512`), checked against the file                | on request, the document as annotated Markdown; with `/describe` (parked), a per-page assessment                                      |
+
+The two workflows of [#9](https://github.com/ufal/atrium-digital-convert/issues/9):
+
+- **Visual.** A page whose text layer does not decode, is an earlier OCR run, or has no text goes to the ATR, and
+  the whole document goes through the ATR once, with those pages forced. page-classification runs on those pages.
+  An office document is read as its own text and placed on the pages LibreOffice renders, so it gets page numbers
+  and boxes in pt like a PDF. Its rendered PDF is what the visual steps read. A page with good text and a photo
+  stays on its text layer.
+- **Textual.** Text with nothing to render: a spreadsheet's rows, a text file's lines, every CSV column, every JSON
+  string. It has no geometry and never goes to the ATR, only straight to scoring. A line over 1000 characters is
+  wrapped, and the wrap is recorded.
 
 Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://github.com/ufal/atrium-project/issues/84))
 digital-convert writes no record and refuses no document for its pages. Each format, how it is read and what reaches
@@ -25,13 +37,14 @@ the docproc: [docs/reference/formats.md](docs/reference/formats.md).
 The service and the command line take the same inputs and give the same results. They run the same code for the
 docproc, the Markdown and the per-page assessment:
 
-| Result                              | Service                                         | Command line (`api_util/digital_to_json.py`)                                          |
-|-------------------------------------|-------------------------------------------------|---------------------------------------------------------------------------------------|
-| the docproc                         | `POST /reformat` → `docproc`                    | `<doc_id>.docproc.json` (or `--docproc-out PATH`)                                     |
-| the document as annotated Markdown  | `markdown=true` → `markdown`                    | `--markdown` → `<doc_id>.md`                                                          |
-| the per-page assessment, the routes | `POST /describe` → `pages`, `summary`, `stages` | `--describe` → `<doc_id>.describe.json` (`--stages`, `--classify-pages`, `--no-text`) |
-| the seed (read only)                | the `document_json` part                        | `--document-json`                                                                     |
-| the run's paradata                  | `paradata`, a `CreateAction` in the answer      | a file, with `--paradata-dir`                                                         |
+| Result                              | Service                                                   | Command line (`api_util/digital_to_json.py`)                                          |
+|-------------------------------------|-----------------------------------------------------------|---------------------------------------------------------------------------------------|
+| the docproc                         | `POST /reformat` → `docproc`                              | `<doc_id>.docproc.json` (or `--docproc-out PATH`)                                     |
+| an office document's rendered PDF   | `rendered_pdf` (a page needs the ATR, or `rendered=true`) | `--rendered-out PATH`                                                                 |
+| the document as annotated Markdown  | `markdown=true` → `markdown`                              | `--markdown` → `<doc_id>.md`                                                          |
+| the per-page assessment, the routes | `POST /describe` → `pages`, `summary`, `stages`           | `--describe` → `<doc_id>.describe.json` (`--stages`, `--classify-pages`, `--no-text`) |
+| the seed (read only)                | the `document_json` part                                  | `--document-json`                                                                     |
+| the run's paradata                  | `paradata`, a `CreateAction` in the answer                | a file, with `--paradata-dir`                                                         |
 
 Only the command line has the opt-in Docling engine (`--engine docling`, a local build); the service image runs
 the light engine. Every difference, and why: [docs/usage.md](docs/usage.md#the-command-line-and-the-service).
@@ -99,16 +112,20 @@ ATRIUM](https://marketplace.sshopencloud.eu/tool-or-service/jGxgQI).
 - **Uploads up to 250 MB by default.** AMČR's originals reach about 1.5 GB, so a deployment must raise
   `MAX_UPLOAD_MB` for them. Above 250 MB, memory, concurrency and timeouts are not yet tested, and the upload
   is held in memory ([Limits](service/README.md#limits)).
-- **Only PDF has geometry.** The other formats give pages and lines without positions
-  ([formats](docs/reference/formats.md)). Boxes are in PDF points from the page's top-left; UserUnit, CropBox and
-  /Rotate are not yet applied (#84, ask 10).
+- **The textual workflow has no geometry.** PDFs and office documents have boxes; spreadsheets and text files give
+  pages and lines without positions ([formats](docs/reference/formats.md)). Boxes are in PDF points from the
+  page's top-left; UserUnit, CropBox and /Rotate are not yet applied (#84, ask 10).
+- **An office document's pages are LibreOffice's.** They follow LibreOffice's layout with metric-compatible fonts,
+  which can break pages differently from Word. The docproc, the rendered PDF and the ATR all use the same pages.
+  Tracked changes are accepted in a DOCX, DOC and ODT before rendering, but not in an RTF. A page where the rendering
+  shows text the reading lacks goes to the ATR, so nothing is lost.
 - **No partial output.** A limit that would cut content (the ODF repeat cap) fails the conversion (D13).
 - **Tried on 15 AMČR excavation reports, with no accuracy figure.** The defects they showed were fixed or are
   listed below ([what they showed](docs/evaluation/amcr-samples.md)).
 - **Known, not handled.** Unruled tables are read by column, and letter-spaced captions and map labels split
   into pieces ([the AMČR samples](docs/evaluation/amcr-samples.md)).
-- **DOC and XLS need LibreOffice.** The images carry it. Without it these files fail with `dependency_missing`,
-  so use the image or convert them to DOCX or XLSX first ([errors](service/README.md#errors)).
+- **Office documents and XLS need LibreOffice.** The images carry it. Without it a DOCX, DOC, ODT, RTF or XLS fails
+  with `dependency_missing`, so use the image ([errors](service/README.md#errors)).
 - **The Docling engine is opt-in.** It reads PDF only and needs a GPU and its models (`--engine docling`); the
   default light engine needs neither ([usage](docs/usage.md#convert-a-file-on-the-command-line)).
 - **`/describe` is parked** (not part of the pilot): it assesses the converter's development dict, and the 2.0

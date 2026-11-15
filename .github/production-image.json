@@ -7,7 +7,9 @@
     "fails too. Run it locally with: python ../atrium-project/tools/ci/image_closure.py",
     "--repo-root . --worktree",
     "`-api` is the born-digital stage, `api-digital` (atrium-digital-convert#2): POST /reformat",
-    "converts a born-digital file into an atrium_document record and calls nothing; POST",
+    "converts a born-digital file into docproc and calls nothing (atrium-project#84); an office document",
+    "is rendered by LibreOffice for its pages and its native text placed on them (office_render.py,",
+    "render_place.py; atrium-digital-convert#9); POST",
     "/describe adds the per-page report and calls page-classification and ocr-postprocess when",
     "their URLs are set (service/stages.py); service/describe.py holds the stage loop and the Markdown view,",
     "which the CLI's --describe and --markdown run too (atrium-project#72). The keyword code that used to be this image left",
@@ -42,7 +44,9 @@
     "api_util/json_to_md.py",
     "api_util/layout_md.py",
     "api_util/xml_to_md.py",
-    "api_util/docproc_writer.py"
+    "api_util/docproc_writer.py",
+    "api_util/office_render.py",
+    "api_util/render_place.py"
   ],
   "vendored": {
     "text_formats.py": "atrium-ocr-postprocess",

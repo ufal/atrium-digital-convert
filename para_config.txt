@@ -35,17 +35,18 @@ lxml         = BSD-3-Clause ; conditional ; DOCX WordprocessingML walk; ODT/ODS/
 jsonschema   = MIT          ; conditional ; digital-convert's output gate (validate_document)
 #
 # The shared reader (atrium-digital-convert#2 W2): text_formats.py, vendored byte-identical
-# from atrium-ocr-postprocess (MIT, as this repository), reads ODT, ODS, XLSX and RTF.
-text_formats = MIT          ; conditional ; ODT/ODS/XLSX/RTF reader (vendored from atrium-ocr-postprocess)
+# from atrium-ocr-postprocess (MIT, as this repository), reads ODT, ODS, XLSX and RTF, and decodes
+# the text-only inputs (TXT, CSV, TSV, JSON; atrium-digital-convert#9).
+text_formats = MIT          ; conditional ; ODT/ODS/XLSX/RTF reader, text decoding (vendored from atrium-ocr-postprocess)
 #
-# Legacy DOC and XLS (#2 W2; accepted by AMČR on #4, 2026-09-26). Headless LibreOffice
-# converts the file to DOCX/XLSX before the readers above read it. DECLARED HERE, NOT
-# LOGGED: AMČR's condition was that it "only converts the file, so it adds nothing to the
-# licence of the record" — it changes the container format of a text it does not author —
-# and log_component() would put MPL 2.0 (share-alike in para_licenses) into the record's
-# licence union. The conversion is reported beside the record instead (the service's
-# `reader.conversion`; DigitalDocument.conversion). Same treatment as flexiconv below.
-libreoffice  = MPL 2.0      ; conditional ; DOC -> DOCX and XLS -> XLSX conversion only (api_util/digital_legacy.py; never logged)
+# Headless LibreOffice (#2 W2; accepted by AMČR on #4, 2026-09-26): converts a legacy DOC/XLS to
+# DOCX/XLSX before the readers above read it, and since atrium-digital-convert#9 renders an office
+# document (DOCX, DOC, ODT, RTF) to PDF for its pages; the text stays the native readers'. AMČR's
+# condition on #4 was that it "adds nothing to the licence of the record": paradata 3.0 computes no
+# licence at all (D2, atrium-project#84), so it is now LOGGED like every component a run uses, with
+# its version, as a fact (api_util/digital_to_json.record_run). Until 3.0 it was declared and never
+# logged, because logging it would have put MPL 2.0 into the record's licence union.
+libreoffice  = MPL 2.0      ; conditional ; DOC -> DOCX and XLS -> XLSX conversion; office documents rendered to PDF for their pages (api_util/digital_legacy.py, api_util/office_render.py)
 #
 # Heavy engine (`--engine docling`, requirements_digital_docling.txt; PDF only; a local
 # build, never in the service image). The two model rows are the weights Docling downloads,

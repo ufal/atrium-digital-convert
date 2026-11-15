@@ -2,13 +2,17 @@
 
 Two operations, one converter:
 
-* ``POST /reformat`` — the production endpoint the AMČR route calls. A born-digital file (PDF,
-  DOCX, ODT, ODS, XLSX, RTF; DOC and XLS through LibreOffice) and optionally the AMČR seed in;
-  the document's layout out as docproc (``atr/docproc-json``: pages, blocks and lines with each
-  page's text-layer verdict and ``needsAtr``; atrium-project#84), with Markdown only on request
-  and the run's Process Run Crate ``CreateAction`` as ``paradata``. No record: ocr-postprocess
-  builds it from the docproc. It calls NO other service: in the AMČR deployment Temporal
-  chains the stages (atrium-digital-convert#1, 30 September).
+* ``POST /reformat`` — the production endpoint the AMČR route calls. A born-digital file and
+  optionally the AMČR seed in; the document's layout out as docproc (``atr/docproc-json``: pages,
+  blocks and lines with each page's text-layer verdict and ``needsAtr``; atrium-project#84), with
+  Markdown only on request and the run's Process Run Crate ``CreateAction`` as ``paradata``. Two
+  workflows (atrium-digital-convert#9): **visual** — a PDF on its pages; a DOCX, DOC, ODT or RTF
+  as its native text on the pages of its LibreOffice rendering, whose PDF comes back as
+  ``rendered_pdf`` when a page needs the ATR (or with ``rendered=true``) for page-classification
+  and the ATR; **textual** — ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are, without
+  page geometry, never the ATR. No record: ocr-postprocess builds it from the docproc. It calls NO
+  other service: in the AMČR deployment Temporal chains the stages (atrium-digital-convert#1,
+  30 September).
 * ``POST /describe`` — parked (not part of the pilot): the same conversion, then a per-page
   assessment (``api_util/digital_report.py``) of the converter's development dict, with the
   two adjacent stages called when their URLs are configured (``service/stages.py``).
@@ -17,15 +21,17 @@ The common contract (atrium-project#32/#53/#55/#71): ``/health``, ``/ready``, ``
 setting of ``tool_limits.py``; typed responses documented in the committed
 ``service/openapi.json``; the §4.4 error body with registered reasons; a SIGTERM drain. Refusals:
 
-* 415 ``unsupported_media_type`` — not a born-digital type this service reads, an image among them
-  (``cause``: ``unsupported`` or ``legacy_office_unsupported``; ``accepted`` lists the types);
+* 415 ``unsupported_media_type`` — not a type this service reads, an image among them (images go to
+  the ATR, H13) (``cause``: ``unsupported`` or ``legacy_office_unsupported``; ``accepted`` lists
+  the types);
 * 422 ``source_digest_mismatch`` — the seed's ``source.sha512`` is not the file's digest;
 * 422 ``invalid_record`` — a ``document_json`` part that cannot be opened;
-* 422 (``cause``: ``encrypted``, ``corrupt``, ``zip_limits_exceeded``, ``conversion_failed``);
+* 422 (``cause``: ``encrypted``, ``corrupt`` — a reading that would skip content among them —,
+  ``zip_limits_exceeded``, ``conversion_failed`` — a failed LibreOffice conversion or rendering);
 * 413/422 ``limit_exceeded`` — ``MAX_UPLOAD_MB``, ``MAX_PAGES``, ``LIBREOFFICE_TIMEOUT_S``, and the
   ODF repeat cap, which would cut content (D13);
 * 429 ``busy`` — ``MAX_CONCURRENT_JOBS`` conversions already running;
-* 501 (``cause``: ``dependency_missing``) — LibreOffice is not installed for a DOC/XLS;
+* 501 (``cause``: ``dependency_missing``) — LibreOffice is not installed for an office document or an XLS;
 * 503 — the service is draining.
 
 Regenerate the spec after an API change::
@@ -36,6 +42,7 @@ Regenerate the spec after an API change::
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import re
@@ -113,6 +120,10 @@ SUPPORTED_SUFFIXES: Tuple[str, ...] = (
     ".rtf",
     ".doc",
     ".xls",
+    ".txt",
+    ".csv",
+    ".tsv",
+    ".json",
 )
 
 #: DigitalInputError reason -> (HTTP status, registered reason or None).
@@ -141,7 +152,17 @@ class ReaderInfo(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     kind: str = Field(
-        description="The input kind, by content: `pdf`, `docx`, `odt`, `ods`, `xlsx`, `rtf`, `doc`, `xls`."
+        description=(
+            "The input kind, by content: `pdf`, `docx`, `odt`, `rtf`, `doc`; `ods`, `xlsx`, `xls`, `txt`, `csv`, "
+            "`tsv`, `json`."
+        )
+    )
+    workflow: Optional[str] = Field(
+        None,
+        description=(
+            "`visual` (pages with a verdict each: a PDF, an office document on its rendered pages) or `textual` "
+            "(extracted as it is, no pages to render, never the ATR) — atrium-digital-convert#9."
+        ),
     )
     media_type: str = Field(
         description="The original's media type (`source.media_type` unless a seed named one)."
@@ -156,9 +177,24 @@ class ReaderInfo(BaseModel):
     conversion: Optional[Dict[str, Any]] = Field(
         description="DOC/XLS only: how LibreOffice converted the original (`tool`, `from`, `to`, `seconds`); else null."
     )
+    rendering: Optional[Dict[str, Any]] = Field(
+        None,
+        description=(
+            "DOCX/DOC/ODT/RTF only: how LibreOffice rendered the document for its pages (`tool`, `version`, `from`, "
+            "`to`, `seconds`, `pages`, `sha512` of the PDF); else null."
+        ),
+    )
     notes: List[str] = Field(
         description="Reader notes worth knowing (e.g. a conversion); usually empty."
     )
+
+
+class RenderedPdf(BaseModel):
+    """An office document's rendered PDF (atrium-digital-convert#9)."""
+
+    media_type: str = Field(description="`application/pdf`.")
+    sha512: str = Field(description="Its SHA-512, as the paradata name it (not stored, D23).")
+    data: str = Field(description="The PDF, base64-encoded.")
 
 
 class ReformatResponse(BaseModel):
@@ -184,14 +220,26 @@ class ReformatResponse(BaseModel):
         None,
         description="Only with `markdown=true`: the document rendered as annotated Markdown (json_to_md).",
     )
+    rendered_pdf: Optional[RenderedPdf] = Field(
+        None,
+        description=(
+            "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes "
+            "refer to, which page-classification and the ATR read. Returned when a page is routed `atr`, or always "
+            "with `rendered=true`; absent for a PDF and the textual workflow."
+        ),
+    )
     limits_applied: List[LimitNote] = Field(
-        description="The sampling and splitting the result rests on; none for this converter (D13)."
+        description=(
+            "The splitting the result rests on (D13): lines of a text-only input or a spreadsheet wrapped at "
+            "`MAX_LINE_CHARS`, a sheet continued on further pages. Nothing is sampled."
+        )
     )
     paradata: CreateAction = Field(
         description=(
             "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` "
             "is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc "
-            "(`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14)."
+            "(`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). "
+            "An office document's rendered PDF is in `result` too, `stored: false` (D23)."
         )
     )
 
@@ -380,7 +428,15 @@ class DigitalInfo(InfoBase):
         description="The file suffixes the converter reads (by content, not by name)."
     )
     media_types: Dict[str, str] = Field(description="The media type of each input kind.")
-    libreoffice: bool = Field(description="Whether DOC/XLS can be converted in this deployment.")
+    workflows: Dict[str, List[str]] = Field(
+        description=(
+            "The input kinds of each workflow (atrium-digital-convert#9): `visual` (pages with a verdict each, the "
+            "ATR for a page whose text cannot be used) and `textual` (extracted as it is, never the ATR)."
+        )
+    )
+    libreoffice: bool = Field(
+        description="Whether office documents can be rendered and DOC/XLS converted in this deployment."
+    )
     stages: Dict[str, bool] = Field(
         description="Which adjacent stages `/describe` can call (their URLs are configured)."
     )
@@ -393,9 +449,13 @@ _RECORD_PART_HELP = (
     "ocr-postprocess from the docproc. A part that cannot be opened is refused (422 `invalid_record`); an "
     "empty part counts as none."
 )
-_FILE_HELP = "The born-digital document: PDF, DOCX, ODT, ODS, XLSX, RTF, or legacy DOC/XLS (decided by content)."
-_BREAKS_HELP = (
-    "DOCX pages: `auto` (explicit + Word's rendered breaks), `explicit`, or `none` (one page)."
+_FILE_HELP = (
+    "The document, decided by content: PDF, DOCX, DOC, ODT, RTF (visual); ODS, XLSX, XLS, TXT, CSV, TSV, JSON "
+    "(textual). Not an image: images go to the ATR (H13)."
+)
+_RENDERED_HELP = (
+    "Also return an office document's rendered PDF (`rendered_pdf`) when no page needs the ATR; it is returned "
+    "anyway when one does."
 )
 
 
@@ -538,7 +598,6 @@ def _convert(
     work: Path,
     upload: Path,
     baseline: Optional[Dict[str, Any]],
-    docx_page_breaks: str,
     endpoint: str,
     markdown: bool = False,
     describe: Optional[Dict[str, Any]] = None,
@@ -553,7 +612,7 @@ def _convert(
         config={
             "endpoint": endpoint,
             **d2j.run_config(
-                upload.name, "light", docx_page_breaks, markdown=markdown, describe=describe
+                upload.name, "light", markdown=markdown, describe=describe
             ),
         },
         paradata_dir=None,
@@ -568,7 +627,6 @@ def _convert(
             str(upload),
             baseline=baseline_path,
             doc_id=_doc_id(upload.name),
-            docx_page_breaks=docx_page_breaks,
         )
     except RuntimeError as exc:
         if "is required to convert this input" in str(exc):
@@ -663,6 +721,10 @@ async def info() -> Dict[str, Any]:
         program=PROGRAM,
         supported_inputs=list(SUPPORTED_SUFFIXES),
         media_types=dict(d2j.MEDIA_TYPES),
+        workflows={
+            workflow: [kind for kind in d2j.KINDS if d2j.WORKFLOWS[kind] == workflow]
+            for workflow in (d2j.WORKFLOW_VISUAL, d2j.WORKFLOW_TEXTUAL)
+        },
         libreoffice=libreoffice_binary() is not None,
         stages=stages.configured(),
     )
@@ -689,13 +751,15 @@ async def reformat(
     markdown: bool = Form(
         False, description="Also return the document rendered as annotated Markdown (a development view)."
     ),
-    docx_page_breaks: Literal["auto", "explicit", "none"] = Form("auto", description=_BREAKS_HELP),
+    rendered: bool = Form(False, description=_RENDERED_HELP),
 ):
     """Convert a born-digital document into docproc (§4.2; atrium-project#84).
 
     Calls no other service. A page whose text layer cannot be used (it does not decode, it is a
-    prior OCR run, there is none) carries `needsAtr` with its reason and is routed `atr`; no
-    document is refused for its pages. No record is written: ocr-postprocess builds it from the
+    prior OCR run, there is none, or an office page's rendering shows text its reading does not
+    place there) carries `needsAtr` with its reason and is routed `atr`; no document is refused
+    for its pages. An office document's rendered PDF comes with it when a page needs the ATR. A
+    textual input is never routed `atr`. No record is written: ocr-postprocess builds it from the
     docproc.
     """
     name, data, baseline, seed_bytes = await _read_parts(file, document_json)
@@ -707,19 +771,25 @@ async def reformat(
             upload.parent.mkdir()
             upload.write_bytes(data)
             document, dev, docproc, docproc_data, run = _convert(
-                workdir, upload, baseline, docx_page_breaks, "/reformat", markdown=markdown
+                workdir, upload, baseline, "/reformat", markdown=markdown
             )
             result: Dict[str, Any] = {
                 "service": SERVICE,
                 "doc_id": document.doc_id,
                 "docproc": docproc,
                 "reader": reader_info(document, dev),
-                "limits_applied": [],
             }
+            if document.rendered_pdf is not None and (rendered or docproc_writer.needs_atr(docproc)):
+                result["rendered_pdf"] = {
+                    "media_type": "application/pdf",
+                    "sha512": document.rendering["sha512"],
+                    "data": base64.b64encode(document.rendered_pdf).decode("ascii"),
+                }
             if markdown:
                 result["markdown"] = render_markdown(dev)
                 run.log_success("markdown")
             result["paradata"] = _action(run, data, document, docproc, docproc_data, seed_bytes)
+            result["limits_applied"] = run.limits
             return result
 
     return await _run_blocking(work)
@@ -759,7 +829,6 @@ async def describe(
         ),
     ),
     include_text: bool = Form(True, description="Include each page's text in `pages[].text`."),
-    docx_page_breaks: Literal["auto", "explicit", "none"] = Form("auto", description=_BREAKS_HELP),
 ):
     """Convert a born-digital document and assess every page (§4.2). Parked: not part of the
     pilot (atrium-project#84, H11).
@@ -786,7 +855,6 @@ async def describe(
                 workdir,
                 upload,
                 baseline,
-                docx_page_breaks,
                 "/describe",
                 describe={
                     "stages": selected,
@@ -809,8 +877,8 @@ async def describe(
                 "pages": assessed["pages"],
                 "summary": assessed["summary"],
                 "stages": assessed["stages"],
-                "limits_applied": [],
                 "paradata": _action(run, data, document, docproc, docproc_data, seed_bytes),
+                "limits_applied": run.limits,
             }
 
     return await _run_blocking(work)

@@ -8,6 +8,7 @@ import json
 import pytest
 
 from api_util import json_to_md
+from tests.office_support import needs_libreoffice  # noqa: E402
 
 
 def _write_record(tmp_path, doc_id="CTX01", **blocks):
@@ -672,7 +673,10 @@ def test_the_recipe_names_this_converter():
     assert json_to_md.CONVERTER_ID == "json_to_md@1.1"
 
 
-@pytest.mark.parametrize("name", ["minimal.pdf", "table.pdf", "two_column.pdf", "rich.docx"])
+@pytest.mark.parametrize(
+    "name",
+    ["minimal.pdf", "table.pdf", "two_column.pdf", pytest.param("rich.docx", marks=needs_libreoffice)],
+)
 def test_detail_profiles_on_the_digital_fixtures(name):
     """The committed digital fixtures, through the one route the clients use."""
     pytest.importorskip("pdfplumber")

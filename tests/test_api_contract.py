@@ -340,10 +340,15 @@ def test_a_garbled_page_is_flagged_not_refused():
 
 
 def test_a_type_the_converter_does_not_read_is_415():
-    files = {"file": ("notes.txt", b"hello", "text/plain")}
+    """An image skips digital-convert (H13); so does a text format outside the textual workflow."""
+    for name, data in (("scan.png", b"\x89PNG\r\n\x1a\n" + b"\0" * 64), ("notes.md", b"# hello")):
+        files = {"file": (name, data, "application/octet-stream")}
+        body = _conforms("/reformat", 415, client.post("/reformat", files=files))
+        assert body["reason"] == "unsupported_media_type" and body["cause"] == "unsupported"
+    files = {"file": ("scan.png", b"\x89PNG\r\n\x1a\n" + b"\0" * 64, "image/png")}
     body = _conforms("/reformat", 415, client.post("/reformat", files=files))
-    assert body["reason"] == "unsupported_media_type" and body["cause"] == "unsupported"
     assert ".pdf" in body["accepted"] and "application/pdf" in body["accepted"]
+    assert ".csv" in body["accepted"] and "text/csv" in body["accepted"]
 
 
 @pytest.mark.parametrize(

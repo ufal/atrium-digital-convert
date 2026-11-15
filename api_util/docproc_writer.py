@@ -6,12 +6,14 @@ builds the record from it (#84 §1). ``build_docproc()`` maps the converter's in
 ``DigitalDocument`` (``api_util/digital_ir.py``) to it:
 
 * **pages** -- one per page that has text or needs the ATR, numbered by ``pageNumber`` (the page
-  index, the record's ``page_index``). A page with nothing on it (a blank page, an empty DOCX
-  page) has no entry: it is routed ``empty`` (H15). A page carries its size in points when the
-  reader knows one (a PDF; never a flow document), the text-layer verdict (``textLayer``) and,
-  when its text cannot be used, ``needsAtr`` with ``needsAtrReason``.
-* **blocks** -- one per paragraph group (``lines[].group_id`` of the IR: a paragraph from the
-  vertical gaps, a DOCX paragraph, a sheet), ids ``p{page}-b{n}`` (``n`` from 0), ``readingOrder``
+  index, the record's ``page_index``). A page with nothing on it (a blank page, an empty
+  section) has no entry: it is routed ``empty`` (H15). A page carries its size in points when the
+  reader knows one (a PDF, an office document's rendered page; never the textual workflow), the
+  text-layer verdict (``textLayer``) and, when its text cannot be used, ``needsAtr`` with
+  ``needsAtrReason``.
+* **blocks** -- one per paragraph group on a page (``lines[].group_id`` of the IR: a paragraph
+  from the vertical gaps, a DOCX paragraph, a sheet, a TXT paragraph, a JSON string value), ids
+  ``p{page}-b{n}`` (``n`` from 0), ``readingOrder``
   dense from 0. The type follows the line style: ``heading`` with ``level``, ``header``,
   ``footer``, ``footnote``, else ``paragraph``. A table is one ``table`` block with its
   ``cellGrid`` and its plain text (rows by line, cells by tab). A block's ``content`` is its
@@ -74,6 +76,11 @@ SOURCE_FORMATS: Dict[str, str] = {
     "rtf": "rtf",
     "doc": "doc",
     "xls": "xls",
+    # the text-only inputs (atrium-digital-convert#9; ask 13 extended, tools/docproc_proposal.py)
+    "txt": "txt",
+    "csv": "csv",
+    "tsv": "tsv",
+    "json": "json",
 }
 
 _SCHEMAS = Path(__file__).resolve().parent.parent / "schemas" / "docproc"

@@ -69,8 +69,12 @@ from api_util.digital_ir import DigitalInputError  # noqa: E402
 SUPPORTED_EXTENSIONS = frozenset({".docx", ".pdf"})
 
 #: The extensions a caller can expect the JSON route to take — the converter's own list, for
-#: `is_supported()`'s quick check before a file is opened.
-CONVERTER_EXTENSIONS = frozenset({".pdf", ".docx", ".odt", ".ods", ".xlsx", ".rtf", ".doc", ".xls"})
+#: `is_supported()`'s quick check before a file is opened. `.json` is left to the content check:
+#: the other tools' outputs share the suffix (`*.categories.json`), and JSON is read only when it
+#: is one document (atrium-digital-convert#9).
+CONVERTER_EXTENSIONS = frozenset(
+    {".pdf", ".docx", ".odt", ".ods", ".xlsx", ".rtf", ".doc", ".xls", ".txt", ".csv", ".tsv"}
+)
 
 #: Bumped whenever the Markdown a given input renders to changes, so a cached rendering from
 #: an older converter is not served as current (`llm_client_shared.prepare_document_input`,

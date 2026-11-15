@@ -333,10 +333,16 @@ def test_cli_exposes_the_docproc_flags():
 
 
 def test_unsupported_format_fails_loudly(tmp_path):
-    stray = tmp_path / "notes.txt"
-    stray.write_text("hello", encoding="utf-8")
+    """A text format outside the textual workflow (Markdown here) and an image are refused;
+    a plain-text file is read since atrium-digital-convert#9."""
+    stray = tmp_path / "notes.md"
+    stray.write_text("# hello", encoding="utf-8")
     with pytest.raises(ValueError, match="unsupported input"):
         d2j.extract(str(stray))
+    image = tmp_path / "scan.png"
+    image.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\0" * 64)
+    with pytest.raises(ValueError, match="Images skip digital-convert"):
+        d2j.extract(str(image))
 
 
 def test_missing_optional_dependency_is_advice_not_a_traceback(tmp_path, monkeypatch):
@@ -699,8 +705,8 @@ def test_sniffing_is_by_content_not_extension(tmp_path):
 
 def test_cli_exit_codes_name_the_problem(tmp_path, capsys):
     """P15: a ValueError used to escape main() as a traceback."""
-    stray = tmp_path / "notes.txt"
-    stray.write_text("hello", encoding="utf-8")
+    stray = tmp_path / "notes.md"
+    stray.write_text("# hello", encoding="utf-8")
     assert d2j.main([str(stray)]) == 3
     assert "unsupported" in capsys.readouterr().err
     broken = tmp_path / "broken.docx"
@@ -708,10 +714,11 @@ def test_cli_exit_codes_name_the_problem(tmp_path, capsys):
     assert d2j.main([str(broken)]) == 4
 
 
-def test_cli_exposes_the_engine_and_page_break_flags():
+def test_cli_exposes_the_engine_and_rendering_flags():
     help_text = d2j.build_parser().format_help()
-    for flag in ("--engine", "--docx-page-breaks", "--paradata-dir", "--docproc-out"):
+    for flag in ("--engine", "--rendered-out", "--paradata-dir", "--docproc-out"):
         assert flag in help_text
+    assert "--docx-page-breaks" not in help_text, "an office document's pages are its rendering's (#9)"
 
 
 def _components_logged(tmp_path, names):
@@ -843,16 +850,18 @@ def test_an_ocr_layer_pdf_is_converted_with_its_pages_routed_to_the_atr(digital_
 
 
 def test_docx_pages_follow_explicit_section_and_rendered_breaks(digital_fixtures):
-    """G3: a DOCX was always one page. The rules are alto-postprocess #31's (`auto`)."""
+    """G3: a DOCX was always one page. The native reader's rules are alto-postprocess #31's
+    (`auto`); the converter reads with `explicit` breaks (#9: the docproc's pages are the
+    rendering's, and Word's last rendered breaks would only cut lines)."""
     pytest.importorskip("docx")
-    doc = d2j.extract_docx(str(digital_fixtures / "rich.docx"))
+    doc = d2j.extract_docx(str(digital_fixtures / "rich.docx"), page_breaks="auto")
     assert len(doc.pages) == 4
     page_of = {ln.text: ln.page for ln in doc.all_lines()}
     assert page_of["Druhá strana začíná zde."] == "2"  # pageBreakBefore
     assert page_of["Text třetí strany"] == "3"  # nextPage section break
     assert page_of["pokračuje na čtvrté."] == "4"  # lastRenderedPageBreak mid-paragraph
-    explicit = d2j.extract_docx(str(digital_fixtures / "rich.docx"), page_breaks="explicit")
-    assert len(explicit.pages) == 3
+    explicit = d2j.extract_docx(str(digital_fixtures / "rich.docx"))
+    assert len(explicit.pages) == 3, "explicit by default"
     assert len(d2j.extract_docx(str(digital_fixtures / "rich.docx"), page_breaks="none").pages) == 1
     minimal = d2j.extract_docx(str(digital_fixtures / "minimal.docx"))
     assert [p.page for p in minimal.pages] == ["1", "2"]
@@ -911,8 +920,11 @@ def test_every_fixture_converts_to_a_valid_docproc(digital_fixtures, tmp_path):
     pytest.importorskip("docx")
     pytest.importorskip("jsonschema")
     from api_util import docproc_writer
+    from api_util.digital_legacy import libreoffice_binary
 
     for name in sorted(p.name for p in digital_fixtures.iterdir()):
+        if name.endswith(".docx") and libreoffice_binary() is None:
+            continue  # rendered for its pages (#9); covered where LibreOffice is installed
         out = tmp_path / f"{name}.docproc.json"
         d2j.convert(str(digital_fixtures / name), out_path=str(out))
         data = json.loads(out.read_text(encoding="utf-8"))

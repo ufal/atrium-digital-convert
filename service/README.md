@@ -12,8 +12,10 @@ every page. The version it reports is read from `para_config.txt`.
 * **`POST /describe`** — parked (not part of the pilot): the same conversion, then the per-page
   assessment, asking page-classification and ocr-postprocess **when their URLs are configured**.
 
-Inputs, by content (the extension only names the file): PDF, DOCX, ODT, ODS, XLSX, RTF, and the
-legacy DOC/XLS through headless LibreOffice. No model, no network, no GPU.
+Inputs, by content (the extension only names the file), in two workflows (#9): **visual**, PDF and the office
+documents DOCX, DOC, ODT and RTF (native text on the pages of a headless LibreOffice rendering); **textual**, ODS,
+XLSX, XLS (through LibreOffice), TXT, CSV, TSV and JSON, extracted as they are and never sent to the ATR. Images
+are not inputs: they go to the ATR (H13). No model, no network, no GPU.
 
 ## Start
 
@@ -51,7 +53,7 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 
 | What                                                    | From where                                       | Revision                           | Into          | Without egress                                                                |
 |---------------------------------------------------------|--------------------------------------------------|------------------------------------|---------------|-------------------------------------------------------------------------------|
-| LibreOffice (DOC and XLS only)                          | in the image                                     | the image's package                | —             | nothing needed; a deployment without it answers 501 for DOC/XLS               |
+| LibreOffice and its fonts (office documents, XLS)       | in the image                                     | the image's package                | —             | nothing needed; a deployment without it answers 501 for DOCX/DOC/ODT/RTF/XLS  |
 | page-classification, ocr-postprocess (`/describe` only) | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL` | their own releases                 | —             | the stage reads `not_configured` or `unavailable`; the request still succeeds |
 | Docling (optional engine)                               | a local build only, not the API image            | `requirements_digital_docling.txt` | its own cache | not part of the API image                                                     |
 
@@ -72,19 +74,20 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 | `file`             | yes      | the document                                                                                                 |
 | `document_json`    | no       | the AMČR seed (`doc_id`, `source.sha512`, `filename`, `media_type`), read only; an empty part counts as none |
 | `markdown`         | no       | `true` to also get the document rendered as annotated Markdown (`json_to_md`; a development view)            |
-| `docx_page_breaks` | no       | DOCX pages: `auto` (default), `explicit`, `none`                                                             |
+| `rendered`         | no       | `true` to get an office document's rendered PDF even when no page needs the ATR                              |
 
 The response:
 
-| Field            | Meaning                                                                                                               |
-|------------------|-----------------------------------------------------------------------------------------------------------------------|
-| `service`        | `atrium-digital-convert`                                                                                              |
-| `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                             |
-| `docproc`        | the docproc: pages, blocks with their `lines[]`, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md)) |
-| `reader`         | how the file was read: `kind`, `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS), `notes`             |
-| `markdown`       | only with `markdown=true`                                                                                             |
-| `limits_applied` | the sampling and splitting the result rests on (always `[]`: a limit that would cut content fails the call, D13)      |
-| `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                        |
+| Field            | Meaning                                                                                                                                                                                                                         |
+|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `service`        | `atrium-digital-convert`                                                                                                                                                                                                        |
+| `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                                                                                                                       |
+| `docproc`        | the docproc: pages, blocks with their `lines[]`, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md))                                                                                                           |
+| `reader`         | how the file was read: `kind`, `workflow` (`visual`, `textual`), `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS), `rendering` (office documents: `tool`, `version`, `from`, `to`, `pages`, `sha512`), `notes` |
+| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`): when a page is routed `atr`, or with `rendered=true`. The docproc's pages and boxes are its pages; page-classification and the ATR read it           |
+| `markdown`       | only with `markdown=true`                                                                                                                                                                                                       |
+| `limits_applied` | the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS` (`split`). Nothing is sampled; a limit that would cut content fails the call (D13)                                                      |
+| `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                                                                                                                                  |
 
 **The seed.** Read, never written: its `doc_id` names the result, and its `sha512` is compared with the
 uploaded bytes **before anything is read** (for a DOC/XLS, before the LibreOffice conversion). A mismatch is
@@ -92,8 +95,10 @@ refused (422 `source_digest_mismatch`), so nothing is produced for the wrong fil
 
 **`paradata`** (paradata schema 3.0, #84): `object` names the upload as `original` and the seed as
 `atrium/document-json`, `result` the docproc as `atr/docproc-json`, each by SHA-512. When a page needs the ATR
-the docproc is an intermediate, `stored: false` (H14): the ATR's docproc is the stored one. `paradataRecord`
-lists the components used, each with its own terms; no licence of the output is computed.
+the docproc is an intermediate, `stored: false` (H14): the ATR's docproc is the stored one. An office document's
+rendered PDF is in `result` too, always `stored: false` (D23), with the pinned export options and
+`RENDER_TEXT_COVERAGE` among the `parameters`. `paradataRecord` lists the components used, each with its own terms
+and LibreOffice with its version; no licence of the output is computed.
 
 **The text layer.** Every page carries the converter's verdict in `pages[].textLayer`:
 
@@ -203,17 +208,17 @@ Every error has one JSON body, `{status, reason, detail}` (hub `docs/agent_skill
 `reason` is a registered code or `null`, and refusals of a born-digital input name the converter's finer
 cause in `cause`. Each row gives the status, the cause and what to do.
 
-| Status | `reason`                 | Meaning                                                                                                                                    | What to do                                                                         |
-|--------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| 413    | `limit_exceeded`         | a part over `MAX_UPLOAD_MB`                                                                                                                | raise `MAX_UPLOAD_MB` for large originals (see Large documents), or split the file |
-| 415    | `unsupported_media_type` | not a born-digital type the converter reads (`cause`: `unsupported`, `legacy_office_unsupported`; `accepted` lists the types)              | send a type in `accepted`; a scanned document goes to OCR                          |
-| 422    | `source_digest_mismatch` | the seed's `source.sha512` is not the uploaded file's                                                                                      | send the file the seed was made for, or a new seed                                 |
-| 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major)                                                     | send the seed AMČR made; update this service if the record is newer                |
-| 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`; a repeated ODF cell or row past the repeat cap (`limit.effect` `trimmed`: no content is cut)  | raise the setting `limit.env` names, or split the document                         |
-| 422    | `null`                   | an empty or broken file (`cause`: `corrupt`, `encrypted`, `zip_limits_exceeded`, `conversion_failed`); an unknown `stages` name            | repair or decrypt the file `cause` names; fix the `stages` value                   |
-| 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                               | retry after `Retry-After`; raise `MAX_CONCURRENT_JOBS` if memory allows            |
-| 501    | `null`                   | a DOC/XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                           | use the image (it has LibreOffice), or convert DOC/XLS to DOCX/XLSX first          |
-| 503    | `null`                   | the service is shutting down; retry against a live replica                                                                                 | retry on another replica                                                           |
+| Status | `reason`                 | Meaning                                                                                                                                                                                                                                  | What to do                                                                         |
+|--------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| 413    | `limit_exceeded`         | a part over `MAX_UPLOAD_MB`                                                                                                                                                                                                              | raise `MAX_UPLOAD_MB` for large originals (see Large documents), or split the file |
+| 415    | `unsupported_media_type` | not a type the converter reads, an image among them (`cause`: `unsupported`, `legacy_office_unsupported`; `accepted` lists the types)                                                                                                    | send a type in `accepted`; an image or a scanned document goes to the ATR          |
+| 422    | `source_digest_mismatch` | the seed's `source.sha512` is not the uploaded file's                                                                                                                                                                                    | send the file the seed was made for, or a new seed                                 |
+| 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major)                                                                                                                                                   | send the seed AMČR made; update this service if the record is newer                |
+| 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`; a repeated ODF cell or row past the repeat cap (`limit.effect` `trimmed`: no content is cut)                                                                                                | raise the setting `limit.env` names, or split the document                         |
+| 422    | `null`                   | an empty or broken file (`cause`: `corrupt` — a CSV/JSON that does not parse, a reading that would skip content —, `encrypted`, `zip_limits_exceeded`, `conversion_failed` — a failed conversion or rendering); an unknown `stages` name | repair or decrypt the file `cause` names; fix the `stages` value                   |
+| 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                                                                                                                             | retry after `Retry-After`; raise `MAX_CONCURRENT_JOBS` if memory allows            |
+| 501    | `null`                   | an office document (DOCX, DOC, ODT, RTF) or an XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                                                                                | use the image (it has LibreOffice)                                                 |
+| 503    | `null`                   | the service is shutting down; retry against a live replica                                                                                                                                                                               | retry on another replica                                                           |
 
 `source_digest_mismatch` is in the shared registry (`service/atrium_service.py`, vendored from the hub),
 so every ATRIUM service's spec publishes it.
@@ -231,11 +236,13 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `max_upload_mb`                 | `MAX_UPLOAD_MB`                     | 250     | MB      | 413 `limit_exceeded` — per part (the file, `document_json`)                                                                       |
 | `max_pages`                     | `MAX_PAGES`                         | 2000    | pages   | 422 `limit_exceeded` — split the document                                                                                         |
 | `max_concurrent_jobs`           | `MAX_CONCURRENT_JOBS`               | 2       | jobs    | 429 `busy` with `Retry-After`                                                                                                     |
-| `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — a DOC/XLS LibreOffice did not convert in time                                                              |
+| `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — LibreOffice did not convert a DOC/XLS, or render an office document, in time                               |
 | `stage_timeout_s`               | `STAGE_TIMEOUT_S`                   | 360     | s       | `/describe`: the stage is reported `unavailable`; the request still succeeds                                                      |
 | `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its prose lines `Trash` |
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needs_ocr`) when its images cover this share of it |
 | `bold_heading_max_share`        | `BOLD_HEADING_MAX_SHARE`            | 0.25    | share   | policy: a bold body-size line that reads as a title is a heading while bold body-size text is at most this share; 0 = off         |
+| `render_text_coverage`          | `RENDER_TEXT_COVERAGE`              | 0.8     | share   | policy: a rendered office page whose body words the document's text covers less (3+ words not covered) needs the ATR              |
+| `max_line_chars`                | `MAX_LINE_CHARS`                    | 1000    | chars   | a longer line of a text-only input or a spreadsheet row is wrapped; each wrap is a `split` in the paradata `limits`; 0 = never    |
 | `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                           |
 
 **Large documents** (measured on 15 AMČR excavation reports, up to 156 MB and 529 pages;
@@ -248,6 +255,9 @@ checks this table against `tool_limits.py` and `.env.example`.
 * **Memory follows the text, not the file size.** The server's peak reached 783 MB, for a 282-page
   report, and 560 MB for the 156 MB one. Budget about 1 GB plus `MAX_UPLOAD_MB` per
   `MAX_CONCURRENT_JOBS` slot.
+* **An office document's rendered PDF travels in the answer.** `rendered_pdf` is base64, about 4/3 of the
+  PDF's size, so a DOCX full of photographs gives a large response when a page needs the ATR (or with
+  `rendered=true`); the rendering keeps the images' resolution for the ATR.
 * **The stages' GPU.** This service needs none. Page-classification takes 4.0 GB with its five
   models. ocr-postprocess's line-quality model peaked at 9.5 GB scoring 32 lines at a time, so the two fit one
   24 GB card. 32 is the default of `PPL_BATCH_LINES` in ocr-postprocess v1.12.0-beta and later, which also
