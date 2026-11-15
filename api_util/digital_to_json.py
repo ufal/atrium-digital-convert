@@ -2,12 +2,24 @@
 """
 api_util/digital_to_json.py — born-digital documents → docproc (`atr/docproc-json`).
 
-Reads every born-digital type AMČR accepts (atrium-digital-convert#2): PDF and DOCX with this
-repository's structural readers (geometry, groups, styles, tables), ODT, ODS, XLSX and RTF with
-the shared reader atrium-ocr-postprocess owns (`text_formats.py`, vendored; see
-`api_util/digital_text.py`), and legacy DOC and XLS after a headless LibreOffice conversion
-(`api_util/digital_legacy.py`). An AMČR seed's `source.sha512` is checked against the bytes of
-the original before anything is read (`source_digest_mismatch`, see `verify_seed_digest()`).
+Every input takes one of two workflows (atrium-digital-convert#9):
+
+  * **visual** — a document with pages, each given a text-layer verdict; a page whose text
+    cannot be used is `needs_atr` and goes, with the whole document, to page-classification and
+    the ATR. A PDF is read on its own pages by this repository's structural readers. An office
+    document (DOCX, DOC, ODT, RTF) keeps its native text — DOCX with this repository's reader, ODT
+    and RTF with the shared reader atrium-ocr-postprocess owns (`text_formats.py`, vendored; see
+    `api_util/digital_text.py`), DOC through its LibreOffice DOCX — and takes its pages from a
+    headless LibreOffice rendering (`api_util/office_render.py`): the native text is placed on the
+    rendered pages (`api_util/render_place.py`), which gives it page numbers, boxes in pt and the
+    page verdicts of a PDF. The rendered PDF is what the visual steps read (`--rendered-out`).
+  * **textual** — text with no pages to render: spreadsheets (ODS, XLSX; XLS after a LibreOffice
+    conversion, `api_util/digital_legacy.py`) and the text-only inputs (TXT, CSV, TSV, JSON),
+    extracted as they are. Never the ATR; straight to scoring.
+
+Images skip digital-convert and go to the ATR (H13). An AMČR seed's `source.sha512` is checked
+against the bytes of the original before anything is read (`source_digest_mismatch`, see
+`verify_seed_digest()`).
 
 Since ARÚP's output contract of 12 November 2026 (atrium-project#84 §1) the output is docproc,
 the layout format the ATR writes for scanned pages: pages, blocks and lines with the text-layer
@@ -80,35 +92,41 @@ over images that cover it, has no text layer either (#5). No document is refused
 
 ## Layout cues (the #18 mapping table), as docproc carries them
 
-  * pages — PDF pages (with their `/PageLabels`), DOCX pages from explicit breaks, section
-    breaks and Word's `lastRenderedPageBreak` (the rules alto-postprocess #31 uses);
-  * blocks — PDF text blocks (per column), DOCX paragraphs, sheets (the IR's `group_id`);
+  * pages — PDF pages (with their `/PageLabels`), an office document's rendered pages, a
+    sheet, a form-feed section of a TXT; one page for a CSV, TSV or JSON;
+  * blocks — PDF text blocks (per column), DOCX paragraphs (one block per page they reach), sheets,
+    TXT paragraphs, JSON string values (the IR's `group_id`);
   * block types — `heading` with `level` (PDF: by size; DOCX: outline level or style name),
     `header`, `footer`, `footnote` (the IR's `region`), `paragraph`;
   * `table` blocks with `cellGrid` — DOCX tables and ruled PDF tables (Docling: any table);
-  * line and block boxes, page sizes — PDF only.
+  * line and block boxes, page sizes — PDF and rendered office documents.
 
 ## Coordinates
 
 `$defs/bbox` is normative: **origin top-left, y increasing downwards**, in the unit named by
 that page's `canvas.unit`. For pdfplumber that means `top`/`bottom` — never `y0`/`y1`, which
 are PDF user space (origin bottom-left) and are the specific mistake the schema description
-calls out. DOCX has no page geometry without rendering, so a DOCX document carries no
-box and no page size (the proposal schema allows it for flow documents, ask 13).
+calls out. An office document's boxes are measured on its rendering, in the rendered PDF's
+points. The textual workflow carries no box and no page size (the proposal schema allows it for
+flow documents, ask 13).
 
 ## Exit codes
 
     0  docproc written
-    2  a dependency is missing (advice printed, no traceback) — LibreOffice for DOC/XLS too
-    3  not an input this converter takes: unsupported format, a seed whose source.sha512 is
-       not the file's digest (source_digest_mismatch), or a --document-json seed that cannot
-       be opened (invalid_record)
+    2  a dependency is missing (advice printed, no traceback) — LibreOffice for an office
+       document (DOCX, DOC, ODT, RTF) and an XLS
+    3  not an input this converter takes: unsupported format (an image among them), a seed
+       whose source.sha512 is not the file's digest (source_digest_mismatch), or a
+       --document-json seed that cannot be opened (invalid_record)
     4  the file is broken: empty, corrupt, encrypted, over the ZIP limits, a failed
-       conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S, the ODF repeat cap)
+       conversion or rendering, a reading that would skip content, or over a limit
+       (MAX_PAGES, LIBREOFFICE_TIMEOUT_S, the ODF repeat cap)
 
 Usage:
     python api_util/digital_to_json.py report.pdf --docproc-out report.docproc.json
-    python api_util/digital_to_json.py report.docx --document-json seed.document.json --out-dir out/
+    python api_util/digital_to_json.py report.docx --document-json seed.document.json --out-dir out/ \
+        --rendered-out out/report.rendered.pdf
+    python api_util/digital_to_json.py finds.csv --docproc-out finds.docproc.json
     python api_util/digital_to_json.py report.pdf --engine docling --paradata-dir paradata/
 """
 
@@ -190,8 +208,8 @@ ORIGIN_DOCX = "digital-born-docx"
 #: `--engine` values. `light` is the default and the only one the fast lane exercises.
 ENGINES: Tuple[str, ...] = ("light", "docling")
 
-#: `--docx-page-breaks` values — alto-postprocess `[TEXT_INGEST].PAGE_BREAKS`, same meaning.
-DOCX_PAGE_BREAK_MODES: Tuple[str, ...] = ("auto", "explicit", "none")
+#: (`--docx-page-breaks` is gone since atrium-digital-convert#9: an office document's pages are its
+#: rendering's; the native DOCX reading runs with explicit breaks only, `extract_docx()`.)
 
 # ---------------------------------------------------------------------------
 # Line-category labels  (hub registry: atrium_vocab.LINE_CATEGORY_ORIGINATORS)
@@ -285,8 +303,31 @@ BAND_NOISY_AT = 0.50
 #: is used rather than an absolute, because the gap scales with the font.
 PARAGRAPH_GAP_RATIO = 1.8
 
-#: Every input kind `sniff()` answers: every born-digital type AMČR accepts.
-KINDS: Tuple[str, ...] = ("pdf", "docx", "odt", "ods", "xlsx", "rtf", "doc", "xls")
+#: The two workflows an input takes (atrium-digital-convert#9). `visual`: a document with pages,
+#: each given a verdict, whose unusable pages go to page-classification and the ATR — a PDF on its
+#: own pages, an office document as native text placed on the pages of its rendering. `textual`:
+#: text extracted as it is, with no pages to render, straight to scoring; never the ATR.
+WORKFLOW_VISUAL = "visual"
+WORKFLOW_TEXTUAL = "textual"
+
+#: Office documents read as native text on rendered pages (`api_util/office_render.py`,
+#: `api_util/render_place.py`).
+RENDERED_KINDS: Tuple[str, ...] = ("docx", "doc", "odt", "rtf")
+
+#: The text-only inputs, read as they are (`api_util/digital_text.py`).
+TEXT_ONLY_KINDS: Tuple[str, ...] = ("txt", "csv", "tsv", "json")
+
+#: Every input kind `sniff()` answers. Images are not among them: they skip digital-convert and
+#: go to the ATR (H13).
+KINDS: Tuple[str, ...] = (
+    "pdf", "docx", "odt", "ods", "xlsx", "rtf", "doc", "xls", "txt", "csv", "tsv", "json",
+)  # fmt: skip
+
+#: The workflow of each kind (spreadsheets are tabular: textual, like CSV).
+WORKFLOWS: Dict[str, str] = {
+    kind: (WORKFLOW_VISUAL if kind == "pdf" or kind in RENDERED_KINDS else WORKFLOW_TEXTUAL)
+    for kind in KINDS
+}
 
 #: Media types per kind, for a caller (the service's 415 `accepted`, its /info).
 MEDIA_TYPES: Dict[str, str] = {
@@ -298,6 +339,10 @@ MEDIA_TYPES: Dict[str, str] = {
     "rtf": "application/rtf",
     "doc": "application/msword",
     "xls": "application/vnd.ms-excel",
+    "txt": "text/plain",
+    "csv": "text/csv",
+    "tsv": "text/tab-separated-values",
+    "json": "application/json",
 }
 
 
@@ -517,8 +562,37 @@ def _reason_furniture_only(page: DigitalPage) -> str:
     )
 
 
-def assess_page(page: DigitalPage) -> None:
+def _reason_render_coverage(page: DigitalPage) -> Optional[str]:
+    """The rendered page shows text the document's own text does not place there (#9, H12)."""
+    words, matched = page.render_words, page.render_matched
+    if not words or matched is None:
+        return None
+    import tool_limits  # noqa: PLC0415  (repo root)
+
+    threshold = tool_limits.RENDER_TEXT_COVERAGE.get()
+    missing = words - matched
+    if missing < RENDER_MIN_UNCOVERED or matched / words >= threshold:
+        return None
+    return (
+        f"the rendered page shows text the document's text does not place there: {missing} of its "
+        f"{words} words are not in it (coverage {matched / words:.0%} < RENDER_TEXT_COVERAGE "
+        f"{threshold:.0%}) — a drawing, a chart, an embedded object or a change the rendering shows"
+    )
+
+
+#: Fewer words of a rendered page than this, not covered by the document's text, never send the
+#: page to the ATR whatever its coverage: a list number or two on a short page (#9).
+RENDER_MIN_UNCOVERED = 3
+
+
+def assess_page(page: DigitalPage, textual: bool = False) -> None:
     """Fill in `quality_score`, `quality_band`, `needs_ocr` and its reason, in place.
+
+    A page of the textual workflow (`textual`: a text-only input or a spreadsheet,
+    atrium-digital-convert#9 point 4) never needs the ATR: it has nothing to render. Its decode
+    flags stay on its lines for scoring. A rendered office page (its `render_words` measured,
+    `render_place`) also needs the ATR when its rendering shows text the document's own text does
+    not place there (`RENDER_TEXT_COVERAGE`; H12, a page that cannot be used is `needs_atr`).
 
     `needs_ocr_reason` is written whenever `needs_ocr` is, and never alone. The flag means
     different things on the two originator paths — "no text layer" for a scan, "a text
@@ -588,6 +662,11 @@ def assess_page(page: DigitalPage) -> None:
             f"source.origin ocr:pdf-text-layer)."
         )
 
+    coverage = _reason_render_coverage(page)
+    if coverage:
+        reasons.append(coverage)
+    if textual:
+        reasons = []
     page.needs_ocr = bool(reasons)
     page.needs_ocr_reason = " ".join(reasons)
 
@@ -628,7 +707,7 @@ def normalize(doc: DigitalDocument) -> DigitalDocument:
                 ):
                     line.categ = CATEG_GARBAGE
         assign_group_ids(page.lines, prefix=f"p{page.page_index}-")
-        assess_page(page)
+        assess_page(page, textual=doc.workflow == WORKFLOW_TEXTUAL)
     return doc
 
 
@@ -648,7 +727,7 @@ _ODF_KINDS = {
     "application/vnd.oasis.opendocument.spreadsheet": "ods",
     "application/vnd.oasis.opendocument.spreadsheet-template": "ods",
 }
-_ACCEPTED = "PDF, DOCX, ODT, ODS, XLSX, RTF, DOC or XLS"
+_ACCEPTED = "PDF, DOCX, ODT, RTF, DOC (visual); ODS, XLSX, XLS, TXT, CSV, TSV or JSON (textual)"
 
 
 def sniff(path: str) -> str:
@@ -712,7 +791,41 @@ def sniff(path: str) -> str:
             f"unsupported input {path!r}: a legacy binary Office file that is neither a Word "
             f"document nor an Excel workbook (expected {_ACCEPTED})",
         )
-    raise DigitalInputError("unsupported", f"unsupported input {path!r}: expected {_ACCEPTED}")
+    return _sniff_text(path)
+
+
+def _sniff_text(path: str) -> str:
+    """A text-only input's kind (`TEXT_ONLY_KINDS`), by the shared reader's detection: its content
+    decides, its extension only chooses among plain-text dialects (atrium-digital-convert#9).
+
+    An image is refused: images skip digital-convert and go to the ATR (H13). So is every other
+    text format the shared reader knows (Markdown, JSON Lines, HTML, XML, ALTO, PAGE, hOCR, ...),
+    and a compressed or binary file."""
+    import text_formats as tf  # noqa: PLC0415  (repo root; vendored from ocr-postprocess)
+
+    if tf.compression_of(path):
+        raise DigitalInputError(
+            "unsupported", f"unsupported input {path!r}: a compressed file; decompress it first"
+        )
+    try:
+        kind = tf.sniff_kind(path, tf.DEFAULT_LIMITS, [])
+    except tf.IngestError as exc:
+        if exc.code == "image_needs_ocr":
+            raise DigitalInputError(
+                "unsupported",
+                f"unsupported input {path!r}: an image. Images skip digital-convert and go to the "
+                f"ATR (H13); digital-convert reads {_ACCEPTED}",
+            ) from exc
+        raise DigitalInputError(
+            "unsupported", f"unsupported input {path!r}: {exc.message} (expected {_ACCEPTED})"
+        ) from exc
+    if kind in TEXT_ONLY_KINDS:
+        return kind
+    spec = tf.READERS.get(kind)
+    label = spec.label if spec else kind
+    raise DigitalInputError(
+        "unsupported", f"unsupported input {path!r}: {label}, not a type digital-convert reads ({_ACCEPTED})"
+    )
 
 
 def open_record(baseline: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -825,30 +938,34 @@ def extract_pdf(path: str, doc_id: Optional[str] = None) -> DigitalDocument:
     return _extract(path, doc_id or canonical_doc_id(path), ORIGIN_PDF)
 
 
-def extract_docx(
-    path: str, doc_id: Optional[str] = None, page_breaks: str = "auto"
-) -> DigitalDocument:
-    """Layer A for DOCX — `api_util/digital_docx.py`."""
+def extract_docx(path: str, doc_id: Optional[str] = None, page_breaks: str = "explicit") -> DigitalDocument:
+    """The native DOCX reading — `api_util/digital_docx.py`.
+
+    `explicit` breaks by default: the pages of an office document are its rendering's, and Word's
+    `lastRenderedPageBreak` (the `auto` mode) would only cut a line where Word once broke a page
+    (atrium-digital-convert#9)."""
     from api_util.digital_docx import extract_docx as _extract  # noqa: PLC0415
 
     return _extract(path, doc_id or canonical_doc_id(path), ORIGIN_DOCX, page_breaks=page_breaks)
 
 
-def extract(
-    path: str,
-    doc_id: Optional[str] = None,
-    engine: str = "light",
-    docx_page_breaks: str = "auto",
-) -> DigitalDocument:
-    """Dispatch on the content. Unknown formats fail loudly rather than guessing."""
+def extract(path: str, doc_id: Optional[str] = None, engine: str = "light") -> DigitalDocument:
+    """Dispatch on the content, by workflow. Unknown formats fail loudly rather than guessing.
+
+    * PDF — the PDF engine on its own pages (visual);
+    * DOCX, DOC, ODT, RTF — native text placed on the pages of the rendering (visual,
+      `_extract_rendered`);
+    * ODS, XLSX, XLS — sheets through the shared reader (textual);
+    * TXT, CSV, TSV, JSON — as they are (textual, `digital_text.extract_text_only`).
+    """
     if engine not in ENGINES:
         raise ValueError(f"engine must be one of {ENGINES}, got {engine!r}")
     kind = sniff(path)
     doc_id = doc_id or canonical_doc_id(path)
     if engine == "docling" and kind != "pdf":
         print(
-            "[digital-convert] NOTE - --engine docling applies to PDF only: Docling's DOCX "
-            "backend reads the same OOXML with no page model. Using the light readers.",
+            "[digital-convert] NOTE - --engine docling applies to PDF only: an office document's pages "
+            "come from its rendering, read by the light engine. Using the light readers.",
             file=sys.stderr,
         )
     if kind == "pdf":
@@ -865,7 +982,9 @@ def extract(
         # No refusal (atrium-project#84 §1): a page whose text layer is a prior OCR run needs
         # the ATR like any page whose text cannot be used (`assess_page`, `needs_atr`). Until
         # #84 a PDF mostly of such pages was refused whole (422 `ocr_text_layer`).
-    elif kind in ("doc", "xls"):
+    elif kind in RENDERED_KINDS:
+        document = _extract_rendered(path, doc_id, kind)
+    elif kind == "xls":
         from api_util.digital_legacy import extract_legacy  # noqa: PLC0415
 
         document = extract_legacy(
@@ -873,20 +992,79 @@ def extract(
             doc_id,
             kind,
             read_converted=lambda converted, converted_kind: _read_native(
-                converted, doc_id, converted_kind, docx_page_breaks
+                converted, doc_id, converted_kind
             ),
         )
+    elif kind in TEXT_ONLY_KINDS:
+        from api_util.digital_text import extract_text_only  # noqa: PLC0415
+
+        document = extract_text_only(path, doc_id, kind, max_file_mb=_upload_mb())
     else:
-        document = _read_native(path, doc_id, kind, docx_page_breaks)
+        document = _read_native(path, doc_id, kind)
     document.kind = document.kind or kind
+    document.workflow = WORKFLOWS[kind]
     check_page_count(len(document.pages))
     return document
 
 
-def _read_native(path: str, doc_id: str, kind: str, docx_page_breaks: str) -> DigitalDocument:
+def _upload_mb() -> Optional[float]:
+    try:
+        import tool_limits  # noqa: PLC0415  (repo root)
+    except ImportError:  # pragma: no cover
+        return None
+    return tool_limits.MAX_UPLOAD.get()
+
+
+def _extract_rendered(path: str, doc_id: str, kind: str) -> DigitalDocument:
+    """An office document: its native text on the pages of its rendering (atrium-digital-convert#9).
+
+    The text is read natively (`digital_docx` for DOCX, and for a DOC through its DOCX; the shared
+    reader for ODT and RTF); the document is rendered by LibreOffice (`office_render.render_pdf`,
+    from a copy with its tracked changes accepted — a DOC from its converted DOCX, so both read
+    the same text), the rendering is read by the light PDF engine, and `render_place.place` puts the
+    native text on the rendered pages. The result keeps the ORIGINAL's identity; the rendering's
+    facts and bytes go with it for the paradata and the visual steps."""
+    import tempfile  # noqa: PLC0415
+
+    from api_util.digital_legacy import MEDIA_TYPES as LEGACY_MEDIA  # noqa: PLC0415
+    from api_util.digital_legacy import ORIGINS, convert_legacy  # noqa: PLC0415
+    from api_util.office_render import render_pdf  # noqa: PLC0415
+    from api_util.render_place import place  # noqa: PLC0415
+
+    with tempfile.TemporaryDirectory(prefix="digital_render_") as workdir:
+        if kind == "doc":
+            converted, conversion = convert_legacy(path, kind, os.path.join(workdir, "convert"))
+            native = _read_native(converted, doc_id, "docx")
+            native.origin = ORIGINS[kind]
+            native.media_type = LEGACY_MEDIA[kind]
+            native.conversion = conversion
+            native.notes.append(f"converted:{kind}->{conversion['to']}")
+            source, source_kind = converted, "docx"
+        else:
+            native = _read_native(path, doc_id, kind)
+            source, source_kind = path, kind
+        pdf, facts = render_pdf(source, source_kind, os.path.join(workdir, "render"))
+        facts["from"] = kind
+        check_page_count(_pdf_page_count(pdf), "The rendered document")
+        rendered = extract_pdf(pdf, doc_id=doc_id)
+        with open(pdf, "rb") as handle:
+            rendered_bytes = handle.read()
+    document = place(native, rendered)
+    document.doc_id = doc_id
+    document.sha512 = sha512_file(path)
+    document.filename = os.path.basename(path)
+    document.kind = kind
+    facts["pages"] = len(rendered.pages)
+    document.rendering = facts
+    document.rendered_pdf = rendered_bytes
+    document.use("libreoffice")
+    return document
+
+
+def _read_native(path: str, doc_id: str, kind: str) -> DigitalDocument:
     """DOCX through this repository's reader; ODT/ODS/XLSX/RTF through the shared reader."""
     if kind == "docx":
-        document = extract_docx(path, doc_id=doc_id, page_breaks=docx_page_breaks)
+        document = extract_docx(path, doc_id=doc_id)
         document.kind = "docx"
         return document
     from api_util.digital_text import extract_text_document  # noqa: PLC0415
@@ -1033,7 +1211,6 @@ def prepare(
     baseline: Optional[str] = None,
     doc_id: Optional[str] = None,
     engine: str = "light",
-    docx_page_breaks: str = "auto",
 ) -> Tuple[DigitalDocument, Dict[str, Any]]:
     """Layers A–C for one file: the normalised document and its development dict.
 
@@ -1042,9 +1219,7 @@ def prepare(
     `doc_id` names the document."""
     verify_seed_digest(input_path, baseline)
     doc_id = seed_doc_id(open_record(baseline)) or doc_id
-    document = normalize(
-        extract(input_path, doc_id=doc_id, engine=engine, docx_page_breaks=docx_page_breaks)
-    )
+    document = normalize(extract(input_path, doc_id=doc_id, engine=engine))
     if not document.sha512:
         document.sha512 = sha512_file(input_path)
     document.use("jsonschema")  # the docproc gate runs on every output
@@ -1056,20 +1231,13 @@ def build_development(
     baseline: Optional[str] = None,
     doc_id: Optional[str] = None,
     engine: str = "light",
-    docx_page_breaks: str = "auto",
 ) -> Dict[str, Any]:
     """The development dict, written nowhere — for in-memory consumers.
 
     `api_util/doc_to_visual_md.py` renders PDF/DOCX to Markdown through this, so the LLM's
     diet and the docproc come from one reading (G8). A seed (`baseline`) is checked as for a
     conversion."""
-    _, dev = prepare(
-        input_path,
-        baseline=baseline,
-        doc_id=doc_id,
-        engine=engine,
-        docx_page_breaks=docx_page_breaks,
-    )
+    _, dev = prepare(input_path, baseline=baseline, doc_id=doc_id, engine=engine)
     return dev
 
 
@@ -1080,6 +1248,10 @@ def build_development(
 #: AMČR distribution names (atrium-project#84). The original's name is open (#84, Q11).
 ORIGINAL_DISTRIBUTION = "original"
 RECORD_DISTRIBUTION = "atrium/document-json"
+#: The rendered PDF of an office document (atrium-digital-convert#9): an intermediate the visual
+#: steps read, never stored, named by its SHA-512 (D23). Its distribution name is AMČR's to give
+#: (open, as the original's is, #84 Q11); this one stands in until then.
+RENDERED_DISTRIBUTION = "rendered-pdf"
 
 
 def _paradata_logger(paradata_dir: str, config: Dict[str, Any]) -> Optional[Any]:
@@ -1093,7 +1265,6 @@ def _paradata_logger(paradata_dir: str, config: Dict[str, Any]) -> Optional[Any]
 def run_config(
     input_name: str,
     engine: str,
-    docx_page_breaks: str,
     markdown: bool = False,
     describe: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
@@ -1102,7 +1273,6 @@ def run_config(
     config: Dict[str, Any] = {
         "input": os.path.basename(input_name),
         "engine": engine,
-        "docx_page_breaks": docx_page_breaks,
     }
     if markdown:
         config["markdown"] = True
@@ -1122,7 +1292,12 @@ def record_run(
     """Paradata 3.0 of one conversion (atrium-project#84, H14): the original read (`original`,
     and the seed if one was sent, by SHA-512), the docproc written (`atr/docproc-json`, marked
     `stored: false` when a page needs the ATR: the ATR's docproc is then the stored one), the
-    parameters that shaped it, and the components used, as facts."""
+    parameters that shaped it, the splits it rests on, and the components used, as facts.
+
+    An office document's rendering (atrium-digital-convert#9) adds the rendered PDF to `result`,
+    by SHA-512 and never stored (D23), the pinned export options and the placement threshold to
+    `parameters`, and LibreOffice with its version to `components`. A text-only input's wrapped
+    lines are `split` notes in `limits` (D13)."""
     from api_util import docproc_writer  # noqa: PLC0415
 
     logger.add_input(ORIGINAL_DISTRIBUTION, **original)
@@ -1135,8 +1310,26 @@ def record_run(
         stored=not docproc_writer.needs_atr(docproc),
     )
     logger.set_parameter("engine", document.engine)
+    logger.set_parameter("workflow", document.workflow)
+    versions: Dict[str, str] = {}
+    if document.rendering is not None:
+        import tool_limits  # noqa: PLC0415  (repo root)
+        from api_util.office_render import CONVERT_TO  # noqa: PLC0415
+
+        logger.add_output(
+            RENDERED_DISTRIBUTION,
+            sha512=document.rendering["sha512"],
+            media_type="application/pdf",
+            stored=False,
+        )
+        logger.set_parameter("render", CONVERT_TO)
+        logger.set_parameter("render_text_coverage", tool_limits.RENDER_TEXT_COVERAGE.get())
+        if document.rendering.get("version"):
+            versions["libreoffice"] = str(document.rendering["version"])
+    for limit, value, count, detail in document.splits:
+        logger.note_limit(limit, value, "split", count, detail)
     for name in document.components:
-        logger.log_component(name)
+        logger.log_component(name, version=versions.get(name))
 
 
 def docproc_bytes(docproc: Dict[str, Any]) -> bytes:
@@ -1151,8 +1344,8 @@ def convert(
     doc_id: Optional[str] = None,
     out_dir: str = ".",
     engine: str = "light",
-    docx_page_breaks: str = "auto",
     paradata_dir: Optional[str] = None,
+    rendered_out: Optional[str] = None,
     markdown_out: Optional[str] = None,
     describe_out: Optional[str] = None,
     describe_stages: Optional[str] = None,
@@ -1164,6 +1357,10 @@ def convert(
 
     With `paradata_dir`, the run also writes its paradata record there (`record_run()`). A
     failed conversion writes no docproc, and its paradata say `failed` (D13).
+
+    With `rendered_out`, an office document's rendered PDF is written there too: the pages the
+    docproc's page numbers and boxes refer to, which page-classification and the ATR read for a
+    page that needs the ATR (atrium-digital-convert#9). A PDF or a textual input has none.
 
     The two views `POST /reformat` and `POST /describe` add, run by the same code
     (`service/describe.py`, atrium-project#72): `markdown_out` writes the development dict as
@@ -1181,7 +1378,6 @@ def convert(
         config = run_config(
             input_path,
             engine,
-            docx_page_breaks,
             markdown=markdown_out is not None,
             describe=(
                 {"stages": selected, "classify_pages": classify_pages, "include_text": include_text}
@@ -1200,21 +1396,21 @@ def convert(
         seed = open_record(baseline)
         if seed is None:
             baseline = None  # an empty file counts as none, as an empty part does
-        document, dev = prepare(
-            input_path,
-            baseline=baseline,
-            doc_id=doc_id,
-            engine=engine,
-            docx_page_breaks=docx_page_breaks,
-        )
+        document, dev = prepare(input_path, baseline=baseline, doc_id=doc_id, engine=engine)
         docproc = docproc_writer.build_docproc(document)
         data = docproc_bytes(docproc)
         written = out_path or os.path.join(out_dir, f"{document.doc_id}.docproc.json")
-        os.makedirs(os.path.dirname(written) or ".", exist_ok=True)
-        tmp_path = f"{written}.tmp"
-        with open(tmp_path, "wb") as fh:
-            fh.write(data)
-        os.replace(tmp_path, written)
+        _write_bytes(written, data)
+        if rendered_out:
+            if document.rendered_pdf is not None:
+                _write_bytes(rendered_out, document.rendered_pdf)
+                print(f"[digital-convert] wrote {rendered_out}")
+            else:
+                print(
+                    f"[digital-convert] NOTE - --rendered-out: a {document.kind.upper()} is not rendered "
+                    f"(only DOCX, DOC, ODT and RTF are); nothing written",
+                    file=sys.stderr,
+                )
         if markdown_out is not None or describe_out is not None:
             _write_views(
                 document,
@@ -1246,6 +1442,15 @@ def convert(
         logger.log_document_success()
         logger.finalize(input_total=1)
     return written
+
+
+def _write_bytes(path: str, data: bytes) -> None:
+    """Write-then-rename."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "wb") as fh:
+        fh.write(data)
+    os.replace(tmp_path, path)
 
 
 def _write_json(path: str, data: Dict[str, Any]) -> None:
@@ -1324,17 +1529,22 @@ def build_parser() -> argparse.ArgumentParser:
     """Exposed separately so `--help` is testable in-process (repo convention I1)."""
     parser = argparse.ArgumentParser(
         prog="digital_to_json.py",
-        description="Convert a born-digital PDF, DOCX, ODT, ODS, XLSX, RTF, DOC or XLS into docproc "
-        "(atr/docproc-json): its pages, blocks and lines with the text-layer verdict of each page "
-        "(atrium-project#84). The ATRIUM record is built from it by ocr-postprocess.",
-        epilog="Exit codes: 0 written; 2 dependency missing (LibreOffice for DOC/XLS too); 3 not a "
-        "born-digital input this converter takes, a seed whose source.sha512 does not match "
-        "(source_digest_mismatch), or a --document-json seed that cannot be opened "
+        description="Convert a born-digital document into docproc (atr/docproc-json; "
+        "atrium-project#84). Visual workflow: a PDF on its pages, a DOCX, DOC, ODT or RTF as its "
+        "native text on the pages of its LibreOffice rendering; each page gets a text-layer verdict "
+        "and needsAtr where its text cannot be used. Textual workflow (no pages to render, never the "
+        "ATR): ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are (atrium-digital-convert#9). "
+        "The ATRIUM record is built from the docproc by ocr-postprocess.",
+        epilog="Exit codes: 0 written; 2 dependency missing (LibreOffice for DOCX/DOC/ODT/RTF/XLS); 3 "
+        "not an input this converter takes (images go to the ATR), a seed whose source.sha512 does "
+        "not match (source_digest_mismatch), or a --document-json seed that cannot be opened "
         "(invalid_record); 4 empty, corrupt, encrypted, over the ZIP limits, a failed "
-        "conversion, or over a limit (MAX_PAGES, LIBREOFFICE_TIMEOUT_S, ODF repeats).",
+        "conversion or rendering, a reading that would skip content, or over a limit (MAX_PAGES, "
+        "LIBREOFFICE_TIMEOUT_S, ODF repeats).",
     )
     parser.add_argument(
-        "input", help="path to the born-digital file (.pdf .docx .odt .ods .xlsx .rtf .doc .xls)"
+        "input",
+        help="path to the file (.pdf .docx .doc .odt .rtf; .ods .xlsx .xls .txt .csv .tsv .json)",
     )
     parser.add_argument(
         "--docproc-out",
@@ -1366,11 +1576,12 @@ def build_parser() -> argparse.ArgumentParser:
         "models for PDF structure — pip install -r requirements_digital_docling.txt",
     )
     parser.add_argument(
-        "--docx-page-breaks",
-        choices=DOCX_PAGE_BREAK_MODES,
-        default="auto",
-        help="DOCX pages: auto = explicit breaks + Word's last rendered breaks (default); "
-        "explicit = explicit breaks only; none = one page",
+        "--rendered-out",
+        default=None,
+        metavar="PATH",
+        help="also write an office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the "
+        "docproc's page numbers and boxes refer to, which page-classification and the ATR read for "
+        "a page that needs the ATR. Not stored; the paradata name it by SHA-512",
     )
     views = parser.add_argument_group(
         "views (what POST /reformat's markdown=true and POST /describe return)"
@@ -1446,8 +1657,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             doc_id=args.doc_id,
             out_dir=args.out_dir,
             engine=args.engine,
-            docx_page_breaks=args.docx_page_breaks,
             paradata_dir=args.paradata_dir,
+            rendered_out=args.rendered_out,
             markdown_out=args.markdown,
             describe_out=args.describe,
             describe_stages=args.stages,

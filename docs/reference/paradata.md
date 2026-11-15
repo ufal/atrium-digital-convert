@@ -10,9 +10,14 @@ of 12 November 2026). What a run read and wrote is named by AMČR distribution n
 * **Inputs** (`object`): the uploaded file as `original` (AMČR's name for that distribution is open, #84), and the
   seed, when one was sent, as `atrium/document-json`.
 * **Output** (`result`): the docproc as `atr/docproc-json`. When a page needs the ATR, the ATR's docproc is the
-  stored one, so this one is `stored: false`, still named by its SHA-512 (H14). The Markdown and the `/describe`
-  report are development outputs and are not named.
-* **Parameters**: the engine (`light`, `docling`).
+  stored one, so this one is `stored: false`, still named by its SHA-512 (H14). An office document's rendered PDF
+  is an output too, as `rendered-pdf` (a stand-in name until AMČR gives one), always `stored: false` (D23): the
+  docproc's pages and boxes are its pages, and the visual steps read it (#9). Its date and identifiers are fixed,
+  so a rerun with the same image names the same digest. The Markdown and the `/describe` report are development
+  outputs and are not named.
+* **Parameters**: the engine (`light`, `docling`), the workflow (`visual`, `textual`); for an office document, the
+  pinned LibreOffice export options (`render`) and `render_text_coverage`.
+* **Limits**: the splits the output rests on (D13): `max_line_chars` when lines of a textual input were wrapped.
 * **A failed conversion** writes nothing, and its paradata say `action_status: failed` with the error (D13).
 
 Where it is:
@@ -35,9 +40,11 @@ holds them (for the AMČR pilot, AMČR; agreed on 22 October 2026,
 * **The light engine and the shared reader** are MIT, BSD-3-Clause or Apache-2.0.
 * **The Docling engine** adds Docling and docling-parse (MIT), the layout model (Apache-2.0) and TableFormer's
   model weights (CDLA-Permissive-2.0, which places no terms on the results of a computation).
-* **LibreOffice** (MPL-2.0) is declared but **never logged**. It converts the container format of
-  a text it does not author, and AMČR accepted it on exactly that condition (#4). The conversion is
-  reported beside the output instead (`reader.conversion` in the response).
+* **LibreOffice** (MPL-2.0) converts a DOC/XLS and renders an office document for its pages; the text stays the
+  native readers'. It is listed with its version whenever a run uses it, as a fact. AMČR accepted it (#4) on the
+  condition that it adds nothing to the licence of the output, and since paradata 3.0 no licence is computed at
+  all. Until 3.0 it was declared but never logged. The conversion and the rendering are also reported beside the
+  output (`reader.conversion`, `reader.rendering`).
 * **PyMuPDF** (AGPL-3.0) is deliberately not used; see `requirements_digital.txt`.
 
 ## The output schema

@@ -35,6 +35,7 @@ import make_fixtures  # noqa: E402
 import stage_stub  # noqa: E402
 
 from service import api, stages  # noqa: E402
+from tests.office_support import needs_libreoffice  # noqa: E402
 
 client = TestClient(api.app)
 FIXTURES = make_fixtures.build_all()
@@ -154,6 +155,7 @@ def test_a_page_whose_only_text_is_its_page_number_is_classified_and_routed_by_t
     assert body["summary"]["reacquire_pages"] == ([3] if route == "ocr" else [])
 
 
+@needs_libreoffice
 def test_a_docx_has_no_page_images_to_classify(both_stages):
     body = _describe("rich.docx")
     assert _status(body)["page-classification"] == "skipped"

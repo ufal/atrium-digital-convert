@@ -10,8 +10,9 @@ startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.exampl
 checks that they agree.
 
 What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
-beside it. Three entries are POLICY thresholds rather than size caps
-(``ROUTE_TRASH_SHARE``, ``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``): they are declared here all
+beside it. Four entries are POLICY thresholds rather than size caps
+(``ROUTE_TRASH_SHARE``, ``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``,
+``RENDER_TEXT_COVERAGE``): they are declared here all
 the same, because a value a deployment may change and a client must be able to read back is exactly what ``/info``
 ``limits`` is for. ``ROUTE_DAMAGED_WORD_SHARE`` (#5, 10-22) is gone: words that lose letters route nothing since
 atrium-digital-convert#9.
@@ -42,8 +43,10 @@ MAX_PAGES = limit("MAX_PAGES", 2000, unit="pages", minimum=1, status=422)
 #: (the conversion is CPU-bound and runs in a worker thread; queuing it would only move the wait).
 MAX_CONCURRENT_JOBS = limit("MAX_CONCURRENT_JOBS", 2, unit="jobs", minimum=1)
 
-#: Seconds headless LibreOffice may take to convert one legacy DOC or XLS file. Over it → 422
-#: ``limit_exceeded`` (a per-input processing budget, not an upstream service).
+#: Seconds headless LibreOffice may take for one run: converting a legacy DOC or XLS file, or
+#: rendering an office document (DOCX, DOC, ODT, RTF) to PDF for its pages
+#: (atrium-digital-convert#9). Over it → 422 ``limit_exceeded`` (a per-input processing budget,
+#: not an upstream service).
 LIBREOFFICE_TIMEOUT_S = limit(
     "LIBREOFFICE_TIMEOUT_S", 120, unit="s", kind=float, minimum=1, status=422
 )
@@ -82,6 +85,22 @@ BOLD_HEADING_MAX_SHARE = limit(
     "BOLD_HEADING_MAX_SHARE", 0.25, unit="share", kind=float, minimum=0, maximum=1
 )
 
+#: POLICY (atrium-digital-convert#9). An office document's text is read natively and placed on
+#: the pages of its rendering (``api_util/render_place.py``). A rendered page whose body words the
+#: document's own text covers less than this share of (and at least 3 words are not covered) shows
+#: text the reading does not place there: a drawing, a chart, an embedded object, a change the
+#: rendering shows. Such a page needs the ATR (H12: a page that cannot be used is ``needs_atr``).
+#: Running headers and footers, and words without a letter (list numbers, page numbers), do not count.
+RENDER_TEXT_COVERAGE = limit(
+    "RENDER_TEXT_COVERAGE", 0.8, unit="share", kind=float, minimum=0, maximum=1
+)
+
+#: Characters in one line of a text-only input (TXT, CSV, TSV, JSON) or a spreadsheet row, which
+#: have no visual lines. A longer line is wrapped at a word boundary into lines of at most this
+#: length, as atrium-ocr-postprocess's text path does (``text_formats.wrap_line``, the same
+#: default), and each wrap is recorded in the paradata ``limits`` as a ``split`` (D13). 0 never wraps.
+MAX_LINE_CHARS = limit("MAX_LINE_CHARS", 1000, unit="chars", minimum=0, status=422)
+
 # ── the vendored reader's own caps (text_formats.py, from atrium-ocr-postprocess) ────────────
 #: Same variable name, unit and default as atrium-ocr-postprocess's tool_limits.py: the reader
 #: module is byte-identical there and here (tests/test_vendored_reader_parity.py), and imports
@@ -103,5 +122,7 @@ LIMITS = LimitSet(
     ROUTE_TRASH_SHARE,
     FURNITURE_ONLY_IMAGE_COVERAGE,
     BOLD_HEADING_MAX_SHARE,
+    RENDER_TEXT_COVERAGE,
+    MAX_LINE_CHARS,
     ODF_REPEAT_CAP,
 )

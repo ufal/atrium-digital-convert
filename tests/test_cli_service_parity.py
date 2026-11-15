@@ -34,6 +34,7 @@ import make_fixtures  # noqa: E402
 
 from api_util import digital_to_json as d2j  # noqa: E402
 from service import api  # noqa: E402
+from tests.office_support import needs_libreoffice  # noqa: E402
 
 client = TestClient(api.app)
 FIXTURES = make_fixtures.build_all()
@@ -62,7 +63,14 @@ def _service(endpoint: str, name: str, **form) -> dict:
 
 
 @pytest.mark.parametrize(
-    "name", ["minimal.pdf", "table.pdf", "garbled.pdf", "rich.docx", "headings.pdf"]
+    "name",
+    [
+        "minimal.pdf",
+        "table.pdf",
+        "garbled.pdf",
+        pytest.param("rich.docx", marks=needs_libreoffice),
+        "headings.pdf",
+    ],
 )
 def test_the_docproc_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
     """Byte for byte: the docproc carries no run data (atrium-project#84, ask 3)."""
@@ -74,7 +82,7 @@ def test_the_docproc_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
     assert cli_bytes == d2j.docproc_bytes(body["docproc"])
 
 
-@pytest.mark.parametrize("name", ["minimal.pdf", "rich.docx"])
+@pytest.mark.parametrize("name", ["minimal.pdf", pytest.param("rich.docx", marks=needs_libreoffice)])
 def test_markdown_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
     out = _cli(tmp_path, name, "--markdown")
     stem = Path(name).stem
@@ -82,7 +90,7 @@ def test_markdown_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
     assert (out / f"{stem}.md").read_text(encoding="utf-8") == body["markdown"]
 
 
-@pytest.mark.parametrize("name", ["garbled.pdf", "minimal.docx"])
+@pytest.mark.parametrize("name", ["garbled.pdf", pytest.param("minimal.docx", marks=needs_libreoffice)])
 def test_the_assessment_is_the_same_from_the_cli_and_from_describe(tmp_path, no_stages, name):
     out = _cli(tmp_path, name, "--describe")
     stem = Path(name).stem

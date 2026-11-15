@@ -8,11 +8,11 @@ same schema with two of the asks on #84 applied, and nothing else:
 * **ask 3**: ``processedAt`` and ``pipeline`` are run data (they belong to the paradata), so they
   are no longer required;
 * **ask 13**: other producers than the ATR: the ``pipeline`` pattern is opened, ``sourceFormat``
-  gains the formats digital-convert reads (ODT, ODS, XLSX, RTF, DOC, XLS), a page carries the
-  text-layer verdict and the routing decision (``textLayer``, ``needsAtr``, ``needsAtrReason``)
-  and may carry ``userUnit``, a block may carry its ``lines[]`` (``text``, ``bbox``,
-  ``bboxPrecision``, ``flags``), and a flow document (DOCX, ODT, a spreadsheet) has pages
-  without a size and blocks without a box.
+  gains the formats digital-convert reads (ODT, ODS, XLSX, RTF, DOC, XLS; TXT, CSV, TSV, JSON), a
+  page carries the text-layer verdict and the routing decision (``textLayer``, ``needsAtr``,
+  ``needsAtrReason``) and may carry ``userUnit``, a block may carry its ``lines[]`` (``text``,
+  ``bbox``, ``bboxPrecision``, ``flags``), and a flow document (a spreadsheet, a text-only input:
+  nothing to render, atrium-digital-convert#9) has pages without a size and blocks without a box.
 
 The proposal is a file, not a branch of code: it is what ARÚ/B and the ATR are asked to adopt
 (#84 §7). ``apply_asks()`` builds it from the actual schema; ``tests/test_docproc_writer.py``
@@ -35,8 +35,9 @@ PROPOSAL = SCHEMAS / "document.atrium-proposal.schema.json"
 
 PROPOSAL_ID = "https://github.com/ufal/atrium-digital-convert/schemas/docproc/document.atrium-proposal.schema.json"
 
-#: ask 13: the formats digital-convert reads, beyond the ATR's.
-FLOW_FORMATS = ("odt", "ods", "xlsx", "rtf", "doc", "xls")
+#: ask 13: the formats digital-convert reads, beyond the ATR's: office documents and spreadsheets,
+#: and the text-only inputs (atrium-digital-convert#9 point 4).
+FLOW_FORMATS = ("odt", "ods", "xlsx", "rtf", "doc", "xls", "txt", "csv", "tsv", "json")
 
 #: ask 13: a producer id, `<producer>` or `<producer>/<variant>` (the ATR's `pipeline-e2e` fits).
 PIPELINE_PATTERN = "^[a-z0-9][a-z0-9-]*(/[a-z0-9-]+)?$"
@@ -66,7 +67,7 @@ def apply_asks(actual: Dict[str, Any]) -> Dict[str, Any]:
 
     defs = schema["$defs"]
     page = defs["Page"]
-    # ask 13: a flow document (DOCX, ODT, a spreadsheet) has no page geometry.
+    # ask 13: a flow document (a spreadsheet, a text-only input) has no page geometry.
     page["required"] = [name for name in page["required"] if name not in ("width", "height")]
     page["properties"]["textLayer"] = {
         "description": (

@@ -8,19 +8,21 @@ DOCX/PDF to the right visually-rich Markdown converter.
 import pytest
 
 from api_util import doc_to_visual_md
+from tests.office_support import needs_libreoffice  # noqa: E402
 
 
 def test_is_supported_by_extension():
     assert doc_to_visual_md.is_supported("report.docx") is True
     assert doc_to_visual_md.is_supported("report.PDF") is True
-    assert doc_to_visual_md.is_supported("report.txt") is False
+    assert doc_to_visual_md.is_supported("report.txt") is True  # a text-only input (#9)
+    assert doc_to_visual_md.is_supported("report.md") is False
     assert doc_to_visual_md.is_supported("report") is False
 
 
 def test_convert_rejects_unsupported_extension(tmp_path):
-    p = tmp_path / "report.txt"
-    p.write_text("hello", encoding="utf-8")
-    with pytest.raises(ValueError, match="Unsupported input"):
+    p = tmp_path / "report.md"
+    p.write_text("# hello", encoding="utf-8")
+    with pytest.raises(ValueError, match="nsupported input"):
         doc_to_visual_md.convert_to_visual_md(p)
 
 
@@ -90,6 +92,7 @@ def test_ocr_on_a_pdf_keeps_the_tesseract_path(monkeypatch, tmp_path):
     assert called == {"pdf": str(tmp_path / "a.pdf"), "ocr": True}
 
 
+@needs_libreoffice
 def test_json_route_end_to_end_on_a_real_docx(tmp_path):
     """No stubs: a DOCX with a heading and a table renders both (G3)."""
     docx = pytest.importorskip("docx")
@@ -152,7 +155,8 @@ def test_unknown_detail_is_refused_before_any_conversion(tmp_path):
 
 def test_a_born_digital_file_under_another_name_takes_the_json_route(tmp_path):
     """The dispatcher decides by content, as `POST /reformat` does (atrium-project#72): a PDF
-    saved without its extension is recognised and rendered, a plain-text file is refused."""
+    saved without its extension is recognised and rendered, an image is refused (H13). A
+    plain-text file is a text-only input since atrium-digital-convert#9."""
     import sys
     from pathlib import Path
 
@@ -167,9 +171,13 @@ def test_a_born_digital_file_under_another_name_takes_the_json_route(tmp_path):
     assert "Excavation report, block one, line one." in rendered
     text = tmp_path / "notes.bin"
     text.write_text("just text", encoding="utf-8")
-    assert doc_to_visual_md.is_supported(text) is False
-    with pytest.raises(ValueError, match="Unsupported input"):
-        doc_to_visual_md.convert_to_visual_md(text)
+    assert doc_to_visual_md.is_supported(text) is True
+    assert "just text" in doc_to_visual_md.convert_to_visual_md(text)
+    image = tmp_path / "scan.bin"
+    image.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\0" * 64)
+    assert doc_to_visual_md.is_supported(image) is False
+    with pytest.raises(ValueError, match="nsupported input"):
+        doc_to_visual_md.convert_to_visual_md(image)
 
 
 def test_the_deprecated_converters_keep_their_extension_rule(tmp_path):

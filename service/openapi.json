@@ -138,7 +138,7 @@
     "/reformat": {
       "post": {
         "summary": "Reformat",
-        "description": "Convert a born-digital document into docproc (§4.2; atrium-project#84).\n\nCalls no other service. A page whose text layer cannot be used (it does not decode, it is a\nprior OCR run, there is none) carries `needsAtr` with its reason and is routed `atr`; no\ndocument is refused for its pages. No record is written: ocr-postprocess builds it from the\ndocproc.",
+        "description": "Convert a born-digital document into docproc (§4.2; atrium-project#84).\n\nCalls no other service. A page whose text layer cannot be used (it does not decode, it is a\nprior OCR run, there is none, or an office page's rendering shows text its reading does not\nplace there) carries `needsAtr` with its reason and is routed `atr`; no document is refused\nfor its pages. An office document's rendered PDF comes with it when a page needs the ATR. A\ntextual input is never routed `atr`. No record is written: ocr-postprocess builds it from the\ndocproc.",
         "operationId": "reformat",
         "requestBody": {
           "content": {
@@ -358,7 +358,7 @@
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File",
-            "description": "The born-digital document: PDF, DOCX, ODT, ODS, XLSX, RTF, or legacy DOC/XLS (decided by content)."
+            "description": "The document, decided by content: PDF, DOCX, DOC, ODT, RTF (visual); ODS, XLSX, XLS, TXT, CSV, TSV, JSON (textual). Not an image: images go to the ATR (H13)."
           },
           "document_json": {
             "type": "string",
@@ -393,17 +393,6 @@
             "title": "Include Text",
             "description": "Include each page's text in `pages[].text`.",
             "default": true
-          },
-          "docx_page_breaks": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "explicit",
-              "none"
-            ],
-            "title": "Docx Page Breaks",
-            "description": "DOCX pages: `auto` (explicit + Word's rendered breaks), `explicit`, or `none` (one page).",
-            "default": "auto"
           }
         },
         "type": "object",
@@ -418,7 +407,7 @@
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File",
-            "description": "The born-digital document: PDF, DOCX, ODT, ODS, XLSX, RTF, or legacy DOC/XLS (decided by content)."
+            "description": "The document, decided by content: PDF, DOCX, DOC, ODT, RTF (visual); ODS, XLSX, XLS, TXT, CSV, TSV, JSON (textual). Not an image: images go to the ATR (H13)."
           },
           "document_json": {
             "type": "string",
@@ -432,16 +421,11 @@
             "description": "Also return the document rendered as annotated Markdown (a development view).",
             "default": false
           },
-          "docx_page_breaks": {
-            "type": "string",
-            "enum": [
-              "auto",
-              "explicit",
-              "none"
-            ],
-            "title": "Docx Page Breaks",
-            "description": "DOCX pages: `auto` (explicit + Word's rendered breaks), `explicit`, or `none` (one page).",
-            "default": "auto"
+          "rendered": {
+            "type": "boolean",
+            "title": "Rendered",
+            "description": "Also return an office document's rendered PDF (`rendered_pdf`) when no page needs the ATR; it is returned anyway when one does.",
+            "default": false
           }
         },
         "type": "object",
@@ -681,17 +665,28 @@
             "title": "Markdown",
             "description": "Only with `markdown=true`: the document rendered as annotated Markdown (json_to_md)."
           },
+          "rendered_pdf": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RenderedPdf"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes refer to, which page-classification and the ATR read. Returned when a page is routed `atr`, or always with `rendered=true`; absent for a PDF and the textual workflow."
+          },
           "limits_applied": {
             "items": {
               "$ref": "#/components/schemas/LimitNote"
             },
             "type": "array",
             "title": "Limits Applied",
-            "description": "The sampling and splitting the result rests on; none for this converter (D13)."
+            "description": "The splitting the result rests on (D13): lines of a text-only input or a spreadsheet wrapped at `MAX_LINE_CHARS`, a sheet continued on further pages. Nothing is sampled."
           },
           "paradata": {
             "$ref": "#/components/schemas/CreateAction",
-            "description": "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc (`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14)."
+            "description": "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc (`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). An office document's rendered PDF is in `result` too, `stored: false` (D23)."
           },
           "document": {
             "additionalProperties": true,
@@ -860,10 +855,21 @@
             "title": "Media Types",
             "description": "The media type of each input kind."
           },
+          "workflows": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Workflows",
+            "description": "The input kinds of each workflow (atrium-digital-convert#9): `visual` (pages with a verdict each, the ATR for a page whose text cannot be used) and `textual` (extracted as it is, never the ATR)."
+          },
           "libreoffice": {
             "type": "boolean",
             "title": "Libreoffice",
-            "description": "Whether DOC/XLS can be converted in this deployment."
+            "description": "Whether office documents can be rendered and DOC/XLS converted in this deployment."
           },
           "stages": {
             "additionalProperties": {
@@ -886,6 +892,7 @@
           "program",
           "supported_inputs",
           "media_types",
+          "workflows",
           "libreoffice",
           "stages"
         ],
@@ -1557,7 +1564,19 @@
           "kind": {
             "type": "string",
             "title": "Kind",
-            "description": "The input kind, by content: `pdf`, `docx`, `odt`, `ods`, `xlsx`, `rtf`, `doc`, `xls`."
+            "description": "The input kind, by content: `pdf`, `docx`, `odt`, `rtf`, `doc`; `ods`, `xlsx`, `xls`, `txt`, `csv`, `tsv`, `json`."
+          },
+          "workflow": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow",
+            "description": "`visual` (pages with a verdict each: a PDF, an office document on its rendered pages) or `textual` (extracted as it is, no pages to render, never the ATR) — atrium-digital-convert#9."
           },
           "media_type": {
             "type": "string",
@@ -1591,6 +1610,19 @@
             ],
             "title": "Conversion",
             "description": "DOC/XLS only: how LibreOffice converted the original (`tool`, `from`, `to`, `seconds`); else null."
+          },
+          "rendering": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rendering",
+            "description": "DOCX/DOC/ODT/RTF only: how LibreOffice rendered the document for its pages (`tool`, `version`, `from`, `to`, `seconds`, `pages`, `sha512` of the PDF); else null."
           },
           "notes": {
             "items": {
@@ -1664,17 +1696,28 @@
             "title": "Markdown",
             "description": "Only with `markdown=true`: the document rendered as annotated Markdown (json_to_md)."
           },
+          "rendered_pdf": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RenderedPdf"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes refer to, which page-classification and the ATR read. Returned when a page is routed `atr`, or always with `rendered=true`; absent for a PDF and the textual workflow."
+          },
           "limits_applied": {
             "items": {
               "$ref": "#/components/schemas/LimitNote"
             },
             "type": "array",
             "title": "Limits Applied",
-            "description": "The sampling and splitting the result rests on; none for this converter (D13)."
+            "description": "The splitting the result rests on (D13): lines of a text-only input or a spreadsheet wrapped at `MAX_LINE_CHARS`, a sheet continued on further pages. Nothing is sampled."
           },
           "paradata": {
             "$ref": "#/components/schemas/CreateAction",
-            "description": "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc (`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14)."
+            "description": "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc (`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). An office document's rendered PDF is in `result` too, `stored: false` (D23)."
           }
         },
         "additionalProperties": true,
@@ -1689,6 +1732,33 @@
         ],
         "title": "ReformatResponse",
         "description": "`/reformat`: the document's layout as docproc, and its Markdown when asked for."
+      },
+      "RenderedPdf": {
+        "properties": {
+          "media_type": {
+            "type": "string",
+            "title": "Media Type",
+            "description": "`application/pdf`."
+          },
+          "sha512": {
+            "type": "string",
+            "title": "Sha512",
+            "description": "Its SHA-512, as the paradata name it (not stored, D23)."
+          },
+          "data": {
+            "type": "string",
+            "title": "Data",
+            "description": "The PDF, base64-encoded."
+          }
+        },
+        "type": "object",
+        "required": [
+          "media_type",
+          "sha512",
+          "data"
+        ],
+        "title": "RenderedPdf",
+        "description": "An office document's rendered PDF (atrium-digital-convert#9)."
       },
       "StageOutcomeModel": {
         "properties": {

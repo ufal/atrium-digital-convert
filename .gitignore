@@ -229,4 +229,8 @@ __marimo__/
 # (the bare `MANIFEST` pattern above is Python packaging's and does not match *.json).
 /tests/fixtures/digital/*.pdf
 /tests/fixtures/digital/*.docx
+/tests/fixtures/digital/*.txt
+/tests/fixtures/digital/*.csv
+/tests/fixtures/digital/*.tsv
+/tests/fixtures/digital/*.json
 /tests/fixtures/digital/MANIFEST.json

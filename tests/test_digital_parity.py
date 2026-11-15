@@ -20,6 +20,7 @@ from pathlib import Path
 import pytest
 
 from api_util import doc_to_visual_md
+from tests.office_support import needs_libreoffice
 
 GENERATOR = Path(__file__).resolve().parent / "fixtures" / "digital" / "make_fixtures.py"
 
@@ -160,7 +161,7 @@ CASES = [
         [],
     ),
     (
-        "G5 tracked changes, furniture, footnote, pages from three kinds of break",
+        "G5 tracked changes, furniture, footnote, pages of the rendering (#9)",
         "rich.docx",
         [
             "HEADER_START",
@@ -173,14 +174,20 @@ CASES = [
             "| Nálezy |  |",
             "FOOTER_START",
             "## Page 3",
-            "## Page 4",
         ],
         ["železný nůž", "PAGE "],
     ),
 ]
 
 
-@pytest.mark.parametrize("row, name, required, forbidden", CASES, ids=[c[0] for c in CASES])
+@pytest.mark.parametrize(
+    "row, name, required, forbidden",
+    [
+        pytest.param(*case, marks=needs_libreoffice) if case[1].endswith(".docx") else case
+        for case in CASES
+    ],
+    ids=[c[0] for c in CASES],
+)
 def test_json_route_closes_the_section_9_row(fixtures, row, name, required, forbidden):
     pytest.importorskip("pdfplumber")
     pytest.importorskip("docx")

@@ -11,11 +11,26 @@ AMČR upload ──► seed (doc_id, source.sha512, filename, media_type)
                    │
                    ▼
    born-digital? ──yes──► digital-convert  /reformat ──► docproc ──► ocr-postprocess builds the record
-                   │                          │                          ──► nlp-enrich, keyword-extract, …
-                   no                         └─ pages routed `atr` ──► the ATR (its docproc is stored)
+                   │        visual: PDF;                 │                ──► nlp-enrich, keyword-extract, …
+                   │        DOCX/DOC/ODT/RTF rendered    │
+                   │        textual: sheets, TXT,        └─ pages routed `atr` ──► page-classification (those pages)
+                   │        CSV, TSV, JSON (never ATR)      + the rendered PDF       the ATR (whole document, those
+                   no (an image)                                                      pages forced; its docproc stored)
                    ▼
                   ATR
 ```
+
+**Two workflows** ([#9](https://github.com/ufal/atrium-digital-convert/issues/9)):
+
+* **Visual.** A PDF is read on its own pages. An office document (DOCX, DOC, ODT, RTF) keeps its native text and
+  takes its pages from a LibreOffice rendering: each native line is matched word by word to the rendered PDF, cut
+  where the rendering breaks it and given the box of its rendered words (`api_util/render_place.py`). Every page
+  then gets the same verdicts as a PDF page. A pasted scan, a page that is only a picture, is `none` and goes to
+  the ATR. A page with good text and a photo does not. The rendered PDF is the page source of the visual steps
+  for an office document: page-classification and the ATR read it, so their page numbers and boxes are the
+  docproc's. It is not stored, and the paradata name it by SHA-512.
+* **Textual.** A spreadsheet or a text-only file (TXT, CSV, TSV, JSON) has no pages to render. Its text is
+  extracted as it is, it carries no geometry, and it goes straight to scoring. Its pages are never routed `atr`.
 
 Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://github.com/ufal/atrium-project/issues/84)
 §1) digital-convert writes the layout as docproc and no record; ocr-postprocess builds the record from it.
@@ -26,9 +41,11 @@ Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://g
   never written, and the run's paradata name it as an input.
 * **Pages the converter cannot vouch for** carry `needsAtr` with a reason (`needsAtrReason`), and every page says
   why in `textLayer` (`digital`, `garbled`, `ocr`, `none`, `blank`):
-  * no text layer (a scan, text drawn as curves): `none`;
+  * no text layer (a scan, text drawn as curves, a picture pasted into an office document): `none`;
   * a text layer that does not decode (broken font encodings, replacement characters): `garbled`;
-  * a prior OCR run: `ocr`.
+  * a prior OCR run: `ocr`;
+  * an office page whose rendering shows text the document's own text does not place there (a drawing, a chart, an
+    embedded object), below `RENDER_TEXT_COVERAGE`.
   Those pages are routed `atr` in `metadata.routing.pages[]`; an empty page is routed `empty` and is not in
   `pages[]`. No document is refused for its pages: until #84 a PDF mostly of prior-OCR pages was refused whole
   (`ocr_text_layer`, the `OCR_LAYER_DOCUMENT_SHARE` setting, both gone). When a page needs the ATR, the ATR's
@@ -41,7 +58,8 @@ Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://g
   ATR/HTR; with `stages=none` it calls no other service.
 * **The legacy DOC and XLS** were accepted by AMČR on
   [#4](https://github.com/ufal/atrium-digital-convert/issues/4) (2026-09-26). LibreOffice
-  converts the file to DOCX/XLSX first and is not among the components a run lists; see
+  converts the file to DOCX/XLSX first; a DOC's DOCX is then rendered like any office document. LibreOffice is
+  among the components a run lists, with its version, as a fact (paradata 3.0 computes no licence); see
   [Paradata and provenance](reference/paradata.md#paradata-and-provenance).
 
 ## The per-page assessment

@@ -29,6 +29,8 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures" / "digital"
 sys.path.insert(0, str(FIXTURES))
 import make_fixtures  # noqa: E402
 
+from tests.office_support import fake_soffice, needs_libreoffice  # noqa: E402
+
 pytest.importorskip("lxml")
 pytest.importorskip("jsonschema")
 
@@ -171,6 +173,15 @@ def test_every_accepted_type_is_recognised_by_content(tmp_path):
         "doc": make_doc_stub(tmp_path / "e.bin"),
         "xls": make_xls_stub(tmp_path / "f.bin"),
     }
+    # The text-only inputs (#9): content decides, the extension picks the plain-text dialect.
+    for kind, name, body in (
+        ("txt", "g.txt", "Zpráva o sondě."),
+        ("csv", "h.csv", "a,b\n1,2\n"),
+        ("tsv", "i.tsv", "a\tb\n1\t2\n"),
+        ("json", "j.json", '{"a": "b"}'),
+    ):
+        made[kind] = tmp_path / name
+        made[kind].write_text(body, encoding="utf-8")
     for kind, path in made.items():
         assert d2j.sniff(str(path)) == kind, kind
     assert set(made) | {"pdf", "docx"} == set(d2j.KINDS)
@@ -188,6 +199,7 @@ def test_a_presentation_is_not_an_accepted_type(tmp_path):
 # ── the shared reader ───────────────────────────────────────────────────────────────────────
 
 
+@needs_libreoffice
 @pytest.mark.parametrize(
     "maker, origin, expected",
     [
@@ -200,12 +212,14 @@ def test_a_presentation_is_not_an_accepted_type(tmp_path):
     ],
 )
 def test_text_documents_become_records_with_lines(tmp_path, maker, origin, expected):
+    """ODT and RTF are office documents: their text is the shared reader's, their pages and boxes
+    the rendering's (atrium-digital-convert#9)."""
     path = maker(tmp_path / f"doc.{origin.rsplit('-', 1)[-1]}")
     record = d2j.build_development(str(path))
     assert record["source"]["origin"] == origin
     assert _lines(record) == expected
-    assert all("bbox" not in row for row in record["lines"]), "no geometry is fabricated"
-    assert all("canvas" not in page for page in record["pages"])
+    assert all("bbox" in row for row in record["lines"]), "boxes measured on the rendering"
+    assert all(page["canvas"]["unit"] == "pt" for page in record["pages"])
     assert "assembled" not in record  # a development dict, never a record (atrium-project#84)
 
 
@@ -226,29 +240,22 @@ def test_a_sheet_is_a_page_and_a_row_a_line(tmp_path, maker, origin):
 # ── legacy DOC/XLS through LibreOffice ──────────────────────────────────────────────────────
 
 
-def _fake_soffice(tmp_path: Path, payload: Path, monkeypatch) -> Path:
-    """A `soffice` that 'converts' by copying `payload` to <outdir>/input.<target>."""
-    script = tmp_path / "soffice"
-    script.write_text(
-        "#!/usr/bin/env python3\n"
-        "import shutil, sys\n"
-        "args = sys.argv[1:]\n"
-        "target = args[args.index('--convert-to') + 1]\n"
-        "outdir = args[args.index('--outdir') + 1]\n"
-        f"shutil.copyfile({str(payload)!r}, outdir + '/input.' + target)\n",
-        encoding="utf-8",
-    )
-    script.chmod(script.stat().st_mode | stat.S_IEXEC)
-    monkeypatch.setenv("LIBREOFFICE_BIN", str(script))
-    return script
+def _fake_soffice(tmp_path: Path, payload: Path, monkeypatch, pdf: Path = None) -> Path:
+    """A `soffice` that 'converts' by copying `payload`, and 'renders' by copying `pdf`."""
+    return fake_soffice(tmp_path, payload, monkeypatch, pdf)
 
 
 def test_a_legacy_doc_keeps_the_originals_identity(tmp_path, monkeypatch):
+    """A DOC is converted to DOCX, read natively, and its DOCX rendered for its pages (#9); the
+    output keeps the ORIGINAL's identity. The fake renders minimal.pdf, so the text is placed on
+    its two pages."""
     docx = tmp_path / "converted.docx"
     docx.write_bytes(make_fixtures.minimal_docx())
-    _fake_soffice(tmp_path, docx, monkeypatch)
+    pdf = tmp_path / "rendered.pdf"
+    pdf.write_bytes(make_fixtures.minimal_pdf())
+    _fake_soffice(tmp_path, docx, monkeypatch, pdf)
     original = make_doc_stub(tmp_path / "stara-zprava.doc")
-    record = d2j.build_development(str(original))
+    document, record = d2j.prepare(str(original))
     source = record["source"]
     assert source["origin"] == "digital-born-doc"
     assert source["media_type"] == "application/msword"
@@ -256,7 +263,10 @@ def test_a_legacy_doc_keeps_the_originals_identity(tmp_path, monkeypatch):
     assert source["sha512"] == hashlib.sha512(original.read_bytes()).hexdigest(), (
         "the ORIGINAL's digest"
     )
-    assert _lines(record), "the converted DOCX was read"
+    assert "Zpráva o sondě" in _lines(record), "the converted DOCX's text was read"
+    assert document.conversion["to"] == "docx" and document.rendering["from"] == "doc"
+    assert len(document.pages) == 2, "the rendering's pages"
+    assert document.workflow == "visual" and "libreoffice" in document.components
     # no licence is computed (atrium-project#84, D2): nothing licence-shaped in the output
     assert "provenance" not in record and "license" not in json.dumps(record)
 
@@ -264,10 +274,12 @@ def test_a_legacy_doc_keeps_the_originals_identity(tmp_path, monkeypatch):
 def test_a_legacy_xls_is_read_as_a_spreadsheet(tmp_path, monkeypatch):
     xlsx = make_xlsx(tmp_path / "converted.xlsx")
     _fake_soffice(tmp_path, xlsx, monkeypatch)
-    record = d2j.build_development(str(make_xls_stub(tmp_path / "nalezy.xls")))
+    document, record = d2j.prepare(str(make_xls_stub(tmp_path / "nalezy.xls")))
     assert record["source"]["origin"] == "digital-born-xls"
     assert record["source"]["media_type"] == "application/vnd.ms-excel"
     assert _lines(record) == ["Sonda\tNález", "S3\tstřep"]
+    assert document.workflow == "textual" and document.rendering is None
+    assert "libreoffice" in document.components, "logged as a fact (paradata 3.0)"
 
 
 def test_without_libreoffice_a_legacy_file_is_dependency_missing(tmp_path, monkeypatch):

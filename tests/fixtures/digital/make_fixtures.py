@@ -98,6 +98,19 @@ Added 2026-10-18 (#5, G):
     bold_titles.pdf   section titles in bold at the body size are headings; a bold line ending in
                       a comma, a bulleted one, a bold paragraph, a line with one bold word and a
                       bold line repeated on every page are not.
+
+Added 2026-11-14 for atrium-digital-convert#9 (visual and textual inputs); every earlier fixture
+keeps its bytes:
+
+    scan_page.docx    a text page, a page that is only a picture (a scan pasted into a report)
+                      and a text page: rendered, only the picture page needs the ATR.
+    photo_text.docx   a long paragraph, a photo and a short paragraph on one page: the paragraph
+                      becomes visual lines on the rendering, and a page with good text and a
+                      photo does not go to the ATR (motyc's point 5 on #9).
+    sample.txt        two paragraphs, a form feed, a third page: the textual workflow.
+    sample.csv        a header row and rows with a `text` column among others: every column kept.
+    sample.tsv        the same as tab-separated values.
+    sample.json       string values nested in objects and lists, with numbers and keys between.
 """
 
 from __future__ import annotations
@@ -106,8 +119,10 @@ import argparse
 import hashlib
 import io
 import json
+import struct
 import sys
 import zipfile
+import zlib
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -1101,6 +1116,163 @@ def bare_docx() -> bytes:
     )
 
 
+# ── #9: office documents rendered for their pages, and the text-only inputs ──
+
+WP_NS = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+PIC_NS = "http://schemas.openxmlformats.org/drawingml/2006/picture"
+EMU_PER_INCH = 914400
+
+
+def _png(width: int, height: int, shade: int) -> bytes:
+    """A flat grey PNG. Its pixels are deflated at level 0 (stored blocks), whose bytes do not
+    depend on the zlib build, so the fixture stays reproducible."""
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+
+    raw = b"".join(b"\x00" + bytes([shade]) * width for _ in range(height))
+    header = struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)  # 8-bit greyscale
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(raw, 0))
+        + chunk(b"IEND", b"")
+    )
+
+
+def _picture(rel_id: str, name: str, width_in: float, height_in: float, pic_id: int) -> str:
+    cx, cy = int(width_in * EMU_PER_INCH), int(height_in * EMU_PER_INCH)
+    return (
+        f'<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
+        f'<wp:extent cx="{cx}" cy="{cy}"/><wp:docPr id="{pic_id}" name="{name}"/>'
+        f'<a:graphic><a:graphicData uri="{PIC_NS}"><pic:pic>'
+        f'<pic:nvPicPr><pic:cNvPr id="{pic_id}" name="{name}"/><pic:cNvPicPr/></pic:nvPicPr>'
+        f'<pic:blipFill><a:blip r:embed="{rel_id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+        f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+        f'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+        "</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"
+    )
+
+
+_PICTURE_CONTENT_TYPES = CONTENT_TYPES.replace(
+    '<Default Extension="xml" ContentType="application/xml"/>',
+    '<Default Extension="xml" ContentType="application/xml"/>'
+    '<Default Extension="png" ContentType="image/png"/>',
+)
+_PICTURE_DOC_RELS = DOC_RELS.replace(
+    "</Relationships>",
+    f'<Relationship Id="rId9" Type="{_REL}image" Target="media/picture.png"/></Relationships>',
+)
+
+
+def _picture_docx(body: str, png: bytes) -> bytes:
+    document = XML_DECL + (
+        f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" '
+        f'xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"><w:body>{body}'
+        '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
+        '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" '
+        'w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>'
+    )
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=ZIP_COMPRESSION) as zf:
+        for name, data in (
+            ("[Content_Types].xml", _PICTURE_CONTENT_TYPES.encode("utf-8")),
+            ("_rels/.rels", ROOT_RELS.encode("utf-8")),
+            ("docProps/core.xml", CORE_PROPS.encode("utf-8")),
+            ("word/_rels/document.xml.rels", _PICTURE_DOC_RELS.encode("utf-8")),
+            ("word/document.xml", document.encode("utf-8")),
+            ("word/styles.xml", STYLES.encode("utf-8")),
+            ("word/media/picture.png", png),
+        ):
+            info = zipfile.ZipInfo(name, date_time=ZIP_EPOCH)
+            info.compress_type = ZIP_COMPRESSION
+            info.create_system = ZIP_CREATE_SYSTEM
+            info.external_attr = 0o600 << 16
+            zf.writestr(info, data)
+    return buf.getvalue()
+
+
+_PAGE_BREAK = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
+
+
+def scan_page_docx() -> bytes:
+    """A report with a scanned page pasted in as a picture: page 2 has no text, only the
+    picture (6.5 x 9.5 in on A4), and needs the ATR once rendered; pages 1 and 3 have text."""
+    body = (
+        _p("Nálezová zpráva", style="Heading1")
+        + _p("Na následující straně je naskenovaný plán sondy.")
+        + _PAGE_BREAK
+        + _picture("rId9", "plan.png", 6.5, 9.5, 1)
+        + _PAGE_BREAK
+        + _p("Závěr: sonda byla zasypána.")
+    )
+    return _picture_docx(body, _png(32, 48, 96))
+
+
+#: A paragraph long enough to wrap onto several lines of an A4 page.
+_LONG_PARAGRAPH = (
+    "Sonda II byla položena v severní části zkoumané plochy a odkryla souvrství o mocnosti "
+    "přibližně jednoho metru. Pod ornicí následovala hnědá hlinitá vrstva s četnými zlomky "
+    "keramiky, mazanice a zvířecích kostí, v jejíž bázi se rýsoval obrys zahloubeného objektu. "
+    "Výplň objektu tvořila tmavá humózní hlína s uhlíky, ze které pochází soubor nálezů "
+    "datovaný předběžně do mladší doby bronzové."
+)
+
+
+def photo_text_docx() -> bytes:
+    """One page: a long paragraph, a photo (3 x 2 in) and a short paragraph. The page has good
+    text, so it does not go to the ATR for its photo (#9, point 5)."""
+    body = (
+        _p(_LONG_PARAGRAPH)
+        + _picture("rId9", "foto.png", 3.0, 2.0, 1)
+        + _p("Obr. 1: Pohled na sondu II od jihu.")
+    )
+    return _picture_docx(body, _png(30, 20, 160))
+
+
+def sample_txt() -> bytes:
+    return (
+        "Nálezová zpráva\n"
+        "Sonda II odkryla vrstvu ornice\n"
+        "a pod ní hnědou hlinitou vrstvu.\n"
+        "\n"
+        "Nalezeny zlomky keramiky a kosti.\n"
+        "\f"
+        "Příloha 1: soupis nálezů.\n"
+    ).encode("utf-8")
+
+
+def sample_csv() -> bytes:
+    return (
+        "id;text;datace;poznamka\n"
+        '1;Zlomek okraje hrnce;HB;"nalezen v sondě II, vrstva 2"\n'
+        "2;Zvířecí kost;;\n"
+        "3;Mazanice;HB;s otisky prutů\n"
+    ).encode("utf-8")
+
+
+def sample_tsv() -> bytes:
+    return (
+        "id\ttext\tdatace\n"
+        "1\tZlomek okraje hrnce\tHB\n"
+        "2\tZvířecí kost\t\n"
+    ).encode("utf-8")
+
+
+def sample_json() -> bytes:
+    data = {
+        "akce": "C-202212345",
+        "sonda": {"nazev": "Sonda II", "hloubka_cm": 110},
+        "nalezy": [
+            {"popis": "Zlomek okraje hrnce", "pocet": 3},
+            {"popis": "Zvířecí kost\nz výplně objektu", "pocet": 1},
+        ],
+    }
+    return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+
+
 # ── driver ───────────────────────────────────────────────────────────────────
 
 BUILDERS = {
@@ -1121,6 +1293,12 @@ BUILDERS = {
     "small_caps.pdf": small_caps_pdf,
     "rotated.pdf": rotated_pdf,
     "bold_titles.pdf": bold_titles_pdf,
+    "scan_page.docx": scan_page_docx,
+    "photo_text.docx": photo_text_docx,
+    "sample.txt": sample_txt,
+    "sample.csv": sample_csv,
+    "sample.tsv": sample_tsv,
+    "sample.json": sample_json,
 }
 
 NOTES = {
@@ -1141,6 +1319,12 @@ NOTES = {
     "small_caps.pdf": "capitals then smaller capitals in one word; real spaces; a Ts capital (#5)",
     "rotated.pdf": "vertical table headers (ttb with a second subset, btt); a btt caption (#5)",
     "bold_titles.pdf": "bold section titles at the body size; bold lines that are not titles (#5)",
+    "scan_page.docx": "text page, a page of one picture (a pasted scan), text page — only the picture page needs the ATR (#9)",
+    "photo_text.docx": "a long paragraph, a photo, a caption on one page — visual lines, no ATR for a photo (#9)",
+    "sample.txt": "two paragraphs, a form feed, a second page — the textual workflow (#9)",
+    "sample.csv": "a header row and rows with a text column among others — every column kept (#9)",
+    "sample.tsv": "the CSV's rows as tab-separated values (#9)",
+    "sample.json": "string values in objects and lists, with keys and numbers — every string kept (#9)",
 }
 
 

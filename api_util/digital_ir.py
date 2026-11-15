@@ -204,6 +204,10 @@ class DigitalLine:
     #: Share of the line's characters set in a bold face (PDF light engine). Internal: `bold` is
     #: the first word's face; the bold-title heading pass reads this (`digital_pdf`).
     bold_share: float = 0.0
+    #: The line's words with their boxes, `(text, [x0, top, x1, bottom])`, as the PDF light engine
+    #: read them. Internal, never serialised: `render_place` aligns a rendered office file's words
+    #: with the native text (atrium-digital-convert#9).
+    words: List[Tuple[str, List[float]]] = field(default_factory=list)
 
 
 #: `group_id` prefix of the lines that are table cells (`tbl{n}-r{r}c{c}`), in every adapter.
@@ -250,6 +254,10 @@ class DigitalPage:
     #: Share of the page under its images, measured only for a page whose only text is its
     #: running header or footer (`digital_pdf._mark_furniture_only`); None when not measured.
     image_coverage: Optional[float] = None
+    #: A rendered office page only (`render_place`, atrium-digital-convert#9): its body words and
+    #: how many of them the document's own text was placed on. None when not measured.
+    render_words: Optional[int] = None
+    render_matched: Optional[int] = None
 
     @property
     def has_geometry(self) -> bool:
@@ -304,13 +312,28 @@ class DigitalDocument:
     engine: str = "light"
     #: `para_config.txt` component names this run actually used — the licence union's input.
     components: List[str] = field(default_factory=list)
-    #: The input kind `sniff()` decided (`pdf`, `docx`, `odt`, `ods`, `xlsx`, `rtf`, `doc`, `xls`).
+    #: The input kind `sniff()` decided (`pdf`, `docx`, `odt`, `rtf`, `doc`; `ods`, `xlsx`, `xls`,
+    #: `txt`, `csv`, `tsv`, `json`).
     kind: str = ""
     #: Reader notes worth reporting (the vendored reader's lossy/limit notes, a conversion).
     notes: List[str] = field(default_factory=list)
     #: For DOC/XLS: how the original was converted before reading (tool, target format,
     #: seconds). The record keeps the ORIGINAL's identity; this goes to the paradata.
     conversion: Optional[Dict[str, Any]] = None
+    #: For an office file read with native text on rendered pages (DOCX, DOC, ODT, RTF;
+    #: atrium-digital-convert#9): how LibreOffice rendered it (tool, version, seconds, pages, the
+    #: PDF's SHA-512). The paradata name the PDF by SHA-512 as an output that is not stored (D23);
+    #: the docproc's pages are its pages.
+    rendering: Optional[Dict[str, Any]] = None
+    #: The rendered PDF's bytes, while the run lasts: what `--rendered-out` writes and `/reformat`
+    #: returns for the visual steps (page-classification, the ATR).
+    rendered_pdf: Optional[bytes] = field(default=None, repr=False)
+    #: Which workflow read the document: `visual` (pages with a verdict each; PDF, and office
+    #: files on their rendered pages) or `textual` (text extracted as is, no pages to render).
+    workflow: str = "visual"
+    #: Splits the reading made and records (D13): `(limit, value, count, detail)`; the run's
+    #: paradata note each one with the effect `split`.
+    splits: List[Tuple[str, Any, int, str]] = field(default_factory=list)
 
     def all_lines(self) -> List[DigitalLine]:
         return [line for page in self.pages for line in page.lines]

@@ -39,12 +39,16 @@ jobs:
       # write (atrium-project#71, status of 2026-10-01, point 3). The new packages are private
       # on creation: grant ufal/atrium-project read access for the hub's digital E2E.
       image-name: ufal/atrium-digital-convert
-      apt-packages: ""
+      # LibreOffice and the image's fonts: office documents are rendered for their pages
+      # (atrium-digital-convert#9), so the tests that convert a DOCX, DOC, ODT or RTF render it
+      # for real (tests/office_support.py skips them where LibreOffice is missing). The runner
+      # is Ubuntu; `libreoffice-writer` is the package name there for sure.
+      apt-packages: "libreoffice-writer fonts-liberation fonts-crosextra-carlito fonts-crosextra-caladea fonts-dejavu-core"
       pre-install-torch: ""
       # requirements-test.txt is listed because THIS job is the one that runs
       # `pytest -m "not slow" --cov` (docker-tool.reusable.yml), and requirements_digital.txt
-      # because the converter's readers are what most tests exercise. The DOC/XLS tests run
-      # against a fake `soffice`, so the job needs no LibreOffice; the images carry the real one.
+      # because the converter's readers are what most tests exercise. The DOC/XLS conversion
+      # tests run against a fake `soffice`; the rendering tests need the real one (apt-packages).
       requirements: "requirements.txt requirements_digital.txt requirements-test.txt"
       hf-model-cache: false
       # "base" is deliberately NOT listed: it has no ENTRYPOINT and is not meant to be run

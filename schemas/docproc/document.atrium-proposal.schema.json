@@ -48,7 +48,11 @@
                 "xlsx",
                 "rtf",
                 "doc",
-                "xls"
+                "xls",
+                "txt",
+                "csv",
+                "tsv",
+                "json"
             ]
         },
         "sourceHash": {

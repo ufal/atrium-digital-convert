@@ -9,7 +9,7 @@
 > escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
 > **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** to **v1.4.2-beta** (10-29 to
 > 11-03) · **Starting set of the pilot phase: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
-> v1.4.3-beta was tagged, not released. Hub workflows pinned to `4435ffb` (`v1`). Latest entry: 2026-11-11._
+> v1.4.3-beta was tagged, not released. Hub workflows pinned to `4435ffb` (`v1`). Latest entry: 2026-11-14 (#9 points 4 and 5)._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -1529,4 +1529,21 @@ Documentation only; no code, test or configuration change.
 * **Done (local, not pushed):** `atrium_document.py`, its schema and `tests/test_document_originators.py` re-vendored: rows may carry `lines[].unit: "block"` (rule 5, written by ocr-postprocess only), and `quality_summary.lines` counts them as `block_units`. `v2.0.0-beta` as the unreleased version: `para_config.txt`, `CITATION.cff`, `service/openapi.json` (re-exported) and a CONTRIBUTING.md row marked Unreleased; api-contract passes with it; No object sampling (#84: "never samples"): `text_formats.py` re-vendored from ocr-postprocess, which judges a PDF page on all its objects; `PDF_OBJECT_CAP` gone from `tool_limits.py`, `.env.example` and the service README; `api_util/pdf_coverage.py`'s `IMAGE_CAP` gone; The reader pin (`tests/test_vendored_reader_parity.py`) carries the new digest; its `ADOPTED["commit"]` is set to ocr-postprocess's merge commit of #11 on `test` once it exists (a squash merge drops the branch commits); The hub's born-digital E2E lane now runs this image's `--docproc-out` and `/reformat` and builds the record with ocr-postprocess (atrium-project task 7).
 * **Checked:** the full suite, 962 passed; the spec export; `compare` against the latest release: compatible at v2.0.0-beta.
 * **Next:** the hub's second PR for #84, then the pins; then this PR. Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md), "Status — round 6".
+* **Not posted; not pushed.**
+
+## 2026-11-14 (evening) — #9 points 4 and 5: visual and textual inputs
+
+* **Asked (K4TEL):** route visually rich and textual inputs to different workflows: render the office documents,
+  extract the contents of CSV and TXT. Decided with K4TEL: spreadsheets textual; CSV/TSV/JSON as they are; office
+  documents as native text on rendered pages.
+* **Done (local, not pushed):**
+  * `api_util/office_render.py`, `api_util/render_place.py`; the text-only readers in `api_util/digital_text.py`;
+  * the workflow registry in `api_util/digital_to_json.py`, with `--rendered-out` and the coverage rule;
+  * `/reformat`'s `rendered` and `rendered_pdf`, and `/info`'s `workflows`;
+  * `RENDER_TEXT_COVERAGE` and `MAX_LINE_CHARS`; `sourceFormat` `txt`/`csv`/`tsv`/`json` in the proposal;
+  * fonts in the image; LibreOffice in the CI test job; six new fixtures;
+  * `--docx-page-breaks` removed.
+* **Checked:** the full suite with LibreOffice and without it (the rendering tests skip); records built from the
+  new docprocs by ocr-postprocess's `build_record.py`.
+* **Detail and the meeting items:** [`plans/9.plan.md`](plans/9.plan.md), "Status — 11-14".
 * **Not posted; not pushed.**
