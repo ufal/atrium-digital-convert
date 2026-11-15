@@ -255,6 +255,9 @@ checks this table against `tool_limits.py` and `.env.example`.
 * **Memory follows the text, not the file size.** The server's peak reached 783 MB, for a 282-page
   report, and 560 MB for the 156 MB one. Budget about 1 GB plus `MAX_UPLOAD_MB` per
   `MAX_CONCURRENT_JOBS` slot.
+* **An office document's rendered PDF travels in the answer.** `rendered_pdf` is base64, about 4/3 of the
+  PDF's size, so a DOCX full of photographs gives a large response when a page needs the ATR (or with
+  `rendered=true`); the rendering keeps the images' resolution for the ATR.
 * **The stages' GPU.** This service needs none. Page-classification takes 4.0 GB with its five
   models. ocr-postprocess's line-quality model peaked at 9.5 GB scoring 32 lines at a time, so the two fit one
   24 GB card. 32 is the default of `PPL_BATCH_LINES` in ocr-postprocess v1.12.0-beta and later, which also

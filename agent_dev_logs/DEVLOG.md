@@ -1547,3 +1547,17 @@ Documentation only; no code, test or configuration change.
   new docprocs by ocr-postprocess's `build_record.py`.
 * **Detail and the meeting items:** [`plans/9.plan.md`](plans/9.plan.md), "Status — 11-14".
 * **Not posted; not pushed.**
+
+## 2026-11-15 — #9 round 2: the checks of #11
+
+* **Asked (K4TEL):** read the checks of the `multiformat` PRs and make the next round.
+* **Found:** one test red. Two LibreOffice renderings of `rich.docx` on the Ubuntu runner differed in bytes, not in
+  layout: the parity test built one docproc from them.
+* **Done (local, not pushed):**
+  * the test checks the layout a rerun keeps, and the docs no longer promise a stable digest;
+  * LibreOffice runs with `TZ=UTC`;
+  * a real DOC test;
+  * the `rendered_pdf` size note in the service README.
+* **Checked:** the suite with LibreOffice and without it.
+* **Detail:** [`plans/9.plan.md`](plans/9.plan.md), "Status — round 2".
+* **Not posted; not pushed.**

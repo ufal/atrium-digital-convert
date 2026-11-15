@@ -1,12 +1,13 @@
 """tests/test_office_render.py — office documents rendered for their pages (atrium-digital-convert#9).
 
 The working copy LibreOffice renders (tracked changes accepted, the package repaired), the pinned
-command, the reproducible PDF, and the failures (no LibreOffice, a timeout). The tests that need a
+command, the normalised PDF and a layout that reruns keep, and the failures (no LibreOffice, a timeout). The tests that need a
 real LibreOffice are marked `needs_libreoffice`; the rest run against a fake `soffice`.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import stat
 import sys
@@ -158,17 +159,38 @@ def test_a_rendering_over_the_time_limit_fails_the_run(fixtures, tmp_path, monke
         office_render.render_pdf(str(fixtures / "minimal.docx"), "docx", str(tmp_path / "w"))
 
 
-@needs_libreoffice
-def test_a_real_rendering_is_reproducible_and_shows_no_deletion(fixtures, tmp_path):
+def _layout(pdf: str):
+    """A rendering as the docproc sees it: each page's size and its words with their positions."""
     import pdfplumber
 
-    digests, texts = [], []
+    with pdfplumber.open(pdf) as doc:
+        return [
+            (
+                round(float(page.width), 2),
+                round(float(page.height), 2),
+                [
+                    (w["text"], round(w["x0"], 1), round(w["top"], 1), round(w["x1"], 1), round(w["bottom"], 1))
+                    for w in page.extract_words()
+                ],
+            )
+            for page in doc.pages
+        ]
+
+
+@needs_libreoffice
+def test_a_rerun_lays_the_document_out_the_same_and_shows_no_deletion(fixtures, tmp_path):
+    """What a rerun keeps is the layout the docproc is built on, not the PDF's bytes: on the
+    Ubuntu CI runner two renderings differed in bytes (2026-11-15) and gave one docproc."""
+    layouts, digests = [], []
     for run in range(2):
         pdf, facts = office_render.render_pdf(
             str(fixtures / "rich.docx"), "docx", str(tmp_path / str(run))
         )
+        layouts.append(_layout(pdf))
         digests.append(facts["sha512"])
-        with pdfplumber.open(pdf) as doc:
-            texts.append(" ".join(page.extract_text() or "" for page in doc.pages))
-    assert digests[0] == digests[1], "a rerun names the same PDF"
-    assert "železný nůž" not in texts[0] and "bronzová spona" in texts[0]
+        assert facts["sha512"] == hashlib.sha512(Path(pdf).read_bytes()).hexdigest(), (
+            "the digest names the PDF handed over"
+        )
+    assert layouts[0] == layouts[1], "a rerun lays the pages out the same"
+    words = " ".join(w[0] for _, _, page in layouts[0] for w in page)
+    assert "železný" not in words and "bronzová spona" in words

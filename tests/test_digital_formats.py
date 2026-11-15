@@ -271,6 +271,30 @@ def test_a_legacy_doc_keeps_the_originals_identity(tmp_path, monkeypatch):
     assert "provenance" not in record and "license" not in json.dumps(record)
 
 
+@needs_libreoffice
+def test_a_real_doc_is_read_on_its_rendered_pages(tmp_path):
+    """A DOC made by LibreOffice itself, end to end: converted to DOCX, read natively, the DOCX
+    rendered for its pages (#9). The fake `soffice` above checks the identity; this checks the path."""
+    from api_util.digital_legacy import run_libreoffice
+
+    docx = tmp_path / "zprava.docx"
+    docx.write_bytes(make_fixtures.minimal_docx())
+    made, _ = run_libreoffice(str(docx), "docx", "doc", ".doc", str(tmp_path / "make"))
+    original = tmp_path / "stara-zprava.doc"
+    original.write_bytes(Path(made).read_bytes())
+
+    document, record = d2j.prepare(str(original))
+    assert document.kind == "doc" and document.workflow == "visual"
+    assert record["source"]["media_type"] == "application/msword"
+    assert record["source"]["sha512"] == hashlib.sha512(original.read_bytes()).hexdigest()
+    assert document.rendering["from"] == "doc" and document.conversion["to"] == "docx"
+    assert [page.unit for page in document.pages] == ["pt", "pt"], "the explicit page break"
+    lines = [line for page in document.pages for line in page.lines]
+    assert "Třetí odstavec, už na druhé straně." in [line.text for line in lines]
+    assert all(line.bbox for line in lines), "boxes measured on the rendering"
+    assert not any(page.needs_ocr for page in document.pages)
+
+
 def test_a_legacy_xls_is_read_as_a_spreadsheet(tmp_path, monkeypatch):
     xlsx = make_xlsx(tmp_path / "converted.xlsx")
     _fake_soffice(tmp_path, xlsx, monkeypatch)

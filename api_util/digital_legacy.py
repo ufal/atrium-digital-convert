@@ -109,7 +109,16 @@ def run_libreoffice(
     ]
     started = time.monotonic()
     try:
-        proc = subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=False)
+        # TZ=UTC: LibreOffice stamps a PDF with the local time and its offset ("Z'" or "+01'00'"), so
+        # the bytes would depend on the host's time zone (office_render.stable_pdf fixes the digits).
+        proc = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            env={**os.environ, "TZ": "UTC"},
+        )
     except subprocess.TimeoutExpired as exc:
         import tool_limits  # noqa: PLC0415
 

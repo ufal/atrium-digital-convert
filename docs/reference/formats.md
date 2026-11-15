@@ -61,8 +61,8 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
   * The rendered PDF is what the visual steps read for a page that needs the ATR: page-classification takes PDFs
     only, and the ATR's page numbers and boxes must be the docproc's (H2, D28). It comes back as `rendered_pdf` from
     `/reformat` (`--rendered-out` on the command line).
-  * The PDF is not stored. The paradata name it by SHA-512, `stored: false` (D23). Its date and identifiers are
-    fixed, so a rerun with the same image gives the same digest.
+  * The PDF is not stored. The paradata name it by SHA-512, `stored: false` (D23): the PDF this run handed over. A
+    rerun lays the pages out the same, so the docproc does not change; the PDF's own bytes may differ.
 * **The textual workflow: extracted as it is.**
   * A TXT keeps its physical lines; a blank line ends a paragraph (one block).
   * A CSV or TSV row is one line of its non-empty cells joined by a tab, the header row and every column included

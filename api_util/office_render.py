@@ -26,11 +26,15 @@ their resolution (the ATR and page-classification read them), automatically inse
 are kept (they are routed `empty`). Hyphenation dictionaries are not installed in the image, so
 LibreOffice never hyphenates a word the native text has whole.
 
-The PDF is made reproducible (`stable_pdf`): LibreOffice writes the time of the run
-(`/CreationDate`) and a random `/ID` and `/DocChecksum` into it, so two renderings of one file
-would differ in those bytes alone. They are overwritten in place, with values of the same length
-(a fixed date; digests of the rendered copy), so the cross-reference offsets stay valid and a
-rerun with the same image gives the same SHA-512 — the digest the paradata name the PDF by.
+What a rerun keeps is the layout: the same pages, sizes and word positions, so the docproc built
+on the rendering does not change (checked on CI, where two renderings gave one docproc). The PDF's
+own bytes are a best effort. LibreOffice writes the time of the run (`/CreationDate`) and a random
+`/ID` and `/DocChecksum` into it; `stable_pdf` overwrites them in place, with values of the same
+length (a fixed date; digests of the rendered copy), so the cross-reference offsets stay valid, and
+LibreOffice runs with `TZ=UTC`, so the date's suffix has one length on every host. Two renderings
+on this repository's own machines then match byte for byte, but the Ubuntu CI runner's LibreOffice
+did not (2026-11-15), so no one should rely on it: the SHA-512 the paradata give names the PDF
+this run handed over, which is the one the visual steps read.
 """
 
 from __future__ import annotations
@@ -265,7 +269,7 @@ def render_pdf(path: str, kind: str, workdir: str) -> Tuple[str, Dict[str, Any]]
     """Render the DOCX, ODT or RTF at `path` to PDF in `workdir`: the PDF's path and the facts.
 
     The facts are what `reader.rendering` reports: `tool`, `version`, `from`, `to`, `sha512` of the
-    (reproducible, `stable_pdf`) PDF; `pages` is added by the caller once the PDF is read. No
+    PDF handed over (after `stable_pdf`); `pages` is added by the caller once the PDF is read. No
     timing: the facts describe the rendering, not the run.
     Fails as the legacy conversion does: `dependency_missing` without LibreOffice,
     `conversion_failed`, or `limit_exceeded` past `LIBREOFFICE_TIMEOUT_S` (D13).

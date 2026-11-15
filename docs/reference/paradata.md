@@ -12,9 +12,9 @@ of 12 November 2026). What a run read and wrote is named by AMČR distribution n
 * **Output** (`result`): the docproc as `atr/docproc-json`. When a page needs the ATR, the ATR's docproc is the
   stored one, so this one is `stored: false`, still named by its SHA-512 (H14). An office document's rendered PDF
   is an output too, as `rendered-pdf` (a stand-in name until AMČR gives one), always `stored: false` (D23): the
-  docproc's pages and boxes are its pages, and the visual steps read it (#9). Its date and identifiers are fixed,
-  so a rerun with the same image names the same digest. The Markdown and the `/describe` report are development
-  outputs and are not named.
+  docproc's pages and boxes are its pages, and the visual steps read it (#9). Its digest names the PDF this run
+  handed over. A rerun lays the pages out the same, so the docproc does not change, but the PDF's bytes may differ.
+  The Markdown and the `/describe` report are development outputs and are not named.
 * **Parameters**: the engine (`light`, `docling`), the workflow (`visual`, `textual`); for an office document, the
   pinned LibreOffice export options (`render`) and `render_text_coverage`.
 * **Limits**: the splits the output rests on (D13): `max_line_chars` when lines of a textual input were wrapped.
