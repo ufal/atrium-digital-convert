@@ -611,9 +611,7 @@ def _convert(
         program=PROGRAM,
         config={
             "endpoint": endpoint,
-            **d2j.run_config(
-                upload.name, "light", markdown=markdown, describe=describe
-            ),
+            **d2j.run_config(upload.name, "light", markdown=markdown, describe=describe),
         },
         paradata_dir=None,
         config_dir=_PARA_CONFIG_DIR,
@@ -749,7 +747,8 @@ async def reformat(
         json_schema_extra={"contentMediaType": "application/json"},
     ),
     markdown: bool = Form(
-        False, description="Also return the document rendered as annotated Markdown (a development view)."
+        False,
+        description="Also return the document rendered as annotated Markdown (a development view).",
     ),
     rendered: bool = Form(False, description=_RENDERED_HELP),
 ):
@@ -779,7 +778,9 @@ async def reformat(
                 "docproc": docproc,
                 "reader": reader_info(document, dev),
             }
-            if document.rendered_pdf is not None and (rendered or docproc_writer.needs_atr(docproc)):
+            if document.rendered_pdf is not None and (
+                rendered or docproc_writer.needs_atr(docproc)
+            ):
                 result["rendered_pdf"] = {
                     "media_type": "application/pdf",
                     "sha512": document.rendering["sha512"],

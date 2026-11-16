@@ -65,7 +65,9 @@ def image_boxes(page: Any) -> List[Box]:
     import pypdfium2.raw as pdfium_c  # noqa: PLC0415  (light-engine dependency, imported on use)
 
     boxes: List[Box] = []
-    for obj in page.get_objects(filter=(pdfium_c.FPDF_PAGEOBJ_IMAGE,), max_depth=FORM_DEPTH):  # every one (#84)
+    for obj in page.get_objects(
+        filter=(pdfium_c.FPDF_PAGEOBJ_IMAGE,), max_depth=FORM_DEPTH
+    ):  # every one (#84)
         try:
             bounds = getattr(obj, "get_bounds", None) or obj.get_pos  # pypdfium2 5.x / 4.x
             box: Box = tuple(bounds())  # type: ignore[assignment]

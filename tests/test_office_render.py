@@ -169,7 +169,13 @@ def _layout(pdf: str):
                 round(float(page.width), 2),
                 round(float(page.height), 2),
                 [
-                    (w["text"], round(w["x0"], 1), round(w["top"], 1), round(w["x1"], 1), round(w["bottom"], 1))
+                    (
+                        w["text"],
+                        round(w["x0"], 1),
+                        round(w["top"], 1),
+                        round(w["x1"], 1),
+                        round(w["bottom"], 1),
+                    )
                     for w in page.extract_words()
                 ],
             )

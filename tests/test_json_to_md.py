@@ -675,7 +675,12 @@ def test_the_recipe_names_this_converter():
 
 @pytest.mark.parametrize(
     "name",
-    ["minimal.pdf", "table.pdf", "two_column.pdf", pytest.param("rich.docx", marks=needs_libreoffice)],
+    [
+        "minimal.pdf",
+        "table.pdf",
+        "two_column.pdf",
+        pytest.param("rich.docx", marks=needs_libreoffice),
+    ],
 )
 def test_detail_profiles_on_the_digital_fixtures(name):
     """The committed digital fixtures, through the one route the clients use."""

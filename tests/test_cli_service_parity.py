@@ -82,7 +82,9 @@ def test_the_docproc_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
     assert cli_bytes == d2j.docproc_bytes(body["docproc"])
 
 
-@pytest.mark.parametrize("name", ["minimal.pdf", pytest.param("rich.docx", marks=needs_libreoffice)])
+@pytest.mark.parametrize(
+    "name", ["minimal.pdf", pytest.param("rich.docx", marks=needs_libreoffice)]
+)
 def test_markdown_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
     out = _cli(tmp_path, name, "--markdown")
     stem = Path(name).stem
@@ -90,7 +92,9 @@ def test_markdown_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
     assert (out / f"{stem}.md").read_text(encoding="utf-8") == body["markdown"]
 
 
-@pytest.mark.parametrize("name", ["garbled.pdf", pytest.param("minimal.docx", marks=needs_libreoffice)])
+@pytest.mark.parametrize(
+    "name", ["garbled.pdf", pytest.param("minimal.docx", marks=needs_libreoffice)]
+)
 def test_the_assessment_is_the_same_from_the_cli_and_from_describe(tmp_path, no_stages, name):
     out = _cli(tmp_path, name, "--describe")
     stem = Path(name).stem

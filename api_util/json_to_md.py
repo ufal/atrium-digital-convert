@@ -82,6 +82,7 @@ def load_json(path: str | Path) -> Dict[str, Any]:
         raise ValueError(f"{path}: a record is a JSON object, not a {type(data).__name__}")
     return data
 
+
 #: The recipe id a record's ``regenerable.markdown`` names for this converter. 1.1 added the
 #: ``standard``/``minimal`` profiles and LAYOUT_MARGIN; a 1.0 recipe renders as 1.1 ``full``
 #: minus LAYOUT_MARGIN. The keyword stage (atrium-keyword-extract, where the LLM client moved
@@ -566,7 +567,9 @@ def convert(
     if doc_id.lower().endswith(".document.json"):
         doc_id = doc_id[: -len(".document.json")]
 
-    return render_record(load_json(doc_json_path), title=doc_id, detail=detail, min_quality=min_quality)
+    return render_record(
+        load_json(doc_json_path), title=doc_id, detail=detail, min_quality=min_quality
+    )
 
 
 if __name__ == "__main__":

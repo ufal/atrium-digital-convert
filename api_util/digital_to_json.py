@@ -824,7 +824,8 @@ def _sniff_text(path: str) -> str:
     spec = tf.READERS.get(kind)
     label = spec.label if spec else kind
     raise DigitalInputError(
-        "unsupported", f"unsupported input {path!r}: {label}, not a type digital-convert reads ({_ACCEPTED})"
+        "unsupported",
+        f"unsupported input {path!r}: {label}, not a type digital-convert reads ({_ACCEPTED})",
     )
 
 
@@ -938,7 +939,9 @@ def extract_pdf(path: str, doc_id: Optional[str] = None) -> DigitalDocument:
     return _extract(path, doc_id or canonical_doc_id(path), ORIGIN_PDF)
 
 
-def extract_docx(path: str, doc_id: Optional[str] = None, page_breaks: str = "explicit") -> DigitalDocument:
+def extract_docx(
+    path: str, doc_id: Optional[str] = None, page_breaks: str = "explicit"
+) -> DigitalDocument:
     """The native DOCX reading — `api_util/digital_docx.py`.
 
     `explicit` breaks by default: the pages of an office document are its rendering's, and Word's

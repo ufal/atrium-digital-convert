@@ -170,9 +170,12 @@ def extract_text_document(
         document.workflow = "textual"
         if "page_overflow_split" in text_doc.notes:
             document.splits.append(
-                ("max_lines_per_page", reader_limits(max_file_mb, max_pages).max_lines_per_page,
-                 sum(1 for p in text_doc.pages if "overflow" in p.flags),
-                 "a sheet longer than the reader's line cap continues on further pages")
+                (
+                    "max_lines_per_page",
+                    reader_limits(max_file_mb, max_pages).max_lines_per_page,
+                    sum(1 for p in text_doc.pages if "overflow" in p.flags),
+                    "a sheet longer than the reader's line cap continues on further pages",
+                )
             )
     for index, text_page in enumerate(text_doc.pages, 1):
         label = (text_page.label or "").strip() or str(index)
@@ -190,7 +193,9 @@ def extract_text_document(
     return document
 
 
-def _fail_on_loss(notes: Iterable[str], label: str, page_flags: Iterable[Iterable[str]] = ()) -> None:
+def _fail_on_loss(
+    notes: Iterable[str], label: str, page_flags: Iterable[Iterable[str]] = ()
+) -> None:
     """Fail the run when the reading skipped or altered content (D13; the module docstring)."""
     tf = _reader()
     lost = []
@@ -215,7 +220,9 @@ def _max_line_chars() -> int:
     return int(tool_limits.MAX_LINE_CHARS.get())
 
 
-def _add_lines(document: DigitalDocument, page: DigitalPage, rows: Iterable[Tuple[str, str]]) -> None:
+def _add_lines(
+    document: DigitalDocument, page: DigitalPage, rows: Iterable[Tuple[str, str]]
+) -> None:
     """Append `(group, text)` rows to `page` as lines, canonicalised and wrapped at MAX_LINE_CHARS.
 
     Each line that had to be wrapped adds one to the document's `max_line_chars` split."""
@@ -232,7 +239,9 @@ def _add_lines(document: DigitalDocument, page: DigitalPage, rows: Iterable[Tupl
         for piece in pieces:
             piece = piece.strip()
             if piece:
-                page.lines.append(DigitalLine(page=page.page, line=len(page.lines), text=piece, group_id=group))
+                page.lines.append(
+                    DigitalLine(page=page.page, line=len(page.lines), text=piece, group_id=group)
+                )
     if wrapped:
         _note_split(document, wrapped, width)
 
@@ -243,7 +252,12 @@ def _note_split(document: DigitalDocument, count: int, width: int) -> None:
             document.splits[i] = (limit, value, previous + count, detail)
             return
     document.splits.append(
-        ("max_line_chars", width, count, f"lines longer than {width} characters wrapped at a word boundary")
+        (
+            "max_line_chars",
+            width,
+            count,
+            f"lines longer than {width} characters wrapped at a word boundary",
+        )
     )
 
 
@@ -253,7 +267,9 @@ def _decode(path: str, label: str, max_file_mb: Optional[float]) -> Tuple[str, L
     try:
         size = os.path.getsize(path)
         if max_file_mb and size > float(max_file_mb) * 1024 * 1024:
-            raise DigitalInputError("zip_limits_exceeded", f"{label}: {size} bytes over MAX_UPLOAD_MB")
+            raise DigitalInputError(
+                "zip_limits_exceeded", f"{label}: {size} bytes over MAX_UPLOAD_MB"
+            )
         with open(path, "rb") as handle:
             data = handle.read()
     except OSError as exc:
@@ -261,7 +277,9 @@ def _decode(path: str, label: str, max_file_mb: Optional[float]) -> Tuple[str, L
     try:
         text, encoding, flags = tf.decode_bytes(data)
     except tf.IngestError as exc:
-        raise DigitalInputError("unsupported", f"{label} is not text ({exc.code}: {exc.message})") from exc
+        raise DigitalInputError(
+            "unsupported", f"{label} is not text ({exc.code}: {exc.message})"
+        ) from exc
     return tf.normalize_newlines(text), [f"encoding={encoding}", *flags]
 
 
@@ -333,7 +351,8 @@ def _json_rows(text: str, label: str) -> List[Tuple[str, str]]:
         raise DigitalInputError("corrupt", f"{label} is nested too deeply to read") from exc
     except ValueError as exc:
         raise DigitalInputError(
-            "corrupt", f"{label} is not one JSON document ({str(exc)[:200]}); JSON Lines is not read"
+            "corrupt",
+            f"{label} is not one JSON document ({str(exc)[:200]}); JSON Lines is not read",
         ) from exc
     rows: List[Tuple[str, str]] = []
     for n, string in enumerate(_json_strings(value)):

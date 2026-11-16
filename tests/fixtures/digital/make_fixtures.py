@@ -1138,7 +1138,9 @@ def _png(width: int, height: int, shade: int) -> bytes:
 
     def chunk(kind: bytes, data: bytes) -> bytes:
         body = kind + data
-        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+        return (
+            struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+        )
 
     raw = b"".join(b"\x00" + bytes([shade]) * width for _ in range(height))
     header = struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)  # 8-bit greyscale
@@ -1262,11 +1264,7 @@ def sample_csv() -> bytes:
 
 
 def sample_tsv() -> bytes:
-    return (
-        "id\ttext\tdatace\n"
-        "1\tZlomek okraje hrnce\tHB\n"
-        "2\tZvířecí kost\t\n"
-    ).encode("utf-8")
+    return ("id\ttext\tdatace\n1\tZlomek okraje hrnce\tHB\n2\tZvířecí kost\t\n").encode("utf-8")
 
 
 def sample_json() -> bytes:
