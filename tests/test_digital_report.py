@@ -141,13 +141,13 @@ def test_the_report_over_the_fixtures(tmp_path, fixture, expected):
 def test_a_mixed_document_says_so():
     summary = R.summarize(
         [
-            {"route": "nlp", "needs_ocr": False, "page_index": 1},
-            {"route": "htr", "needs_ocr": True, "page_index": 2},
-            {"route": "none", "needs_ocr": False, "page_index": 3},
+            {"route": "nlp", "needs_atr": False, "page_index": 1},
+            {"route": "htr", "needs_atr": True, "page_index": 2},
+            {"route": "none", "needs_atr": False, "page_index": 3},
         ]
     )
     assert summary["document_route"] == "mixed"
-    assert summary["needs_ocr_pages"] == [2] and summary["reacquire_pages"] == [2]
+    assert summary["needs_atr_pages"] == [2] and summary["reacquire_pages"] == [2]
 
 
 # ── atrium-digital-convert#5: what the quality rule counts, and lost letters ─────────────────

@@ -70,7 +70,7 @@ def test_mojibake_is_detected_and_recovered():
 
 
 def test_score_is_a_ratio_so_long_and_short_lines_compare():
-    """A caption and a page must be scorable on the same axis (`quality_score` is 0–1)."""
+    """A caption and a page must be scorable on the same axis (`decode_score` is 0–1)."""
     short = d2j.decode_sanity("sondì")
     long = d2j.decode_sanity("sondì " + "cistá " * 40)
     assert short.score < long.score
@@ -92,21 +92,24 @@ def test_digits_and_punctuation_only_is_not_garbage():
     assert report.letters == 0
 
 
-def test_garbage_line_gets_the_exact_spelling_json_to_md_filters_on():
-    """`categ` is an open string, so a synonym silently disables DROP_CATEGORIES."""
+def test_garbled_line_gets_the_exact_flag_json_to_md_filters_on():
+    """docproc's flags are an open vocabulary, so a synonym would silently disable DROP_FLAGS. The
+    verdict is the shared `decode-verdict` scheme's, its flag `decode:<verdict>`."""
     line = d2j.DigitalLine(page="1", line=0, text="sondì èíslo")
-    categ = d2j.classify_line(line, d2j.decode_sanity(line.text))
-    assert categ == "Garbage"
+    verdict = d2j.classify_line(line, d2j.decode_sanity(line.text))
+    assert verdict == "garbled" and d2j.decode_flag(verdict) == "decode:garbled"
 
-    from api_util.json_to_md import DROP_CATEGORIES
+    from api_util.json_to_md import DROP_FLAGS
+    from atrium_vocab import DECODE_FLAGS
 
-    assert categ in DROP_CATEGORIES
+    assert d2j.decode_flag(verdict) in DROP_FLAGS
+    assert d2j.DECODE_FLAGS == DECODE_FLAGS
 
 
 def test_inverted_wins_over_garbage():
     """Mirrored text's extracted string is not evidence, so a decode verdict on it is noise."""
     line = d2j.DigitalLine(page="1", line=0, text="sondì èíslo", inverted=True)
-    assert d2j.classify_line(line, d2j.decode_sanity(line.text)) == "Inverted"
+    assert d2j.classify_line(line, d2j.decode_sanity(line.text)) == "inverted"
 
 
 def test_paragraph_grouping_from_vertical_gaps():
@@ -149,7 +152,8 @@ def test_clean_page_is_not_routed_to_ocr():
         d2j.DigitalDocument(doc_id="D", origin=d2j.ORIGIN_PDF, media_type="", pages=[page])
     )
     assert page.needs_ocr is False
-    assert page.quality_band == "Clear"
+    assert page.decode_score == 1.0
+    assert not hasattr(page, "quality_band"), "the converter has no line-quality band (D18 rule 3)"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -256,11 +260,12 @@ def test_garbage_lines_are_kept_with_their_flag_but_excluded_from_content():
     `content.text` as if it were readable. The page goes to the ATR."""
     doc = _document(garbled=True)
     dev = d2j.development_dict(doc)
-    assert dev["lines"][0]["flags"] == ["Garbage"] and "categ" not in dev["lines"][0]
+    assert dev["lines"][0]["flags"] == ["decode:garbled"] and "categ" not in dev["lines"][0]
+    assert "quality_score" not in dev["lines"][0] and 0 <= dev["lines"][0]["decode_score"] < 1
     assert "sondì" not in (dev["content"]["text"] or "")
     assert "Vrstva ornice." in dev["content"]["text"]
     page = _docproc(doc)["pages"][0]
-    assert page["blocks"][0]["lines"][0]["flags"] == ["Garbage"]
+    assert page["blocks"][0]["lines"][0]["flags"] == ["decode:garbled"]
     assert page["needsAtr"] is True and page["needsAtrReason"]
 
 
@@ -399,7 +404,7 @@ def test_garbled_pdf_is_routed_to_ocr(digital_fixtures):
     pytest.importorskip("pdfplumber")
     doc = d2j.normalize(d2j.extract_pdf(str(digital_fixtures / "garbled.pdf")))
     assert any(page.needs_ocr for page in doc.pages)
-    assert any(line.categ == "Garbage" for line in doc.all_lines())
+    assert any(line.decode == "garbled" for line in doc.all_lines())
 
 
 def test_docx_extraction_carries_no_geometry(digital_fixtures):
@@ -563,7 +568,7 @@ def test_condemned_page_condemns_its_single_misread_lines():
     d2j.normalize(
         d2j.DigitalDocument(doc_id="D", origin=d2j.ORIGIN_PDF, media_type="", pages=[page])
     )
-    assert [ln.categ for ln in page.lines] == ["Garbage", "Garbage", "Garbage", None]
+    assert [ln.decode for ln in page.lines] == ["garbled", "garbled", "garbled", None]
 
 
 def test_a_single_misread_on_a_clean_page_still_stands():
@@ -572,7 +577,7 @@ def test_a_single_misread_on_a_clean_page_still_stands():
     d2j.normalize(
         d2j.DigitalDocument(doc_id="D", origin=d2j.ORIGIN_PDF, media_type="", pages=[page])
     )
-    assert page.lines[0].categ is None and not page.needs_ocr
+    assert page.lines[0].decode is None and not page.needs_ocr
 
 
 def test_line_less_page_has_no_score_and_a_scan_is_flagged():
@@ -581,7 +586,7 @@ def test_line_less_page_has_no_score_and_a_scan_is_flagged():
     blank = d2j.DigitalPage(page="3", page_index=3, text_layer=d2j.TEXT_LAYER_BLANK)
     for page in (scan, blank):
         d2j.assess_page(page)
-        assert page.quality_score is None and page.quality_band is None
+        assert page.decode_score is None
     assert scan.needs_ocr and scan.needs_ocr_reason.startswith("no extractable text layer")
     assert not blank.needs_ocr and blank.needs_ocr_reason == ""
 
@@ -723,9 +728,7 @@ def test_cli_exposes_the_engine_and_rendering_flags():
     help_text = d2j.build_parser().format_help()
     for flag in ("--engine", "--rendered-out", "--paradata-dir", "--docproc-out"):
         assert flag in help_text
-    assert "--docx-page-breaks" not in help_text, (
-        "an office document's pages are its rendering's (#9)"
-    )
+    assert "--docx-page-breaks" not in help_text, "an office document's pages are its rendering's (#9)"
 
 
 def _components_logged(tmp_path, names):
@@ -815,9 +818,9 @@ def test_text_less_pages_are_flagged_with_what_they_draw(digital_fixtures):
     assert not text.needs_ocr
     assert scan.needs_ocr and "draws 1 image(s)" in scan.needs_ocr_reason
     assert scan.needs_ocr_reason.startswith("no extractable text layer")
-    assert scan.quality_score is None
+    assert scan.decode_score is None
     assert empty.text_layer == "blank" and not empty.needs_ocr and not empty.lines
-    assert empty.quality_score is None
+    assert empty.decode_score is None
 
 
 def test_a_text_less_page_with_any_mark_is_not_blank(tmp_path):
@@ -1427,7 +1430,7 @@ def test_a_page_number_over_a_full_page_image_is_none_and_flagged(digital_fixtur
     record = d2j.build_development(str(digital_fixtures / "stamped_scan.pdf"))
     pages = record["pages"]
     assert [p["text_layer"] for p in pages] == ["none", "digital", "digital"]
-    assert pages[0]["needs_ocr"] is True and "quality_band" not in pages[0]
+    assert pages[0]["needs_ocr"] is True and "decode_score" not in pages[0]
     assert pages[0]["needs_ocr_reason"].startswith(
         "no text layer under the page furniture: images cover 100% of the page"
     )
@@ -1453,6 +1456,6 @@ def test_a_none_page_with_furniture_lines_is_flagged_by_layer_b():
     page.image_coverage = 0.97
     page.lines = [d2j.DigitalLine(page="3", line=0, text="3", region=d2j.REGION_FOOTER)]
     d2j.assess_page(page)
-    assert page.needs_ocr and page.quality_score is None and page.quality_band is None
+    assert page.needs_ocr and page.decode_score is None
     assert "images cover 97% of the page" in page.needs_ocr_reason
     assert d2j.text_layer_of(page) == d2j.TEXT_LAYER_NONE

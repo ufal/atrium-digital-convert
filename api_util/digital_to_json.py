@@ -72,9 +72,10 @@ absent from it.
 
 Detection feeds two outputs, and deliberately not a third:
 
-  * the line flag **`Garbage`** (docproc `lines[].flags`; `Inverted` for mirrored text): the
-    decode verdict, never a line category (D18 rule 2: categories are the record builder's).
-    `json_to_md` drops such a line from the Markdown view.
+  * the line flag **`decode:garbled`** (docproc `lines[].flags`; `decode:inverted` for mirrored
+    text): the decode verdict, never a line category (D18 rule 2: categories are the record
+    builder's), with the line's `decode_score`. `json_to_md` drops such a line from the Markdown
+    view.
   * the page's `needsAtr` + `needsAtrReason` (in the development dict `needs_ocr` and its
     reason) — the page goes to the ATR, and `metadata.routing` says so.
   * **Not** a silent repair. `decode_sanity()` returns the recovered string because it is
@@ -212,15 +213,13 @@ ENGINES: Tuple[str, ...] = ("light", "docling")
 #: rendering's; the native DOCX reading runs with explicit breaks only, `extract_docx()`.)
 
 # ---------------------------------------------------------------------------
-# Line-category labels  (hub registry: atrium_vocab.LINE_CATEGORY_ORIGINATORS)
+# Decode verdicts  (hub registry: atrium_vocab.DECODE_VERDICT_ORIGINATORS)
 # ---------------------------------------------------------------------------
-# The two load-bearing `categ` spellings this converter writes, and the only ones it
-# ever writes. `lines[].categ`'s other authorised originator, alto-postprocess, emits a
-# DISJOINT five-value set ({Clear, Empty, Noisy, Non-text, Trash}) — an OCR verdict over
-# a rendered image, where these two are a decode-sanity verdict over an embedded text
-# layer. The disjointness is deliberate and is not drift to reconcile; a consumer that
-# filters this field must handle BOTH sets (see defect V-1 in the hub's
-# docs/skos_strategy.md §6, and the note over `json_to_md.DROP_CATEGORIES`).
+# The two verdicts this converter gives a line whose embedded text layer does not decode,
+# and the only ones it gives. They are a system apart from line quality (D18 rules 2 and 3,
+# atrium-project#84): carried as the docproc line flags `decode:garbled` and
+# `decode:inverted` (`DECODE_FLAGS`), with the line's `decode_score`, never as a
+# `lines[].categ` value (the record builder's five line-quality categories).
 #
 # The strings are TAKEN FROM the hub registry rather than typed here, so the declaration
 # and the emission cannot drift apart unnoticed — but never at the cost of changing what
@@ -231,33 +230,45 @@ ENGINES: Tuple[str, ...] = ("light", "docling")
 # agrees with them, and a disagreement is REPORTED and then ignored. That follows the
 # house idiom (atrium_document.py's origin check, alto-postprocess's text_util.py):
 # abstain with a NOTE on stderr, never fatal. Silence means agreement.
-_CATEG_FALLBACK: Tuple[str, ...] = ("Garbage", "Inverted")
+_DECODE_FALLBACK: Tuple[str, ...] = ("garbled", "inverted")
 
 try:
-    from atrium_vocab import LINE_CATEGORY_ORIGINATORS as _VOCAB_LINE_CATEGORY_ORIGINATORS
-except ImportError:  # registry not vendored here — abstain, do not guess
+    from atrium_vocab import DECODE_VERDICT_ORIGINATORS as _VOCAB_DECODE_VERDICT_ORIGINATORS
+except ImportError:  # registry not vendored here, or one from before 2026-11-16 — abstain
     _declared: Tuple[str, ...] = ()
 else:
-    _declared = tuple(sorted(_VOCAB_LINE_CATEGORY_ORIGINATORS.get(PROGRAM, ())))
+    _declared = tuple(sorted(_VOCAB_DECODE_VERDICT_ORIGINATORS.get(PROGRAM, ())))
 
-if _declared and _declared != _CATEG_FALLBACK:
+if _declared and _declared != _DECODE_FALLBACK:
     print(
-        f"[digital_to_json] NOTE - line-category drift: this module emits "
-        f"{list(_CATEG_FALLBACK)} but atrium_vocab declares {list(_declared)} for "
-        f"originator {PROGRAM!r}. Emission is unchanged; reconcile the registry or this "
-        f"file (see defect V-1 in the hub's docs/skos_strategy.md).",
+        f"[digital_to_json] NOTE - decode-verdict drift: this module emits "
+        f"{list(_DECODE_FALLBACK)} but atrium_vocab declares {list(_declared)} for "
+        f"originator {PROGRAM!r}. Emission is unchanged; reconcile the registry or this file.",
         file=sys.stderr,
     )
 
 #: Sorted, so the comparison above and the unpacking here are order-independent — the
-#: registry sorts its own union the same way (`atrium_vocab.LINE_CATEGORIES`).
-CATEGORIES_EMITTED: Tuple[str, ...] = _declared if _declared == _CATEG_FALLBACK else _CATEG_FALLBACK
+#: registry sorts its own verdicts the same way (`atrium_vocab.DECODE_VERDICTS`).
+VERDICTS_EMITTED: Tuple[str, ...] = _declared if _declared == _DECODE_FALLBACK else _DECODE_FALLBACK
 
-#: The two load-bearing `categ` spellings (`json_to_md.DROP_CATEGORIES`).
-CATEG_GARBAGE, CATEG_INVERTED = CATEGORIES_EMITTED
+#: The two decode verdicts (`DigitalLine.decode`).
+DECODE_GARBLED, DECODE_INVERTED = VERDICTS_EMITTED
 
-#: Below this decode-sanity ratio a line is `Garbage` — the density signal, for a line
-#: whose diacritics are mostly wrong.
+#: How a verdict is spelled as a docproc line flag (`atrium_vocab.DECODE_FLAG_PREFIX`).
+DECODE_FLAG_PREFIX = "decode:"
+
+#: The line flags, `decode:garbled` and `decode:inverted` (`atrium_vocab.DECODE_FLAGS`).
+DECODE_FLAGS: Tuple[str, ...] = tuple(DECODE_FLAG_PREFIX + verdict for verdict in VERDICTS_EMITTED)
+
+
+def decode_flag(verdict: str) -> str:
+    """The docproc line flag of a decode verdict: `garbled` → `decode:garbled`."""
+    return DECODE_FLAG_PREFIX + verdict
+
+
+#: Below this decode score a line is `garbled` — the density signal, for a line whose
+#: diacritics are mostly wrong. (A decode threshold, whatever the historical name says: the
+#: name is kept because ocr-postprocess's `text_formats.py` ports the rule and cites it.)
 QUALITY_GARBAGE_BELOW = 0.90
 
 #: ...and this many confusable characters condemn a line regardless of its length.
@@ -270,7 +281,7 @@ QUALITY_GARBAGE_BELOW = 0.90
 #: line is a systematic decode fault, which is exactly the shape of this failure.
 #:
 #: The two rules are kept separate rather than folded into one score because they answer
-#: different questions — "how corrupt is this line?" (which `quality_score` must keep
+#: different questions — "how corrupt is this line?" (which `decode_score` must keep
 #: reporting as a 0–1 axis) and "is this line trustworthy at all?".
 GARBAGE_MIN_HITS = 2
 
@@ -280,7 +291,7 @@ GARBAGE_MIN_HITS = 2
 #: JSON route had no such check, so switching the auto-convert to it would have regressed.
 #: A glyph pdfminer cannot map arrives here as U+FFFD: the light engine turns its `(cid:N)`
 #: placeholder into one (`digital_ir.unmapped_to_replacement`, #5), so a line whose glyphs are
-#: mostly unmapped is `Garbage`, and a line with a few (the letters outside WinAnsi of a font
+#: mostly unmapped is `garbled`, and a line with a few (the letters outside WinAnsi of a font
 #: without /ToUnicode) keeps them visible as U+FFFD without condemning its page.
 GARBLE_CHAR_SHARE = 0.15
 
@@ -289,14 +300,9 @@ GARBLE_CHAR_SHARE = 0.15
 #: Italian letters (`è`, `ù`, `ì`, `ò`). Ported from atrium-alto-postprocess
 #: `text_formats.mojibake_line` (#31, Phase 4) so both tools judge a line alike: a letter
 #: CP1250 and CP1252 share that Czech uses (so it survives the misread), and no letter only
-#: French uses. "très complète" was Garbage here before.
+#: French uses. "très complète" was garbled here before.
 MOJIBAKE_SHARED_LETTERS = frozenset("áíúýšžÁÍÚÝŠŽ")
 MOJIBAKE_FOREIGN_LETTERS = frozenset("àêûœÀÊÛŒ")
-
-#: Page-level band cutoffs, matching the vocabulary alto-postprocess already uses so a
-#: consumer does not have to know which originator wrote the page.
-BAND_CLEAR_AT = 0.90
-BAND_NOISY_AT = 0.50
 
 #: Paragraph splitting. Measured on tests/fixtures/digital/minimal.pdf: 2.0 pt between
 #: lines of one paragraph, 34.0 pt between paragraphs (digital_born/README.md). A ratio
@@ -423,7 +429,7 @@ def decode_sanity(text: str) -> DecodeReport:
 
     The score is the share of letters that are NOT a CP1250→CP1252 misread. It is
     deliberately a ratio, not a count: a caption of three words and a page of three hundred
-    must be comparable, and `pages[].quality_score` is documented as a 0–1 axis either way.
+    must be comparable, and a page's `decode_score` (their mean) is a 0–1 axis either way.
 
     `recovered` is offered only when the whole string round-trips — `encode("cp1252")` then
     `decode("cp1250")`. A string containing a character CP1252 cannot represent was never a
@@ -468,16 +474,16 @@ def decode_sanity(text: str) -> DecodeReport:
 
 
 def classify_line(line: DigitalLine, report: DecodeReport) -> Optional[str]:
-    """The `categ` this line carries, or None to leave the field absent.
+    """The decode verdict this line carries (`DigitalLine.decode`), or None when it decodes.
 
-    Only the two spellings `json_to_md.DROP_CATEGORIES` knows are ever produced. `Inverted`
-    wins over `Garbage`: mirrored text is a rendering-level fault, and its extracted string
-    is not evidence of anything, so reporting a decode verdict on it would be noise.
+    Only the two verdicts of the `decode-verdict` scheme are ever produced. `inverted` wins
+    over `garbled`: mirrored text is a rendering-level fault, and its extracted string is not
+    evidence of anything, so a verdict on its characters would be noise.
     """
     if line.inverted:
-        return CATEG_INVERTED
+        return DECODE_INVERTED
     if report.is_garbage:
-        return CATEG_GARBAGE
+        return DECODE_GARBLED
     return None
 
 
@@ -586,7 +592,7 @@ RENDER_MIN_UNCOVERED = 3
 
 
 def assess_page(page: DigitalPage, textual: bool = False) -> None:
-    """Fill in `quality_score`, `quality_band`, `needs_ocr` and its reason, in place.
+    """Fill in the page's `decode_score`, `needs_ocr` and its reason, in place.
 
     A page of the textual workflow (`textual`: a text-only input or a spreadsheet,
     atrium-digital-convert#9 point 4) never needs the ATR: it has nothing to render. Its decode
@@ -600,8 +606,8 @@ def assess_page(page: DigitalPage, textual: bool = False) -> None:
     Without it every digital-born page rendered "no extractable text layer", which is false
     for a page that has one.
 
-    A page with no lines has no score: there is nothing the score could be about, and
-    writing Clear/1.0 for it is how an image-only page vanished (G1). A PDF page without text
+    A page with no lines has no decode score: there is nothing the score could be about, and
+    writing 1.0 for it is how an image-only page vanished (G1). A PDF page without text
     is flagged (Layer A's `text_layer == "none"`); an empty DOCX page (`blank`, two breaks in
     a row) is not — there is no page image for an OCR engine to read. A prior OCR layer is
     flagged whether or not any of its text became a line (a page whose words are all table
@@ -617,28 +623,21 @@ def assess_page(page: DigitalPage, textual: bool = False) -> None:
     """
     reasons: List[str] = []
     if not page.lines:
-        page.quality_score = None
-        page.quality_band = None
+        page.decode_score = None
         if page.text_layer == TEXT_LAYER_NONE:
             reasons.append(_reason_no_text(page))
     else:
-        scored = [ln.quality_score for ln in page.lines if ln.quality_score is not None]
-        page.quality_score = round(sum(scored) / len(scored), 4) if scored else 1.0
-        if page.quality_score >= BAND_CLEAR_AT:
-            page.quality_band = "Clear"
-        elif page.quality_score >= BAND_NOISY_AT:
-            page.quality_band = "Noisy"
-        else:
-            page.quality_band = "Trash"
+        scored = [ln.decode_score for ln in page.lines if ln.decode_score is not None]
+        page.decode_score = round(sum(scored) / len(scored), 4) if scored else 1.0
 
-        garbled = [ln for ln in page.lines if ln.categ == CATEG_GARBAGE]
+        garbled = [ln for ln in page.lines if ln.decode == DECODE_GARBLED]
         undecodable = [ln for ln in garbled if decode_sanity(ln.text).is_undecodable]
         mojibake = [ln for ln in garbled if ln not in undecodable]
         if mojibake:
             reasons.append(
                 f"embedded text layer does not decode: {len(mojibake)} of {len(page.lines)} "
                 f"lines carry CP1250 bytes read as CP1252 (mojibake diacritics), page "
-                f"decode-sanity {page.quality_score:.2f}. The page has a text layer; it is "
+                f"decode-sanity {page.decode_score:.2f}. The page has a text layer; it is "
                 f"not trustworthy."
             )
         if undecodable:
@@ -650,10 +649,9 @@ def assess_page(page: DigitalPage, textual: bool = False) -> None:
             )
         if page.text_layer == TEXT_LAYER_NONE:
             # The page's content has no text layer; its lines are a page number or a running
-            # header. Scoring them would call a scan `Clear`, so the page carries no score.
+            # header. A decode score of them would vouch for a scan, so the page carries none.
             reasons.append(_reason_furniture_only(page))
-            page.quality_score = None
-            page.quality_band = None
+            page.decode_score = None
     if page.text_layer == TEXT_LAYER_OCR:
         reasons.append(
             f"the text layer is a prior OCR run: {page.invisible_text_objects} of "
@@ -689,23 +687,23 @@ def normalize(doc: DigitalDocument) -> DigitalDocument:
             quality = report.score
             if report.chars:
                 quality = min(quality, 1.0 - report.bad / report.chars)
-            line.quality_score = round(quality, 4)
-            categ = classify_line(line, report)
-            if categ:
-                line.categ = categ
+            line.decode_score = round(quality, 4)
+            verdict = classify_line(line, report)
+            if verdict:
+                line.decode = verdict
         condemned = any(
-            line.categ == CATEG_GARBAGE and reports[id(line)].is_mojibake for line in page.lines
+            line.decode == DECODE_GARBLED and reports[id(line)].is_mojibake for line in page.lines
         )
         if condemned:
             for line in page.lines:
                 report = reports[id(line)]
                 if (
-                    line.categ is None
+                    line.decode is None
                     and report.suspicious >= 1
                     and report.encodable
                     and not report.foreign
                 ):
-                    line.categ = CATEG_GARBAGE
+                    line.decode = DECODE_GARBLED
         assign_group_ids(page.lines, prefix=f"p{page.page_index}-")
         assess_page(page, textual=doc.workflow == WORKFLOW_TEXTUAL)
     return doc
@@ -824,8 +822,7 @@ def _sniff_text(path: str) -> str:
     spec = tf.READERS.get(kind)
     label = spec.label if spec else kind
     raise DigitalInputError(
-        "unsupported",
-        f"unsupported input {path!r}: {label}, not a type digital-convert reads ({_ACCEPTED})",
+        "unsupported", f"unsupported input {path!r}: {label}, not a type digital-convert reads ({_ACCEPTED})"
     )
 
 
@@ -939,9 +936,7 @@ def extract_pdf(path: str, doc_id: Optional[str] = None) -> DigitalDocument:
     return _extract(path, doc_id or canonical_doc_id(path), ORIGIN_PDF)
 
 
-def extract_docx(
-    path: str, doc_id: Optional[str] = None, page_breaks: str = "explicit"
-) -> DigitalDocument:
+def extract_docx(path: str, doc_id: Optional[str] = None, page_breaks: str = "explicit") -> DigitalDocument:
     """The native DOCX reading — `api_util/digital_docx.py`.
 
     `explicit` breaks by default: the pages of an office document are its rendering's, and Word's
@@ -1090,11 +1085,10 @@ def _page_rows(doc: DigitalDocument) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for page in doc.pages:
         row: Dict[str, Any] = {"page": page.page, "page_index": page.page_index}
-        # Absent, never null: a line-less page has nothing to score.
-        if page.quality_score is not None:
-            row["quality_score"] = page.quality_score
-        if page.quality_band is not None:
-            row["quality_band"] = page.quality_band
+        # Absent, never null: a line-less page has nothing to decode. The decode score only:
+        # the page's quality score and band are ocr-postprocess's (D18 rule 3).
+        if page.decode_score is not None:
+            row["decode_score"] = page.decode_score
         if page.width and page.height:
             row["canvas"] = {"width": page.width, "height": page.height, "unit": page.unit}
         if page.needs_ocr:
@@ -1114,11 +1108,11 @@ def _line_rows(doc: DigitalDocument) -> List[Dict[str, Any]]:
         if line.group_id is not None:
             row["group_id"] = line.group_id
         # The decode verdict is a flag, as on docproc lines (D18 rule 2): `json_to_md` drops
-        # the line, and no line category is written (that is the record builder's).
-        if line.categ:
-            row["flags"] = [line.categ]
-        if line.quality_score is not None:
-            row["quality_score"] = line.quality_score
+        # the line, and no line category or quality score is written (the record builder's).
+        if line.decode:
+            row["flags"] = [decode_flag(line.decode)]
+        if line.decode_score is not None:
+            row["decode_score"] = line.decode_score
         if line.lang:
             row["lang"] = line.lang
         # Semantic style only — bold/italic/heading_level, plus `region` for page furniture
@@ -1158,7 +1152,7 @@ def _table_rows(doc: DigitalDocument) -> List[Dict[str, Any]]:
 
 
 def _content_text(doc: DigitalDocument) -> str:
-    """Reading-order text for search: no `Garbage`, no running headers or footers.
+    """Reading-order text for search: no `garbled` line, no running headers or footers.
 
     Furniture repeats on every page and says nothing about the document's content; a
     footnote does, so it stays.
@@ -1166,7 +1160,7 @@ def _content_text(doc: DigitalDocument) -> str:
     return "\n".join(
         line.text
         for line in doc.all_lines()
-        if line.categ != CATEG_GARBAGE and line.region not in (REGION_HEADER, REGION_FOOTER)
+        if line.decode != DECODE_GARBLED and line.region not in (REGION_HEADER, REGION_FOOTER)
     )
 
 

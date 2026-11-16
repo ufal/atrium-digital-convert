@@ -73,7 +73,7 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
     become U+FFFD and stay for scoring to judge.
   * A line longer than `MAX_LINE_CHARS` (1000) is wrapped at a word boundary, as ocr-postprocess's own text path
     does. Each wrap is a `split` in the paradata `limits` and in `limits_applied`.
-  * Decode flags (`Garbage`) stay on the lines, but a textual page never needs the ATR.
+  * Decode flags (`decode:garbled`) stay on the lines, but a textual page never needs the ATR.
 * **No geometry is fabricated.** The textual workflow's docproc pages carry no size and their blocks no `bbox` (the
   proposal allows it for flow documents, ask 13).
 * **Spreadsheets.** A row's text cells become one line, joined by a tab. Numbers, dates and
@@ -109,7 +109,7 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
 | Footnotes                 | — (Docling engine: yes)                                | footnotes and endnotes                                   | —                     | —                | —                                          | `type: footnote` (`style.region = footnote`)                             |
 | Tables                    | ruled tables (Docling engine: any)                     | tables, merged cells, one per page they reach            | cells as lines        | — (follow-up)    | — (rows as lines)                          | `type: table`, `cellGrid` (`tables[]` + `cells[].group_id`)              |
 | Bounding boxes, page size | exact, points, top-left origin                         | measured on the rendering, points                        | the same              | none             | none                                       | block and line `bbox`, `bboxPrecision`, page `width`/`height` (`canvas`) |
-| Untrustworthy text        | mojibake, unmapped glyphs, no text layer, prior OCR    | the same, and text the rendering shows that it lacks     | the same              | decode flag only | decode flag only                           | line `flags: [Garbage]`, page `textLayer`, `needsAtr` (`needs_ocr`)      |
+| Untrustworthy text        | mojibake, unmapped glyphs, no text layer, prior OCR    | the same, and text the rendering shows that it lacks     | the same              | decode flag only | decode flag only                           | line `flags: [decode:garbled]`, page `textLayer`, `needsAtr`             |
 
 * **Engines.**
   * `--engine light` (default) uses `requirements_digital.txt`: permissive licences, no models, no

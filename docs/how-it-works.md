@@ -81,11 +81,11 @@ into mojibake), with no stage configured:
   "pages": [{
     "page": "1", "page_index": 1,
     "text_layer": "garbled",
-    "needs_ocr": true,
-    "needs_ocr_reason": "embedded text layer does not decode: 3 of 3 lines carry CP1250 bytes read as CP1252 (mojibake diacritics), …",
+    "needs_atr": true,
+    "needs_atr_reason": "embedded text layer does not decode: 3 of 3 lines carry CP1250 bytes read as CP1252 (mojibake diacritics), …",
     "category": null,
-    "quality": {"source": "digital-convert", "score": 0.9356, "band": "Clear",
-                "lines_by_category": {"Garbage": 3, "decoded": 0}, "lang": null, "lines_scored": 3},
+    "quality": null,
+    "decode": {"decode_score": 0.9356, "lines_by_flag": {"decode:garbled": 3}, "lines_decoded": 0},
     "route": "ocr",
     "route_reason": "the text layer does not decode; page type unknown (page-classification not run): default to ATR",
     "layout": {"canvas": {"width": 612.0, "height": 792.0, "unit": "pt"}, "lines": 3, "blocks": 1,
@@ -95,7 +95,7 @@ into mojibake), with no stage configured:
     "text": "Zpráva o sondì èíslo 3.\n…"
   }],
   "summary": {"pages": 1, "routes": {"nlp": 0, "ocr": 1, "htr": 0, "none": 0},
-              "needs_ocr_pages": [1], "reacquire_pages": [1], "document_route": "ocr"},
+              "needs_atr_pages": [1], "reacquire_pages": [1], "document_route": "ocr"},
   "stages": [
     {"stage": "page-classification", "status": "not_configured", "detail": "PAGE_CLASSIFICATION_URL is not set", "record_adopted": false},
     {"stage": "ocr-postprocess",     "status": "not_configured", "detail": "OCR_POSTPROCESS_URL is not set",     "record_adopted": false}
@@ -112,16 +112,16 @@ into mojibake), with no stage configured:
   * `none`: no text layer: a scan, text drawn as curves, a page that draws nothing; also a page
     whose only text is its running header or footer over images covering at least
     `FURNITURE_ONLY_IMAGE_COVERAGE` (0.85) of it, a scan the PDF's producer numbered. Its page
-    number stays in `lines[]`; the page carries no quality score;
+    number stays in `lines[]`; the page carries no decode score;
   * `blank`: an empty page of a format without page images.
 * **Page type** (`category`): page-classification's label, confidence and top-N. It is asked about
-  the `needs_ocr` pages and the pages whose only text is a running header or footer over an image
+  the `needs_atr` pages and the pages whose only text is a running header or footer over an image
   by default, or about every page with `classify_pages=all`. PDF only.
-* **Readability** (`quality`):
-  * with ocr-postprocess configured: its line-quality model (Clear / Noisy / Trash per line, the
-    page band, the language);
-  * without it: the converter's decode check only. Its `score`/`band` measure how the characters
-    decode, not how the text reads.
+* **Readability** (`quality`): ocr-postprocess's line-quality model (Clear / Noisy / Trash per
+  line, the page band, the language); null when it is not configured.
+* **Decoding** (`decode`): the converter's own check, apart from readability: the page's
+  `decode_score` (how the characters decode, not how the text reads) and its lines per decode flag
+  (`decode:garbled`, `decode:inverted`).
 * **Route** (`route`), deterministic, with `route_reason`:
 
   | The page                                           | Route                                                                                              |

@@ -381,12 +381,13 @@
           "classify_pages": {
             "type": "string",
             "enum": [
-              "needs_ocr",
-              "all"
+              "needs_atr",
+              "all",
+              "needs_ocr"
             ],
             "title": "Classify Pages",
-            "description": "Pages page-classification is asked about: those without a usable text layer and those whose only text is a running header or footer over an image (default), or all.",
-            "default": "needs_ocr"
+            "description": "Pages page-classification is asked about: `needs_atr`, those without a usable text layer and those whose only text is a running header or footer over an image (default), or `all`. `needs_ocr` is the deprecated name of `needs_atr`.",
+            "default": "needs_atr"
           },
           "include_text": {
             "type": "boolean",
@@ -745,13 +746,13 @@
             "title": "Routes",
             "description": "Pages per route: `nlp`, `ocr`, `htr`, `none`."
           },
-          "needs_ocr_pages": {
+          "needs_atr_pages": {
             "items": {
               "type": "integer"
             },
             "type": "array",
-            "title": "Needs Ocr Pages",
-            "description": "`page_index` of the pages flagged `needs_ocr`."
+            "title": "Needs Atr Pages",
+            "description": "`page_index` of the pages flagged `needs_atr`."
           },
           "reacquire_pages": {
             "items": {
@@ -772,7 +773,7 @@
         "required": [
           "pages",
           "routes",
-          "needs_ocr_pages",
+          "needs_atr_pages",
           "reacquire_pages",
           "document_route"
         ],
@@ -1282,6 +1283,44 @@
         "title": "PageCategory",
         "description": "page-classification's answer for one page."
       },
+      "PageDecode": {
+        "properties": {
+          "decode_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decode Score",
+            "description": "From 0 to 1: the mean of the lines' decode scores, how their characters decode (not how the text reads)."
+          },
+          "lines_by_flag": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Lines By Flag",
+            "description": "Lines per decode flag, as on docproc lines: `decode:garbled`, `decode:inverted`."
+          },
+          "lines_decoded": {
+            "type": "integer",
+            "title": "Lines Decoded",
+            "description": "Lines without a decode flag."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "decode_score",
+          "lines_by_flag",
+          "lines_decoded"
+        ],
+        "title": "PageDecode",
+        "description": "Whether a page's characters decode: the converter's own check, a system apart from text\nquality (D18 rules 2 and 3; atrium-project#84)."
+      },
       "PageLayout": {
         "properties": {
           "canvas": {
@@ -1371,7 +1410,7 @@
           "source": {
             "type": "string",
             "title": "Source",
-            "description": "`ocr-postprocess` (the common line-quality model) or `digital-convert` (the decode check only)."
+            "description": "`ocr-postprocess` (the common line-quality model)."
           },
           "score": {
             "anyOf": [
@@ -1383,7 +1422,7 @@
               }
             ],
             "title": "Score",
-            "description": "From 0 to 1. ocr-postprocess: the mean line-quality score of the lines it judged (Clear/Noisy/Trash; a pre-filter answer's 0.0 placeholder is left out). digital-convert: the page's decode sanity (the record's `pages[].quality_score` before any scoring), a measure of how the characters decode, not of how the text reads."
+            "description": "From 0 to 1: the mean line-quality score of the lines it judged (Clear/Noisy/Trash; a pre-filter answer's 0.0 placeholder is left out)."
           },
           "band": {
             "anyOf": [
@@ -1395,7 +1434,7 @@
               }
             ],
             "title": "Band",
-            "description": "`Clear`, `Noisy` or `Trash`; null when no line was judged. ocr-postprocess: the plurality of its line verdicts. digital-convert: the decode-sanity band, so a garbled page can read `Clear` here; `text_layer` and `lines_by_category.Garbage` say whether it decodes."
+            "description": "`Clear`, `Noisy` or `Trash`, the plurality of its line verdicts; null when no line was judged."
           },
           "lines_by_category": {
             "additionalProperties": {
@@ -1403,7 +1442,7 @@
             },
             "type": "object",
             "title": "Lines By Category",
-            "description": "Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty` (ocr-postprocess), or `Garbage`/`Inverted`/`decoded` (digital-convert)."
+            "description": "Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty`."
           },
           "lang": {
             "anyOf": [
@@ -1461,7 +1500,7 @@
           "lines_scored"
         ],
         "title": "PageQuality",
-        "description": "Whether a page's text reads: the common quality model, or the converter's decode check."
+        "description": "Whether a page's text reads: ocr-postprocess's common line-quality model."
       },
       "PageReport": {
         "properties": {
@@ -1478,13 +1517,14 @@
           "text_layer": {
             "type": "string",
             "title": "Text Layer",
-            "description": "`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer, or only a running header or footer over a full-page image), `blank` (an empty page without a page image): the record's `pages[].text_layer`."
+            "description": "`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer, or only a running header or footer over a full-page image), `blank` (an empty page without a page image): docproc's page `textLayer`."
           },
-          "needs_ocr": {
+          "needs_atr": {
             "type": "boolean",
-            "title": "Needs Ocr"
+            "title": "Needs Atr",
+            "description": "The page goes to the ATR: docproc's page `needsAtr`."
           },
-          "needs_ocr_reason": {
+          "needs_atr_reason": {
             "anyOf": [
               {
                 "type": "string"
@@ -1493,7 +1533,8 @@
                 "type": "null"
               }
             ],
-            "title": "Needs Ocr Reason"
+            "title": "Needs Atr Reason",
+            "description": "Why; docproc's `needsAtrReason`. Null when it does not."
           },
           "category": {
             "anyOf": [
@@ -1510,6 +1551,17 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/PageQuality"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null for a page without lines, and when ocr-postprocess did not score the page."
+          },
+          "decode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PageDecode"
               },
               {
                 "type": "null"
@@ -1548,10 +1600,11 @@
           "page",
           "page_index",
           "text_layer",
-          "needs_ocr",
-          "needs_ocr_reason",
+          "needs_atr",
+          "needs_atr_reason",
           "category",
           "quality",
+          "decode",
           "route",
           "route_reason",
           "layout"

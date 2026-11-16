@@ -149,7 +149,7 @@ def describe_document(
     data: bytes,
     name: str,
     selected: List[str],
-    classify_pages: str = "needs_ocr",
+    classify_pages: str = "needs_atr",
     include_text: bool = True,
 ) -> Dict[str, Any]:
     """The assessment of `/describe`: the development dict as the stages left it (`document`),

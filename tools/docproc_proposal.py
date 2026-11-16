@@ -147,8 +147,9 @@ def apply_asks(actual: Dict[str, Any]) -> Dict[str, Any]:
             "language": {"$ref": "#/$defs/Language"},
             "flags": {
                 "description": (
-                    "Open vocabulary of advisory tags, as on blocks. digital-convert's decode verdicts: `Garbage` "
-                    "(the text layer decodes to wrong characters), `Inverted` (mirrored or rotated text)."
+                    "Open vocabulary of advisory tags, as on blocks. digital-convert's decode verdicts: "
+                    "`decode:garbled` (the text layer decodes to wrong characters), `decode:inverted` (mirrored or "
+                    "rotated text); a verdict on the characters, not on the text's quality."
                 ),
                 "type": "array",
                 "items": {"type": "string"},

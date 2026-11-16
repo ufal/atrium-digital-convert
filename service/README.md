@@ -116,11 +116,11 @@ its pages: until #84 a PDF mostly of prior-OCR pages was refused (422 `ocr_text_
 
 The fields of `/reformat` (without `markdown`), plus:
 
-| Field            | Meaning                                                                                                                                                                                             |
-|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `stages`         | a comma-separated subset of `page-classification`, `ocr-postprocess`; empty → every configured one; `none` → none                                                                                   |
-| `classify_pages` | `needs_ocr` (default): page-classification is asked about the pages without a usable text layer, and the pages whose only text is a running header or footer over an image; `all`: about every page |
-| `include_text`   | `false` to leave `pages[].text` out                                                                                                                                                                 |
+| Field            | Meaning                                                                                                                                                                                                                                          |
+|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `stages`         | a comma-separated subset of `page-classification`, `ocr-postprocess`; empty → every configured one; `none` → none                                                                                                                                |
+| `classify_pages` | `needs_atr` (default): page-classification is asked about the pages without a usable text layer, and the pages whose only text is a running header or footer over an image; `all`: about every page; `needs_ocr`: deprecated name of `needs_atr` |
+| `include_text`   | `false` to leave `pages[].text` out                                                                                                                                                                                                              |
 
 The response is `/reformat`'s plus `document` (the converter's development dict, record-shaped but no record, as
 the stages left it) and:
@@ -128,13 +128,14 @@ the stages left it) and:
 * `pages[]` — one per page:
   * `page`, `page_index`;
   * `text_layer` — `digital` (decodes), `garbled` (a layer that does not decode), `ocr` (a prior OCR run), `none` (no text layer), `blank` (an empty page of a format without page images);
-  * `needs_ocr`, `needs_ocr_reason`;
+  * `needs_atr`, `needs_atr_reason` (docproc's `needsAtr`, `needsAtrReason`);
   * `category` — page-classification's answer (`label`, `confidence`, `top`), or null;
-  * `quality` — `source: ocr-postprocess` (the common line-quality model: `score`, `band`, `lines_by_category`, `lang`, and `prose_lines_scored` / `prose_lines_by_category`: the lines its route rule counts; `score`, `lang` and `lines_scored` count only the lines it judged Clear, Noisy or Trash, not its pre-filter's `Non-text`/`Empty` placeholders) or `source: digital-convert` (the decode check only);
+  * `quality` — `source: ocr-postprocess` (the common line-quality model: `score`, `band`, `lines_by_category`, `lang`, and `prose_lines_scored` / `prose_lines_by_category`: the lines its route rule counts; `score`, `lang` and `lines_scored` count only the lines it judged Clear, Noisy or Trash, not its pre-filter's `Non-text`/`Empty` placeholders); null when it did not score the page;
+  * `decode` — the converter's decode check, apart from quality: `decode_score` (how the characters decode), `lines_by_flag` (`decode:garbled`, `decode:inverted`), `lines_decoded`;
   * `route` + `route_reason`, below;
   * `layout` — `canvas`, `lines`, `blocks`, `tables`, `headings`, `regions`, `columns`, `images`, `vector_paths`, `words` (of the body text, outside the running header and footer), `damaged_words` (those of them that lost a letter to a glyph without a Unicode mapping, U+FFFD);
   * `text`.
-* `summary` — `pages`, `routes` (pages per route), `needs_ocr_pages`, `reacquire_pages`, `document_route` (`nlp`, `ocr`, `htr`, `none` or `mixed`). `reacquire_pages` (routes `ocr` and `htr`) is the page list to hand to ATR/HTR: it adds the decoding pages the two rules below send to OCR and leaves out the graphical ones, which `needs_ocr_pages` (the record's flags) does not.
+* `summary` — `pages`, `routes` (pages per route), `needs_atr_pages`, `reacquire_pages`, `document_route` (`nlp`, `ocr`, `htr`, `none` or `mixed`). `reacquire_pages` (routes `ocr` and `htr`) is the page list to hand to ATR/HTR: it adds the decoding pages the two rules below send to OCR and leaves out the graphical ones, which `needs_atr_pages` (docproc's flags) does not.
 * `stages[]` — per stage: `status`, `detail`, `url`, `http_status`, `reason`, `elapsed_s`, `service_version`, `pages` sent, `record_adopted`, the stage's own `paradata`, and for ocr-postprocess `lines_unscored` (below).
 
 **Routes.** Deterministic (`api_util/digital_report.py`):
@@ -189,8 +190,9 @@ count. When no line could be scored the stage is `error` and the record is not w
 
 **What the stages may write.** Each stage is sent the development dict as its `document_json` and writes only
 its own fields: page-classification `page_categories` and `pages[].category/category_confidence`; ocr-postprocess
-`lines[].categ/quality_score/lang` and `pages[].quality_score/quality_band`, never over a line carrying the
-converter's decode verdict (the `Garbage`/`Inverted` flag). Stages on record schema 2.0 may refuse the dict
+`lines[].categ/quality_score/lang` and `pages[].quality_score/quality_band` for every line, a flagged one too; the
+converter's decode flag (`decode:garbled`, `decode:inverted`) and `decode_score` stay beside them. Stages on record
+schema 2.0 may refuse the dict
 (atrium-project#84), which is reported per stage; `/describe` is parked until that scope resumes.
 The returned dict is adopted only when it is the same document with the converter's part intact. Intact means the same `doc_id`, `source`, `content`, `tables`, page and line rows, and the
 converter's own fields unchanged (`text`, `bbox`, `group_id`, `style`, `page_index`, `canvas`, `needs_ocr`,

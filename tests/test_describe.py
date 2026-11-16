@@ -97,7 +97,7 @@ def test_a_garbled_page_is_classified_and_routed_by_its_category(both_stages, mo
     monkeypatch.setenv("STUB_NEEDS_OCR_CATEGORY", "TEXT_HW")
     body = _describe("garbled.pdf")
     [page] = body["pages"]
-    assert page["text_layer"] == "garbled" and page["needs_ocr"] is True
+    assert page["text_layer"] == "garbled" and page["needs_atr"] is True
     assert (
         page["category"]["label"] == "TEXT_HW"
         and page["category"]["source"] == "page-classification"
@@ -108,10 +108,11 @@ def test_a_garbled_page_is_classified_and_routed_by_its_category(both_stages, mo
     record = body["document"]
     assert record["pages"][0]["category"] == "TEXT_HW"
     assert record["page_categories"] == {"1": "TEXT_HW"}
-    # every line keeps the converter's decode verdict: nothing for the quality model to score
+    # every line keeps the converter's decode flag, and the quality model scores it all the same
+    # (D18 rules 1 and 2)
     scorer = {s["stage"]: s for s in body["stages"]}["ocr-postprocess"]
-    assert scorer["status"] == "skipped" and scorer["record_adopted"] is False
-    assert "3 line(s) keep the converter's decode verdict" in scorer["detail"]
+    assert scorer["status"] == "ok" and scorer["record_adopted"] is True
+    assert all(row["flags"] == ["decode:garbled"] and "categ" in row for row in record["lines"])
 
 
 def test_clean_pages_skip_the_classifier_and_get_the_common_quality_model(both_stages):
@@ -162,12 +163,22 @@ def test_a_docx_has_no_page_images_to_classify(both_stages):
     assert "DOCX" in {s["stage"]: s for s in body["stages"]}["page-classification"]["detail"]
 
 
-def test_decode_verdicts_are_not_rescored(both_stages):
+def test_decode_verdicts_and_line_quality_are_apart(both_stages):
+    """D18 rules 1-3: the decode verdict is a flag beside the line's decode score, and scoring
+    still gives every line its category and quality score, written beside them."""
     body = _describe("garbled.pdf")
     record = body["document"]
-    # the decode verdict is a flag (atrium-project#84), and no line was given a category
-    assert all(set(row["flags"]) <= {"Garbage", "Inverted"} for row in record["lines"])
-    assert not any("categ" in row for row in record["lines"])
+    assert all(row["flags"] == ["decode:garbled"] for row in record["lines"])
+    assert all("decode_score" in row for row in record["lines"])
+    assert all(
+        row["categ"] in ("Clear", "Noisy", "Trash", "Non-text", "Empty") for row in record["lines"]
+    )
+    [page] = body["pages"]
+    assert page["quality"]["source"] == "ocr-postprocess"
+    assert (
+        page["decode"]["lines_by_flag"] == {"decode:garbled": 3}
+        and page["decode"]["lines_decoded"] == 0
+    )
 
 
 def test_stages_none_keeps_the_assessment_local(both_stages):
@@ -176,7 +187,8 @@ def test_stages_none_keeps_the_assessment_local(both_stages):
         "page-classification": "not_requested",
         "ocr-postprocess": "not_requested",
     }
-    assert all(page["quality"]["source"] == "digital-convert" for page in body["pages"])
+    assert all(page["quality"] is None for page in body["pages"]), "no scoring, no quality"
+    assert all(page["decode"]["decode_score"] is not None for page in body["pages"])
 
 
 def test_one_stage_can_be_asked_alone(both_stages):
@@ -281,9 +293,9 @@ def test_an_older_page_classification_is_used_for_the_report_but_not_the_record(
     assert stage["status"] == "rejected" and stage["reason"] == "page_key_mismatch"
     assert stage["record_adopted"] is False
     assert "page_categories" not in body["document"]
-    flagged = [p for p in body["pages"] if p["needs_ocr"]]
+    flagged = [p for p in body["pages"] if p["needs_atr"]]
     assert flagged and all(p["category"]["label"] == "TEXT_T" for p in flagged)
-    assert all(p["category"] is None for p in body["pages"] if not p["needs_ocr"]), (
+    assert all(p["category"] is None for p in body["pages"] if not p["needs_atr"]), (
         "only requested pages count"
     )
 
@@ -327,11 +339,11 @@ def _score_record_all_trash(url, files=None, data=None, **_k):
         line.update(categ="Trash", quality_score=0.1, lang="ces")
         rows.append(
             {"page": str(line["page"]), "line": line["line"], "text": line["text"],
-             "category": "Trash", "quality_score": 0.1, "lang": "ces"}
+             "categ": "Trash", "quality_score": 0.1, "lang": "ces"}
         )  # fmt: skip
         per_page[str(line["page"])] = per_page.get(str(line["page"]), 0) + 1
     pages = [
-        {"page": page, "lines_scored": n, "skipped_decode_verdict": 0, "skipped_empty": 0,
+        {"page": page, "lines_scored": n, "skipped_empty": 0,
          "quality_score": 0.1, "quality_band": "Trash"}
         for page, n in per_page.items()
     ]  # fmt: skip
@@ -411,6 +423,8 @@ def test_lines_that_could_not_be_scored_make_the_stage_partial_and_keep_the_conv
                 original.get("quality_band"),
             )
     for page in body["pages"]:
+        if page["quality"] is None:  # nothing on it was scored
+            continue
         assert "Trash" not in page["quality"]["lines_by_category"], (
             "the placeholders stay out of the report"
         )
@@ -488,7 +502,7 @@ def test_lost_letters_are_counted_and_route_nothing(no_stages):
     `digital`, unflagged; the report still counts its damaged words. (#5 flagged and routed it to
     OCR from 10-22.)"""
     page = _describe("unmapped.pdf", stages="none")["pages"][1]
-    assert (page["text_layer"], page["needs_ocr"], page["route"]) == ("digital", False, "nlp")
+    assert (page["text_layer"], page["needs_atr"], page["route"]) == ("digital", False, "nlp")
     assert (page["layout"]["words"], page["layout"]["damaged_words"]) == (10, 2)
 
 

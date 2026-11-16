@@ -20,7 +20,7 @@ builds the record from it (#84 §1). ``build_docproc()`` maps the converter's in
   lines joined by line breaks, its ``bbox`` the union of its line boxes.
 * **lines** -- every text block carries its ``lines[]``: the text, the measured box, its
   ``bboxPrecision`` (``measured`` or ``absent``), and the decode verdict as ``flags``
-  (``Garbage``, ``Inverted``: ``atrium_vocab.DECODE_FLAGS``; D18 rule 2).
+  (``decode:garbled``, ``decode:inverted``: ``atrium_vocab.DECODE_FLAGS``; D18 rule 2).
 * **routing** -- ``metadata.routing.pages[]`` lists every page: ``page``, ``route``
   (``text-layer``, ``atr``, ``empty``) and ``text_layer`` (whether the page's text layer is
   used).
@@ -68,7 +68,7 @@ ROUTE_ATR = "atr"
 ROUTE_EMPTY = "empty"
 
 #: digital-convert's decode verdicts, as line flags (`atrium_vocab.DECODE_FLAGS`).
-DECODE_FLAGS: Tuple[str, ...] = ("Garbage", "Inverted")
+DECODE_FLAGS: Tuple[str, ...] = ("decode:garbled", "decode:inverted")
 
 #: `sourceFormat` per input kind (`digital_to_json.sniff()`).
 SOURCE_FORMATS: Dict[str, str] = {
@@ -140,8 +140,8 @@ def _line(line: DigitalLine, place: Callable[[Sequence[float]], List[float]]) ->
         out["bboxPrecision"] = "absent"
     if line.lang and len(line.lang) == 2 and line.lang.isalpha():
         out["language"] = line.lang.lower()
-    if line.categ in DECODE_FLAGS:
-        out["flags"] = [line.categ]
+    if line.decode and "decode:" + line.decode in DECODE_FLAGS:
+        out["flags"] = ["decode:" + line.decode]
     return out
 
 

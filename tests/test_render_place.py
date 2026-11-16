@@ -297,5 +297,5 @@ def test_the_textual_workflow_never_needs_the_atr():
     )
     document.workflow = d2j.WORKFLOW_TEXTUAL
     d2j.normalize(document)
-    assert page.lines[0].categ == "Garbage", "the decode flag stays on the line for scoring"
+    assert page.lines[0].decode == "garbled", "the decode flag stays on the line for scoring"
     assert not page.needs_ocr, "nothing to render: no ATR (#9 point 4)"
