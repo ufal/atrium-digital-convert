@@ -1587,3 +1587,10 @@ Documentation only; no code, test or configuration change.
 * **Detail:** `plans/doc-schema-v2.plan.md`, "Status — the meeting's follow-ups"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md), "Status — round 8 (implemented)".
 * **Not posted; not pushed.**
 
+## 2026-11-16 (night, later) — atrium-digital-convert#13's checks
+
+* **Found:** `test_the_assessment_is_the_same_from_the_cli_and_from_describe[minimal.docx]` failed on CI: the CLI's
+  and `/describe`'s `reader.rendering.sha512` differed, as two LibreOffice renderings can (11-15).
+* **Written here (not pushed):** the test compares the reader without that per-run digest and checks each side
+  names a SHA-512; with a digest forced to differ per run, the old test fails and the new one passes.
+* **Not posted; not pushed.**
