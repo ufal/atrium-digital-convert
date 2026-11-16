@@ -1,8 +1,8 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://github.com/ufal/atrium-digital-convert/schemas/docproc/document.atrium-proposal.schema.json",
-    "title": "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3 and 13)",
-    "description": "Structured document produced by docproc /convert, schema v1. Tightened to the values the service actually emits on its local (PDF/image/DOCX/PPTX) and cloud-fallback paths. ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required) and 13 (other producers, formats, the page verdict, block lines, flow documents) applied.",
+    "title": "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3, 5, 10 and 13)",
+    "description": "Structured document produced by docproc /convert, schema v1. Tightened to the values the service actually emits on its local (PDF/image/DOCX/PPTX) and cloud-fallback paths. ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required), 5 (the forced pages echoed in routing), 10 (the image pixel ratio) and 13 (other producers, formats, the page verdict, block lines, flow documents) applied.",
     "type": "object",
     "required": [
         "version",
@@ -122,6 +122,15 @@
                                     },
                                     "recovered_to_photo": {
                                         "type": "boolean"
+                                    },
+                                    "forced": {
+                                        "description": "ATRIUM proposal (ask 5): the page was forced to the ATR by the caller (digital-convert's needsAtr).",
+                                        "type": "boolean"
+                                    },
+                                    "forced_reason": {
+                                        "description": "ATRIUM proposal (ask 5): the reason the caller gave for forcing the page (its needsAtrReason).",
+                                        "type": "string",
+                                        "minLength": 1
                                     }
                                 }
                             }
@@ -485,6 +494,11 @@
                     "type": "number",
                     "exclusiveMinimum": 0,
                     "default": 1
+                },
+                "pixelRatio": {
+                    "description": "ATRIUM proposal (ask 10): for an image docproc wraps into a PDF, the image's pixels per unit, the ratio back to its pixels (D28).",
+                    "type": "number",
+                    "exclusiveMinimum": 0
                 }
             }
         },

@@ -120,7 +120,7 @@ Local branch from `test`, on the re-vendored shared modules (record 2.0, paradat
 - **Task 3, in part:** `ODF_REPEAT_CAP` raises. **Open:** `PDF_OBJECT_CAP` still judges a page with over 20,000
   objects on its first ones (`sampled`). _(gone 11-14, round 6)_
 - **Task 4:** the decode verdict is a line flag (`Garbage`, `Inverted`); no bands.
-- **Task 5, deferred:** UserUnit, CropBox, `/Rotate` (ask 10, D28).
+- **Task 5, deferred:** UserUnit, CropBox, `/Rotate` (ask 10, D28). _(done 11-16, round 7)_
 - **Tasks 6–8:** images get `415 unsupported_media_type` (H13); CSV and TXT unchanged (Q9); SHA-512 only; no licence
   and no run data in docproc.
 - **Task 9:** `/describe` parked; its call to `/score_record` no longer has a record to send (noted, not fixed).
@@ -183,6 +183,13 @@ The suite passes: 962. Next: the hub's second PR for #84 (the E2E lanes, rule 5'
 then this PR. Hub:
 [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md),
 "Status — round 6".
+
+## Status — round 7 (11-16)
+
+Task 5 (D28) is done at write time (`digital_ir.PageFrame`, `userUnit`), checked against pdfium's rendering; the
+Docling engine's own boxes for text no light line holds stay unchecked on offset pages. Blank PDF pages are `blank`
+and routed `empty` (D29). The proposal adds asks 5 (`forced`, `forced_reason`) and 10 (`pixelRatio`). Ronald's ask 10
+is still open for the ATR's side. Hub: "Status — round 7".
 
 ## Depends on
 

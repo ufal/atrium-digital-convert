@@ -362,9 +362,8 @@ def test_missing_optional_dependency_is_advice_not_a_traceback(tmp_path, monkeyp
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-@pytest.fixture
-def digital_fixtures(tmp_path):
-    """Generate the pinned byte-exact fixtures (minimal.pdf, garbled.pdf, minimal.docx)."""
+def _make_fixtures():
+    """`tests/fixtures/digital/make_fixtures.py`, loaded by path (it is not a package)."""
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
@@ -372,7 +371,13 @@ def digital_fixtures(tmp_path):
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    blobs = module.build_all()
+    return module
+
+
+@pytest.fixture
+def digital_fixtures(tmp_path):
+    """Generate the pinned byte-exact fixtures (minimal.pdf, garbled.pdf, minimal.docx)."""
+    blobs = _make_fixtures().build_all()
     for name, payload in blobs.items():
         (tmp_path / name).write_bytes(payload)
     return tmp_path
@@ -798,17 +803,58 @@ def test_pdf_ruled_table_reaches_tables_and_lines(digital_fixtures):
 
 
 def test_text_less_pages_are_flagged_with_what_they_draw(digital_fixtures):
-    """G1, and alto-postprocess #31's rule: every PDF page without text is `none`. The reason
-    separates a scan (it draws an image) from a page that draws nothing a parser can see."""
+    """G1, and alto-postprocess #31's rule: a PDF page without text is `none` and goes to the ATR,
+    with a reason that says what it draws — unless its rendering shows nothing at all: then it is
+    `blank`, routed `empty`, and does not send the document to the ATR (D29, atrium-project#84)."""
     pytest.importorskip("pdfplumber")
+    pytest.importorskip("pypdfium2")
     doc = d2j.normalize(d2j.extract_pdf(str(digital_fixtures / "image_only.pdf")))
     text, scan, empty = doc.pages
     assert not text.needs_ocr
     assert scan.needs_ocr and "draws 1 image(s)" in scan.needs_ocr_reason
-    assert empty.needs_ocr and "draws nothing a parser can see" in empty.needs_ocr_reason
-    for page in (scan, empty):
-        assert page.needs_ocr_reason.startswith("no extractable text layer")
-        assert page.quality_score is None
+    assert scan.needs_ocr_reason.startswith("no extractable text layer")
+    assert scan.quality_score is None
+    assert empty.text_layer == "blank" and not empty.needs_ocr and not empty.lines
+    assert empty.quality_score is None
+
+
+def test_a_text_less_page_with_any_mark_is_not_blank(tmp_path):
+    """Only a rendering without a single darker pixel makes a page `blank`: a faint grey mark (a
+    speck on a scan, pencil) keeps it `none`, so the ATR still reads it."""
+    pytest.importorskip("pdfplumber")
+    pytest.importorskip("pypdfium2")
+    mf = _make_fixtures()
+    faint = b"0.8 g 300 400 6 6 re f"  # an 80 % grey square, no text
+    pdf = tmp_path / "faint.pdf"
+    pdf.write_bytes(
+        mf._serialize_pdf(
+            {
+                1: b"<< /Type /Catalog /Pages 2 0 R >>",
+                2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                3: b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>",
+                4: mf._stream_obj(faint),
+            }
+        )
+    )
+    (page,) = d2j.normalize(d2j.extract_pdf(str(pdf))).pages
+    assert page.text_layer == "none" and page.needs_ocr
+
+
+def test_without_pypdfium2_a_text_less_page_stays_none(digital_fixtures, monkeypatch):
+    """No renderer, no proof that the page is blank: it goes to the ATR as before."""
+    pytest.importorskip("pdfplumber")
+    import builtins
+
+    real_import = builtins.__import__
+
+    def no_pdfium(name, *args, **kwargs):
+        if name.startswith("pypdfium2"):
+            raise ImportError(name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_pdfium)
+    doc = d2j.normalize(d2j.extract_pdf(str(digital_fixtures / "image_only.pdf")))
+    assert doc.pages[2].text_layer == "none" and doc.pages[2].needs_ocr
 
 
 def test_layout_frames_are_not_tables(digital_fixtures):

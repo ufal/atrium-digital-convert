@@ -47,10 +47,13 @@ Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://g
   * an office page whose rendering shows text the document's own text does not place there (a drawing, a chart, an
     embedded object), below `RENDER_TEXT_COVERAGE`.
   Those pages are routed `atr` in `metadata.routing.pages[]`; an empty page is routed `empty` and is not in
-  `pages[]`. No document is refused for its pages: until #84 a PDF mostly of prior-OCR pages was refused whole
+  `pages[]` (D29). A PDF page without text is empty (`blank`) only when its rendering shows nothing at all: no
+  pixel of a 50 dpi render darker than 250 of 255 (`BLANK_RENDER_DPI`, `BLANK_INK_LEVEL` in
+  `api_util/digital_pdf.py`, named in the paradata as `blank_page`); any mark keeps it `none`, for the ATR. No
+  document is refused for its pages: until #84 a PDF mostly of prior-OCR pages was refused whole
   (`ocr_text_layer`, the `OCR_LAYER_DOCUMENT_SHARE` setting, both gone). When a page needs the ATR, the ATR's
-  docproc is the stored one, so this one is recorded as an intermediate (`stored: false`, H14); the merge of a
-  mixed document is the next round of #84.
+  docproc is the stored one, so this one is recorded as an intermediate (`stored: false`, H14); ocr-postprocess
+  keeps this docproc's exact lines on the other pages when it builds the record from both (H6).
 * **Which pages to re-acquire.** `needsAtr` marks the pages whose text the converter cannot vouch for.
   `/describe` (parked during the pilot) makes a finer per-page decision: among those pages, page types send
   drawings and photographs to `none` and handwriting to `htr`, and two rules send decoding pages to `ocr` (lost

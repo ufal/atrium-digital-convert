@@ -52,16 +52,14 @@ CASES = [
         [],
     ),
     (
-        "G1 text-less pages flagged, and told apart",
+        "G1 a text-less page that draws a scan flagged; a blank page not (D29, atrium-project#84)",
         "image_only.pdf",
         [
             "## Page 1",
             "## Page 2",
             "NEEDS_OCR: pg_2 (no extractable text layer: the page draws 1 image(s)",
-            "## Page 3",
-            "NEEDS_OCR: pg_3 (no extractable text layer: the page draws nothing",
         ],
-        [],
+        ["NEEDS_OCR: pg_3"],
     ),
     (
         "G6 garbled text layer: page flagged, no bad line leaks",

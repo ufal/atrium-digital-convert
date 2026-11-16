@@ -1311,6 +1311,16 @@ def record_run(
     )
     logger.set_parameter("engine", document.engine)
     logger.set_parameter("workflow", document.workflow)
+    if document.workflow != WORKFLOW_TEXTUAL and any(
+        page.text_layer == TEXT_LAYER_BLANK and not page.lines for page in document.pages
+    ):
+        # D29: what made a text-less page `blank` (routed `empty`) rather than one for the ATR.
+        from api_util import digital_pdf  # noqa: PLC0415
+
+        logger.set_parameter(
+            "blank_page",
+            {"render_dpi": digital_pdf.BLANK_RENDER_DPI, "ink_level": digital_pdf.BLANK_INK_LEVEL},
+        )
     versions: Dict[str, str] = {}
     if document.rendering is not None:
         import tool_limits  # noqa: PLC0415  (repo root)
