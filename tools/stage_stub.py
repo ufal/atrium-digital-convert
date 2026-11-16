@@ -7,15 +7,16 @@ models, so `/describe` can be run end to end today — locally, in compose (`--p
 and in this repository's live smoke:
 
   * ``GET  /info``              — ``{"service": "atrium-stage-stub", "version": ...}``
-  * ``POST /predict_document``  — page-classification (with the ``pages`` subset and the label
-    mapping of page-classification v1.9.2-beta): every requested page gets the category
-    ``STUB_PAGE_CATEGORY`` (default ``TEXT_P``), or ``STUB_NEEDS_OCR_CATEGORY`` (default
-    ``TEXT_T``) when the record flags it ``needs_ocr``. Given ``document_json``, it writes
-    ``page_categories`` and ``pages[].category/category_confidence`` under the record's own
-    labels.
-  * ``POST /score_record``      — ocr-postprocess's W3 scorer: each line not carrying a decode
-    verdict (a ``Garbage``/``Inverted`` flag, or ``categ`` in a 1.x record) gets a category from
-    a crude letter-share heuristic, and the record gets the scoring fields only.
+  * ``POST /predict_document``  — page-classification (with the ``pages`` subset, and its
+    v2.0.0 answer: each page by ``page_index``, its label as ``page``): every requested page
+    gets the category ``STUB_PAGE_CATEGORY`` (default ``TEXT_P``), or
+    ``STUB_NEEDS_OCR_CATEGORY`` (default ``TEXT_T``) when the record flags it ``needs_ocr``.
+    Given ``document_json``, it writes ``page_categories`` and
+    ``pages[].category/category_confidence`` under the record's own labels.
+  * ``POST /score_record``      — ocr-postprocess's W3 scorer: every line with text gets a
+    category from a crude letter-share heuristic, a line with a decode flag too (D18 rules 1
+    and 2), and the record gets the scoring fields only. The answer's lines use the record's
+    names (``categ``), as ocr-postprocess v2.0.0's do.
 
 Since atrium-project#84 `/describe` sends digital-convert's development dict, not a record, so
 the stub edits what it is sent as a plain dict: no ``DocumentRecord`` (whose 2.0 migration would
@@ -48,8 +49,6 @@ from fastapi import FastAPI, File, Form, UploadFile  # noqa: E402
 
 app = FastAPI(title="ATRIUM stage stub", version="0.1.0")
 
-_DECODE_VERDICTS = {"Garbage", "Inverted"}
-
 
 def _pages_param(raw: Optional[str], total: int) -> List[int]:
     if not raw or not raw.strip():
@@ -81,7 +80,7 @@ def _pdf_pages(data: bytes) -> int:
 def _score_line(text: str) -> Dict[str, Any]:
     visible = [c for c in text if not c.isspace()]
     if not visible:
-        return {"category": "Empty", "quality_score": 0.0, "lang": "unk"}
+        return {"categ": "Empty", "quality_score": 0.0, "lang": "unk"}
     letters = sum(1 for c in visible if c.isalpha()) / len(visible)
     if letters >= 0.7:
         category, score = "Clear", 0.9
@@ -91,7 +90,7 @@ def _score_line(text: str) -> Dict[str, Any]:
         category, score = "Trash", 0.2
     else:
         category, score = "Non-text", 0.0
-    return {"category": category, "quality_score": score, "lang": "ces" if letters else "unk"}
+    return {"categ": category, "quality_score": score, "lang": "ces" if letters else "unk"}
 
 
 def _band(clear: int, noisy: int, trash: int) -> Optional[str]:
@@ -134,11 +133,11 @@ async def predict_document(
         row = by_index.get(index) or {}
         label = flagged if row.get("needs_ocr") else default
         entry: Dict[str, Any] = {
-            "page": index,
+            "page_index": index,
             "predictions": [{"label": label, "score": 0.91}][: max(1, topn)],
         }
         if row.get("page"):
-            entry["page_label"] = row["page"]
+            entry["page"] = row["page"]
         results.append(entry)
     response: Dict[str, Any] = {"type": "document", "pages": results, "limits_applied": []}
     if record is not None:
@@ -146,7 +145,7 @@ async def predict_document(
         rows = {str(p.get("page")): p for p in out.get("pages") or [] if isinstance(p, dict)}
         categories = {}
         for entry in results:
-            key = entry.get("page_label") or str(entry["page"])
+            key = entry.get("page") or str(entry["page_index"])
             top = entry["predictions"][0]
             categories[key] = top["label"]
             if key in rows:
@@ -156,26 +155,16 @@ async def predict_document(
     return response
 
 
-def _decode_verdict(row: Dict[str, Any]) -> bool:
-    return row.get("categ") in _DECODE_VERDICTS or bool(
-        _DECODE_VERDICTS & set(row.get("flags") or ())
-    )
-
-
 @app.post("/score_record")
 async def score_record(document_json: UploadFile = File(...)) -> Dict[str, Any]:
     record = json.loads((await document_json.read()).decode("utf-8"))
     cleaned: List[Dict[str, Any]] = []
-    skipped: Dict[str, int] = {}
     empty: Dict[str, int] = {}
     order: List[str] = []
     for row in record.get("lines") or []:
         page = str(row["page"])
         if page not in order:
             order.append(page)
-        if _decode_verdict(row):
-            skipped[page] = skipped.get(page, 0) + 1
-            continue
         if not str(row.get("text") or "").strip():
             empty[page] = empty.get(page, 0) + 1
             continue
@@ -197,7 +186,7 @@ async def score_record(document_json: UploadFile = File(...)) -> Dict[str, Any]:
         score = band = None
         if rows:
             counts = {
-                c: sum(1 for r in rows if r["category"] == c) for c in ("Clear", "Noisy", "Trash")
+                c: sum(1 for r in rows if r["categ"] == c) for c in ("Clear", "Noisy", "Trash")
             }
             score = round(sum(r["quality_score"] for r in rows) / len(rows), 4)
             band = _band(counts["Clear"], counts["Noisy"], counts["Trash"])
@@ -205,12 +194,11 @@ async def score_record(document_json: UploadFile = File(...)) -> Dict[str, Any]:
             if band:
                 page_row["quality_band"] = band
             page_rows.append(page_row)
-        # The shape of ocr-postprocess v1.9.0-beta's ScoredPage.
+        # The shape of ocr-postprocess v2.0.0's ScoredPage.
         pages_summary.append(
             {
                 "page": page,
                 "lines_scored": len(rows),
-                "skipped_decode_verdict": skipped.get(page, 0),
                 "skipped_empty": empty.get(page, 0),
                 "quality_score": score,
                 "quality_band": band,
@@ -221,7 +209,7 @@ async def score_record(document_json: UploadFile = File(...)) -> Dict[str, Any]:
     for row in out.get("lines") or []:
         hit = scored.get((str(row["page"]), row["line"]))
         if hit is not None:
-            row.update(categ=hit["category"], quality_score=hit["quality_score"], lang=hit["lang"])
+            row.update(categ=hit["categ"], quality_score=hit["quality_score"], lang=hit["lang"])
     by_label = {r["page"]: r for r in page_rows}
     for row in out.get("pages") or []:
         hit = by_label.get(str(row.get("page")))
@@ -242,9 +230,7 @@ async def score_record(document_json: UploadFile = File(...)) -> Dict[str, Any]:
 async def process(file: UploadFile = File(...), task_type: str = Form("auto")) -> Dict[str, Any]:
     text = (await file.read()).decode("utf-8", "replace")
     lines = [line for line in text.splitlines() if line.strip()]
-    cleaned = [
-        {"line_num": n, "text": line, **_score_line(line)} for n, line in enumerate(lines, 1)
-    ]
+    cleaned = [{"line": n, "text": line, **_score_line(line)} for n, line in enumerate(lines, 1)]
     return {
         "type": "plain_text",
         "filename": file.filename,

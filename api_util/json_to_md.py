@@ -15,8 +15,9 @@ also do two things no other converter can, because only the record carries the
 data for them:
 
   * emit ``NEEDS_OCR``/``OCR`` cues straight from ``pages[].needs_ocr``/``pages[].ocr``;
-  * drop heuristically-bad lines via ``lines[].categ``/``quality_score`` before
-    they ever reach the model, via ``--min-quality``.
+  * drop lines that do not decode (the ``decode:garbled``/``decode:inverted`` flags) or that
+    ocr-postprocess called ``Trash`` before they ever reach the model, and, via
+    ``--min-quality``, lines below a ``quality_score``.
 
 ``--detail`` picks the cue profile — ``full`` (the default), ``standard`` or ``minimal``,
 defined in ``layout_md.py`` (atrium-project#70 item 1). The text lines are the same in all
@@ -45,31 +46,32 @@ if _repo_root not in sys.path:
 
 from api_util import layout_md as L  # noqa: E402
 from api_util import xml_to_md  # noqa: E402
-from atrium_vocab import DECODE_FLAGS, UNTRUSTWORTHY_LINE_CATEGORIES  # noqa: E402
+from atrium_vocab import (  # noqa: E402
+    DECODE_FLAGS,
+    LEGACY_DECODE_FLAGS,
+    UNTRUSTWORTHY_LINE_CATEGORIES,
+)
 
 #: Line categories excluded from the rendered text by default — text this pipeline has
 #: already judged untrustworthy, which would only degrade the LLM's read of the page
-#: rather than inform it.
-#:
-#: The hub's semantic set, `atrium_vocab.UNTRUSTWORTHY_LINE_CATEGORIES` — ("Garbage",
-#: "Inverted", "Trash") — which spans both originators of `lines[].categ`:
-#: `api_util/digital_to_json.py` writes Garbage/Inverted on the digital-born path
-#: (`atrium_vocab.LINE_CATEGORY_ORIGINATORS["digital-convert"]`), alto-postprocess writes
-#: {Clear, Empty, Noisy, Non-text, Trash} on the OCR path.
+#: rather than inform it: `atrium_vocab.UNTRUSTWORTHY_LINE_CATEGORIES` (`Trash`, ocr-postprocess's
+#: line-quality verdict).
 #:
 #: FIXED — defect V-1 of the hub's `docs/skos_strategy.md` §6 (atrium-alto-postprocess#31,
 #: 2026-09-25). This was frozenset({"Garbage", "Inverted"}), the digital-convert set only, so
 #: on the OCR path it matched nothing and every `Trash` line reached the model. Filtering
 #: `Trash` changes what the model is shown on every OCR document — the point of the fix.
 #:
-#: Since record schema 2.0 (atrium-project#84) digital-convert's decode verdicts are line FLAGS
-#: (`lines[].flags`, as on docproc lines; `DROP_FLAGS`), never a category. A 1.x record or
-#: development dict that still carries them as `categ` is read the same way.
-DROP_CATEGORIES = frozenset(UNTRUSTWORTHY_LINE_CATEGORIES) | frozenset(DECODE_FLAGS)
+#: digital-convert's decode verdicts are a system apart (D18 rules 2 and 3, atrium-project#84):
+#: line FLAGS (`lines[].flags`, as on docproc lines; `DROP_FLAGS`), never a category. A 1.x
+#: record or development dict that still carries `Garbage`/`Inverted` as `categ` is read the
+#: same way (`atrium_vocab.LEGACY_DECODE_FLAGS`).
+DROP_CATEGORIES = frozenset(UNTRUSTWORTHY_LINE_CATEGORIES) | frozenset(LEGACY_DECODE_FLAGS)
 
 #: Line flags excluded from the rendered text: digital-convert's decode verdicts
-#: (`atrium_vocab.DECODE_FLAGS`: a text layer that decodes to wrong characters, or mirrored text).
-DROP_FLAGS = frozenset(DECODE_FLAGS)
+#: (`atrium_vocab.DECODE_FLAGS`: a text layer that decodes to wrong characters, or mirrored
+#: text), and their spelling before 2026-11-16 (`Garbage`, `Inverted`).
+DROP_FLAGS = frozenset(DECODE_FLAGS) | frozenset(LEGACY_DECODE_FLAGS)
 
 
 def load_json(path: str | Path) -> Dict[str, Any]:
@@ -587,7 +589,10 @@ if __name__ == "__main__":
         help="Cue profile: full (default), standard or minimal (see api_util/layout_md.py).",
     )
     parser.add_argument(
-        "--min-quality", type=float, default=0.0, help="Drop lines below this quality_score."
+        "--min-quality",
+        type=float,
+        default=0.0,
+        help="Drop lines below this quality_score (ocr-postprocess's; a line it did not score is kept).",
     )
     args = parser.parse_args()
 

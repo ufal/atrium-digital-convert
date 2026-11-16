@@ -191,6 +191,17 @@ Docling engine's own boxes for text no light line holds stay unchecked on offset
 and routed `empty` (D29). The proposal adds asks 5 (`forced`, `forced_reason`) and 10 (`pixelRatio`). Ronald's ask 10
 is still open for the ATR's side. Hub: "Status — round 7".
 
+## Status — the meeting's follow-ups (11-16 night)
+
+atrium-project#84 round 8 (comment 3's update): `forms` gone, decode verdicts apart, one line key, the services' JSON in the record's names. Paradata per distribution waits for the next meeting (Q23). Not pushed.
+
+- **Decode verdicts apart (D18 rules 2 and 3).** docproc line flags `decode:garbled`/`decode:inverted` (the shared `decode-verdict` scheme); the development dict's `decode_score` (was `quality_score`), no band: `BAND_CLEAR_AT`/`BAND_NOISY_AT` gone; IR `DigitalLine.decode`/`decode_score`, `DigitalPage.decode_score`. `/describe`: `quality` is ocr-postprocess's only, `decode` the converter's check. `tools/stage_stub.py` scores every line, as ocr-postprocess does.
+- **The record's names.** `/describe`: `needs_atr`, `needs_atr_reason`, `needs_atr_pages`, `classify_pages=needs_atr` (`needs_ocr` accepted, deprecated); `service/stages.py` reads page-classification's `page_index` and ocr-postprocess's `categ`, and the older names.
+- **Kept:** `QUALITY_GARBAGE_BELOW` and `GARBAGE_MIN_HITS` (the SHA-pinned `text_formats.py` cites them); the IR's and the development dict's `needs_ocr` (internal).
+- Re-vendored shared modules; `service/openapi.json` and the docproc proposal regenerated; README, how-it-works, reference pages, CONTRIBUTING.
+- **Checked:** 1028 passed (not slow); the hub's local chain (garbled PDF flagged `decode:garbled`).
+- **Next:** the hub's PR first; then this repository's, with the pins moved to it.
+
 ## Depends on
 
 - Kate's answer on #84 (16 November) and Ronald's on aiscr-docs-pipeline#17: D20, D24; asks 3 (run data out),

@@ -41,7 +41,8 @@ def test_convert_renders_page_sectioned_markdown_with_bbox(tmp_path):
     assert "BBOX" in md
 
 
-def test_convert_drops_garbage_and_inverted_lines(tmp_path):
+def test_convert_drops_a_1x_records_garbage_and_inverted_lines(tmp_path):
+    """A 1.x record carried the decode verdicts as `categ`; they are still dropped."""
     path = _write_record(
         tmp_path,
         pages=[{"page": "1"}],
@@ -61,7 +62,7 @@ def test_convert_drops_trash_lines_on_the_ocr_path(tmp_path):
     """V-1 (hub docs/skos_strategy.md §6): alto-postprocess's categories are Clear/Empty/
     Noisy/Non-text/Trash, so a filter of the digital-convert labels alone let every OCR
     `Trash` line through to the model. The filter is the hub's untrustworthy set."""
-    from atrium_vocab import LINE_CATEGORY_ORIGINATORS, UNTRUSTWORTHY_LINE_CATEGORIES
+    from atrium_vocab import LEGACY_DECODE_FLAGS, UNTRUSTWORTHY_LINE_CATEGORIES
 
     path = _write_record(
         tmp_path,
@@ -79,12 +80,8 @@ def test_convert_drops_trash_lines_on_the_ocr_path(tmp_path):
     # the hub's untrustworthy set, and digital-convert's decode verdicts as a 1.x record wrote
     # them (since atrium-project#84 they are line flags: json_to_md.DROP_FLAGS)
     assert json_to_md.DROP_CATEGORIES == frozenset(UNTRUSTWORTHY_LINE_CATEGORIES) | frozenset(
-        LINE_CATEGORY_ORIGINATORS["digital-convert"]
+        LEGACY_DECODE_FLAGS
     )
-    for originator, labels in LINE_CATEGORY_ORIGINATORS.items():
-        assert json_to_md.DROP_CATEGORIES & set(labels), (
-            f"{originator}'s untrustworthy lines are not dropped"
-        )
 
 
 def test_convert_min_quality_drops_low_score_lines(tmp_path):
@@ -718,14 +715,16 @@ def test_detail_profiles_on_the_digital_fixtures(name):
 
 def test_lines_with_a_decode_flag_are_dropped(tmp_path):
     """Since atrium-project#84 digital-convert's decode verdict is a line flag (the development
-    dict and docproc lines); such a line never reaches the model."""
+    dict and docproc lines); such a line never reaches the model, in either spelling."""
     path = _write_record(
         tmp_path,
         pages=[{"page": "1"}],
         lines=[
             {"page": "1", "line": 1, "text": "Clear line."},
-            {"page": "1", "line": 2, "text": "sondì høeby", "flags": ["Garbage"]},
+            {"page": "1", "line": 2, "text": "sondì høeby", "flags": ["decode:garbled"]},
+            {"page": "1", "line": 3, "text": "nalezeny høeby", "flags": ["Garbage"]},
+            {"page": "1", "line": 4, "text": "olbirf", "flags": ["decode:inverted"]},
         ],
     )
     md = json_to_md.convert(path)
-    assert "Clear line." in md and "sondì" not in md
+    assert "Clear line." in md and "sondì" not in md and "høeby" not in md and "olbirf" not in md

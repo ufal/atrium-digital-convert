@@ -42,7 +42,8 @@ python3 api_util/doc_to_visual_md.py report.odt --output report.md         # con
   `ollama_client.py`); its service works line by line on the record and does not need it. How the renderer
   is shared with that repository (vendored with a pin) is still to be settled (atrium-project#72 B).
 * **One source.** The rendering is a pure function of the development dict, which the docproc is written from,
-  so the Markdown cannot differ from the stored layout. Lines with a decode flag (`Garbage`, `Inverted`) and
+  so the Markdown cannot differ from the stored layout. Lines with a decode flag (`decode:garbled`,
+  `decode:inverted`; `Garbage`, `Inverted` in an older dict) and
   untrustworthy lines (`Trash`) are left out.
 
 ## Detail profiles (`--detail`)

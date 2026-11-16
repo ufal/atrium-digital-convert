@@ -50,9 +50,10 @@ TEXT_LAYER_BLANK = "blank"
 #: Not an adapter's census value: a `digital` layer that Layer B's decode check
 #: (`digital_to_json.assess_page`) found does not decode, so the page is flagged `needs_ocr`.
 TEXT_LAYER_GARBLED = "garbled"
-#: The verdicts of `text_layer_of()`: the record's `pages[].text_layer` (a closed enum in the hub
-#: schema since 2026-10-05, atrium-project#71) and `/describe`'s `text_layer`. `garbled`, `ocr` and
-#: `none` are exactly the pages Layer B flags `needs_ocr`.
+#: The verdicts of `text_layer_of()`: docproc's page `textLayer` (the record's `pages[].text_layer`
+#: until record schema 2.0) and `/describe`'s `text_layer`. `garbled`, `ocr` and `none` are exactly
+#: the pages Layer B flags `needs_ocr` (docproc's `needsAtr`). A page verdict, apart from the line
+#: decode verdicts (`decode:garbled`, `decode:inverted`).
 TEXT_LAYERS: Tuple[str, ...] = (
     TEXT_LAYER_DIGITAL,
     TEXT_LAYER_GARBLED,
@@ -118,7 +119,7 @@ def unmapped_to_replacement(text: str) -> str:
     so the decode check never counted them, and whole AMČR pages of them (89–100 % unmapped)
     passed as `digital` text. One glyph becomes one replacement character, which is what it is:
     a character the layer does not give. `digital_to_json.decode_sanity` counts it, and a line
-    whose glyphs are more than GARBLE_CHAR_SHARE unmapped is `Garbage`, its page `garbled`.
+    whose glyphs are more than GARBLE_CHAR_SHARE unmapped is `garbled`, and so is its page.
     """
     if "(cid:" not in text and "GLYPH<" not in text:
         return text
@@ -165,7 +166,7 @@ def is_inverted(matrix: Any) -> bool:
 
     pdfplumber exposes the text matrix as `(a, b, c, d, e, f)`. A negative `a` mirrors
     horizontally and a negative `d` flips vertically; either makes the extracted string
-    unreliable as *text* however cleanly it decodes, which is what `Inverted` records.
+    unreliable as *text* however cleanly it decodes, which is what the `inverted` verdict records.
     """
     if not matrix or len(matrix) < 4:
         return False
@@ -190,8 +191,13 @@ class DigitalLine:
     heading_level: Optional[int] = None
     inverted: bool = False
     group_id: Optional[str] = None
-    categ: Optional[str] = None
-    quality_score: Optional[float] = None
+    #: The decode verdict (`garbled`, `inverted`; the `decode-verdict` scheme), or None when the
+    #: line decodes. Written as the docproc line flag `decode:<verdict>`, never a line category:
+    #: line quality is the record builder's (D18 rules 2 and 3).
+    decode: Optional[str] = None
+    #: 0..1, how well the line's characters decode (`digital_to_json.decode_sanity`); not a
+    #: measure of how the text reads.
+    decode_score: Optional[float] = None
     lang: Optional[str] = None
     #: `style.region` — page furniture or a footnote; None for body text.
     region: Optional[str] = None
@@ -308,8 +314,8 @@ class DigitalPage:
     tables: List[DigitalTable] = field(default_factory=list)
     needs_ocr: bool = False
     needs_ocr_reason: str = ""
-    quality_score: Optional[float] = None
-    quality_band: Optional[str] = None
+    #: The mean `decode_score` of the page's lines; None for a page without lines.
+    decode_score: Optional[float] = None
     #: Per-page census (PDF). DOCX pages are always `digital`.
     text_layer: str = TEXT_LAYER_DIGITAL
     images: int = 0

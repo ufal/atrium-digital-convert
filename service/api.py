@@ -258,26 +258,20 @@ class PageCategory(BaseModel):
 
 
 class PageQuality(BaseModel):
-    """Whether a page's text reads: the common quality model, or the converter's decode check."""
+    """Whether a page's text reads: ocr-postprocess's common line-quality model."""
 
     model_config = ConfigDict(extra="allow")
 
-    source: str = Field(
-        description="`ocr-postprocess` (the common line-quality model) or `digital-convert` (the decode check only)."
-    )
+    source: str = Field(description="`ocr-postprocess` (the common line-quality model).")
     score: Optional[float] = Field(
-        description="From 0 to 1. ocr-postprocess: the mean line-quality score of the lines it judged "
-        "(Clear/Noisy/Trash; a pre-filter answer's 0.0 placeholder is left out). digital-convert: the "
-        "page's decode sanity (the record's `pages[].quality_score` before any scoring), a measure of "
-        "how the characters decode, not of how the text reads."
+        description="From 0 to 1: the mean line-quality score of the lines it judged (Clear/Noisy/Trash; "
+        "a pre-filter answer's 0.0 placeholder is left out)."
     )
     band: Optional[str] = Field(
-        description="`Clear`, `Noisy` or `Trash`; null when no line was judged. ocr-postprocess: the "
-        "plurality of its line verdicts. digital-convert: the decode-sanity band, so a garbled page can "
-        "read `Clear` here; `text_layer` and `lines_by_category.Garbage` say whether it decodes."
+        description="`Clear`, `Noisy` or `Trash`, the plurality of its line verdicts; null when no line was judged."
     )
     lines_by_category: Dict[str, int] = Field(
-        description="Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty` (ocr-postprocess), or `Garbage`/`Inverted`/`decoded` (digital-convert)."
+        description="Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty`."
     )
     lang: Optional[str] = Field(
         description="The page's dominant language among the lines the model judged, when it reports one."
@@ -295,6 +289,22 @@ class PageQuality(BaseModel):
     prose_lines_by_category: Optional[Dict[str, int]] = Field(
         None, description="ocr-postprocess only: `lines_by_category` over the prose lines."
     )
+
+
+class PageDecode(BaseModel):
+    """Whether a page's characters decode: the converter's own check, a system apart from text
+    quality (D18 rules 2 and 3; atrium-project#84)."""
+
+    model_config = ConfigDict(extra="allow")
+
+    decode_score: Optional[float] = Field(
+        description="From 0 to 1: the mean of the lines' decode scores, how their characters decode (not how "
+        "the text reads)."
+    )
+    lines_by_flag: Dict[str, int] = Field(
+        description="Lines per decode flag, as on docproc lines: `decode:garbled`, `decode:inverted`."
+    )
+    lines_decoded: int = Field(description="Lines without a decode flag.")
 
 
 class PageLayout(BaseModel):
@@ -336,14 +346,19 @@ class PageReport(BaseModel):
     page: str = Field(description="The page label (`pages[].page` in the record).")
     page_index: int = Field(description="1-based physical position.")
     text_layer: str = Field(
-        description="`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer, or only a running header or footer over a full-page image), `blank` (an empty page without a page image): the record's `pages[].text_layer`."
+        description="`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer, or only a running header or footer over a full-page image), `blank` (an empty page without a page image): docproc's page `textLayer`."
     )
-    needs_ocr: bool
-    needs_ocr_reason: Optional[str]
+    needs_atr: bool = Field(description="The page goes to the ATR: docproc's page `needsAtr`.")
+    needs_atr_reason: Optional[str] = Field(
+        description="Why; docproc's `needsAtrReason`. Null when it does not."
+    )
     category: Optional[PageCategory] = Field(
         description="Null when page-classification did not run for the page."
     )
-    quality: Optional[PageQuality] = Field(description="Null for a page without lines.")
+    quality: Optional[PageQuality] = Field(
+        description="Null for a page without lines, and when ocr-postprocess did not score the page."
+    )
+    decode: Optional[PageDecode] = Field(description="Null for a page without lines.")
     route: str = Field(
         description="`nlp`, `ocr` (ATR), `htr` (handwriting) or `none` (nothing to read)."
     )
@@ -361,7 +376,7 @@ class DescribeSummary(BaseModel):
 
     pages: int
     routes: Dict[str, int] = Field(description="Pages per route: `nlp`, `ocr`, `htr`, `none`.")
-    needs_ocr_pages: List[int] = Field(description="`page_index` of the pages flagged `needs_ocr`.")
+    needs_atr_pages: List[int] = Field(description="`page_index` of the pages flagged `needs_atr`.")
     reacquire_pages: List[int] = Field(
         description="`page_index` of the pages routed to `ocr` or `htr`."
     )
@@ -822,11 +837,12 @@ async def describe(
             "empty for every configured one; `none` for none (the assessment then rests on the converter alone)."
         ),
     ),
-    classify_pages: Literal["needs_ocr", "all"] = Form(
-        "needs_ocr",
+    classify_pages: Literal["needs_atr", "all", "needs_ocr"] = Form(
+        "needs_atr",
         description=(
-            "Pages page-classification is asked about: those without a usable text layer and those whose only "
-            "text is a running header or footer over an image (default), or all."
+            "Pages page-classification is asked about: `needs_atr`, those without a usable text layer and those "
+            "whose only text is a running header or footer over an image (default), or `all`. `needs_ocr` is the "
+            "deprecated name of `needs_atr`."
         ),
     ),
     include_text: bool = Form(True, description="Include each page's text in `pages[].text`."),

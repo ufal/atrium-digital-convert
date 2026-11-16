@@ -92,6 +92,18 @@ def test_markdown_is_the_same_from_the_cli_and_from_reformat(tmp_path, name):
     assert (out / f"{stem}.md").read_text(encoding="utf-8") == body["markdown"]
 
 
+def _without_rendering_digest(reader: dict) -> dict:
+    """`reader` with `rendering.sha512` left out, once checked to be a SHA-512. The digest names
+    the PDF this run handed over (D23), and two runs' PDFs can differ in bytes while laying the
+    document out the same (2026-11-15; the rerun test in `test_office_render.py`): it is per run."""
+    rendering = reader.get("rendering")
+    if not rendering:
+        return reader
+    digest = rendering["sha512"]
+    assert len(digest) == 128 and all(c in "0123456789abcdef" for c in digest), digest
+    return {**reader, "rendering": {k: v for k, v in rendering.items() if k != "sha512"}}
+
+
 @pytest.mark.parametrize(
     "name", ["garbled.pdf", pytest.param("minimal.docx", marks=needs_libreoffice)]
 )
@@ -100,8 +112,9 @@ def test_the_assessment_is_the_same_from_the_cli_and_from_describe(tmp_path, no_
     stem = Path(name).stem
     report = json.loads((out / f"{stem}.describe.json").read_text(encoding="utf-8"))
     body = _service("/describe", name)
-    for key in ("pages", "summary", "stages", "reader"):
+    for key in ("pages", "summary", "stages"):
         assert report[key] == body[key], key
+    assert _without_rendering_digest(report["reader"]) == _without_rendering_digest(body["reader"])
     assert {s["status"] for s in report["stages"]} == {"not_configured"}
 
 

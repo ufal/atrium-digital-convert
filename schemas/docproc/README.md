@@ -22,7 +22,7 @@ digest are the paradata's. digital-convert writes neither, nor `sourceFile` or `
 - a page may carry `textLayer` (`digital`, `garbled`, `ocr`, `none`, `blank`), `needsAtr` with `needsAtrReason`,
   and `userUnit`;
 - a block may carry `lines[]`: `text`, `bbox`, `bboxPrecision` (`measured`, `derived`, `absent`), `language`,
-  `flags` (digital-convert's decode verdicts `Garbage`, `Inverted`);
+  `flags` (digital-convert's decode verdicts `decode:garbled`, `decode:inverted`);
 - a page of a flow document (a spreadsheet, a text-only input: nothing to render) has no `width`/`height`, and its
   blocks no `bbox`. Office documents are rendered, so their pages have a size (atrium-digital-convert#9).
 

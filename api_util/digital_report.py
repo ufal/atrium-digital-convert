@@ -9,9 +9,11 @@ For every page of a converted document it says, in one place:
       `none` no text layer (a scan, text drawn as curves, an empty page); `blank` an empty page
       of a format without page images (DOCX/ODT/sheets) — nothing to re-acquire.
   * **category** — what kind of page it is, from page-classification (when it ran for the page).
-  * **quality** — does the text read as language: ocr-postprocess's common line-quality model
-    when it ran (`source: ocr-postprocess`), else the converter's own decode check
-    (`source: digital-convert`, which says "decodes", not "reads well").
+  * **quality** — does the text read as language: ocr-postprocess's common line-quality model,
+    null when it did not run.
+  * **decode** — do the characters decode: the converter's own check, apart from quality (D18
+    rules 2 and 3): the page's `decode_score` and its lines per decode flag (`decode:garbled`,
+    `decode:inverted`). It says "decodes", never "reads well".
   * **route** — where the page should go next:
       `nlp`  the text is good to go to NLP enrichment;
       `ocr`  re-acquire the page with ATR (printed or typed text, or unknown);
@@ -34,8 +36,9 @@ For every page of a converted document it says, in one place:
   * **layout** and **text** — what the converter found on the page.
 
 Everything here is derived: from the converter's internal document, the record and the stages'
-answers. Nothing is stored — the record keeps the persisted signals (`needs_ocr` and its
-reason, `category`, the quality fields) and this view is regenerated from them on request.
+answers. Nothing is stored — docproc keeps the persisted signals (`needsAtr` and its reason, the
+decode flags), the record `category` and the quality fields, and this view is regenerated from
+them on request.
 
 The route rules are deterministic and deliberately simple (README, "The per-page report"). Page
 categories are read through `atrium_vocab.COLLECTIONS["page-category"]` (handwritten / printed /
@@ -80,9 +83,6 @@ QUALITY_CATEGORIES = ("Clear", "Noisy", "Trash", "Non-text", "Empty")
 #: The verdicts of ocr-postprocess's quality model. `Non-text` and `Empty` are its CPU pre-filter's
 #: answers: no model ran, the score is a 0.0 placeholder and the language `N/A`.
 JUDGED_CATEGORIES = ("Clear", "Noisy", "Trash")
-
-#: The converter's own decode verdicts on `lines[].categ`.
-DECODE_CATEGORIES = ("Garbage", "Inverted")
 
 #: What the quality rule counts on a `digital` page: prose lines only (atrium-digital-convert#5).
 #: A line shorter than this (stripped) is not prose: a table cell, a label, a page number.
@@ -164,8 +164,8 @@ def summarize_quality(
     prose: Optional[Sequence[bool]] = None,
     **extra: Any,
 ) -> Optional[Dict[str, Any]]:
-    """One page's quality from ocr-postprocess's per-line answers (`category`/`categ`,
-    `quality_score`, `lang`). None when no line was scored.
+    """One page's quality from ocr-postprocess's per-line answers (`categ`, `quality_score`,
+    `lang`; `category` from an ocr-postprocess before v2.0.0). None when no line was scored.
 
     `score`, `lang` and `lines_scored` count the lines the model judged (Clear/Noisy/Trash), as
     ocr-postprocess's own page score does: a pre-filter answer (`Non-text`, `Empty`) carries a
@@ -178,12 +178,12 @@ def summarize_quality(
     """
     every = list(lines)
     flags = list(prose) if prose is not None and len(prose) == len(every) else None
-    rows = [row for row in every if (row.get("category") or row.get("categ"))]
+    rows = [row for row in every if (row.get("categ") or row.get("category"))]
     if not rows:
         return None
-    counts = Counter(str(row.get("category") or row.get("categ")) for row in rows)
+    counts = Counter(str(row.get("categ") or row.get("category")) for row in rows)
     judged = [
-        row for row in rows if str(row.get("category") or row.get("categ")) in JUDGED_CATEGORIES
+        row for row in rows if str(row.get("categ") or row.get("category")) in JUDGED_CATEGORIES
     ]
     scores = [
         float(row["quality_score"])
@@ -206,9 +206,9 @@ def summarize_quality(
         summary["band"] = quality_band(clear, noisy, trash)
     if flags is not None:
         prose_counts = Counter(
-            str(row.get("category") or row.get("categ"))
+            str(row.get("categ") or row.get("category"))
             for row, flag in zip(every, flags, strict=True)
-            if flag and (row.get("category") or row.get("categ"))
+            if flag and (row.get("categ") or row.get("category"))
         )
         summary["prose_lines_scored"] = sum(prose_counts.values())
         summary["prose_lines_by_category"] = dict(sorted(prose_counts.items()))
@@ -230,18 +230,16 @@ def furniture_only(page: DigitalPage) -> bool:
     )
 
 
-def _converter_quality(page: DigitalPage) -> Optional[Dict[str, Any]]:
+def _decode_check(page: DigitalPage) -> Optional[Dict[str, Any]]:
+    """The converter's decode check of a page: its `decode_score` and its lines per decode flag.
+    None for a page without lines."""
     if not page.lines:
         return None
-    counts = Counter(line.categ for line in page.lines if line.categ in DECODE_CATEGORIES)
-    flagged = sum(counts.values())
+    counts = Counter("decode:" + line.decode for line in page.lines if line.decode)
     return {
-        "source": "digital-convert",
-        "score": page.quality_score,
-        "band": page.quality_band,
-        "lines_by_category": {**dict(sorted(counts.items())), "decoded": len(page.lines) - flagged},
-        "lang": None,
-        "lines_scored": len(page.lines),
+        "decode_score": page.decode_score,
+        "lines_by_flag": dict(sorted(counts.items())),
+        "lines_decoded": len(page.lines) - sum(counts.values()),
     }
 
 
@@ -409,7 +407,7 @@ def build_report(
     for page in document.pages:
         layer = text_layer_of(page)
         category = categories.get(page.page_index)
-        page_quality = quality.get(page.page_index) or _converter_quality(page)
+        page_quality = quality.get(page.page_index)
         layout = _layout(page)
         route, reason = route_page(
             layer,
@@ -424,10 +422,11 @@ def build_report(
             "page": page.page,
             "page_index": page.page_index,
             "text_layer": layer,
-            "needs_ocr": bool(page.needs_ocr),
-            "needs_ocr_reason": page.needs_ocr_reason or None,
+            "needs_atr": bool(page.needs_ocr),
+            "needs_atr_reason": page.needs_ocr_reason or None,
             "category": dict(category) if category else None,
             "quality": dict(page_quality) if page_quality else None,
+            "decode": _decode_check(page),
             "route": route,
             "route_reason": reason,
             "layout": layout,
@@ -451,7 +450,7 @@ def summarize(pages: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
     return {
         "pages": len(pages),
         "routes": {route: routes.get(route, 0) for route in ROUTES},
-        "needs_ocr_pages": [page["page_index"] for page in pages if page.get("needs_ocr")],
+        "needs_atr_pages": [page["page_index"] for page in pages if page.get("needs_atr")],
         "reacquire_pages": [
             page["page_index"] for page in pages if page["route"] in (ROUTE_OCR, ROUTE_HTR)
         ],

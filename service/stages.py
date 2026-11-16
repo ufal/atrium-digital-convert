@@ -8,14 +8,16 @@ stages on record schema 2.0 may refuse it, which is reported per stage like any 
 
   * **page-classification** — `POST /predict_document` with the PDF, the record and the pages to
     classify (`pages=` page indices; by default the pages without a usable text layer). It
-    answers with each page's categories and, given the record, writes `page_categories` and
-    `pages[].category/category_confidence` into it.
+    answers with each page's categories (each page by `page_index`; `page` before its v2.0.0)
+    and, given the record, writes `page_categories` and `pages[].category/category_confidence`
+    into it.
   * **ocr-postprocess** — `POST /score_record` with the record (W3, agreed on #4): the common
-    line-quality model scores the converter's lines and writes only `lines[].categ/
-    quality_score/lang` and `pages[].quality_score/quality_band`, never over a line that carries
-    the converter's own decode verdict (`Garbage`/`Inverted`). An older ocr-postprocess without
-    that endpoint is asked per page through `POST /process` (`task_type=text`) instead; its
-    answer then informs the report only.
+    line-quality model scores every one of the converter's lines and writes only `lines[].categ/
+    quality_score/lang` and `pages[].quality_score/quality_band`. The converter's own decode
+    verdicts are line flags (`decode:garbled`, `decode:inverted`) beside its `decode_score`, a
+    system apart that scoring does not overwrite (D18 rules 2 and 3). An older ocr-postprocess
+    without that endpoint is asked per page through `POST /process` (`task_type=text`) instead;
+    its answer then informs the report only.
 
 **Lines ocr-postprocess could not score.** Since its v1.12.0-beta a perplexity batch that runs out
 of GPU memory is split and retried; a line that fails even on its own scores 99999 (`PPL_FAILED`),
@@ -405,7 +407,8 @@ def run_page_classification(
         if not isinstance(entry, dict):
             continue
         try:
-            index = int(entry.get("page"))
+            # `page_index` since page-classification v2.0.0 (the record's names); `page` before.
+            index = int(entry.get("page_index", entry.get("page")))
         except (TypeError, ValueError):
             continue
         if index not in wanted:
@@ -520,14 +523,18 @@ def run_ocr_postprocess(
                 "(ocr-postprocess PPL_BATCH_LINES, limits_applied); the record keeps the converter's values"
             )
             return result
-        # Every line kept the converter's decode verdict or had no text: nothing was scored, and
-        # the record came back as it was sent.
+        # No line had text (or, from an ocr-postprocess before v2.0.0, every line kept the
+        # converter's decode verdict unscored): nothing was scored, and the record came back as it
+        # was sent.
         verdicts = sum(
             int(entry.get("skipped_decode_verdict") or 0) for entry in summaries.values()
         )
         outcome.status = STATUS_SKIPPED
         outcome.detail = (
-            f"no line to score ({verdicts} line(s) keep the converter's decode verdict)"
+            f"no line to score ({verdicts} line(s) skipped for their decode verdict by an "
+            "ocr-postprocess before v2.0.0)"
+            if verdicts
+            else "no line to score (no line has text)"
         )
         return result
     outcome.detail = f"{len(result.per_page)} page(s) scored"
@@ -594,7 +601,7 @@ def _restore_unscored(
             continue
         _copy_fields(before_pages.get(label) or {}, page, SCORED_PAGE_FIELDS)
         rows = scored_by_label.get(label) or []
-        categories = [str(row.get("category") or row.get("categ")) for row in rows]
+        categories = [str(row.get("categ") or row.get("category")) for row in rows]
         scores = [
             float(row["quality_score"])
             for row, category in zip(rows, categories, strict=True)

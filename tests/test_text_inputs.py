@@ -131,7 +131,7 @@ def test_mojibake_is_flagged_on_the_line_but_never_sends_a_textual_page_to_the_a
     d2j.convert(str(path), out_path=str(out))
     docproc = json.loads(out.read_text(encoding="utf-8"))
     line = docproc["pages"][0]["blocks"][0]["lines"][0]
-    assert line["flags"] == ["Garbage"], "scoring may read the decode flag"
+    assert line["flags"] == ["decode:garbled"], "scoring may read the decode flag"
     assert docproc["metadata"]["routing"]["pages"][0]["route"] == "text-layer"
     assert not docproc_writer.needs_atr(docproc)
 

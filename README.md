@@ -91,8 +91,9 @@ Each page's text layer is checked before anything is trusted:
 - `blank`: an empty page.
 
 Every page that is not `digital` (or `blank`) carries `needsAtr` with a reason and is routed `atr`; an empty page
-is routed `empty`. A line whose text layer decodes to wrong characters keeps the flag `Garbage` (`Inverted` for
-mirrored text). The rules, with an example: [docs/how-it-works.md](docs/how-it-works.md).
+is routed `empty`. A line whose text layer decodes to wrong characters keeps the flag `decode:garbled`
+(`decode:inverted` for mirrored text): a verdict on its characters, apart from the line quality ocr-postprocess
+scores. The rules, with an example: [docs/how-it-works.md](docs/how-it-works.md).
 
 ## Where it fits in ATRIUM
 
