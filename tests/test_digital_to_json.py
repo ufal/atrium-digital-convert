@@ -728,7 +728,9 @@ def test_cli_exposes_the_engine_and_rendering_flags():
     help_text = d2j.build_parser().format_help()
     for flag in ("--engine", "--rendered-out", "--paradata-dir", "--docproc-out"):
         assert flag in help_text
-    assert "--docx-page-breaks" not in help_text, "an office document's pages are its rendering's (#9)"
+    assert "--docx-page-breaks" not in help_text, (
+        "an office document's pages are its rendering's (#9)"
+    )
 
 
 def _components_logged(tmp_path, names):

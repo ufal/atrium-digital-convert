@@ -349,7 +349,9 @@ class PageReport(BaseModel):
         description="`digital` (decodes), `garbled` (exists, does not decode), `ocr` (a prior OCR run), `none` (no text layer, or only a running header or footer over a full-page image), `blank` (an empty page without a page image): docproc's page `textLayer`."
     )
     needs_atr: bool = Field(description="The page goes to the ATR: docproc's page `needsAtr`.")
-    needs_atr_reason: Optional[str] = Field(description="Why; docproc's `needsAtrReason`. Null when it does not.")
+    needs_atr_reason: Optional[str] = Field(
+        description="Why; docproc's `needsAtrReason`. Null when it does not."
+    )
     category: Optional[PageCategory] = Field(
         description="Null when page-classification did not run for the page."
     )
@@ -624,9 +626,7 @@ def _convert(
         program=PROGRAM,
         config={
             "endpoint": endpoint,
-            **d2j.run_config(
-                upload.name, "light", markdown=markdown, describe=describe
-            ),
+            **d2j.run_config(upload.name, "light", markdown=markdown, describe=describe),
         },
         paradata_dir=None,
         config_dir=_PARA_CONFIG_DIR,
@@ -762,7 +762,8 @@ async def reformat(
         json_schema_extra={"contentMediaType": "application/json"},
     ),
     markdown: bool = Form(
-        False, description="Also return the document rendered as annotated Markdown (a development view)."
+        False,
+        description="Also return the document rendered as annotated Markdown (a development view).",
     ),
     rendered: bool = Form(False, description=_RENDERED_HELP),
 ):
@@ -792,7 +793,9 @@ async def reformat(
                 "docproc": docproc,
                 "reader": reader_info(document, dev),
             }
-            if document.rendered_pdf is not None and (rendered or docproc_writer.needs_atr(docproc)):
+            if document.rendered_pdf is not None and (
+                rendered or docproc_writer.needs_atr(docproc)
+            ):
                 result["rendered_pdf"] = {
                     "media_type": "application/pdf",
                     "sha512": document.rendering["sha512"],
