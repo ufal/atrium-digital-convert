@@ -485,6 +485,8 @@ def place(native: DigitalDocument, rendered: DigitalDocument) -> DigitalDocument
                 image_coverage=rp.image_coverage,
                 render_words=0,
                 render_matched=0,
+                frame=rp.frame,
+                user_unit=rp.user_unit,
             )
         )
     for word in words:

@@ -1561,3 +1561,21 @@ Documentation only; no code, test or configuration change.
 * **Checked:** the suite with LibreOffice and without it.
 * **Detail:** [`plans/9.plan.md`](plans/9.plan.md), "Status — round 2".
 * **Not posted; not pushed.**
+
+## 2026-11-16 — atrium-project#84 round 7: one coordinate space, empty pages
+
+* **Asked (K4TEL):** close the doc-schema-v2 gaps left at the `test` heads, against ARÚP's contract of 12 November.
+* **Found:** pdfplumber applies `/Rotate` but measures from the MediaBox and ignores the CropBox; its own `page.cropbox`
+  is wrong on pages rotated 180 or 270 with an offset box (probed against pdfium's rendering). A blank PDF page was
+  `none`, so one blank verso sent a whole born-digital document to the ATR.
+* **Done (local, not pushed):**
+  * D28: `digital_ir.PageFrame` maps the reader's boxes onto the displayed page (CropBox top-left, after `/Rotate`,
+    1/72 inch × UserUnit) when the docproc is written; `userUnit` written when it is not 1. Internals unchanged;
+  * D29: a text-less PDF page whose 50 dpi render has no pixel darker than 250 is `blank` and routed `empty`; any mark
+    keeps it `none`; the threshold is the paradata parameter `blank_page`;
+  * the proposal schema: routing `forced`/`forced_reason` (ask 5), the page's `pixelRatio` (ask 10);
+  * `blank_page.pdf` in the fixtures; `tests/test_docproc_coordinates.py` checks every box against pdfium's ink on
+    rotated, cropped and offset pages; README, how-it-works, schemas README, CONTRIBUTING.
+* **Checked:** the full suite (1029 passed); the local chain with ocr-postprocess's merge.
+* **Detail:** `plans/doc-schema-v2.plan.md`, "Status — round 7"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
+* **Not posted; not pushed.**

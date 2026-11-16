@@ -30,8 +30,11 @@ original and its SHA-512 are the paradata's; ask 3). The output validates agains
 ``schemas/docproc/document.atrium-proposal.schema.json``: the ATR's schema with asks 3 and 13
 applied (``tools/docproc_proposal.py``).
 
-The coordinate work of ask 10 / D28 (UserUnit, CropBox, /Rotate) is not done here yet: a box is
-in the reader's points, origin top-left.
+**Coordinates** (D28, ask 10): every box is on the displayed page, origin top-left of the CropBox,
+after /Rotate, in 1/72 inch x UserUnit; a page's ``width`` and ``height`` are the displayed page's,
+and ``userUnit`` is written when the PDF page's /UserUnit is not 1. The reader's boxes are put there
+with the page's frame (``digital_ir.PageFrame``) as the page is written; a page without a frame (a
+flow document, a text-only input) keeps the reader's.
 """
 
 from __future__ import annotations
@@ -39,7 +42,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from api_util.digital_ir import (
     REGION_FOOTER,
@@ -121,10 +124,17 @@ def _union(boxes: Sequence[Sequence[float]]) -> Optional[List[float]]:
     ]
 
 
-def _line(line: DigitalLine) -> Dict[str, Any]:
+def _placer(page: DigitalPage) -> Callable[[Sequence[float]], List[float]]:
+    """Puts a reader's box on the displayed page (D28): the page's frame, else as read."""
+    if page.frame is None or page.frame.is_identity:
+        return lambda box: [float(v) for v in box]
+    return page.frame.to_display
+
+
+def _line(line: DigitalLine, place: Callable[[Sequence[float]], List[float]]) -> Dict[str, Any]:
     out: Dict[str, Any] = {"text": line.text}
     if line.bbox:
-        out["bbox"] = [round(float(v), 3) for v in line.bbox]
+        out["bbox"] = [round(float(v), 3) for v in place(line.bbox)]
         out["bboxPrecision"] = "measured"
     else:
         out["bboxPrecision"] = "absent"
@@ -212,6 +222,7 @@ def _groups(page: DigitalPage) -> List[Tuple[str, List[DigitalLine]]]:
 
 
 def _page(page: DigitalPage) -> Dict[str, Any]:
+    place = _placer(page)
     tables = {str(t.group_id or t.table_id): t for t in page.tables}
     blocks: List[Dict[str, Any]] = []
     for kind, lines in _groups(page):
@@ -223,8 +234,8 @@ def _page(page: DigitalPage) -> Dict[str, Any]:
             block = {"type": block_type, "content": "\n".join(line.text for line in lines)}
             if level is not None:
                 block["level"] = level
-            block["lines"] = [_line(line) for line in lines]
-        bbox = _union([line.bbox for line in lines if line.bbox])
+            block["lines"] = [_line(line, place) for line in lines]
+        bbox = _union([place(line.bbox) for line in lines if line.bbox])
         ordered: Dict[str, Any] = {"id": f"p{page.page_index}-b{n}", "type": block["type"]}
         if bbox is not None:
             ordered["bbox"] = bbox
@@ -234,10 +245,13 @@ def _page(page: DigitalPage) -> Dict[str, Any]:
         blocks.append(ordered)
 
     out: Dict[str, Any] = {"pageNumber": page.page_index}
-    if page.width and page.height:
-        out["width"] = round(float(page.width), 3)
-        out["height"] = round(float(page.height), 3)
+    width, height = page.frame.size if page.frame is not None else (page.width, page.height)
+    if width and height:
+        out["width"] = round(float(width), 3)
+        out["height"] = round(float(height), 3)
         out["coordinateUnit"] = "pt" if page.unit in ("pt", "", None) else "px"
+        if page.user_unit:
+            out["userUnit"] = page.user_unit
     out["blocks"] = blocks
     out["textLayer"] = text_layer_of(page)
     if page.needs_ocr:

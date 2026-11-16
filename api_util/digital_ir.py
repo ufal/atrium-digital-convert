@@ -232,6 +232,71 @@ class DigitalTable:
     cells: List[Dict[str, Any]] = field(default_factory=list)
 
 
+Box = Tuple[float, float, float, float]
+
+
+@dataclass(frozen=True)
+class PageFrame:
+    """A PDF page's frame (D28, atrium-project#84): its MediaBox, its CropBox (clipped to the
+    MediaBox) and its /Rotate, in PDF user space, to put the reader's boxes on the displayed page.
+
+    The light engine's boxes are pdfplumber's (`x0`, `top`, `x1`, `bottom`). pdfplumber applies
+    /Rotate (through pdfminer's page matrix) but measures from the MediaBox: it keeps the MediaBox's
+    x offset, flips y by the MediaBox height, and ignores the CropBox. Its own `page.cropbox` is wrong
+    on a page rotated 180 or 270 with an offset box. So `to_display` undoes pdfplumber's frame back to
+    user space, then measures from the CropBox's top-left corner after /Rotate, in user-space units
+    (1/72 inch x UserUnit) — the page a viewer, pdfium and the ATR render.
+    """
+
+    mediabox: Box
+    cropbox: Box
+    rotation: int = 0
+
+    @property
+    def size(self) -> Tuple[float, float]:
+        """`(width, height)` of the displayed page."""
+        width = self.cropbox[2] - self.cropbox[0]
+        height = self.cropbox[3] - self.cropbox[1]
+        return (height, width) if self.rotation in (90, 270) else (width, height)
+
+    @property
+    def is_identity(self) -> bool:
+        """True when pdfplumber's frame already is the displayed page's."""
+        return (
+            self.rotation == 0 and self.cropbox == self.mediabox and self.mediabox[:2] == (0.0, 0.0)
+        )
+
+    def point(self, x: float, top: float) -> Tuple[float, float]:
+        mx0, my0, mx1, my1 = self.mediabox
+        raw = (mx0, my0, mx1, my1) if self.rotation in (0, 180) else (my0, mx0, my1, mx1)
+        height = raw[3] - raw[1]
+        # pdfplumber: x = dx + raw x0, top = 2 * height - raw y1 - dy, (dx, dy) pdfminer's device point.
+        dx, dy = x - raw[0], 2 * height - raw[3] - top
+        if self.rotation == 90:
+            ux, uy = mx1 - dy, dx + my0
+        elif self.rotation == 180:
+            ux, uy = mx1 - dx, my1 - dy
+        elif self.rotation == 270:
+            ux, uy = dy + mx0, my1 - dx
+        else:
+            ux, uy = dx + mx0, dy + my0
+        cx0, cy0, cx1, cy1 = self.cropbox
+        u, v = ux - cx0, cy1 - uy  # top-left of the unrotated CropBox
+        if self.rotation == 90:
+            return (cy1 - cy0) - v, u
+        if self.rotation == 180:
+            return (cx1 - cx0) - u, (cy1 - cy0) - v
+        if self.rotation == 270:
+            return v, (cx1 - cx0) - u
+        return u, v
+
+    def to_display(self, bbox) -> List[float]:
+        """A box `[x0, top, x1, bottom]` in pdfplumber's frame, on the displayed page."""
+        ax, ay = self.point(float(bbox[0]), float(bbox[1]))
+        bx, by = self.point(float(bbox[2]), float(bbox[3]))
+        return [min(ax, bx), min(ay, by), max(ax, bx), max(ay, by)]
+
+
 @dataclass
 class DigitalPage:
     page: str
@@ -258,6 +323,11 @@ class DigitalPage:
     #: how many of them the document's own text was placed on. None when not measured.
     render_words: Optional[int] = None
     render_matched: Optional[int] = None
+    #: A PDF page's frame (D28): the docproc writer puts the boxes on the displayed page with it. The
+    #: boxes and `width`/`height` above stay in the reader's frame, which every heuristic here uses.
+    frame: Optional[PageFrame] = None
+    #: The PDF page's /UserUnit when it is not 1 (D28): coordinates are in 1/72 inch x user_unit.
+    user_unit: Optional[float] = None
 
     @property
     def has_geometry(self) -> bool:

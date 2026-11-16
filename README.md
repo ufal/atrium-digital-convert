@@ -98,8 +98,9 @@ mirrored text). The rules, with an example: [docs/how-it-works.md](docs/how-it-w
 
 For an AMČR upload that is born-digital, digital-convert is the first stage. Its docproc goes to ocr-postprocess,
 which builds the record from it; the record goes on to nlp-enrich and keyword-extract. When a page needs the ATR,
-the ATR's docproc is the stored one and this one is an intermediate (`stored: false` in the paradata); the merge
-of a mixed document is the next round of #84. In the AMČR deployment Temporal chains the stages, and `/reformat`
+the ATR's docproc is the stored one and this one is an intermediate (`stored: false` in the paradata), which
+ocr-postprocess merges with the ATR's: it keeps this docproc's exact lines on the pages that did not need the ATR.
+A blank page is routed `empty` and sends nothing to the ATR. In the AMČR deployment Temporal chains the stages, and `/reformat`
 calls no other service. The whole chain: the
 [hub's workflow page](https://ufal.github.io/atrium-project/workflows/digital-convert/). Its SSH Open Marketplace
 record: [Born-digital document converter: PDF and office files into structured text without OCR -
@@ -107,14 +108,17 @@ ATRIUM](https://marketplace.sshopencloud.eu/tool-or-service/jGxgQI).
 
 ## Limits and maturity
 
-- **docproc is a proposal on our side.** The ATR's schema (as delivered on 10 November) with asks 3 and 13 of #84
-  applied; until ARÚ/B adopts it under its identifier, the proposal is in [schemas/docproc/](schemas/docproc/README.md).
+- **docproc is a proposal on our side.** The ATR's schema (as delivered on 10 November) with asks 3, 5, 10 and 13
+  of #84 applied; until ARÚ/B adopts it under its identifier, the proposal is in [schemas/docproc/](schemas/docproc/README.md).
 - **Uploads up to 250 MB by default.** AMČR's originals reach about 1.5 GB, so a deployment must raise
   `MAX_UPLOAD_MB` for them. Above 250 MB, memory, concurrency and timeouts are not yet tested, and the upload
   is held in memory ([Limits](service/README.md#limits)).
 - **The textual workflow has no geometry.** PDFs and office documents have boxes; spreadsheets and text files give
-  pages and lines without positions ([formats](docs/reference/formats.md)). Boxes are in PDF points from the
-  page's top-left; UserUnit, CropBox and /Rotate are not yet applied (#84, ask 10).
+  pages and lines without positions ([formats](docs/reference/formats.md)). Boxes are on the displayed page:
+  origin top-left of the CropBox, after /Rotate, in 1/72 inch × UserUnit, with `userUnit` written when it is not 1
+  (D28, #84 ask 10), checked against pdfium's rendering of rotated, cropped and offset pages. The opt-in Docling
+  engine lays its structure over the same lines; text it reads that no line holds keeps Docling's own box, which is
+  not checked on a page whose CropBox or MediaBox is offset.
 - **An office document's pages are LibreOffice's.** They follow LibreOffice's layout with metric-compatible fonts,
   which can break pages differently from Word. The docproc, the rendered PDF and the ATR all use the same pages.
   Tracked changes are accepted in a DOCX, DOC and ODT before rendering, but not in an RTF. A page where the rendering

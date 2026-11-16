@@ -58,17 +58,32 @@ def test_the_proposal_changes_only_what_the_asks_name():
         actual["properties"]["sourceFormat"]["enum"]
     ) == set(docproc_proposal.FLOW_FORMATS)
     page, block = proposal["$defs"]["Page"], proposal["$defs"]["Block"]
+    # asks 10 and 13: the page's verdict, UserUnit and an image's pixel ratio
     assert set(page["properties"]) - set(actual["$defs"]["Page"]["properties"]) == {
         "textLayer",
         "needsAtr",
         "needsAtrReason",
         "userUnit",
+        "pixelRatio",
     }
     assert set(block["properties"]) - set(actual["$defs"]["Block"]["properties"]) == {"lines"}
     assert set(proposal["$defs"]) - set(actual["$defs"]) == {"Line"}
+
+    # ask 5: a routing entry may echo a forced page
+    def route(schema):
+        return schema["properties"]["metadata"]["properties"]["routing"]["properties"]["pages"][
+            "items"
+        ]
+
+    assert set(route(proposal)["properties"]) - set(route(actual)["properties"]) == {
+        "forced",
+        "forced_reason",
+    }
     # nothing else moved: every other definition is the ATR's own
     for name in set(actual["$defs"]) - {"Page", "Block"}:
         assert proposal["$defs"][name] == actual["$defs"][name], name
+    for key in ("forced", "forced_reason"):
+        del route(proposal)["properties"][key]
     assert {
         k: v for k, v in proposal["properties"].items() if k not in ("pipeline", "sourceFormat")
     } == {k: v for k, v in actual["properties"].items() if k not in ("pipeline", "sourceFormat")}

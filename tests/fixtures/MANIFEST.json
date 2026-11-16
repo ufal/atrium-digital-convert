@@ -4,6 +4,11 @@
     "note": "minimal.docx without the document.xml Override — G4 lenient open",
     "sha256": "a318e43b12d74dba569a3e76d0164214d4ae175915996fd96a82fa2fbf951a86"
   },
+  "blank_page.pdf": {
+    "bytes": 1507,
+    "note": "text page + blank verso + text page — the blank page routed `empty`, no ATR (D29)",
+    "sha256": "633d3f3ba88fdb51fab864bff6dbbe81708368bcca626658fede0e9eac6599c1"
+  },
   "bold_titles.pdf": {
     "bytes": 4460,
     "note": "bold section titles at the body size; bold lines that are not titles (#5)",
@@ -31,7 +36,7 @@
   },
   "image_only.pdf": {
     "bytes": 1474,
-    "note": "text page + image-only page + blank page — G1 needs_ocr",
+    "note": "text page + image-only page + blank page — G1 needs_ocr; the blank page `blank` (D29)",
     "sha256": "7acef68b9931450e209e43ac7842cbc1f7f44ee929ab34ff90861cf9274c8e34"
   },
   "minimal.docx": {

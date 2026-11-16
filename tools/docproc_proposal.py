@@ -3,7 +3,7 @@
 
 ``schemas/docproc/document.actual.schema.json`` is the docproc schema as the ATR emits it (Ronald,
 10 November 2026; #84 comment 1), kept verbatim. ``document.atrium-proposal.schema.json`` is the
-same schema with two of the asks on #84 applied, and nothing else:
+same schema with the asks on #84 that concern the docproc's shape applied, and nothing else:
 
 * **ask 3**: ``processedAt`` and ``pipeline`` are run data (they belong to the paradata), so they
   are no longer required;
@@ -12,7 +12,11 @@ same schema with two of the asks on #84 applied, and nothing else:
   page carries the text-layer verdict and the routing decision (``textLayer``, ``needsAtr``,
   ``needsAtrReason``) and may carry ``userUnit``, a block may carry its ``lines[]`` (``text``,
   ``bbox``, ``bboxPrecision``, ``flags``), and a flow document (a spreadsheet, a text-only input:
-  nothing to render, atrium-digital-convert#9) has pages without a size and blocks without a box.
+  nothing to render, atrium-digital-convert#9) has pages without a size and blocks without a box;
+* **ask 5**: a routing entry may echo a page the ATR was forced to read (``forced``, ``forced_reason``;
+  D27), so the record builder can check them against digital-convert's ``needsAtr`` pages;
+* **ask 10**: a page of an image that docproc wraps into a PDF may carry ``pixelRatio``, the image's
+  pixels per unit (D28), so a box can be put back on the image's pixels.
 
 The proposal is a file, not a branch of code: it is what ARÚ/B and the ATR are asked to adopt
 (#84 §7). ``apply_asks()`` builds it from the actual schema; ``tests/test_docproc_writer.py``
@@ -47,11 +51,14 @@ def apply_asks(actual: Dict[str, Any]) -> Dict[str, Any]:
     """The proposal: ``actual`` with asks 3 and 13 applied (see the module docstring)."""
     schema = copy.deepcopy(actual)
     schema["$id"] = PROPOSAL_ID
-    schema["title"] = "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3 and 13)"
+    schema["title"] = (
+        "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3, 5, 10 and 13)"
+    )
     schema["description"] = (
         actual["description"]
-        + " ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required) and 13"
-        " (other producers, formats, the page verdict, block lines, flow documents) applied."
+        + " ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required), 5 (the"
+        " forced pages echoed in routing), 10 (the image pixel ratio) and 13 (other producers, formats,"
+        " the page verdict, block lines, flow documents) applied."
     )
     props = schema["properties"]
 
@@ -91,6 +98,26 @@ def apply_asks(actual: Dict[str, Any]) -> Dict[str, Any]:
         "type": "number",
         "exclusiveMinimum": 0,
         "default": 1,
+    }
+    page["properties"]["pixelRatio"] = {
+        "description": (
+            "ATRIUM proposal (ask 10): for an image docproc wraps into a PDF, the image's pixels per unit, the "
+            "ratio back to its pixels (D28)."
+        ),
+        "type": "number",
+        "exclusiveMinimum": 0,
+    }
+
+    # ask 5: the ATR echoes the pages it was forced to read, with the reason it was given (D27).
+    route = props["metadata"]["properties"]["routing"]["properties"]["pages"]["items"]["properties"]
+    route["forced"] = {
+        "description": "ATRIUM proposal (ask 5): the page was forced to the ATR by the caller (digital-convert's needsAtr).",
+        "type": "boolean",
+    }
+    route["forced_reason"] = {
+        "description": "ATRIUM proposal (ask 5): the reason the caller gave for forcing the page (its needsAtrReason).",
+        "type": "string",
+        "minLength": 1,
     }
 
     block = defs["Block"]

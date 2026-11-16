@@ -440,12 +440,20 @@ def image_only_pdf() -> bytes:
 
     The image-only page is the scanned-plate case — a born-digital report with a scanned
     figure page. It has no text layer, so it must come out `needs_ocr` with the reason "no
-    extractable text layer", not scored Clear/1.0 and dropped. The empty page is flagged too
-    (alto-postprocess #31 classifies any text-less page as `none`), with a reason that says it
-    draws nothing a parser can see — that is how the two are told apart.
+    extractable text layer", not scored Clear/1.0 and dropped. The empty page renders as nothing
+    at all: since atrium-project#84 (D29) it is `blank`, routed `empty`, not sent to the ATR.
     """
     text = _text_at(72, 720, [b"Zprava o vyzkumu, textova strana."])
     return _build_pdf_ex([text, FULL_PAGE_IMAGE, b""])
+
+
+def blank_page_pdf() -> bytes:
+    """D29 (atrium-project#84): a text page, a blank verso, a text page. The blank page renders as
+    nothing, so it is `blank` and routed `empty`; nothing goes to the ATR (H4), and the record has a
+    row for it with `content_status: empty`."""
+    first = _text_at(72, 720, [b"Zprava o vyzkumu, prvni strana."])
+    last = _text_at(72, 720, [b"Zaver vyzkumu, treti strana."])
+    return _build_pdf_ex([first, b"", last])
 
 
 def two_column_pdf() -> bytes:
@@ -1281,6 +1289,7 @@ BUILDERS = {
     "garbled.pdf": garbled_pdf,
     "minimal.docx": minimal_docx,
     "image_only.pdf": image_only_pdf,
+    "blank_page.pdf": blank_page_pdf,
     "two_column.pdf": two_column_pdf,
     "ocr_layer.pdf": ocr_layer_pdf,
     "table.pdf": table_pdf,
@@ -1306,7 +1315,8 @@ NOTES = {
     "enrichable.pdf": "1 page, diacritic-free Czech archaeology — the LLM stage's input",
     "garbled.pdf": "WinAnsi declared over cp1250, no /ToUnicode — must trip decode-sanity",
     "minimal.docx": "heading + 2 paragraphs + 2x2 table + explicit page break",
-    "image_only.pdf": "text page + image-only page + blank page — G1 needs_ocr",
+    "image_only.pdf": "text page + image-only page + blank page — G1 needs_ocr; the blank page `blank` (D29)",
+    "blank_page.pdf": "text page + blank verso + text page — the blank page routed `empty`, no ATR (D29)",
     "two_column.pdf": "2 pages, 2 columns, title, running header, page-number footer, roman labels",
     "ocr_layer.pdf": "page image + invisible (3 Tr) text on both pages — G7 OCR layer",
     "table.pdf": "ruled 3x2 table between two paragraphs",

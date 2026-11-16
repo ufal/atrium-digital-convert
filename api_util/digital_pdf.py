@@ -47,6 +47,7 @@ from api_util.digital_ir import (
     REGION_FOOTER,
     REGION_HEADER,
     TABLE_GROUP_PREFIX,
+    TEXT_LAYER_BLANK,
     TEXT_LAYER_DIGITAL,
     TEXT_LAYER_NONE,
     TEXT_LAYER_OCR,
@@ -55,6 +56,7 @@ from api_util.digital_ir import (
     DigitalLine,
     DigitalPage,
     DigitalTable,
+    PageFrame,
     font_flags,
     in_table,
     is_inverted,
@@ -64,6 +66,11 @@ from api_util.digital_ir import (
     unmapped_to_replacement,
 )
 from api_util.pdf_coverage import image_coverage
+
+#: A page without text is `blank` (D29: routed `empty`, not to the ATR) only when its rendering, at this
+#: resolution, has no pixel darker than `BLANK_INK_LEVEL` (0 black, 255 white). Any mark keeps it `none`.
+BLANK_RENDER_DPI = 50
+BLANK_INK_LEVEL = 250
 
 #: A gap wider than this share of the font size starts a new word. pdfplumber's default is
 #: an absolute 3 pt, which glues words set with tight justification in small type and
@@ -770,6 +777,106 @@ def furniture_only_image_coverage() -> float:
     return float(tool_limits.FURNITURE_ONLY_IMAGE_COVERAGE.get())
 
 
+def _pdf_box(value: Any) -> Optional[Tuple[float, float, float, float]]:
+    try:
+        x0, x1 = sorted((float(value[0]), float(value[2])))
+        y0, y1 = sorted((float(value[1]), float(value[3])))
+    except (TypeError, ValueError, IndexError):
+        return None
+    return x0, y0, x1, y1
+
+
+def _page_frame(page: Any) -> Optional[PageFrame]:
+    """The page's frame (D28): MediaBox, CropBox clipped to it (as viewers do), /Rotate. None when the
+    page names no usable MediaBox; the boxes then stay in the reader's frame."""
+    try:
+        from pdfplumber.utils import resolve_all  # noqa: PLC0415  (optional dependency)
+
+        attrs = page.page_obj.attrs
+        mediabox = _pdf_box(resolve_all(attrs.get("MediaBox")))
+        cropbox = _pdf_box(resolve_all(attrs.get("CropBox"))) or mediabox
+        rotation = int(page.rotation or 0) % 360
+    except Exception:
+        return None
+    if mediabox is None or cropbox is None or rotation not in (0, 90, 180, 270):
+        return None
+    clipped = (
+        max(cropbox[0], mediabox[0]),
+        max(cropbox[1], mediabox[1]),
+        min(cropbox[2], mediabox[2]),
+        min(cropbox[3], mediabox[3]),
+    )
+    if clipped[2] <= clipped[0] or clipped[3] <= clipped[1]:
+        clipped = mediabox  # a CropBox outside the MediaBox: viewers fall back to the MediaBox
+    return PageFrame(mediabox=mediabox, cropbox=clipped, rotation=rotation)
+
+
+def _user_unit(page: Any) -> Optional[float]:
+    """The page's /UserUnit when it is a positive number other than 1 (D28)."""
+    try:
+        from pdfplumber.utils import resolve_all  # noqa: PLC0415  (optional dependency)
+
+        value = float(resolve_all(page.page_obj.attrs.get("UserUnit")) or 1.0)
+    except Exception:
+        return None
+    return value if value > 0 and value != 1.0 else None
+
+
+def _darkest(bitmap: Any) -> int:
+    """The darkest byte of a pypdfium2 bitmap's pixels (row padding left out); 255 for no pixel."""
+    raw = bytes(bitmap.buffer)
+    row = bitmap.width * bitmap.n_channels
+    darkest = 255
+    for y in range(bitmap.height):
+        start = y * bitmap.stride
+        darkest = min(darkest, min(raw[start : start + row], default=255))
+        if darkest < BLANK_INK_LEVEL:
+            break
+    return darkest
+
+
+def _mark_blank(path: str, pages: List[Tuple[DigitalPage, List[_Unit]]]) -> None:
+    """A page with no text whose rendering shows nothing is `blank` (D29, atrium-project#84).
+
+    It is routed `empty` (no docproc `pages[]` entry, a record row with `content_status: empty`)
+    instead of `none`, which sends the page — and the whole document (H4) — to the ATR. Only a
+    rendering without any pixel darker than `BLANK_INK_LEVEL` counts: a speck, a faint pencil mark,
+    a white image with a grey edge keep the page `none`, so a scan is never lost. pdfium renders the
+    displayed page (the CropBox, after /Rotate) with its annotations. Without pypdfium2, or when a
+    page cannot be rendered, the page stays `none`.
+    """
+    candidates = [page for page, units in pages if page.text_layer == TEXT_LAYER_NONE and not units]
+    if not candidates:
+        return
+    try:
+        import pypdfium2 as pdfium  # noqa: PLC0415  (optional dependency, imported on use)
+
+        pdf = pdfium.PdfDocument(path)
+    except Exception:
+        return
+    try:
+        for page in candidates:
+            if not 1 <= page.page_index <= len(pdf):
+                continue
+            handle = None
+            try:
+                handle = pdf[page.page_index - 1]
+                bitmap = handle.render(
+                    scale=BLANK_RENDER_DPI / 72, grayscale=True, draw_annots=True
+                )
+                darkest = _darkest(bitmap)
+                bitmap.close()
+            except Exception:  # an unrenderable page keeps `none`: the ATR reads it
+                continue
+            finally:
+                if handle is not None:
+                    handle.close()
+            if darkest >= BLANK_INK_LEVEL:
+                page.text_layer = TEXT_LAYER_BLANK
+    finally:
+        pdf.close()
+
+
 def _mark_furniture_only(path: str, pages: List[Tuple[DigitalPage, List[_Unit]]]) -> None:
     """A page whose only text is its running header or footer, over images: `none` (#5).
 
@@ -976,6 +1083,8 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
                 height=float(page.height or 0.0),
                 unit="pt",
             )
+            current.frame = _page_frame(page)
+            current.user_unit = _user_unit(page)
             current.text_objects, current.invisible_text_objects = counts[index]
             try:
                 words = _extract_words(page)
@@ -989,8 +1098,9 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
                 # No text at all: `none`, whatever is drawn — alto-postprocess #31's rule
                 # (`classify_text_layer`, fewer than 3 characters), and the #10 plan's G1. A
                 # page that draws nothing a parser can see is flagged too: its image may sit
-                # where no parser looks, and re-acquiring a truly blank page costs one OCR
-                # call while missing a scanned one loses its text. The reason tells them apart.
+                # where no parser looks, and re-acquiring it costs one OCR call while missing a
+                # scanned one loses its text. The reason tells them apart. Only a page whose
+                # rendering shows nothing at all becomes `blank` afterwards (`_mark_blank`, D29).
                 current.text_layer = TEXT_LAYER_NONE
                 staged.append((current, []))
                 page.close()
@@ -1024,6 +1134,7 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
 
     _mark_furniture(staged)
     _mark_furniture_only(path, staged)
+    _mark_blank(path, staged)
 
     for page, units in staged:
         headers = sorted(
