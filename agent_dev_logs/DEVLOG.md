@@ -241,7 +241,7 @@ Docker test for GHA, `flexiconv` pinned to `@v0.3.10` (hub #62; it had resolved 
 `resolve_pid()`, `amcr` and `aat` only, merged as the `pid` field alone so nlp-enrich's rows survive); `union.skos.ttl`
 from the raw harvest; all four SKOS mapping relations harvested; TEATER `quotes[]` as `dcterms:source`.
 * **#25 opened** (09-17): archivatorium as a VLM OCR backend for #10's render+OCR path — see
-[`digests/25.digest.md`](digests/25.digest.md). uvicorn bump (#26) on 09-23.
+`digests/25.digest.md`. uvicorn bump (#26) on 09-23.
 
 ## 2026-09-23
 
@@ -269,7 +269,7 @@ from the raw harvest; all four SKOS mapping relations harvested; TEATER `quotes[
   * `xml_to_md.py` ignores the writer's bbox origin; the #13 design's "JSON → TEITOK re-projection already exists" was
     never true.
   * The hub's `agent_dev_logs/{digests,plans}/13.*` held this repo's #13 design (hub #13 is the CAA paper); the design
-    content moved into [`digests/13.digest.md`](digests/13.digest.md) §2, and the hub pair was rewritten.
+    content moved into `digests/13.digest.md` §2, and the hub pair was rewritten.
   * #10 and #13 digests/plans refreshed; fixes are planned with nlp-enrich's round 4 (#13 plan P5).
 * **TEITOK round 4 — implemented the same day (#13 plan P5; delivered as files, then pushed as `951db5e`).**
   * `llm_client_shared.row_quality()` / `llm_utils._row_quality()`: a missing quality score is "unknown" (None) and
@@ -328,7 +328,7 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
   in chat with the repo path in the file name.
 * **Decided in session:** Docling as the opt-in heavy engine (TableFormer's CDLA-Permissive-2.0 logged as is);
   `lines[].style.region` for page furniture and footnotes (additive); switch the route, delete nothing.
-* **Done** ([`plans/18.plan.md`](plans/18.plan.md) §0e, [`plans/10.plan.md`](plans/10.plan.md) §11): Layer A split
+* **Done** (`plans/18.plan.md` §0e, `plans/10.plan.md` §11): Layer A split
   into `api_util/digital_pdf.py` (words, columns, ruled tables, headings, running headers/footers, `/PageLabels`,
   pypdfium2 census), `digital_docx.py` (pages as alto-postprocess #31 counts them, tracked changes, lenient package,
   headings, headers/footers, footnotes), `digital_docling.py` (`--engine docling`) over `digital_ir.py`; Layer B garble,
@@ -363,7 +363,7 @@ Dev logs: #10 (answer posted), #11 (the 08-02 validation task and its state; the
     `para_licenses.py`.
   * The "not ranked yet" and "hub follow-up" text is removed from `para_config.txt`,
     `requirements_digital_docling.txt`, the README and `digital_ir.py`.
-  * `CONTRIBUTING.md` Unreleased; [`plans/18.plan.md`](plans/18.plan.md) §0f.
+  * `CONTRIBUTING.md` Unreleased; `plans/18.plan.md` §0f.
 * **alto-postprocess:** `docs/text_inputs.md`, `text_split.py` and `document_hook.py` no longer say this converter reads
   a DOCX as one page or has no column detection or mojibake guard.
 * `pytest -m "not slow"`: 1016 passed, 19 environment-only skips (+3: the new licence cases); `ruff` clean; fixtures
@@ -1479,7 +1479,7 @@ Documentation only; no code, test or configuration change.
 * **Asked (K4TEL):** align the logs with ARÚP's output contract of 12 November (the .docx of that day, replacing the
   meeting document of 10 November) and with David Novák's comments of 11-12 (atrium-project#84 opened, #13, #16,
   #78); `test` fetched first (all seven working branches = `test`).
-  Anchor: [contract digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1211.md) · [hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md).
+  Anchor: contract digest · [hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md).
 * **Decided in session:** the tool slices are named `plans/84.plan.md`; the translator keeps `amcr-fields.txt` as a
   documented example that nothing loads (no default list, D34); the hub's #84 plan carries a reply draft agreeing on
   points 1 and 2.

@@ -9,7 +9,7 @@
 > checkout's head `6e49dec` (= `test`). The hub carries the whole change:
 > [plan](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md) ·
 > [digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/84.digest.md) (the docproc schema
-> of #84's comment 1) · [contract digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1211.md).
+> of #84's comment 1) · contract digest.
 > This file is the repository's slice only; its 11-11 version (written before the
 > issue existed), in which digital-convert wrote the born-digital record, read images and CSV, and kept the
 > `ocr_text_layer` refusal — all superseded below._
