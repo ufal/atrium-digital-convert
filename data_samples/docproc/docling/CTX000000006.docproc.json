@@ -1,0 +1,464 @@
+{
+  "version": "1.1",
+  "sourceFormat": "pdf-digital",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 595.276,
+      "height": 841.89,
+      "coordinateUnit": "pt",
+      "blocks": [
+        {
+          "id": "p1-b0",
+          "type": "heading",
+          "bbox": [
+            70.0,
+            90.123,
+            124.749,
+            103.123
+          ],
+          "readingOrder": 0,
+          "confidence": 1.0,
+          "content": "1. Úvod",
+          "level": 1,
+          "lines": [
+            {
+              "text": "1. Úvod",
+              "bbox": [
+                70.0,
+                90.123,
+                124.749,
+                103.123
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p1-b1",
+          "type": "paragraph",
+          "bbox": [
+            70.0,
+            121.263,
+            501.607,
+            164.763
+          ],
+          "readingOrder": 1,
+          "confidence": 1.0,
+          "content": "Antropologický posudek k hrobům z výzkumu 2024 na hradišti u Horní\nMezí. Kostry byly vyzvednuty z hrobových jam v sondě II a uloženy v\ndepozitáři pod číslem A123/2024.",
+          "lines": [
+            {
+              "text": "Antropologický posudek k hrobům z výzkumu 2024 na hradišti u Horní",
+              "bbox": [
+                88.0,
+                121.263,
+                501.607,
+                132.763
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "Mezí. Kostry byly vyzvednuty z hrobových jam v sondě II a uloženy v",
+              "bbox": [
+                70.0,
+                137.263,
+                470.001,
+                148.763
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "depozitáři pod číslem A123/2024.",
+              "bbox": [
+                70.0,
+                153.263,
+                265.916,
+                164.763
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p1-b2",
+          "type": "footer",
+          "bbox": [
+            294.457,
+            802.292,
+            300.819,
+            812.292
+          ],
+          "readingOrder": 2,
+          "confidence": 1.0,
+          "content": "1",
+          "lines": [
+            {
+              "text": "1",
+              "bbox": [
+                294.457,
+                802.292,
+                300.819,
+                812.292
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        }
+      ],
+      "textLayer": "digital"
+    },
+    {
+      "pageNumber": 2,
+      "width": 595.276,
+      "height": 841.89,
+      "coordinateUnit": "pt",
+      "blocks": [
+        {
+          "id": "p2-b0",
+          "type": "paragraph",
+          "bbox": [
+            70.0,
+            90.123,
+            188.447,
+            103.123
+          ],
+          "readingOrder": 0,
+          "confidence": 1.0,
+          "content": "2. Hrobové jámy",
+          "lines": [
+            {
+              "text": "2. Hrobové jámy",
+              "bbox": [
+                70.0,
+                90.123,
+                188.447,
+                103.123
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p2-b1",
+          "type": "paragraph",
+          "bbox": [
+            70.0,
+            120.982,
+            502.275,
+            164.482
+          ],
+          "readingOrder": 1,
+          "confidence": 1.0,
+          "content": "P�i �išt�ní sondy byly zjišt�ny t�i hrobové jámy s tmavou výplní. Hrob 1 obsahoval kostru\ndosp�lého jedince uloženou na zádech, hlavou k západu. Ve hrob� 2 byly zbytky d�tské\nkostry, hrob 3 byl porušen mladším zahloubením. Kosti jsou k�ehké a místy chybí.",
+          "lines": [
+            {
+              "text": "P�i �išt�ní sondy byly zjišt�ny t�i hrobové jámy s tmavou výplní. Hrob 1 obsahoval kostru",
+              "bbox": [
+                88.0,
+                120.982,
+                502.275,
+                132.482
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "dosp�lého jedince uloženou na zádech, hlavou k západu. Ve hrob� 2 byly zbytky d�tské",
+              "bbox": [
+                70.0,
+                136.982,
+                473.96,
+                148.482
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "kostry, hrob 3 byl porušen mladším zahloubením. Kosti jsou k�ehké a místy chybí.",
+              "bbox": [
+                70.0,
+                152.982,
+                450.41,
+                164.482
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p2-b2",
+          "type": "footer",
+          "bbox": [
+            294.457,
+            802.292,
+            300.819,
+            812.292
+          ],
+          "readingOrder": 2,
+          "confidence": 1.0,
+          "content": "2",
+          "lines": [
+            {
+              "text": "2",
+              "bbox": [
+                294.457,
+                802.292,
+                300.819,
+                812.292
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        }
+      ],
+      "textLayer": "digital"
+    },
+    {
+      "pageNumber": 3,
+      "width": 595.276,
+      "height": 841.89,
+      "coordinateUnit": "pt",
+      "blocks": [
+        {
+          "id": "p3-b0",
+          "type": "paragraph",
+          "bbox": [
+            70.0,
+            90.123,
+            136.86,
+            103.123
+          ],
+          "readingOrder": 0,
+          "confidence": 1.0,
+          "content": "3. Určení",
+          "lines": [
+            {
+              "text": "3. Určení",
+              "bbox": [
+                70.0,
+                90.123,
+                136.86,
+                103.123
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p3-b1",
+          "type": "paragraph",
+          "bbox": [
+            70.0,
+            120.92,
+            484.312,
+            164.42
+          ],
+          "readingOrder": 1,
+          "confidence": 1.0,
+          "content": "���� �� ���� ����� ���� ����� ������� ��� ��� ��� �� ����� ���� ������ �����\n��������� �������� ���� �� ����� ��� ���� ���� �� ������� ���������� ��������\n��������",
+          "lines": [
+            {
+              "text": "���� �� ���� ����� ���� ����� ������� ��� ��� ��� �� ����� ���� ������ �����",
+              "bbox": [
+                88.0,
+                120.92,
+                484.312,
+                132.42
+              ],
+              "bboxPrecision": "measured",
+              "flags": [
+                "decode:garbled"
+              ]
+            },
+            {
+              "text": "��������� �������� ���� �� ����� ��� ���� ���� �� ������� ���������� ��������",
+              "bbox": [
+                70.0,
+                136.92,
+                463.179,
+                148.42
+              ],
+              "bboxPrecision": "measured",
+              "flags": [
+                "decode:garbled"
+              ]
+            },
+            {
+              "text": "��������",
+              "bbox": [
+                70.0,
+                152.92,
+                112.833,
+                164.42
+              ],
+              "bboxPrecision": "measured",
+              "flags": [
+                "decode:garbled"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "p3-b2",
+          "type": "footer",
+          "bbox": [
+            294.457,
+            802.292,
+            300.819,
+            812.292
+          ],
+          "readingOrder": 2,
+          "confidence": 1.0,
+          "content": "3",
+          "lines": [
+            {
+              "text": "3",
+              "bbox": [
+                294.457,
+                802.292,
+                300.819,
+                812.292
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        }
+      ],
+      "textLayer": "garbled",
+      "needsAtr": true,
+      "needsAtrReason": "garbled text layer: 3 of 5 lines are over 15% glyphs without a Unicode mapping (U+FFFD) or control characters (a font without /ToUnicode?). The page has a text layer; it does not decode."
+    },
+    {
+      "pageNumber": 4,
+      "width": 595.276,
+      "height": 841.89,
+      "coordinateUnit": "pt",
+      "blocks": [
+        {
+          "id": "p4-b0",
+          "type": "paragraph",
+          "bbox": [
+            70.0,
+            90.123,
+            128.684,
+            103.123
+          ],
+          "readingOrder": 0,
+          "confidence": 1.0,
+          "content": "4. Závěr",
+          "lines": [
+            {
+              "text": "4. Závěr",
+              "bbox": [
+                70.0,
+                90.123,
+                128.684,
+                103.123
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p4-b1",
+          "type": "paragraph",
+          "bbox": [
+            70.0,
+            121.277,
+            487.828,
+            148.277
+          ],
+          "readingOrder": 1,
+          "confidence": 1.0,
+          "content": "Závìr: soubor je malý, ale potvrzuje pohøbívání na jižním svahu hradištì. Pøesnìjší\ndatování umožní radiouhlíkové stáøí vzorkù z hrobù 1 a 3.",
+          "lines": [
+            {
+              "text": "Závìr: soubor je malý, ale potvrzuje pohøbívání na jižním svahu hradištì. Pøesnìjší",
+              "bbox": [
+                88.0,
+                121.277,
+                487.828,
+                132.277
+              ],
+              "bboxPrecision": "measured",
+              "flags": [
+                "decode:garbled"
+              ]
+            },
+            {
+              "text": "datování umožní radiouhlíkové stáøí vzorkù z hrobù 1 a 3.",
+              "bbox": [
+                70.0,
+                137.277,
+                353.085,
+                148.277
+              ],
+              "bboxPrecision": "measured",
+              "flags": [
+                "decode:garbled"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "p4-b2",
+          "type": "footer",
+          "bbox": [
+            294.457,
+            802.292,
+            300.819,
+            812.292
+          ],
+          "readingOrder": 2,
+          "confidence": 1.0,
+          "content": "4",
+          "lines": [
+            {
+              "text": "4",
+              "bbox": [
+                294.457,
+                802.292,
+                300.819,
+                812.292
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        }
+      ],
+      "textLayer": "garbled",
+      "needsAtr": true,
+      "needsAtrReason": "embedded text layer does not decode: 2 of 4 lines carry CP1250 bytes read as CP1252 (mojibake diacritics), page decode-sanity 0.97. The page has a text layer; it is not trustworthy."
+    }
+  ],
+  "metadata": {
+    "routing": {
+      "pages": [
+        {
+          "page": 1,
+          "route": "text-layer",
+          "text_layer": true
+        },
+        {
+          "page": 2,
+          "route": "text-layer",
+          "text_layer": true
+        },
+        {
+          "page": 3,
+          "route": "atr",
+          "text_layer": false
+        },
+        {
+          "page": 4,
+          "route": "atr",
+          "text_layer": false
+        }
+      ],
+      "counts": {
+        "by_route": {
+          "text-layer": 2,
+          "atr": 2
+        }
+      }
+    }
+  }
+}
