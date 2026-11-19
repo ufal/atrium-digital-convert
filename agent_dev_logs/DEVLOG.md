@@ -1,15 +1,18 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; left: the C5 run, then close) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11) and **#9** (inputs and the first-pass page check, opened 2026-11-12; motyc's five points agreed 11-13: `digests/9.digest.md`). This repository's part of doc-schema-v2 (atrium-project#84, opened 2026-11-12): `plans/doc-schema-v2.plan.md` — a docproc producer from 12 November. **#4** (PDF/DOCX
-> inputs, W1–W6) is closed; #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-10-21; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; the samples synthetic since #15, 11-19; motyc 11-10: OK to close after the meeting) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11) and **#9** (inputs and the first-pass page check, opened 2026-11-12; done on `test` with #10–#12 and #14, answered 11-19; closing is motyc's: `digests/9.digest.md`). This repository's part of doc-schema-v2 (atrium-project#84, opened 2026-11-12): `plans/doc-schema-v2.plan.md` — a docproc producer from 12 November. **#4** (PDF/DOCX
+> inputs, W1–W6) is closed; #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-11-19; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
 > **v1.1.1-beta** (2026-10-05, `fe494cd`) · **v1.1.2-beta** (2026-10-15, `8358f90`: #5's R, R2 and R3, #6's
 > escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
 > **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** to **v1.4.2-beta** (10-29 to
 > 11-03) · **Starting set of the pilot phase: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
-> v1.4.3-beta was tagged, not released. Hub workflows pinned to `4435ffb` (`v1`). Latest entry: 2026-11-14 (#9 points 4 and 5)._
+> **v1.4.5-beta** (11-06, the Galaxy entry point) · **v1.4.7-beta** (11-08, atrium-project#10's fixes); v1.4.3-beta and
+> v1.4.6-beta were tagged, not released. `test` (= `main`, `88137dd`) is 13 commits past v1.4.7-beta and declares the
+> unreleased v2.0.0-beta (record 2.0, docproc). Hub workflows pinned to `02cbd01` (`v1`). Latest entry: 2026-11-19
+> (log round)._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -79,71 +82,71 @@
 ## 2026-07-22
 
 * **#10** — **First implementation landed** (`3e7a909`): a visually-rich Markdown converter for **DOCX + digital-born PDF**.
-* New `api_util/` modules introduced: `layout_md.py` (dependency-free cue vocabulary + `CUE_SCHEMA`), `docx_to_md.py`, 
+* New `api_util/` modules introduced: `layout_md.py` (dependency-free cue vocabulary + `CUE_SCHEMA`), `docx_to_md.py`,
 `pdf_to_md.py`, and `doc_to_visual_md.py`.
-* Pipeline creates a `.md` in `INPUT_DIR`, which is consumed unchanged by `run_document_level()` — HTML-comment cues 
+* Pipeline creates a `.md` in `INPUT_DIR`, which is consumed unchanged by `run_document_level()` — HTML-comment cues
 pass through as inert text.
 * The scanned/curve-only **OCR path stays deferred** (pages flagged `NEEDS_OCR`; tool choice benchmark-gated under hub #22).
 
 ## 2026-07-23
 
-* **#10** — Implementation updated on the `test` branch: unified schema via `api_util/xml_to_md.py --format layout` 
+* **#10** — Implementation updated on the `test` branch: unified schema via `api_util/xml_to_md.py --format layout`
 now emits identical cues for TEITOK/ALTO based on coordinate sets.
-* The opt-in OCR path is enabled via `--ocr`, resolving pages with `pypdfium2` and transcribing with Tesseract `ces`, 
+* The opt-in OCR path is enabled via `--ocr`, resolving pages with `pypdfium2` and transcribing with Tesseract `ces`,
 tagged explicitly with `<!-- OCR: engine=tesseract, lang=ces -->`.
-* Pipeline integration auto-converts `.pdf`/`.docx` files dropped into `INPUT_DIR` via openrouter/ollama clients, 
+* Pipeline integration auto-converts `.pdf`/`.docx` files dropped into `INPUT_DIR` via openrouter/ollama clients,
 fetching citations natively via the `page` field.
-* **#11** — Decision drafted: the ingestion diet is annotated Markdown, utilizing HTML comments as low-token positional 
+* **#11** — Decision drafted: the ingestion diet is annotated Markdown, utilizing HTML comments as low-token positional
 hints, bypassing HTML and keeping TEITOK as the spatial truth.
 * Slated a bake-off through the #22 harness with Docling/Marker for robust table processing and token cost analyses.
-* **#13 The intermediate steps - data format to use** — Opened by K4TEL to solidify intermediate candidates: MD with 
+* **#13 The intermediate steps - data format to use** — Opened by K4TEL to solidify intermediate candidates: MD with
 HTML for forms/tables as LLM input, TEITOK.XML for correct layout, and JSON for search and metadata storage.
 * Drafted a systemic approach allocating separate authority for each plane: Reading (Annotated Markdown),
 Layout/preservation (TEITOK.XML), and Search/knowledge (`AtriumDocument` JSON).
 
 ## 2026-07-24
 
-* **#13** — Opus 5 ultracode refinements proposed preventing the pipeline from being forced into full monolithic 
+* **#13** — Opus 5 ultracode refinements proposed preventing the pipeline from being forced into full monolithic
 runs by relying entirely on a deterministic merger.
-* Transient images and thumbnail paths were entirely dropped from references to restrict linkages solely to persistent 
+* Transient images and thumbnail paths were entirely dropped from references to restrict linkages solely to persistent
 items like original inputs or output artifacts.
 * Proposed a dedicated stateless pure function service called `atrium-aggregate` to assemble the `AtriumDocument` via `POST /aggregate`.
 
 ## 2026-07-25
 
-* **#10** — Concluded that MD equipped with visual info inside comments supplies LLM input, whereas JSON defines 
+* **#10** — Concluded that MD equipped with visual info inside comments supplies LLM input, whereas JSON defines
 the overarching document schema per Issue #13, and TEITOK.XML acts as the visually accurate record alongside NLP enrichment capabilities.
 * **#13** — Adopted the paradata-pair model where every tool receives a document JSON, modifies its owned blocks,
 and emits an updated JSON byte-identical to untouched parameters.
 * `atrium_document.py` and `atrium_document.schema.json` defined as hub-canonical shared files within the ecosystem.
-* `alto-postprocess` refined internally to remove redundant langID values and coordinate closely with the `atrium_document` 
+* `alto-postprocess` refined internally to remove redundant langID values and coordinate closely with the `atrium_document`
 draft added initially to `atrium-project` and `llm-enrich` (commit `4175b06`).
 
 ## 2026-07-26
 
-* **#13** — `AtriumDocument` ecosystem integration expanded: the JSON schema draft landed on `atrium-nlp-enrich`, 
+* **#13** — `AtriumDocument` ecosystem integration expanded: the JSON schema draft landed on `atrium-nlp-enrich`,
 `atrium-page-classification`, and `atrium-translator`.
 * `para-drift` GHA check added to the `atrium-project` hub.
-* Component beta releases shipped: `atrium-alto-postprocess` (v1.3.0-beta), `atrium-page-classification` 
+* Component beta releases shipped: `atrium-alto-postprocess` (v1.3.0-beta), `atrium-page-classification`
 (v1.7.0-beta), `atrium-nlp-enrich` (v0.18.0), and `atrium-translator` (v0.10.0).
-* `atrium-llm-enrich` integrated the schema at the API and `llm_run` levels (Commit `c565e1a`), pending decisions 
+* `atrium-llm-enrich` integrated the schema at the API and `llm_run` levels (Commit `c565e1a`), pending decisions
 approval for a formal release.
 
 ## 2026-07-31
 
 * **#13** — Alignment pass completed by Sonnet uncovering and resolving critical pipeline bugs.
-* `atrium-nlp-enrich` `run_document_hook()` rewritten with real ALTO+CoNLL-U integration testing after failing to 
+* `atrium-nlp-enrich` `run_document_hook()` rewritten with real ALTO+CoNLL-U integration testing after failing to
 produce entities natively in production due to key errors.
-* `atrium-alto-postprocess` switched from `set_blocks` to `merge_blocks` for field-split outputs, preventing 
+* `atrium-alto-postprocess` switched from `set_blocks` to `merge_blocks` for field-split outputs, preventing
 downstream overwrites.
 * `atrium-translator` logic cleaned up by stripping dead entity translation code and enforcing correct schema boundaries.
-* `atrium-llm-enrich` introduced `api_util/json_to_md.py` to regenerate the annotated-Markdown diet efficiently 
+* `atrium-llm-enrich` introduced `api_util/json_to_md.py` to regenerate the annotated-Markdown diet efficiently
 straight from the JSON record, rather than re-requesting a TEITOK or PDF file.
 
 ## 2026-08-01
 
-* **#13** — E2E-related pipeline smoke achieved CLI convergence: `--document-json`/`--document-json-out` file-pair 
-flags successfully added to `atrium-page-classification`, `atrium-translator`, `atrium-alto-postprocess`, 
+* **#13** — E2E-related pipeline smoke achieved CLI convergence: `--document-json`/`--document-json-out` file-pair
+flags successfully added to `atrium-page-classification`, `atrium-translator`, `atrium-alto-postprocess`,
 `atrium-nlp-enrich`, and `atrium-llm-enrich`.
 * `openrouter_client.py` within `atrium-llm-enrich` fully supports the converged flag structure for single-file scoping.
 * A silent baseline dropping bug triggered by a mismatch in `doc_id` derivation between the translator file output and
@@ -151,7 +154,7 @@ flags successfully added to `atrium-page-classification`, `atrium-translator`, `
 
 ## 2026-08-02
 
-* **#13** — Identified the necessity to build a PDF and DOCX to JSON converter explicitly to service digital-born 
+* **#13** — Identified the necessity to build a PDF and DOCX to JSON converter explicitly to service digital-born
 documents appropriately, mapping required actions back to the criteria in Issue #10.
 * **#8** — Closed: the repo-initialization work this issue tracked (engine copy, `openrouter_client.py`/
 `ollama_client.py`, torch-free `llm_client_shared.py`) has been done and superseded by #10/#11/#13 since July.
@@ -1476,7 +1479,7 @@ Documentation only; no code, test or configuration change.
 * **Asked (K4TEL):** align the logs with ARÚP's output contract of 12 November (the .docx of that day, replacing the
   meeting document of 10 November) and with David Novák's comments of 11-12 (atrium-project#84 opened, #13, #16,
   #78); `test` fetched first (all seven working branches = `test`).
-  Anchor: [contract digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1211.md) · [hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
+  Anchor: [contract digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1211.md) · [hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md).
 * **Decided in session:** the tool slices are named `plans/84.plan.md`; the translator keeps `amcr-fields.txt` as a
   documented example that nothing loads (no default list, D34); the hub's #84 plan carries a reply draft agreeing on
   points 1 and 2.
@@ -1503,16 +1506,18 @@ Documentation only; no code, test or configuration change.
   no docproc answer from ARÚP; windows as `split`, prompt budgets as `sampled`, every other cut fails (D13).
 * **Done (local branch, delivered as an archive):** docproc 1.1 against the ATRIUM proposal schema (comment 1 plus asks 3 and 13); no refusal, pages routed `atr`; decode verdicts as line flags; paradata per H14.
 * **Checked:** the full test suite; ruff; the regenerated spec; the local chain check (the docproc of a two-column PDF).
-* **Detail and what is deferred:** `plans/doc-schema-v2.plan.md`, "Status — round 2". Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
+* **Detail and what is deferred:** `plans/doc-schema-v2.plan.md`, "Status — round 2". Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md).
 * **Not posted; not pushed.**
+* **Merged 11-14** as #10 (`a95a5bb`).
 
 ## 2026-11-13 — atrium-project#84 round 4: the push checked; #9 points 1–3
 
 * **Asked (K4TEL):** fetch the pushed branches and the comments since 12 November, and bring the logs up to them, and make #9 points 1–3.
 * **Found:** the push of 11-13 on `doc-schema-v2` left out the docproc writer, its schemas, `tools/docproc_proposal.py` and their test, and lacks the addendum's re-vendored shared files; `.github/production-image.json` did not declare the writer (the hub's image-closure test). Restored; then #9 points 1–3 (a page whose words lose letters is no longer sent to the ATR, `ROUTE_DAMAGED_WORD_SHARE` removed, `garbled` narrowed): 959 pass, ruff clean, the spec regenerated, the local chain passes.
 * **Written here (not pushed):** `digests/9.digest.md`, `plans/9.plan.md` (new); `plans/doc-schema-v2.plan.md` (the round-1 text in place of the 11-11 one, the round-2 status, the push, #9, Q15); `plans/5.plan.md`, `digests/5.digest.md` (#5's lost-letters route superseded). This file: the round-2 entry of 11-13 and this one.
-* **Detail:** `plans/doc-schema-v2.plan.md`, "Status — round 2"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
+* **Detail:** `plans/doc-schema-v2.plan.md`, "Status — round 2"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md).
 * **Not posted; not pushed.**
+* **Merged 11-14** as #10 (`a95a5bb`).
 
 ## 2026-11-14 — atrium-project#84 round 5: the PR's checks
 
@@ -1520,16 +1525,18 @@ Documentation only; no code, test or configuration change.
 * **Found:** [atrium-digital-convert#10](https://github.com/ufal/atrium-digital-convert/pull/10) fails drift (the hub pin at `v1`) and api-contract (record major 1.0 → 2.0, no major version yet); check-drift (vendored): `tests/test_vendored_teitok_parity.py` named nlp-enrich `ba81709` (flexiconv v0.3.11) while `requirements_flexiconv.txt` pins v0.3.12; api-contract also reports `document_json` gone from `/describe` and `/reformat`.
 * **Written here (not pushed):** the re-vendored `atrium_rocrate.py` and `tests/test_atrium_rocrate.py` (`#no-licence-asserted` on the crate root again), `tests/test_vendored_teitok_parity.py`, `digests/9.digest.md`; `plans/doc-schema-v2.plan.md`, "Status — PR".
 * **Checked:** the full suite, 961 passed.
-* **Next:** the pin commit after the hub's PR merges; the major version at the release. Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md), "Status — PRs".
+* **Next:** the pin commit after the hub's PR merges; the major version at the release. Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md), "Status — PRs".
 * **Not posted; not pushed.**
+* **Merged 11-14** as #10 (`a95a5bb`).
 
 ## 2026-11-14 (afternoon) — atrium-project#84 round 6: the rest of this repository's part
 
 * **Asked (K4TEL):** complete the doc-schema-v2 update in every repository.
 * **Done (local, not pushed):** `atrium_document.py`, its schema and `tests/test_document_originators.py` re-vendored: rows may carry `lines[].unit: "block"` (rule 5, written by ocr-postprocess only), and `quality_summary.lines` counts them as `block_units`. `v2.0.0-beta` as the unreleased version: `para_config.txt`, `CITATION.cff`, `service/openapi.json` (re-exported) and a CONTRIBUTING.md row marked Unreleased; api-contract passes with it; No object sampling (#84: "never samples"): `text_formats.py` re-vendored from ocr-postprocess, which judges a PDF page on all its objects; `PDF_OBJECT_CAP` gone from `tool_limits.py`, `.env.example` and the service README; `api_util/pdf_coverage.py`'s `IMAGE_CAP` gone; The reader pin (`tests/test_vendored_reader_parity.py`) carries the new digest; its `ADOPTED["commit"]` is set to ocr-postprocess's merge commit of #11 on `test` once it exists (a squash merge drops the branch commits); The hub's born-digital E2E lane now runs this image's `--docproc-out` and `/reformat` and builds the record with ocr-postprocess (atrium-project task 7).
 * **Checked:** the full suite, 962 passed; the spec export; `compare` against the latest release: compatible at v2.0.0-beta.
-* **Next:** the hub's second PR for #84, then the pins; then this PR. Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md), "Status — round 6".
+* **Next:** the hub's second PR for #84, then the pins; then this PR. Hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md), "Status — round 6".
 * **Not posted; not pushed.**
+* **Merged 11-14** as #10 (`a95a5bb`).
 
 ## 2026-11-14 (evening) — #9 points 4 and 5: visual and textual inputs
 
@@ -1547,6 +1554,7 @@ Documentation only; no code, test or configuration change.
   new docprocs by ocr-postprocess's `build_record.py`.
 * **Detail and the meeting items:** [`plans/9.plan.md`](plans/9.plan.md), "Status — 11-14".
 * **Not posted; not pushed.**
+* **Merged 11-15** as #11 (`35acca4`).
 
 ## 2026-11-15 — #9 round 2: the checks of #11
 
@@ -1561,6 +1569,7 @@ Documentation only; no code, test or configuration change.
 * **Checked:** the suite with LibreOffice and without it.
 * **Detail:** [`plans/9.plan.md`](plans/9.plan.md), "Status — round 2".
 * **Not posted; not pushed.**
+* **Merged 11-15** as #11 (`35acca4`).
 
 ## 2026-11-16 — atrium-project#84 round 7: one coordinate space, empty pages
 
@@ -1577,8 +1586,9 @@ Documentation only; no code, test or configuration change.
   * `blank_page.pdf` in the fixtures; `tests/test_docproc_coordinates.py` checks every box against pdfium's ink on
     rotated, cropped and offset pages; README, how-it-works, schemas README, CONTRIBUTING.
 * **Checked:** the full suite (1029 passed); the local chain with ocr-postprocess's merge.
-* **Detail:** `plans/doc-schema-v2.plan.md`, "Status — round 7"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md).
+* **Detail:** `plans/doc-schema-v2.plan.md`, "Status — round 7"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md).
 * **Not posted; not pushed.**
+* **Merged 11-16** as #12 (`93a3afa`).
 
 ## 2026-11-16 (night) — atrium-project#84 round 8: the meeting's follow-ups
 
@@ -1586,6 +1596,7 @@ Documentation only; no code, test or configuration change.
 * **Written here (not pushed):** decode verdicts apart (`decode:garbled`, `decode:inverted`, `decode_score`, no band); `/describe` in the record's names (`needs_atr`), its `quality` ocr-postprocess's only and a `decode` check beside it; the stages read the siblings' new names. 1028 passed.
 * **Detail:** `plans/doc-schema-v2.plan.md`, "Status — the meeting's follow-ups"; hub: [plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md), "Status — round 8 (implemented)".
 * **Not posted; not pushed.**
+* **Merged 11-16** as #13 (`0307c60`).
 
 ## 2026-11-16 (night, later) — atrium-digital-convert#13's checks
 
@@ -1594,6 +1605,7 @@ Documentation only; no code, test or configuration change.
 * **Written here (not pushed):** the test compares the reader without that per-run digest and checks each side
   names a SHA-512; with a digest forced to differ per run, the old test fails and the new one passes.
 * **Not posted; not pushed.**
+* **Merged 11-16** as #13 (`0307c60`).
 
 ## 2026-11-19 — #9: every cell of a sheet (motyc, 11-18)
 
@@ -1613,3 +1625,35 @@ Documentation only; no code, test or configuration change.
   `spreadsheet_locale: cs-CZ`, LibreOffice 24.2.7.2).
 * **Detail:** `plans/9.plan.md`, "Status — 11-19".
 * **Not posted; not pushed.**
+* **Merged 11-19** as #14 (`60a9d12`).
+
+## 2026-11-19 — atrium-project#16: the AMČR samples replaced (#15)
+
+* **Asked (motyc, atrium-project#16, 11-18):** replace the copies of AMČR documents and their outputs in
+  `data_samples/` with synthetic samples; the git history can stay.
+* **Merged 11-19** as #15 (`88137dd`): `data_samples/` holds three invented PDFs (`CTX000000004`–`006`), their
+  generator `data_samples/pdf/make_synthetic_pdfs.py`, and their docproc, Markdown and reports, regenerated with the
+  current code (page-classification `1.9.10-beta`, ocr-postprocess `1.12.1-beta`); each of the 17 pages gets the
+  verdict it was built for. K4TEL's answer on atrium-project#16 (11:43).
+
+## 2026-11-19 (round) — the threads since 16 November, Ronald's answers, the pilot dates
+
+* **Asked (K4TEL):** the log round of 11-19: `test` heads, open issues' threads and the ARÚP issues they link.
+* **Fetched:** `test` = `main` = `88137dd`; the hub `a7e440b`, `v1` = `02cbd01`.
+* **Found:**
+  * #9: motyc's last gap (every cell, 11-18) merged as #14 and answered by K4TEL (11-19 11:19); the export's 11-16
+    comment refreshed to its edited text (16:45). Closing is motyc's.
+  * #5: motyc's comment of 11-10 20:45 (OK to close after the meeting), missed by the earlier refreshes; the samples
+    replaced (#15).
+  * Ronald's answers (aiscr-docs-pipeline#17, 11-17): page categories not sent to the ATR; per-page forcing only in
+    the open variant; the ATR's text-layer fast path measures the MediaBox without `/Rotate`, so a rotated or cropped
+    mixed document fails the merge in ocr-postprocess until the open variant. aiscr-docs-pipeline#5 (this step)
+    still describes ALTO and `/convert`: a meeting question.
+  * `scheduled-smoke.yml` (weekly) is a scheduled run the agreement of 11-12 drops (atrium-project#40).
+* **Written here:** the export of #9; `digests/9.digest.md`, `plans/9.plan.md`; `digests/5.digest.md`,
+  `plans/5.plan.md` (the generator's real path); `plans/doc-schema-v2.plan.md` ("Status — 11-19"); the hub links
+  `doc-schema-v2.*` → `84.*`; `Merged` lines on the entries of 11-13 to 11-19; this header. Removed: the pairs of #2,
+  #3, #4 and #6 (closed; nothing outside the logs cites them).
+* **Next:** #9 and #5 closed by motyc; the release batch with `v2.0.0-beta` (atrium-project#77); the CI-trigger PR
+  (atrium-project#40).
+* Logs only; no code changed. Files delivered as full files.

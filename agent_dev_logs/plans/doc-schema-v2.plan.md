@@ -1,21 +1,28 @@
 # Strategy — [atrium-project#84](https://github.com/ufal/atrium-project/issues/84) (doc-schema-v2): digital-convert's part
 
+> _**Refreshed 2026-11-19**: "Status — 11-19": rounds 7–9 merged, Ronald's answers, the tag after the cluster run._
 > _**Refreshed 2026-11-14 (afternoon)**: "Status — round 6 (11-14)": the hub merged, the pins moved, round 6._
 > _**Refreshed 2026-11-14**: "Status — PR (11-14)": the PR's checks and round 5's fixes._
 > _**Refreshed 2026-11-13**: "Status — round 2" (the code, pushed 11-13 to `doc-schema-v2`) and round 4's notes. The file keeps
 > the name `doc-schema-v2.plan.md` (it was `84.plan.md` on 11-12 and 11-13)._
 > _**Refreshed 2026-11-12** on ARÚP's output contract of 12 November and atrium-project#84 (motyc, 11-12), at this
 > checkout's head `6e49dec` (= `test`). The hub carries the whole change:
-> [plan](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md) ·
-> [digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/doc-schema-v2.digest.md) (the docproc schema
+> [plan](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md) ·
+> [digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/84.digest.md) (the docproc schema
 > of #84's comment 1) · [contract digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/project_state_1211.md).
 > This file is the repository's slice only; its 11-11 version (written before the
 > issue existed), in which digital-convert wrote the born-digital record, read images and CSV, and kept the
 > `ocr_text_layer` refusal — all superseded below._
 
+**Status (2026-11-19)**: 🟡 **Everything of this repository's part is on `test` (#10–#14), pinned to the hub's
+`02cbd01`. Kate's and Ronald's answers are in. Ronald's ask 10 leaves one risk on the ATR's side (a rotated or
+cropped mixed document fails until the open variant); nothing to change here. The record-2.0 release
+(`v2.0.0-beta`) waits for the release batch (atrium-project#77); doc-schema-v2's tag for the pilot run on the cluster.
+See "Status — 11-19".**
+
 **Status (2026-11-14, afternoon)**: 🟡 **The hub's PR is merged and this repository is pinned to it: drift is green.
 Round 6 completes this repository's part where no answer is pending; see "Status — round 6". The release (v2.0.0-beta)
-is cut at K4TEL's cadence.**
+is cut at K4TEL's cadence.** _(superseded 11-19: rounds 7–9 merged, the answers in)_
 
 **Status (2026-11-14)**: 🟡 **[atrium-digital-convert#10](https://github.com/ufal/atrium-digital-convert/pull/10) is open
 (`doc-schema-v2` into `test`); see "Status — PR". Drift clears once the hub's PR merges and the pins move; the
@@ -145,7 +152,7 @@ because the record schema went from 1.0 to 2.0 without a major version; check-dr
 `tests/test_vendored_teitok_parity.py` named nlp-enrich `ba81709` (flexiconv v0.3.11) while `requirements_flexiconv.txt`
 pins v0.3.12; api-contract also reports `document_json` gone from `/describe` and `/reformat`. The causes across all
 seven PRs:
-[hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md),
+[hub plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md),
 "Status — PRs".
 
 Round 5 (not pushed):
@@ -181,7 +188,7 @@ The hub's PR (atrium-project#86) merged; `v1` moved to it and K4TEL pinned this 
 
 The suite passes: 962. Next: the hub's second PR for #84 (the E2E lanes, rule 5's mark), then `v1` and the pins again;
 then this PR. Hub:
-[plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/doc-schema-v2.plan.md),
+[plan of #84](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/84.plan.md),
 "Status — round 6".
 
 ## Status — round 7 (11-16)
@@ -202,7 +209,30 @@ atrium-project#84 round 8 (comment 3's update): `forms` gone, decode verdicts ap
 - **Checked:** 1028 passed (not slow); the hub's local chain (garbled PDF flagged `decode:garbled`).
 - **Next:** the hub's PR first; then this repository's, with the pins moved to it.
 
+## Status — 11-19: the answers and what they leave
+
+- **On `test`:** rounds 7 and 8 (#12, #13), #9's inputs (#11) and every cell of a sheet (#14); `main` = `test`.
+- **Ronald's answers (11-17,** [hub digest](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/digests/84.digest.md#-2026-11-19--ronalds-answers-the-open-atrs-draft-the-storage-contract)**):**
+  - ask 4: every page in routing, empty pages included: as written here (D29);
+  - ask 5: the current ATR service forces only whole documents; per-page `forced`/`forced_reason` comes with the open
+    variant. Until then `needs_atr` sends the whole document through recognition and ocr-postprocess keeps this
+    converter's lines on the text pages (D21);
+  - ask 6: page categories are not sent to the ATR (D33 resolved); nothing here sent them;
+  - ask 10: the displayed page, in pt, as this converter measures it (`digital_ir.PageFrame`, `userUnit`); the
+    ATR's text-layer fast path still uses the MediaBox without `/Rotate` or `UserUnit`, fixed in the open variant and
+    checked in aiscr-docs-pipeline#20. A mixed document with a rotated or cropped text page fails the merge in
+    ocr-postprocess (`coordinate_mismatch`) until then: fail-fast, a pilot risk (hub Q25);
+  - ask 13: `lines[]` with derived positions first; this converter's measured lines stay valid.
+- **The open ATR's draft** (aiscr-atr PR #5) names fields this converter writes differently (`bboxPrecision`,
+  `pixelRatio`, `footer`); aligned on aiscr-docs-pipeline#17 first (hub Q24).
+- **aiscr-docs-pipeline#5** (this step) still describes ALTO, `needs_ocr` and `/convert`, before #12's route: a
+  question for the meeting, not posted.
+- **The tag:** AMČR's storage contract (11-19) releases record 2.0 after the pilot run on the cluster (2/2027).
+
 ## Depends on
+
+_(11-19: Kate's answer (11-12) and Ronald's (11-17) are given; asks 3, 4, 10 and 13 accepted, ask 5 for the open
+variant only. Still open: the open ATR's schema (hub Q24), Q9's remainder and Q10.)_
 
 - Kate's answer on #84 (16 November) and Ronald's on aiscr-docs-pipeline#17: D20, D24; asks 3 (run data out),
   4 (routing of every page), 5 (forced pages echoed), 10 (coordinates), 13 (optional `lines[]`, the verdict,
