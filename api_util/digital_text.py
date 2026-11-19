@@ -63,7 +63,10 @@ from api_util.digital_ir import (
 )
 
 #: The kinds the shared reader reads here: the born-digital types beyond PDF/DOCX that AMČR accepts.
-KINDS: Tuple[str, ...] = ("odt", "ods", "xlsx", "rtf")
+#: Not XLSX: its reader keeps the text cells only, while a sheet keeps every cell as it displays
+#: (atrium-digital-convert#9), so an XLSX is displayed by LibreOffice and read here as ODS
+#: (`api_util/digital_legacy.py`).
+KINDS: Tuple[str, ...] = ("odt", "ods", "rtf")
 
 #: The text-only inputs (atrium-digital-convert#9 point 4), read as they are by this module.
 TEXT_ONLY_KINDS: Tuple[str, ...] = ("txt", "csv", "tsv", "json")
@@ -77,7 +80,7 @@ TEXT_ONLY_MEDIA_TYPES: Dict[str, str] = {
 }
 
 #: Spreadsheet kinds: one group per page (sheet).
-SHEET_KINDS = frozenset({"ods", "xlsx"})
+SHEET_KINDS = frozenset({"ods"})
 
 #: Shared-reader notes that are lossy (`text_formats.LOSSY_NOTE_PREFIXES`) but keep the content:
 #: undecodable bytes became U+FFFD, which scoring judges (#9 point 3).
@@ -125,7 +128,8 @@ def extract_text_document(
     max_file_mb: Optional[float] = None,
     max_pages: Optional[int] = None,
 ) -> DigitalDocument:
-    """Layer A for ODT/ODS/XLSX/RTF: read with the shared reader, map to the IR."""
+    """Layer A for ODT/ODS/RTF: read with the shared reader, map to the IR. An XLSX or XLS comes
+    here as the ODS LibreOffice made of it."""
     if kind not in KINDS:
         raise ValueError(f"digital_text reads {KINDS}, not {kind!r}")
     tf = _reader()
@@ -163,7 +167,7 @@ def extract_text_document(
         notes=list(text_doc.notes),
     )
     document.use("text_formats")
-    if kind in ("xlsx", "odt", "ods"):
+    if kind in ("odt", "ods"):
         document.use("lxml")
 
     if kind in SHEET_KINDS:

@@ -13,6 +13,7 @@ import stat
 import sys
 import zipfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 
@@ -139,6 +140,10 @@ def test_the_rendering_runs_with_the_pinned_options(fixtures, tmp_path, monkeypa
     assert facts["tool"] == "libreoffice" and facts["to"] == "pdf" and len(facts["sha512"]) == 128
     assert facts["version"] == "9.9.9.9"
     assert "seconds" not in facts, "the facts describe the rendering, not the run"
+    profile = Path(urlparse(args[0].split("=", 1)[1]).path)
+    assert not (profile / "user" / "registrymodifications.xcu").exists(), (
+        "a rendering sets no locale: only a spreadsheet's display does (#9)"
+    )
     office_render._version_of.cache_clear()
 
 

@@ -27,8 +27,9 @@ The two workflows of [#9](https://github.com/ufal/atrium-digital-convert/issues/
   and boxes in pt like a PDF. Its rendered PDF is what the visual steps read. A page with good text and a photo
   stays on its text layer.
 - **Textual.** Text with nothing to render: a spreadsheet's rows, a text file's lines, every CSV column, every JSON
-  string. It has no geometry and never goes to the ATR, only straight to scoring. A line over 1000 characters is
-  wrapped, and the wrap is recorded.
+  string. A sheet keeps every cell, numbers and dates as it displays them: an ODS as its file stored them, an XLSX
+  or XLS as LibreOffice shows it in cs-CZ (`1,50`, `15.3.2021`). It has no geometry and never goes to the ATR, only
+  straight to scoring. A line over 1000 characters is wrapped, and the wrap is recorded.
 
 Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://github.com/ufal/atrium-project/issues/84))
 digital-convert writes no record and refuses no document for its pages. Each format, how it is read and what reaches
@@ -56,7 +57,7 @@ PDF pages and documents, from the rendered pages alone
 
 **What you need:** Docker for the service; for the sample files and the command line, a checkout of this
 repository and Python 3.11 (the version of the image and of CI). No network is needed to convert a file, and no
-GPU. DOC and XLS files need LibreOffice, which the images carry.
+GPU. DOC, XLS and XLSX files need LibreOffice, which the images carry.
 
 The service, from the published image, on small documents generated from this repository's test fixtures:
 
@@ -129,8 +130,11 @@ ATRIUM](https://marketplace.sshopencloud.eu/tool-or-service/jGxgQI).
   listed below ([what they showed](docs/evaluation/amcr-samples.md)).
 - **Known, not handled.** Unruled tables are read by column, and letter-spaced captions and map labels split
   into pieces ([the AMČR samples](docs/evaluation/amcr-samples.md)).
-- **Office documents and XLS need LibreOffice.** The images carry it. Without it a DOCX, DOC, ODT, RTF or XLS fails
-  with `dependency_missing`, so use the image ([errors](service/README.md#errors)).
+- **Office documents, XLSX and XLS need LibreOffice.** The images carry it. Without it a DOCX, DOC, ODT, RTF, XLSX or
+  XLS fails with `dependency_missing`, so use the image ([errors](service/README.md#errors)).
+- **A sheet displays in cs-CZ.** An XLSX does not say how its numbers and default dates read, so LibreOffice shows
+  it as a Czech sheet does (decimal comma, `15.3.2021`, `PRAVDA`), and the paradata name the locale
+  (`spreadsheet_locale`).
 - **The Docling engine is opt-in.** It reads PDF only and needs a GPU and its models (`--engine docling`); the
   default light engine needs neither ([usage](docs/usage.md#convert-a-file-on-the-command-line)).
 - **`/describe` is parked** (not part of the pilot): it assesses the converter's development dict, and the 2.0

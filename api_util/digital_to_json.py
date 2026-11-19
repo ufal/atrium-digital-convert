@@ -13,9 +13,10 @@ Every input takes one of two workflows (atrium-digital-convert#9):
     headless LibreOffice rendering (`api_util/office_render.py`): the native text is placed on the
     rendered pages (`api_util/render_place.py`), which gives it page numbers, boxes in pt and the
     page verdicts of a PDF. The rendered PDF is what the visual steps read (`--rendered-out`).
-  * **textual** — text with no pages to render: spreadsheets (ODS, XLSX; XLS after a LibreOffice
-    conversion, `api_util/digital_legacy.py`) and the text-only inputs (TXT, CSV, TSV, JSON),
-    extracted as they are. Never the ATR; straight to scoring.
+  * **textual** — text with no pages to render: spreadsheets, every non-empty cell as the sheet
+    displays it (an ODS as its file stored it; an XLSX or XLS as LibreOffice displays it in
+    cs-CZ, read as ODS, `api_util/digital_legacy.py`), and the text-only inputs (TXT, CSV, TSV,
+    JSON), extracted as they are. Never the ATR; straight to scoring.
 
 Images skip digital-convert and go to the ATR (H13). An AMČR seed's `source.sha512` is checked
 against the bytes of the original before anything is read (`source_digest_mismatch`, see
@@ -115,7 +116,7 @@ flow documents, ask 13).
 
     0  docproc written
     2  a dependency is missing (advice printed, no traceback) — LibreOffice for an office
-       document (DOCX, DOC, ODT, RTF) and an XLS
+       document (DOCX, DOC, ODT, RTF) and an XLSX or XLS
     3  not an input this converter takes: unsupported format (an image among them), a seed
        whose source.sha512 is not the file's digest (source_digest_mismatch), or a
        --document-json seed that cannot be opened (invalid_record)
@@ -956,7 +957,8 @@ def extract(path: str, doc_id: Optional[str] = None, engine: str = "light") -> D
     * PDF — the PDF engine on its own pages (visual);
     * DOCX, DOC, ODT, RTF — native text placed on the pages of the rendering (visual,
       `_extract_rendered`);
-    * ODS, XLSX, XLS — sheets through the shared reader (textual);
+    * ODS — sheets through the shared reader; XLSX, XLS — displayed by LibreOffice and read as
+      ODS (textual, every cell as the sheet displays it);
     * TXT, CSV, TSV, JSON — as they are (textual, `digital_text.extract_text_only`).
     """
     if engine not in ENGINES:
@@ -985,7 +987,7 @@ def extract(path: str, doc_id: Optional[str] = None, engine: str = "light") -> D
         # #84 a PDF mostly of such pages was refused whole (422 `ocr_text_layer`).
     elif kind in RENDERED_KINDS:
         document = _extract_rendered(path, doc_id, kind)
-    elif kind == "xls":
+    elif kind in ("xls", "xlsx"):
         from api_util.digital_legacy import extract_legacy  # noqa: PLC0415
 
         document = extract_legacy(
@@ -1063,7 +1065,7 @@ def _extract_rendered(path: str, doc_id: str, kind: str) -> DigitalDocument:
 
 
 def _read_native(path: str, doc_id: str, kind: str) -> DigitalDocument:
-    """DOCX through this repository's reader; ODT/ODS/XLSX/RTF through the shared reader."""
+    """DOCX through this repository's reader; ODT/ODS/RTF through the shared reader."""
     if kind == "docx":
         document = extract_docx(path, doc_id=doc_id)
         document.kind = "docx"
@@ -1311,6 +1313,9 @@ def record_run(
     )
     logger.set_parameter("engine", document.engine)
     logger.set_parameter("workflow", document.workflow)
+    if document.conversion and document.conversion.get("locale"):
+        # #9: the locale LibreOffice displayed a spreadsheet's numbers and dates in.
+        logger.set_parameter("spreadsheet_locale", document.conversion["locale"])
     if document.workflow != WORKFLOW_TEXTUAL and any(
         page.text_layer == TEXT_LAYER_BLANK and not page.lines for page in document.pages
     ):
@@ -1336,6 +1341,12 @@ def record_run(
         logger.set_parameter("render_text_coverage", tool_limits.RENDER_TEXT_COVERAGE.get())
         if document.rendering.get("version"):
             versions["libreoffice"] = str(document.rendering["version"])
+    elif document.conversion and document.conversion.get("tool") == "libreoffice":
+        from api_util.office_render import libreoffice_version  # noqa: PLC0415
+
+        version = libreoffice_version()
+        if version:
+            versions["libreoffice"] = version
     for limit, value, count, detail in document.splits:
         logger.note_limit(limit, value, "split", count, detail)
     for name in document.components:
@@ -1543,9 +1554,10 @@ def build_parser() -> argparse.ArgumentParser:
         "atrium-project#84). Visual workflow: a PDF on its pages, a DOCX, DOC, ODT or RTF as its "
         "native text on the pages of its LibreOffice rendering; each page gets a text-layer verdict "
         "and needsAtr where its text cannot be used. Textual workflow (no pages to render, never the "
-        "ATR): ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are (atrium-digital-convert#9). "
+        "ATR): ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are, every cell of a sheet as "
+        "it displays (an XLSX or XLS through LibreOffice, in cs-CZ; atrium-digital-convert#9). "
         "The ATRIUM record is built from the docproc by ocr-postprocess.",
-        epilog="Exit codes: 0 written; 2 dependency missing (LibreOffice for DOCX/DOC/ODT/RTF/XLS); 3 "
+        epilog="Exit codes: 0 written; 2 dependency missing (LibreOffice for DOCX/DOC/ODT/RTF/XLSX/XLS); 3 "
         "not an input this converter takes (images go to the ATR), a seed whose source.sha512 does "
         "not match (source_digest_mismatch), or a --document-json seed that cannot be opened "
         "(invalid_record); 4 empty, corrupt, encrypted, over the ZIP limits, a failed "

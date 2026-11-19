@@ -31,6 +31,8 @@ AMČR upload ──► seed (doc_id, source.sha512, filename, media_type)
   docproc's. It is not stored, and the paradata name it by SHA-512.
 * **Textual.** A spreadsheet or a text-only file (TXT, CSV, TSV, JSON) has no pages to render. Its text is
   extracted as it is, it carries no geometry, and it goes straight to scoring. Its pages are never routed `atr`.
+  A sheet keeps every non-empty cell, numbers and dates in the form the sheet displays them (#9): an ODS stores
+  that text itself, and an XLSX or XLS is displayed by LibreOffice in cs-CZ and read as the ODS it makes.
 
 Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://github.com/ufal/atrium-project/issues/84)
 §1) digital-convert writes the layout as docproc and no record; ocr-postprocess builds the record from it.
@@ -61,7 +63,7 @@ Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://g
   ATR/HTR; with `stages=none` it calls no other service.
 * **The legacy DOC and XLS** were accepted by AMČR on
   [#4](https://github.com/ufal/atrium-digital-convert/issues/4) (2026-09-26). LibreOffice
-  converts the file to DOCX/XLSX first; a DOC's DOCX is then rendered like any office document. LibreOffice is
+  converts a DOC to DOCX first, which is then rendered like any office document, and an XLS, like an XLSX, to ODS. LibreOffice is
   among the components a run lists, with its version, as a fact (paradata 3.0 computes no licence); see
   [Paradata and provenance](reference/paradata.md#paradata-and-provenance).
 

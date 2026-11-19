@@ -111,6 +111,14 @@ keeps its bytes:
     sample.csv        a header row and rows with a `text` column among others: every column kept.
     sample.tsv        the same as tab-separated values.
     sample.json       string values nested in objects and lists, with numbers and keys between.
+
+Added 2026-11-19 for atrium-digital-convert#9 (motyc, 11-18: a sheet keeps every cell, numbers and
+dates as it displays them); every earlier fixture keeps its bytes:
+
+    sample.xlsx       find records: counts, a depth in `0.00`, an area in `#,##0`, a share in `0%`,
+                      a date in the locale's short format (numFmt 14) and one in `d.m.yyyy`, a
+                      time, a boolean, a formula with its cached result, and a hidden sheet of
+                      S-JTSK coordinates. LibreOffice displays it in cs-CZ.
 """
 
 from __future__ import annotations
@@ -1279,6 +1287,117 @@ def sample_json() -> bytes:
     return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
 
 
+_SML = (
+    'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+)
+
+
+def _xlsx_cell(ref: str, value: object, style: int = 0, kind: str = "") -> str:
+    """One SpreadsheetML cell: an inline string, or a value with its type and style."""
+    if isinstance(value, str) and not kind:
+        return f'<c r="{ref}" t="inlineStr"><is><t>{value}</t></is></c>'
+    s = f' s="{style}"' if style else ""
+    t = f' t="{kind}"' if kind else ""
+    if isinstance(value, tuple):  # (formula, cached value)
+        return f'<c r="{ref}"{s}{t}><f>{value[0]}</f><v>{value[1]}</v></c>'
+    return f'<c r="{ref}"{s}{t}><v>{value}</v></c>'
+
+
+def _xlsx_sheet(rows: List[List[object]]) -> str:
+    """Rows of (value, style, type) or plain values; None leaves the cell out."""
+    out = []
+    for r, row in enumerate(rows, 1):
+        cells = []
+        for c, cell in enumerate(row):
+            if cell is None:
+                continue
+            value, style, kind = (
+                cell if isinstance(cell, tuple) and len(cell) == 3 else (cell, 0, "")
+            )
+            cells.append(_xlsx_cell(f"{'ABCDEFGHIJKL'[c]}{r}", value, style, kind))
+        out.append(f'<row r="{r}">{"".join(cells)}</row>')
+    return f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet {_SML}><sheetData>{"".join(out)}</sheetData></worksheet>'
+
+
+def sample_xlsx() -> bytes:
+    """A sheet of find records as AMČR receives them: the numbers and dates are the content
+    (atrium-digital-convert#9). Styles: 1 `0.00`, 2 `#,##0`, 3 `0%`, 4 numFmt 14 (the locale's
+    short date), 5 `d.m.yyyy`, 6 `h:mm`. 44270 is 2021-03-15 in the 1900 date system."""
+    # fmt: off
+    nalezy = _xlsx_sheet([
+        ["Sonda", "Nález", "Počet", "Hloubka (m)", "Plocha (cm²)", "Podíl", "Datum výzkumu",
+         "Datum zápisu", "Čas", "Ověřeno", "Celkem"],
+        ["S3", "Zlomek okraje hrnce", (12, 0, ""), (1.5, 1, ""), (12345, 2, ""), (0.25, 3, ""),
+         (44270, 4, ""), (44271, 5, ""), (0.5625, 6, ""), (1, 0, "b"), (("C2*2", 24), 0, "")],
+        ["S4", "Zvířecí kost", (3, 0, ""), (0.3, 1, ""), None, None, None, None, None, (0, 0, "b")],
+    ])
+    # fmt: on
+    souradnice = _xlsx_sheet([["Bod", "X", "Y"], ["B1", (-744123.45, 1, ""), (-1043210.5, 1, "")]])
+    styles = (
+        f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet {_SML}>'
+        '<numFmts count="1"><numFmt numFmtId="164" formatCode="d\\.m\\.yyyy"/></numFmts>'
+        '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'
+        '<fills count="2"><fill><patternFill patternType="none"/></fill>'
+        '<fill><patternFill patternType="gray125"/></fill></fills>'
+        '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+        '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+        '<cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+        + "".join(
+            f'<xf numFmtId="{n}" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
+            for n in (2, 3, 9, 14, 164, 20)
+        )
+        + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
+        "</styleSheet>"
+    )
+    rel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    sheet_ct = "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"
+    return _zip_parts(
+        [
+            (
+                "[Content_Types].xml",
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                '<Default Extension="xml" ContentType="application/xml"/>'
+                '<Override PartName="/xl/workbook.xml" '
+                'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+                f'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="{sheet_ct}"/>'
+                f'<Override PartName="/xl/worksheets/sheet2.xml" ContentType="{sheet_ct}"/>'
+                '<Override PartName="/xl/styles.xml" '
+                'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+                "</Types>",
+            ),
+            (
+                "_rels/.rels",
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                f'<Relationship Id="rId1" Type="{rel}/officeDocument" Target="xl/workbook.xml"/>'
+                "</Relationships>",
+            ),
+            (
+                "xl/workbook.xml",
+                f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook {_SML}><sheets>'
+                '<sheet name="Nálezy" sheetId="1" r:id="rId1"/>'
+                '<sheet name="Souřadnice" sheetId="2" state="hidden" r:id="rId2"/>'
+                "</sheets></workbook>",
+            ),
+            (
+                "xl/_rels/workbook.xml.rels",
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                f'<Relationship Id="rId1" Type="{rel}/worksheet" Target="worksheets/sheet1.xml"/>'
+                f'<Relationship Id="rId2" Type="{rel}/worksheet" Target="worksheets/sheet2.xml"/>'
+                f'<Relationship Id="rId3" Type="{rel}/styles" Target="styles.xml"/>'
+                "</Relationships>",
+            ),
+            ("xl/styles.xml", styles),
+            ("xl/worksheets/sheet1.xml", nalezy),
+            ("xl/worksheets/sheet2.xml", souradnice),
+        ]
+    )
+
+
 # ── driver ───────────────────────────────────────────────────────────────────
 
 BUILDERS = {
@@ -1306,6 +1425,7 @@ BUILDERS = {
     "sample.csv": sample_csv,
     "sample.tsv": sample_tsv,
     "sample.json": sample_json,
+    "sample.xlsx": sample_xlsx,
 }
 
 NOTES = {
@@ -1333,6 +1453,7 @@ NOTES = {
     "sample.csv": "a header row and rows with a text column among others — every column kept (#9)",
     "sample.tsv": "the CSV's rows as tab-separated values (#9)",
     "sample.json": "string values in objects and lists, with keys and numbers — every string kept (#9)",
+    "sample.xlsx": "find records: counts, decimals, an area, a share, two dates, a time, a boolean, a formula, a hidden sheet — every cell as displayed (#9)",
 }
 
 
