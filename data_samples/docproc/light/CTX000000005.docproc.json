@@ -1,0 +1,350 @@
+{
+  "version": "1.1",
+  "sourceFormat": "pdf-scanned",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "width": 595.276,
+      "height": 841.89,
+      "coordinateUnit": "pt",
+      "blocks": [
+        {
+          "id": "p1-b0",
+          "type": "paragraph",
+          "bbox": [
+            72.0,
+            92.285,
+            228.029,
+            104.285
+          ],
+          "readingOrder": 0,
+          "confidence": 1.0,
+          "content": "Muzeum DEMO v Horní Mezi",
+          "lines": [
+            {
+              "text": "Muzeum DEMO v Horní Mezi",
+              "bbox": [
+                72.0,
+                92.285,
+                228.029,
+                104.285
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p1-b1",
+          "type": "paragraph",
+          "bbox": [
+            72.0,
+            136.445,
+            304.717,
+            148.445
+          ],
+          "readingOrder": 1,
+          "confidence": 1.0,
+          "content": "HLÁŠENÍ O ARCHEOLOGICKÉM NÁLEZU",
+          "lines": [
+            {
+              "text": "HLÁŠENÍ O ARCHEOLOGICKÉM NÁLEZU",
+              "bbox": [
+                72.0,
+                136.445,
+                304.717,
+                148.445
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p1-b2",
+          "type": "paragraph",
+          "bbox": [
+            72.0,
+            180.605,
+            280.764,
+            214.685
+          ],
+          "readingOrder": 2,
+          "confidence": 1.0,
+          "content": "Lokalita: Horní Mez, poloha Na Hradišti\nDatum nálezu: 14. 5. 1998",
+          "lines": [
+            {
+              "text": "Lokalita: Horní Mez, poloha Na Hradišti",
+              "bbox": [
+                72.0,
+                180.605,
+                280.764,
+                192.605
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "Datum nálezu: 14. 5. 1998",
+              "bbox": [
+                72.0,
+                202.685,
+                212.76,
+                214.685
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p1-b3",
+          "type": "paragraph",
+          "bbox": [
+            72.0,
+            246.845,
+            333.475,
+            325.085
+          ],
+          "readingOrder": 3,
+          "confidence": 1.0,
+          "content": "Při výkopu jámy pro sloup elektrického vedení\nbyla v hloubce 60 cm zachycena tmavá vrstva\ns uhlíky a zlomky keramiky. Nález ohlásil\nstavbyvedoucí, místo ohledala Eva Procházková.",
+          "lines": [
+            {
+              "text": "Při výkopu jámy pro sloup elektrického vedení",
+              "bbox": [
+                72.0,
+                246.845,
+                316.119,
+                258.845
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "byla v hloubce 60 cm zachycena tmavá vrstva",
+              "bbox": [
+                72.0,
+                268.925,
+                316.781,
+                280.925
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "s uhlíky a zlomky keramiky. Nález ohlásil",
+              "bbox": [
+                72.0,
+                291.005,
+                289.4,
+                303.005
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "stavbyvedoucí, místo ohledala Eva Procházková.",
+              "bbox": [
+                72.0,
+                313.085,
+                333.475,
+                325.085
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        }
+      ],
+      "textLayer": "ocr",
+      "needsAtr": true,
+      "needsAtrReason": "the text layer is a prior OCR run: 8 of 8 text objects are invisible (render mode 3) over a page image. Re-acquire the page through the OCR originator (ocr-postprocess, source.origin ocr:pdf-text-layer)."
+    },
+    {
+      "pageNumber": 2,
+      "width": 595.276,
+      "height": 841.89,
+      "coordinateUnit": "pt",
+      "blocks": [
+        {
+          "id": "p2-b0",
+          "type": "paragraph",
+          "bbox": [
+            72.0,
+            92.285,
+            198.076,
+            104.285
+          ],
+          "readingOrder": 0,
+          "confidence": 1.0,
+          "content": "Popis nálezové situace:",
+          "lines": [
+            {
+              "text": "Popis nálezové situace:",
+              "bbox": [
+                72.0,
+                92.285,
+                198.076,
+                104.285
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p2-b1",
+          "type": "paragraph",
+          "bbox": [
+            72.0,
+            136.445,
+            332.098,
+            214.685
+          ],
+          "readingOrder": 1,
+          "confidence": 1.0,
+          "content": "Ve stěně výkopu byl patrný profil zahloubeného\nobjektu o šířce 1,2 m. Výplň tvořila tmavě hnědá\nhlína s propáleným kamenem. Ze stěny bylo\nvyzvednuto 12 zlomků keramiky a 2 zvířecí kosti.",
+          "lines": [
+            {
+              "text": "Ve stěně výkopu byl patrný profil zahloubeného",
+              "bbox": [
+                72.0,
+                136.445,
+                324.164,
+                148.445
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "objektu o šířce 1,2 m. Výplň tvořila tmavě hnědá",
+              "bbox": [
+                72.0,
+                158.525,
+                328.131,
+                170.525
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "hlína s propáleným kamenem. Ze stěny bylo",
+              "bbox": [
+                72.0,
+                180.605,
+                307.447,
+                192.605
+              ],
+              "bboxPrecision": "measured"
+            },
+            {
+              "text": "vyzvednuto 12 zlomků keramiky a 2 zvířecí kosti.",
+              "bbox": [
+                72.0,
+                202.685,
+                332.098,
+                214.685
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        },
+        {
+          "id": "p2-b2",
+          "type": "paragraph",
+          "bbox": [
+            72.0,
+            246.845,
+            322.816,
+            258.845
+          ],
+          "readingOrder": 2,
+          "confidence": 1.0,
+          "content": "Nálezy předány do muzea pod číslem 45/1998.",
+          "lines": [
+            {
+              "text": "Nálezy předány do muzea pod číslem 45/1998.",
+              "bbox": [
+                72.0,
+                246.845,
+                322.816,
+                258.845
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        }
+      ],
+      "textLayer": "ocr",
+      "needsAtr": true,
+      "needsAtrReason": "the text layer is a prior OCR run: 6 of 6 text objects are invisible (render mode 3) over a page image. Re-acquire the page through the OCR originator (ocr-postprocess, source.origin ocr:pdf-text-layer)."
+    },
+    {
+      "pageNumber": 3,
+      "width": 595.276,
+      "height": 841.89,
+      "coordinateUnit": "pt",
+      "blocks": [],
+      "textLayer": "none",
+      "needsAtr": true,
+      "needsAtrReason": "no extractable text layer: the page draws 1 image(s) but carries no text — a scanned page or text drawn as curves"
+    },
+    {
+      "pageNumber": 4,
+      "width": 595.276,
+      "height": 841.89,
+      "coordinateUnit": "pt",
+      "blocks": [
+        {
+          "id": "p4-b0",
+          "type": "footer",
+          "bbox": [
+            294.857,
+            809.994,
+            300.419,
+            819.994
+          ],
+          "readingOrder": 0,
+          "confidence": 1.0,
+          "content": "4",
+          "lines": [
+            {
+              "text": "4",
+              "bbox": [
+                294.857,
+                809.994,
+                300.419,
+                819.994
+              ],
+              "bboxPrecision": "measured"
+            }
+          ]
+        }
+      ],
+      "textLayer": "none",
+      "needsAtr": true,
+      "needsAtrReason": "no text layer under the page furniture: images cover 100% of the page and its only text is its running header or footer ('4') — a scanned page that the PDF's producer numbered or stamped"
+    }
+  ],
+  "metadata": {
+    "routing": {
+      "pages": [
+        {
+          "page": 1,
+          "route": "atr",
+          "text_layer": false
+        },
+        {
+          "page": 2,
+          "route": "atr",
+          "text_layer": false
+        },
+        {
+          "page": 3,
+          "route": "atr",
+          "text_layer": false
+        },
+        {
+          "page": 4,
+          "route": "atr",
+          "text_layer": false
+        }
+      ],
+      "counts": {
+        "by_route": {
+          "atr": 4
+        }
+      }
+    }
+  }
+}
