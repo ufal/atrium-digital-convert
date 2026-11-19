@@ -320,16 +320,16 @@ def test_convert_layout_reflects_correct_page_dims_for_continuation_numbering(tm
 
 
 def test_convert_markdown_uses_doc_id_as_title(tmp_path):
-    p = tmp_path / "CTX195603828.teitok.xml"
+    p = tmp_path / "CTX000000002.teitok.xml"
     p.write_text(TEITOK_SAMPLE, encoding="utf-8")
     md = convert(p, fmt="markdown")
-    assert md.startswith("# CTX195603828")
+    assert md.startswith("# CTX000000002")
     assert "## Page 1" in md
     assert "## Page 2" in md
 
 
 def test_convert_text_has_no_markdown_headings(tmp_path):
-    p = tmp_path / "CTX195603828.teitok.xml"
+    p = tmp_path / "CTX000000002.teitok.xml"
     p.write_text(TEITOK_SAMPLE, encoding="utf-8")
     txt = convert(p, fmt="text")
     assert "#" not in txt
