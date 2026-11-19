@@ -89,6 +89,11 @@
     "note": "two paragraphs, a form feed, a second page — the textual workflow (#9)",
     "sha256": "5326ea85e85256898b99e9cce2a4460f5fa40de4774fa7b47488ba3d2872b81e"
   },
+  "sample.xlsx": {
+    "bytes": 6176,
+    "note": "find records: counts, decimals, an area, a share, two dates, a time, a boolean, a formula, a hidden sheet — every cell as displayed (#9)",
+    "sha256": "210ab42b248361c5de076fa9a5ef9a02f8caba9d4fa370194caa51eab96e51bd"
+  },
   "scan_page.docx": {
     "bytes": 6683,
     "note": "text page, a page of one picture (a pasted scan), text page — only the picture page needs the ATR (#9)",

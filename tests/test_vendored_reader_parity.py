@@ -29,18 +29,18 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 OCR_POSTPROCESS = REPO_ROOT.parent / "atrium-ocr-postprocess"
 
 #: The owner revision the copy was taken from (atrium-project#82): the ocr-postprocess commit whose
-#: text_formats.py has the digest below, the one that judges a PDF page on all its objects
-#: (atrium-project#84). "commit" names ocr-postprocess's merge of its #84 PR on `test` once it exists
-#: (2464756, of 2026-10-05, v1.9.0-beta, until then); "release" is the ocr-postprocess release that
-#: first carries it.
+#: text_formats.py has the digest below, the one whose ODS rows keep every cell as the sheet
+#: displays it (atrium-digital-convert#9). "commit" names ocr-postprocess's merge of that PR on
+#: `test` (3147c72, its #84 merge, until then); "release" is the ocr-postprocess release that first
+#: carries it.
 ADOPTED = {
     "owner": "atrium-ocr-postprocess",
-    "commit": "3147c722d244e39a09ae22785828c0c129662da6",
+    "commit": "fac15d4075b9cea1cd79080ec0b6e6d758928856",
     "release": "v2.0.0-beta",
 }
 
 VENDORED = {
-    "text_formats.py": "d0111bb7a74d3f6a683b8f04bdd3000b5c5bb1cee1c9b3a7441822aaaeb0b1e1",
+    "text_formats.py": "35fcc8d1bcde57c94014684d6d080012b9c487a2e74871c51b68a0631c99dea8",
 }
 
 #: The names the vendored module imports from this repository's `tool_limits.py`; they must keep

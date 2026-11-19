@@ -1,10 +1,12 @@
 """tests/test_digital_formats.py — every born-digital type AMČR accepts, and the seed handshake.
 
-atrium-digital-convert#2 (W2): besides PDF and DOCX the converter reads ODT, ODS, XLSX and RTF
-through the shared reader (the vendored `text_formats.py`), and legacy DOC and XLS through a
-headless LibreOffice conversion. The documents are built here, in a few hundred bytes each, so the
+atrium-digital-convert#2 (W2): besides PDF and DOCX the converter reads ODT, ODS and RTF through
+the shared reader (the vendored `text_formats.py`), legacy DOC through a headless LibreOffice
+conversion, and an XLSX or XLS as the ODS LibreOffice makes of it, every cell as the sheet displays
+it in cs-CZ (#9, motyc 11-18). The documents are built here, in a few hundred bytes each, so most
 tests need neither binary fixtures nor LibreOffice: the conversion is exercised against a fake
-`soffice` that copies a prepared DOCX/XLSX into place, which is all the adapter relies on.
+`soffice` that copies a prepared DOCX/ODS into place, which is all the adapter relies on. The
+tests that convert for real are marked `needs_libreoffice`.
 
 Also pinned here: the AMČR seed's `source.sha512` is compared with the bytes received before
 anything is read (`source_digest_mismatch`), and the page limit (`MAX_PAGES`).
@@ -74,14 +76,21 @@ def make_odt(path: Path) -> Path:
 
 
 def make_ods(path: Path) -> Path:
+    """A sheet with a count and a date: their paragraphs are the text the sheet displayed."""
     return _odf(
         path,
         "application/vnd.oasis.opendocument.spreadsheet",
         '<office:spreadsheet><table:table table:name="Nálezy">'
         "<table:table-row><table:table-cell><text:p>Sonda</text:p></table:table-cell>"
-        "<table:table-cell><text:p>Nález</text:p></table:table-cell></table:table-row>"
+        "<table:table-cell><text:p>Nález</text:p></table:table-cell>"
+        "<table:table-cell><text:p>Počet</text:p></table:table-cell>"
+        "<table:table-cell><text:p>Datum</text:p></table:table-cell></table:table-row>"
         "<table:table-row><table:table-cell><text:p>S3</text:p></table:table-cell>"
-        "<table:table-cell><text:p>střep</text:p></table:table-cell></table:table-row>"
+        "<table:table-cell><text:p>střep</text:p></table:table-cell>"
+        '<table:table-cell office:value-type="float" office:value="12"><text:p>12</text:p>'
+        "</table:table-cell>"
+        '<table:table-cell office:value-type="date" office:date-value="2021-03-15">'
+        "<text:p>15.3.2021</text:p></table:table-cell></table:table-row>"
         "</table:table></office:spreadsheet>",
     )
 
@@ -223,26 +232,77 @@ def test_text_documents_become_records_with_lines(tmp_path, maker, origin, expec
     assert "assembled" not in record  # a development dict, never a record (atrium-project#84)
 
 
-@pytest.mark.parametrize(
-    "maker, origin", [(make_ods, "digital-born-ods"), (make_xlsx, "digital-born-xlsx")]
-)
-def test_a_sheet_is_a_page_and_a_row_a_line(tmp_path, maker, origin):
-    path = maker(tmp_path / f"sheet.{origin.rsplit('-', 1)[-1]}")
-    record = d2j.build_development(str(path))
-    assert record["source"]["origin"] == origin
+_SHEET_LINES = ["Sonda\tNález\tPočet\tDatum", "S3\tstřep\t12\t15.3.2021"]
+
+
+def test_a_sheet_is_a_page_and_a_row_a_line(tmp_path, monkeypatch):
+    """An ODS is read as it is, without LibreOffice: every cell, as its file stored the text the
+    sheet displayed (#9, motyc 11-18: the numbers and dates are the content)."""
+    monkeypatch.setenv("LIBREOFFICE_BIN", str(tmp_path / "no-such-soffice"))
+    record = d2j.build_development(str(make_ods(tmp_path / "sheet.ods")))
+    assert record["source"]["origin"] == "digital-born-ods"
     assert [page["page"] for page in record["pages"]] == ["Nálezy"]
-    assert _lines(record) == ["Sonda\tNález", "S3\tstřep"], (
-        "numbers are not text; rows keep their cells"
-    )
+    assert _lines(record) == _SHEET_LINES, "every cell, numbers and dates as displayed"
     assert {row["group_id"] for row in record["lines"]} == {"s1"}
+
+
+def test_an_xlsx_is_read_as_the_ods_libreoffice_displays_in_cs_cz(tmp_path, monkeypatch):
+    """An XLSX stores raw values and number formats: LibreOffice displays it, in cs-CZ (set in its
+    throw-away profile), and the ODS it makes is read. The output keeps the XLSX's identity."""
+    profile = tmp_path / "profile.xcu"
+    _fake_soffice(tmp_path, make_ods(tmp_path / "converted.ods"), monkeypatch, profile_log=profile)
+    xlsx = make_xlsx(tmp_path / "nalezy.xlsx")
+    document, record = d2j.prepare(str(xlsx))
+    assert record["source"]["origin"] == "digital-born-xlsx"
+    assert record["source"]["media_type"] == (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert document.sha512 == hashlib.sha512(xlsx.read_bytes()).hexdigest()
+    assert document.kind == "xlsx" and document.workflow == "textual"
+    assert _lines(record) == _SHEET_LINES
+    assert document.conversion["to"] == "ods" and document.conversion["locale"] == "cs-CZ"
+    assert "converted:xlsx->ods" in document.notes and "libreoffice" in document.components
+    assert "<value>cs-CZ</value>" in profile.read_text(encoding="utf-8"), "the profile's locale"
+
+
+def test_without_libreoffice_an_xlsx_is_dependency_missing(tmp_path, monkeypatch):
+    monkeypatch.setenv("LIBREOFFICE_BIN", str(tmp_path / "no-such-soffice"))
+    with pytest.raises(d2j.DigitalInputError) as info:
+        d2j.extract(str(make_xlsx(tmp_path / "x.xlsx")))
+    assert info.value.reason == "dependency_missing" and info.value.exit_code == 2
+
+
+@needs_libreoffice
+def test_a_real_xlsx_keeps_every_cell_as_cs_cz_displays_it(tmp_path):
+    """`sample.xlsx` through LibreOffice for real: counts, `0.00`, `#,##0`, `0%`, the locale's short
+    date and `d.m.yyyy`, a time, booleans, a formula's cached result, and the hidden sheet."""
+    path = tmp_path / "sample.xlsx"
+    path.write_bytes(make_fixtures.sample_xlsx())
+    document = d2j.extract(str(path))
+    assert [(page.page, [line.text for line in page.lines]) for page in document.pages] == [
+        (
+            "Nálezy",
+            [
+                "Sonda\tNález\tPočet\tHloubka (m)\tPlocha (cm²)\tPodíl\tDatum výzkumu\t"
+                "Datum zápisu\tČas\tOvěřeno\tCelkem",
+                "S3\tZlomek okraje hrnce\t12\t1,50\t12 345\t25 %\t15.3.2021\t16.3.2021\t13:30\t"
+                "PRAVDA\t24",
+                "S4\tZvířecí kost\t3\t0,30\tNEPRAVDA",
+            ],
+        ),
+        ("Souřadnice", ["Bod\tX\tY", "B1\t-744123,45\t-1043210,50"]),
+    ]
+    assert document.conversion["locale"] == "cs-CZ" and document.kind == "xlsx"
 
 
 # ── legacy DOC/XLS through LibreOffice ──────────────────────────────────────────────────────
 
 
-def _fake_soffice(tmp_path: Path, payload: Path, monkeypatch, pdf: Path = None) -> Path:
+def _fake_soffice(
+    tmp_path: Path, payload: Path, monkeypatch, pdf: Path = None, profile_log: Path = None
+) -> Path:
     """A `soffice` that 'converts' by copying `payload`, and 'renders' by copying `pdf`."""
-    return fake_soffice(tmp_path, payload, monkeypatch, pdf)
+    return fake_soffice(tmp_path, payload, monkeypatch, pdf, profile_log=profile_log)
 
 
 def test_a_legacy_doc_keeps_the_originals_identity(tmp_path, monkeypatch):
@@ -296,12 +356,13 @@ def test_a_real_doc_is_read_on_its_rendered_pages(tmp_path):
 
 
 def test_a_legacy_xls_is_read_as_a_spreadsheet(tmp_path, monkeypatch):
-    xlsx = make_xlsx(tmp_path / "converted.xlsx")
-    _fake_soffice(tmp_path, xlsx, monkeypatch)
+    """An XLS goes the XLSX's way: LibreOffice displays it in cs-CZ, and its ODS is read."""
+    _fake_soffice(tmp_path, make_ods(tmp_path / "converted.ods"), monkeypatch)
     document, record = d2j.prepare(str(make_xls_stub(tmp_path / "nalezy.xls")))
     assert record["source"]["origin"] == "digital-born-xls"
     assert record["source"]["media_type"] == "application/vnd.ms-excel"
-    assert _lines(record) == ["Sonda\tNález", "S3\tstřep"]
+    assert _lines(record) == _SHEET_LINES
+    assert document.conversion["to"] == "ods" and document.conversion["locale"] == "cs-CZ"
     assert document.workflow == "textual" and document.rendering is None
     assert "libreoffice" in document.components, "logged as a fact (paradata 3.0)"
 

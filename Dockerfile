@@ -93,8 +93,10 @@ USER atrium
 # 2026-09-26: MPL-2.0, a conditional component in para_config.txt) and, since
 # atrium-digital-convert#9, for rendering office documents (DOCX, DOC, ODT, RTF) to PDF: their
 # native text is placed on the rendered pages, and the PDF is what page-classification and the
-# ATR read for a page that needs the ATR. `-core` alone cannot load a document ("source file
-# could not be loaded"): the writer and calc filters are installed, in their `-nogui` builds.
+# ATR read for a page that needs the ATR. A spreadsheet (XLSX, XLS) is displayed by LibreOffice in
+# cs-CZ and read as ODS, so that every cell keeps the form the sheet shows (#9, motyc 2026-11-18).
+# `-core` alone cannot load a document ("source file could not be loaded"): the writer and calc
+# filters are installed, in their `-nogui` builds.
 # The fonts are metric-compatible with the ones office documents name (Liberation for Times New
 # Roman, Arial and Courier New; Carlito for Calibri; Caladea for Cambria; DejaVu as the
 # fallback), all with the Czech letters, so a rendering breaks lines and pages close to the

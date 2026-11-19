@@ -14,7 +14,8 @@ every page. The version it reports is read from `para_config.txt`.
 
 Inputs, by content (the extension only names the file), in two workflows (#9): **visual**, PDF and the office
 documents DOCX, DOC, ODT and RTF (native text on the pages of a headless LibreOffice rendering); **textual**, ODS,
-XLSX, XLS (through LibreOffice), TXT, CSV, TSV and JSON, extracted as they are and never sent to the ATR. Images
+XLSX, XLS (displayed by LibreOffice in cs-CZ, every cell as the sheet shows it), TXT, CSV, TSV and JSON, extracted
+as they are and never sent to the ATR. Images
 are not inputs: they go to the ATR (H13). No model, no network, no GPU.
 
 ## Start
@@ -53,7 +54,7 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 
 | What                                                    | From where                                       | Revision                           | Into          | Without egress                                                                |
 |---------------------------------------------------------|--------------------------------------------------|------------------------------------|---------------|-------------------------------------------------------------------------------|
-| LibreOffice and its fonts (office documents, XLS)       | in the image                                     | the image's package                | —             | nothing needed; a deployment without it answers 501 for DOCX/DOC/ODT/RTF/XLS  |
+| LibreOffice and its fonts (office documents, XLSX, XLS) | in the image                                     | the image's package                | —             | nothing needed; a deployment without it answers 501 for DOCX/DOC/ODT/RTF/XLS  |
 | page-classification, ocr-postprocess (`/describe` only) | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL` | their own releases                 | —             | the stage reads `not_configured` or `unavailable`; the request still succeeds |
 | Docling (optional engine)                               | a local build only, not the API image            | `requirements_digital_docling.txt` | its own cache | not part of the API image                                                     |
 
@@ -78,16 +79,16 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 
 The response:
 
-| Field            | Meaning                                                                                                                                                                                                                         |
-|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `service`        | `atrium-digital-convert`                                                                                                                                                                                                        |
-| `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                                                                                                                       |
-| `docproc`        | the docproc: pages, blocks with their `lines[]`, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md))                                                                                                           |
-| `reader`         | how the file was read: `kind`, `workflow` (`visual`, `textual`), `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS), `rendering` (office documents: `tool`, `version`, `from`, `to`, `pages`, `sha512`), `notes` |
-| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`): when a page is routed `atr`, or with `rendered=true`. The docproc's pages and boxes are its pages; page-classification and the ATR read it           |
-| `markdown`       | only with `markdown=true`                                                                                                                                                                                                       |
-| `limits_applied` | the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS` (`split`). Nothing is sampled; a limit that would cut content fails the call (D13)                                                      |
-| `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                                                                                                                                  |
+| Field            | Meaning                                                                                                                                                                                                                                                                 |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `service`        | `atrium-digital-convert`                                                                                                                                                                                                                                                |
+| `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                                                                                                                                                               |
+| `docproc`        | the docproc: pages, blocks with their `lines[]`, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md))                                                                                                                                                   |
+| `reader`         | how the file was read: `kind`, `workflow` (`visual`, `textual`), `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS/XLSX; a spreadsheet's with its `locale`), `rendering` (office documents: `tool`, `version`, `from`, `to`, `pages`, `sha512`), `notes` |
+| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`): when a page is routed `atr`, or with `rendered=true`. The docproc's pages and boxes are its pages; page-classification and the ATR read it                                                   |
+| `markdown`       | only with `markdown=true`                                                                                                                                                                                                                                               |
+| `limits_applied` | the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS` (`split`). Nothing is sampled; a limit that would cut content fails the call (D13)                                                                                              |
+| `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                                                                                                                                                                          |
 
 **The seed.** Read, never written: its `doc_id` names the result, and its `sha512` is compared with the
 uploaded bytes **before anything is read** (for a DOC/XLS, before the LibreOffice conversion). A mismatch is
@@ -219,7 +220,7 @@ cause in `cause`. Each row gives the status, the cause and what to do.
 | 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`; a repeated ODF cell or row past the repeat cap (`limit.effect` `trimmed`: no content is cut)                                                                                                | raise the setting `limit.env` names, or split the document                         |
 | 422    | `null`                   | an empty or broken file (`cause`: `corrupt` — a CSV/JSON that does not parse, a reading that would skip content —, `encrypted`, `zip_limits_exceeded`, `conversion_failed` — a failed conversion or rendering); an unknown `stages` name | repair or decrypt the file `cause` names; fix the `stages` value                   |
 | 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                                                                                                                             | retry after `Retry-After`; raise `MAX_CONCURRENT_JOBS` if memory allows            |
-| 501    | `null`                   | an office document (DOCX, DOC, ODT, RTF) or an XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                                                                                | use the image (it has LibreOffice)                                                 |
+| 501    | `null`                   | an office document (DOCX, DOC, ODT, RTF), an XLSX or an XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                                                                       | use the image (it has LibreOffice)                                                 |
 | 503    | `null`                   | the service is shutting down; retry against a live replica                                                                                                                                                                               | retry on another replica                                                           |
 
 `source_digest_mismatch` is in the shared registry (`service/atrium_service.py`, vendored from the hub),
@@ -238,7 +239,7 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `max_upload_mb`                 | `MAX_UPLOAD_MB`                     | 250     | MB      | 413 `limit_exceeded` — per part (the file, `document_json`)                                                                       |
 | `max_pages`                     | `MAX_PAGES`                         | 2000    | pages   | 422 `limit_exceeded` — split the document                                                                                         |
 | `max_concurrent_jobs`           | `MAX_CONCURRENT_JOBS`               | 2       | jobs    | 429 `busy` with `Retry-After`                                                                                                     |
-| `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — LibreOffice did not convert a DOC/XLS, or render an office document, in time                               |
+| `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — LibreOffice did not convert a DOC/XLS/XLSX, or render an office document, in time                          |
 | `stage_timeout_s`               | `STAGE_TIMEOUT_S`                   | 360     | s       | `/describe`: the stage is reported `unavailable`; the request still succeeds                                                      |
 | `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its prose lines `Trash` |
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needs_ocr`) when its images cover this share of it |
@@ -307,17 +308,17 @@ before using the result:
 
 ## Configuration (environment)
 
-| Variable                  | Default   | Meaning                                                                           |
-|---------------------------|-----------|-----------------------------------------------------------------------------------|
-| `PORT`                    | `8000`    | port the service **binds**, and the one `service/healthcheck.py` probes           |
-| `HOST`                    | `0.0.0.0` | bind address; see the note below                                                  |
-| `GRACEFUL_SHUTDOWN_S`     | `20`      | seconds uvicorn waits for in-flight requests                                      |
-| `RELOAD`                  | `false`   | filesystem auto-reload — development only                                         |
-| `LOG_LEVEL`               | `INFO`    | root logger level for the `python -m service.api` start path                      |
-| `ALLOWED_ORIGINS`         | `*`       | CSV of CORS origins                                                               |
-| `PAGE_CLASSIFICATION_URL` | —         | base URL of atrium-page-classification, for `/describe`; unset → `not_configured` |
-| `OCR_POSTPROCESS_URL`     | —         | base URL of atrium-ocr-postprocess, for `/describe`; unset → `not_configured`     |
-| `LIBREOFFICE_BIN`         | —         | the LibreOffice binary for DOC/XLS; unset → `soffice` or `libreoffice` on `PATH`  |
+| Variable                  | Default   | Meaning                                                                                                  |
+|---------------------------|-----------|----------------------------------------------------------------------------------------------------------|
+| `PORT`                    | `8000`    | port the service **binds**, and the one `service/healthcheck.py` probes                                  |
+| `HOST`                    | `0.0.0.0` | bind address; see the note below                                                                         |
+| `GRACEFUL_SHUTDOWN_S`     | `20`      | seconds uvicorn waits for in-flight requests                                                             |
+| `RELOAD`                  | `false`   | filesystem auto-reload — development only                                                                |
+| `LOG_LEVEL`               | `INFO`    | root logger level for the `python -m service.api` start path                                             |
+| `ALLOWED_ORIGINS`         | `*`       | CSV of CORS origins                                                                                      |
+| `PAGE_CLASSIFICATION_URL` | —         | base URL of atrium-page-classification, for `/describe`; unset → `not_configured`                        |
+| `OCR_POSTPROCESS_URL`     | —         | base URL of atrium-ocr-postprocess, for `/describe`; unset → `not_configured`                            |
+| `LIBREOFFICE_BIN`         | —         | the LibreOffice binary for DOC/XLS/XLSX and the renderings; unset → `soffice` or `libreoffice` on `PATH` |
 
 Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `ROUTE_TRASH_SHARE` and the rest — is
 listed under [Limits](#limits); `.env.example` is the complete ledger.
@@ -334,9 +335,10 @@ listed under [Limits](#limits); `.env.example` is the complete ledger.
    seed's `source.sha512` against the original's bytes.
 2. **Read** — PDF and DOCX with this repository's structural readers (`digital_pdf.py`: words,
    lines, columns, running headers and footers, headings, ruled tables, the per-page census;
-   `digital_docx.py`), ODT/ODS/XLSX/RTF with the shared reader atrium-ocr-postprocess owns
-   (`text_formats.py`, vendored byte-identical; `digital_text.py`), DOC/XLS after a headless
-   LibreOffice conversion with a throw-away profile (`digital_legacy.py`).
+   `digital_docx.py`), ODT/ODS/RTF with the shared reader atrium-ocr-postprocess owns
+   (`text_formats.py`, vendored byte-identical; `digital_text.py`), DOC after a headless
+   LibreOffice conversion with a throw-away profile (`digital_legacy.py`), and an XLSX or XLS as
+   the ODS LibreOffice makes of it, displayed in cs-CZ (every cell as the sheet shows it, #9).
 3. **Check the text layer** — decode sanity per line, `needsAtr` per page; no document is refused for its pages.
 4. **Build and gate the docproc** — `api_util/docproc_writer.py`, validated against the proposal schema; a
    docproc that fails is never returned. The paradata name the original and the docproc by SHA-512 and list the

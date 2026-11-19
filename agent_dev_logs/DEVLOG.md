@@ -1594,3 +1594,22 @@ Documentation only; no code, test or configuration change.
 * **Written here (not pushed):** the test compares the reader without that per-run digest and checks each side
   names a SHA-512; with a digest forced to differ per run, the old test fails and the new one passes.
 * **Not posted; not pushed.**
+
+## 2026-11-19 — #9: every cell of a sheet (motyc, 11-18)
+
+* **Asked:** motyc on #9 (11-18): spreadsheets keep every non-empty cell, numbers and dates in the form the sheet
+  displays them, as the CSV path does; PPTX and ODP need no change. K4TEL (11-19): LibreOffice displays an XLSX or
+  XLS, in cs-CZ.
+* **Written here (not pushed):**
+  * `text_formats.py` re-vendored from ocr-postprocess (an ODS keeps every cell as displayed), with its pins;
+  * `api_util/digital_legacy.py`: an XLSX or XLS is converted to ODS, its profile set to `SPREADSHEET_LOCALE`
+    (cs-CZ). `digital_to_json`: the dispatch, the `spreadsheet_locale` parameter, and LibreOffice's version for a
+    conversion. `digital_text` no longer reads an XLSX directly;
+  * `sample.xlsx` fixture; tests (an ODS without LibreOffice, the plumbing and the profile's locale through the fake,
+    `dependency_missing`, the real conversion of `sample.xlsx`); CI installs `libreoffice-calc`;
+  * docs: README, `docs/reference/formats.md`, `paradata.md`, `how-it-works.md`, the service README, configuration,
+    CONTRIBUTING.
+* **Checked:** the suite with LibreOffice and without it; the probe and `sample.xlsx` through the CLI (paradata:
+  `spreadsheet_locale: cs-CZ`, LibreOffice 24.2.7.2).
+* **Detail:** `plans/9.plan.md`, "Status — 11-19".
+* **Not posted; not pushed.**

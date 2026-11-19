@@ -16,7 +16,8 @@ of 12 November 2026). What a run read and wrote is named by AMČR distribution n
   handed over. A rerun lays the pages out the same, so the docproc does not change, but the PDF's bytes may differ.
   The Markdown and the `/describe` report are development outputs and are not named.
 * **Parameters**: the engine (`light`, `docling`), the workflow (`visual`, `textual`); for an office document, the
-  pinned LibreOffice export options (`render`) and `render_text_coverage`.
+  pinned LibreOffice export options (`render`) and `render_text_coverage`; for an XLSX or XLS, the locale
+  LibreOffice displayed its cells in (`spreadsheet_locale`: `cs-CZ`, #9).
 * **Limits**: the splits the output rests on (D13): `max_line_chars` when lines of a textual input were wrapped.
 * **A failed conversion** writes nothing, and its paradata say `action_status: failed` with the error (D13).
 

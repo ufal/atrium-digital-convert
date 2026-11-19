@@ -26,8 +26,8 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
 | ODT   | visual   | ZIP, ODF `mimetype`                  | `text_formats.py`, the shared reader (vendored from atrium-ocr-postprocess) | `odt`          | the rendering's pages                                | boxes measured on the rendering      |
 | RTF   | visual   | `{\rtf`                              | `text_formats.py`                                                           | `rtf`          | the rendering's pages                                | boxes measured on the rendering      |
 | ODS   | textual  | ZIP, ODF `mimetype`                  | `text_formats.py`                                                           | `ods`          | one per sheet, labelled by the sheet name            | none                                 |
-| XLSX  | textual  | ZIP with `xl/workbook.xml`           | `text_formats.py`                                                           | `xlsx`         | one per sheet, labelled by the sheet name            | none                                 |
-| XLS   | textual  | OLE2 with a `Workbook`/`Book` stream | headless LibreOffice → XLSX → `text_formats.py`                             | `xls`          | one per sheet                                        | none                                 |
+| XLSX  | textual  | ZIP with `xl/workbook.xml`           | headless LibreOffice, cs-CZ → ODS → `text_formats.py`                       | `xlsx`         | one per sheet, labelled by the sheet name            | none                                 |
+| XLS   | textual  | OLE2 with a `Workbook`/`Book` stream | headless LibreOffice, cs-CZ → ODS → `text_formats.py`                       | `xls`          | one per sheet                                        | none                                 |
 | TXT   | textual  | text, not one of the below           | `digital_text.py`, with the shared reader's decoding                        | `txt`          | form-feed sections                                   | none                                 |
 | CSV   | textual  | text named `.csv`                    | `digital_text.py` (the standard `csv` module)                               | `csv`          | one                                                  | none                                 |
 | TSV   | textual  | text named `.tsv`/`.tab`             | `digital_text.py`                                                           | `tsv`          | one                                                  | none                                 |
@@ -76,12 +76,21 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
   * Decode flags (`decode:garbled`) stay on the lines, but a textual page never needs the ATR.
 * **No geometry is fabricated.** The textual workflow's docproc pages carry no size and their blocks no `bbox` (the
   proposal allows it for flow documents, ask 13).
-* **Spreadsheets.** A row's text cells become one line, joined by a tab. Numbers, dates and
-  formulas are not text and are dropped by the reader. Each sheet is one block, so a consumer
-  keeps a sheet together. A repeated cell or row past `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` fails the
-  conversion rather than dropping content (D13). Spreadsheet cell grids are a follow-up.
-* **The shared reader.** ODT, ODS, XLSX and RTF go through atrium-ocr-postprocess's reader (the hub's
-  "one document reader", atrium-project#72), not a second fork.
+* **Spreadsheets: every cell, as the sheet displays it** (#9, motyc 2026-11-18: in AMČR's sheets the numbers
+  and dates are the content).
+  * A row's non-empty cells become one line, joined by a tab, as a CSV row does: text, numbers, dates, times,
+    percentages, currency, booleans, and a formula as its cached result.
+  * An ODS stores the text each cell displayed, and that text is read. A typed cell without it keeps its stored
+    value (`1.5`, `2021-03-15`), counted in the note `ods_values_as_stored`.
+  * An XLSX or XLS stores raw values and number formats, and how they read depends on the viewer's locale. So
+    LibreOffice displays the sheet in cs-CZ (`SPREADSHEET_LOCALE` in `api_util/digital_legacy.py`, set in the run's
+    throw-away profile) and the ODS it makes is read: `12`, `1,50`, `12 345`, `25 %`, `15.3.2021`, `13:30`, `PRAVDA`.
+    The digit groups' no-break space is read as a space. The paradata name the locale (`spreadsheet_locale`).
+  * Every sheet is read, hidden ones too, and each sheet is one block, so a consumer keeps a sheet together. A
+    repeated cell or row past `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` fails the conversion rather than dropping content
+    (D13). Spreadsheet cell grids are a follow-up.
+* **The shared reader.** ODT, ODS and RTF, and an XLSX or XLS as the ODS LibreOffice makes of it, go through
+  atrium-ocr-postprocess's reader (the hub's "one document reader", atrium-project#72), not a second fork.
   `tests/test_vendored_reader_parity.py` pins the copy by its SHA-256. The para-drift workflow
   compares it with ocr-postprocess's `test` head, and the hub's `scripts/revendor_shared.sh`
   refreshes it.
@@ -92,8 +101,9 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
   * The paradata name the original file by its SHA-512, so the run describes the file that
     was uploaded, not the converted or rendered one. `sourceFormat` is the original's.
   * LibreOffice is listed among the run's components with its version, as a fact.
-  * Without LibreOffice an office document or an XLS fails with `dependency_missing` (HTTP 501, CLI exit 2). PDF,
-    ODS, XLSX and the text-only inputs still work.
+  * A spreadsheet's conversion sets the profile's locale (cs-CZ, above); a rendering sets none.
+  * Without LibreOffice an office document, an XLSX or an XLS fails with `dependency_missing` (HTTP 501, CLI exit
+    2). PDF, ODS and the text-only inputs still work.
 
 ## What the docproc holds
 

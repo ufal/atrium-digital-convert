@@ -976,8 +976,10 @@ def test_every_fixture_converts_to_a_valid_docproc(digital_fixtures, tmp_path):
     from api_util.digital_legacy import libreoffice_binary
 
     for name in sorted(p.name for p in digital_fixtures.iterdir()):
-        if name.endswith(".docx") and libreoffice_binary() is None:
-            continue  # rendered for its pages (#9); covered where LibreOffice is installed
+        if name.endswith((".docx", ".xlsx")) and libreoffice_binary() is None:
+            # rendered for its pages, or displayed as a sheet, by LibreOffice (#9); covered where
+            # LibreOffice is installed
+            continue
         out = tmp_path / f"{name}.docproc.json"
         d2j.convert(str(digital_fixtures / name), out_path=str(out))
         data = json.loads(out.read_text(encoding="utf-8"))
