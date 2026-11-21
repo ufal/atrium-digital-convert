@@ -1,8 +1,8 @@
 # How digital-convert works
 
-What the converter decides about each page, and how a page reaches the ATR. The formats and the docproc's fields
-are in [reference/formats.md](reference/formats.md); the service's fields and errors in
-[../service/README.md](../service/README.md).
+What the converter decides about each page, and how a page reaches the ATR, AIS CR's text-recognition service. The
+formats and the docproc's fields are in [reference/formats.md](reference/formats.md); the service's fields and errors
+in [../service/README.md](../service/README.md).
 
 ## docproc and the route to the record
 
@@ -20,7 +20,7 @@ AMČR upload ──► seed (doc_id, source.sha512, filename, media_type)
                   ATR
 ```
 
-**Two workflows** ([#9](https://github.com/ufal/atrium-digital-convert/issues/9)):
+**Two workflows:**
 
 * **Visual.** A PDF is read on its own pages. An office document (DOCX, DOC, ODT, RTF) keeps its native text and
   takes its pages from a LibreOffice rendering: each native line is matched word by word to the rendered PDF, cut
@@ -31,138 +31,32 @@ AMČR upload ──► seed (doc_id, source.sha512, filename, media_type)
   docproc's. It is not stored, and the paradata name it by SHA-512.
 * **Textual.** A spreadsheet or a text-only file (TXT, CSV, TSV, JSON) has no pages to render. Its text is
   extracted as it is, it carries no geometry, and it goes straight to scoring. Its pages are never routed `atr`.
-  A sheet keeps every non-empty cell, numbers and dates in the form the sheet displays them (#9): an ODS stores
+  A sheet keeps every non-empty cell, numbers and dates in the form the sheet displays them: an ODS stores
   that text itself, and an XLSX or XLS is displayed by LibreOffice in cs-CZ and read as the ODS it makes.
 
-Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://github.com/ufal/atrium-project/issues/84)
-§1) digital-convert writes the layout as docproc and no record; ocr-postprocess builds the record from it.
+digital-convert writes the layout as docproc and no record; ocr-postprocess builds the record from it.
 
 * **The AMČR seed.** With a seed (`document_json`), the docproc is named by the seed's `doc_id`. The seed's
   `source.sha512` is checked against the uploaded bytes before anything is parsed: a mismatch is
   `source_digest_mismatch` (HTTP 422, CLI exit 3), so nothing is produced for the wrong file. The seed is read,
   never written, and the run's paradata name it as an input.
-* **Pages the converter cannot vouch for** carry `needsAtr` with a reason (`needsAtrReason`), and every page says
-  why in `textLayer` (`digital`, `garbled`, `ocr`, `none`, `blank`):
+* **Pages the converter cannot vouch for** carry `needsAtr` with a reason (`needsAtrReason`), and every page in
+  `pages[]` says why in `textLayer` (`digital`, `garbled`, `ocr`, `none`):
   * no text layer (a scan, text drawn as curves, a picture pasted into an office document): `none`;
   * a text layer that does not decode (broken font encodings, replacement characters): `garbled`;
   * a prior OCR run: `ocr`;
   * an office page whose rendering shows text the document's own text does not place there (a drawing, a chart, an
     embedded object), below `RENDER_TEXT_COVERAGE`.
-  Those pages are routed `atr` in `metadata.routing.pages[]`; an empty page is routed `empty` and is not in
-  `pages[]` (D29). A PDF page without text is empty (`blank`) only when its rendering shows nothing at all: no
-  pixel of a 50 dpi render darker than 250 of 255 (`BLANK_RENDER_DPI`, `BLANK_INK_LEVEL` in
-  `api_util/digital_pdf.py`, named in the paradata as `blank_page`); any mark keeps it `none`, for the ATR. No
-  document is refused for its pages: until #84 a PDF mostly of prior-OCR pages was refused whole
-  (`ocr_text_layer`, the `OCR_LAYER_DOCUMENT_SHARE` setting, both gone). When a page needs the ATR, the ATR's
-  docproc is the stored one, so this one is recorded as an intermediate (`stored: false`, H14); ocr-postprocess
-  keeps this docproc's exact lines on the other pages when it builds the record from both (H6).
-* **Which pages to re-acquire.** `needsAtr` marks the pages whose text the converter cannot vouch for.
-  `/describe` (parked during the pilot) makes a finer per-page decision: among those pages, page types send
-  drawings and photographs to `none` and handwriting to `htr`, and two rules send decoding pages to `ocr` (lost
-  letters, and the quality model). Its `summary.reacquire_pages` (routes `ocr` and `htr`) is the page list for
-  ATR/HTR; with `stages=none` it calls no other service.
-* **The legacy DOC and XLS** were accepted by AMČR on
-  [#4](https://github.com/ufal/atrium-digital-convert/issues/4) (2026-09-26). LibreOffice
-  converts a DOC to DOCX first, which is then rendered like any office document, and an XLS, like an XLSX, to ODS. LibreOffice is
-  among the components a run lists, with its version, as a fact (paradata 3.0 computes no licence); see
-  [Paradata and provenance](reference/paradata.md#paradata-and-provenance).
+  Those pages are routed `atr` in `metadata.routing.pages[]`. An empty page is routed `empty` and is not in
+  `pages[]`. A PDF page without text counts as empty only when its rendering shows nothing at all: no pixel of a
+  50 dpi render darker than 250 of 255 (`BLANK_RENDER_DPI`, `BLANK_INK_LEVEL` in `api_util/digital_pdf.py`, named in
+  the paradata as `blank_page`); any mark keeps it `none`, for the ATR. No document is refused for its pages. When a
+  page needs the ATR, the ATR's docproc is the stored one, so this one is recorded as an intermediate
+  (`stored: false`); ocr-postprocess keeps this docproc's exact lines on the other pages when it builds the record
+  from both.
+* **The legacy DOC and XLS** are read through LibreOffice: it converts a DOC to DOCX first, which is then rendered
+  like any office document, and an XLS, like an XLSX, to ODS. LibreOffice is among the components a run lists, with
+  its version, as a fact; see [Paradata and provenance](reference/paradata.md#paradata-and-provenance).
 
-## The per-page assessment
-
-`/describe` answers, page by page:
-* can the embedded text be used as it is?
-* if not, what kind of page is it?
-* does the text read?
-* where should the page go next?
-
-An excerpt for the `garbled.pdf` test fixture (a PDF whose font encoding turns Czech diacritics
-into mojibake), with no stage configured:
-
-```json
-{
-  "pages": [{
-    "page": "1", "page_index": 1,
-    "text_layer": "garbled",
-    "needs_atr": true,
-    "needs_atr_reason": "embedded text layer does not decode: 3 of 3 lines carry CP1250 bytes read as CP1252 (mojibake diacritics), …",
-    "category": null,
-    "quality": null,
-    "decode": {"decode_score": 0.9356, "lines_by_flag": {"decode:garbled": 3}, "lines_decoded": 0},
-    "route": "ocr",
-    "route_reason": "the text layer does not decode; page type unknown (page-classification not run): default to ATR",
-    "layout": {"canvas": {"width": 612.0, "height": 792.0, "unit": "pt"}, "lines": 3, "blocks": 1,
-               "tables": 0, "headings": 0, "columns": 1, "images": 0, "vector_paths": 0,
-               "regions": {"page_header": 0, "page_footer": 0, "footnote": 0},
-               "words": 16, "damaged_words": 0},
-    "text": "Zpráva o sondì èíslo 3.\n…"
-  }],
-  "summary": {"pages": 1, "routes": {"nlp": 0, "ocr": 1, "htr": 0, "none": 0},
-              "needs_atr_pages": [1], "reacquire_pages": [1], "document_route": "ocr"},
-  "stages": [
-    {"stage": "page-classification", "status": "not_configured", "detail": "PAGE_CLASSIFICATION_URL is not set", "record_adopted": false},
-    {"stage": "ocr-postprocess",     "status": "not_configured", "detail": "OCR_POSTPROCESS_URL is not set",     "record_adopted": false}
-  ]
-}
-```
-
-* **Text layer** (`text_layer`), from the converter; the docproc carries the same value in
-  `pages[].textLayer`:
-  * `digital`: the layer decodes;
-  * `garbled`: a layer that does not decode: mojibake, or lines that are over 15 % glyphs without a
-    Unicode mapping (shown as U+FFFD; a font without /ToUnicode);
-  * `ocr`: a prior OCR run;
-  * `none`: no text layer: a scan, text drawn as curves, a page that draws nothing; also a page
-    whose only text is its running header or footer over images covering at least
-    `FURNITURE_ONLY_IMAGE_COVERAGE` (0.85) of it, a scan the PDF's producer numbered. Its page
-    number stays in `lines[]`; the page carries no decode score;
-  * `blank`: an empty page of a format without page images.
-* **Page type** (`category`): page-classification's label, confidence and top-N. It is asked about
-  the `needs_atr` pages and the pages whose only text is a running header or footer over an image
-  by default, or about every page with `classify_pages=all`. PDF only.
-* **Readability** (`quality`): ocr-postprocess's line-quality model (Clear / Noisy / Trash per
-  line, the page band, the language); null when it is not configured.
-* **Decoding** (`decode`): the converter's own check, apart from readability: the page's
-  `decode_score` (how the characters decode, not how the text reads) and its lines per decode flag
-  (`decode:garbled`, `decode:inverted`).
-* **Route** (`route`), deterministic, with `route_reason`:
-
-  | The page                                           | Route                                                                                              |
-  |----------------------------------------------------|----------------------------------------------------------------------------------------------------|
-  | its text layer decodes                             | `nlp`, unless it loses letters or its prose reads as `Trash` (below) → `ocr`                       |
-  | its only text is a running header or footer        | by its page type when that type carries text (`DRAW_L`, `PHOTO_L`, `TEXT_*`, `LINE_*`), else `nlp` |
-  | no usable text, handwritten (`TEXT_HW`, `LINE_HW`) | `htr`                                                                                              |
-  | no usable text, printed, typed or tabular          | `ocr`                                                                                              |
-  | no usable text, graphical only (`DRAW`, `PHOTO`)   | `none`                                                                                             |
-  | no usable text, page type unknown                  | `ocr`                                                                                              |
-  | blank                                              | `none`                                                                                             |
-
-  The categories are read through the page-category facets of `atrium_vocab.COLLECTIONS`, so a
-  category added to the vocabulary registry is routed without a code change.
-
-  A page whose text layer decodes still goes to `ocr` when the quality model says so: ocr-postprocess
-  calls more than `ROUTE_TRASH_SHARE` (0.5) of its *prose* lines `Trash`, on a page with at least 5 of
-  them. A prose line is outside a table, has at least 20 characters, is mostly letters and is not a
-  table-of-contents line. Table cells, codes and coordinates read as `Trash` to a model of running text,
-  but on a born-digital page they are exact. Words that lose a letter to a glyph without a Unicode mapping
-  route nothing since atrium-digital-convert#9: they are counted, and their quality is scoring's question.
-* **Layout and text** (`layout`, `text`): the converter's counts per page, and the page's text in
-  reading order (`include_text=false` leaves the text out).
-* **Stages** (`stages[]`), one entry per stage:
-  * the `status`: `ok`, `partial`, `not_configured`, `not_requested`, `skipped`, `unavailable`,
-    `error` or `rejected`;
-  * how long the call took, and the stage's version;
-  * whether its write was adopted into the development dict.
-
-  A stage that is down or slow is reported, never a failed request.
-* **The stages' writes.** `/describe` sends the stages the converter's development dict (record-shaped, never a
-  record). Each stage may write only its own fields:
-  * page-classification: the page categories;
-  * ocr-postprocess: the line and page quality.
-
-  digital-convert adopts the returned dict only when the converter's own part is intact (a guard
-  in `service/stages.py`); otherwise the stage is `rejected` and its answer goes into `pages[]`
-  only. Stages on record schema 2.0 may refuse the development dict; `/describe` reports that per stage.
-* **Trying it before the stages are deployed.** `tools/stage_stub.py` is a stand-in for both
-  stages: `docker compose --profile stub up`, or
-  `python tools/stage_stub.py --port 8090` with `PAGE_CLASSIFICATION_URL=OCR_POSTPROCESS_URL=http://127.0.0.1:8090`.
-  It is never part of an image.
+The per-page assessment of `/describe`, which goes further than `needsAtr`, is parked during the AMČR pilot:
+[parked features](reference/parked.md).

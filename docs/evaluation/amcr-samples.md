@@ -3,7 +3,9 @@
 **In short:** 15 AMČR excavation reports (2,514 pages) were run through the converter and its two stages, twice, in
 October 2026. Most are assembled documents, so each page is routed on its own: 1,981 pages carry a usable text
 layer and 533 do not. The runs exposed text defects, now fixed in the light engine, and a few layouts still read
-badly. For a user: expect some pages to go to OCR, and plan memory for large uploads. It gives no accuracy figure.
+badly. For a user: expect some pages to go to the ATR, and plan memory for large uploads. It gives no accuracy
+figure. The runs used release 1.x, which wrote the record and routed pages with `/describe`, now parked; the
+defects and layouts they showed hold for docproc.
 
 What 15 AMČR excavation reports showed about the collection, and what the converter does about it.
 
@@ -67,7 +69,7 @@ the following about the collection, and the converter handles each point as stat
     all 529 with `classify_pages=all`. `STAGE_TIMEOUT_S` is 360 s by default.
 * **What the stages receive.** The compact record `/describe` sends a stage reached 14 MB. page-classification
   also gets the whole PDF, and its defaults (10 MB per part, 50 pages per call) need raising for these files
-  (`service/README.md` § Limits).
+  ([the stages' own limits](../reference/parked.md#large-documents-with-describe)).
 * **For a model.** The Markdown runs up to about 290k tokens at `full` and 150k at `minimal` for a 400–530-page
   report, so a model stage downstream has to chunk it.
 

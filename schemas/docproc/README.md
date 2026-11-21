@@ -1,21 +1,24 @@
 # docproc schemas
 
-Since ARÚP's output contract of 12 November 2026 ([atrium-project#84](https://github.com/ufal/atrium-project/issues/84)
-§1) digital-convert writes the document's layout as docproc (`atr/docproc-json`), the format the ATR writes for
-scanned pages. ocr-postprocess builds the ATRIUM record from it.
+digital-convert writes the document's layout as docproc (`atr/docproc-json`), the layout format the ATR, AIS CR's
+text-recognition service, writes for scanned pages. ocr-postprocess builds the ATRIUM record from it. The schema is
+ARÚP's: ARÚP versions it under an ARUP-CAS identifier in its aiscr-docs-pipeline repository, where the outputs are
+validated; the ATR's team and ÚFAL propose changes, and ARÚP decides. These two files are the copies digital-convert
+validates against; a new version from ARÚP is copied here.
 
-| File                                   | What it is                                                                                                 |
-|----------------------------------------|------------------------------------------------------------------------------------------------------------|
-| `document.actual.schema.json`          | the ATR's schema as delivered (Ronald, 10 November 2026; #84 comment 1), verbatim                          |
-| `document.atrium-proposal.schema.json` | the same schema with asks 3, 5, 10 and 13 of #84 applied; what digital-convert's docproc validates against |
+| File                                   | What it is                                                                                       |
+|----------------------------------------|--------------------------------------------------------------------------------------------------|
+| `document.actual.schema.json`          | the ATR's schema as its team delivered it on 10 November 2026, verbatim                          |
+| `document.atrium-proposal.schema.json` | the same schema with the changes below applied; what digital-convert's docproc validates against |
 
-The proposal is generated, never edited by hand: `python tools/docproc_proposal.py` writes it from the actual schema,
-and `tests/test_docproc_writer.py` pins that the two differ only by these asks.
+The second file is generated, never edited by hand: `python tools/docproc_proposal.py` writes it from the first, and
+`tests/test_docproc_writer.py` pins that the two differ only by these changes. The generator names them by the
+numbers of the requests sent to ARÚP (3, 5, 10 and 13).
 
-**Ask 3** (no run data required): `processedAt` and `pipeline` are not required; the run, the original and its
+**No run data required** (request 3): `processedAt` and `pipeline` are not required; the run, the original and its
 digest are the paradata's. digital-convert writes neither, nor `sourceFile` or `sourceHash` (a SHA-256).
 
-**Ask 13** (other producers and formats):
+**Other producers and formats** (request 13):
 
 - `pipeline` accepts any producer id (`^[a-z0-9][a-z0-9-]*(/[a-z0-9-]+)?$`; the ATR's `pipeline-e2e` fits);
 - `sourceFormat` adds `odt`, `ods`, `xlsx`, `rtf`, `doc`, `xls`, and the text-only inputs `txt`, `csv`, `tsv`, `json`;
@@ -24,20 +27,17 @@ digest are the paradata's. digital-convert writes neither, nor `sourceFile` or `
 - a block may carry `lines[]`: `text`, `bbox`, `bboxPrecision` (`measured`, `derived`, `absent`), `language`,
   `flags` (digital-convert's decode verdicts `decode:garbled`, `decode:inverted`);
 - a page of a flow document (a spreadsheet, a text-only input: nothing to render) has no `width`/`height`, and its
-  blocks no `bbox`. Office documents are rendered, so their pages have a size (atrium-digital-convert#9).
+  blocks no `bbox`. Office documents are rendered, so their pages have a size.
 
-**Ask 5** (the forced pages echoed): a `metadata.routing.pages[]` entry may carry `forced` and `forced_reason`, the
-pages the caller forced the ATR to read and why (D27). ocr-postprocess checks them against digital-convert's
+**The forced pages echoed** (request 5): a `metadata.routing.pages[]` entry may carry `forced` and `forced_reason`,
+the pages the caller forced the ATR to read and why. ocr-postprocess checks them against digital-convert's
 `needsAtr` pages when it merges a mixed document.
 
-**Ask 10** (one coordinate space, D28): every box is on the displayed page, origin top-left of the CropBox, after
+**One coordinate space** (request 10): every box is on the displayed page, origin top-left of the CropBox, after
 `/Rotate`, in 1/72 inch × `userUnit`. A page may carry `pixelRatio`: for an image docproc wraps into a PDF, the
 image's pixels per unit. digital-convert writes `userUnit` when a PDF page's `/UserUnit` is not 1.
 
 Everything else is the ATR's: block ids `p{page}-b{n}`, dense `readingOrder`, `cellGrid` tables,
 `metadata.routing`. digital-convert routes every page in `metadata.routing.pages[]` (`text-layer`, `atr`, `empty`)
-and lists in `pages[]` only the pages that are not empty (H15); a PDF page with no text whose rendering shows
-nothing is `blank` and routed `empty` (D29). It emits `version` `1.1`.
-
-The schema's home is ARUP-CAS/aiscr-docs-pipeline under an ARÚP identifier; ARÚ/B decides, the ATR and ÚFAL propose
-(#84 §7). Until then, these files are the proposal.
+and lists in `pages[]` only the pages that are not empty; a PDF page with no text whose rendering shows nothing is
+routed `empty`. It emits `version` `1.1`.
