@@ -8,7 +8,7 @@
 
 The three PDFs in [`pdf/`](pdf) were made by [`pdf/make_synthetic_pdfs.py`](pdf/make_synthetic_pdfs.py)
 (reportlab, Pillow and pypdf with the DejaVu and Liberation fonts; deterministic). Each page is
-built to show one thing the converter decides. The verdict column is `pages[].text_layer` of the
+built to show one thing the converter decides. The verdict column is the docproc's `pages[].textLayer`, from the
 light engine.
 
 | Document       | Page (label) | What the page is                                                                     | Verdict   |
@@ -31,7 +31,7 @@ light engine.
 |                | 4            | CP1250 bytes under a WinAnsi font (mojibake)                                         | `garbled` |
 
 Page 2 of `CTX000000006` stays `digital` because a few damaged words are a question of text
-quality, left to ocr-postprocess's scoring of its lines (#9). The caption on page 4 of
+quality, left to ocr-postprocess's scoring of its lines. The caption on page 4 of
 `CTX000000004` reads with a space between letters: letter-spaced text is not yet joined.
 
 ## The outputs
@@ -46,8 +46,10 @@ quality, left to ocr-postprocess's scoring of its lines (#9). The caption on pag
 | `reports/describe/stages/`                | `<doc>.describe.json` | `/describe` with page-classification (on the pages without usable text) and ocr-postprocess's line-quality model (on the text).    |
 | `reports/describe/all/`                   | `<doc>.describe.json` | `/describe` with page-classification on every page: the page type of each one.                                                     |
 
-Routes, page types and quality bands come from the two services' models. Their versions are in
-each report (`stages[].service_version`, `paradata`).
+The `reports/describe/` answers come from the per-page assessment, parked during the AMČR pilot
+([parked features](../docs/reference/parked.md)). Their routes, page types and quality bands come from the two
+services' models, page-classification 1.9.10-beta and ocr-postprocess 1.12.1-beta, which still accepted the
+converter's development dict; the versions are in each report (`stages[].service_version`, `paradata`).
 
 ## Making them again
 
@@ -56,15 +58,21 @@ pip install reportlab Pillow pypdf
 python3 data_samples/pdf/make_synthetic_pdfs.py
 ```
 
-Then, for each `X` in `data_samples/pdf/`, with page-classification (`python -m service.api`) and
-ocr-postprocess (`python service/text_api.py`) running, and this service started with
-`PAGE_CLASSIFICATION_URL` and `OCR_POSTPROCESS_URL` pointing at them:
+Then, for each `X` in `data_samples/pdf/`:
 
 ```bash
 python3 api_util/digital_to_json.py X.pdf --docproc-out data_samples/docproc/light/X.docproc.json
 python3 api_util/digital_to_json.py X.pdf --engine docling --docproc-out data_samples/docproc/docling/X.docproc.json
 python3 api_util/doc_to_visual_md.py X.pdf --detail full --output data_samples/markdown/full/X.full.md
-curl -F file=@X.pdf -F markdown=true http://localhost:8000/reformat
+curl -F file=@X.pdf -F markdown=true http://localhost:8000/reformat       # this service on port 8000
+```
+
+The `/describe` reports also need the two stages, each on a port of its own: page-classification with
+`PORT=8001 python -m service.api` in its checkout, ocr-postprocess with `PORT=8002 python service/text_api.py` in
+its checkout, and this service started with `PAGE_CLASSIFICATION_URL=http://localhost:8001` and
+`OCR_POSTPROCESS_URL=http://localhost:8002`:
+
+```bash
 curl -F file=@X.pdf -F stages=none http://localhost:8000/describe
 curl -F file=@X.pdf http://localhost:8000/describe
 curl -F file=@X.pdf -F stages=page-classification -F classify_pages=all http://localhost:8000/describe

@@ -3,9 +3,8 @@
 The Markdown rendering of a document: its cues, the detail profiles and the TEITOK input.
 
 `/reformat` with `markdown=true` returns the document rendered as **annotated Markdown**, the `full`
-profile: a development view, not a stored output. Since [atrium-project#84](https://github.com/ufal/atrium-project/issues/84)
-it is rendered from the converter's development dict (record-shaped, with the layout cues docproc carries), not
-from a record. The converter's `--markdown` writes exactly that rendering beside the docproc; the renderer also
+profile: a development view, not a stored output. It is rendered from the converter's development dict
+(record-shaped, with the layout cues docproc carries), not from a record. The converter's `--markdown` writes exactly that rendering beside the docproc; the renderer also
 runs on its own, on a record or a development dict, and the TEITOK/ALTO renderer sits beside it:
 
 ```bash
@@ -16,13 +15,13 @@ python3 api_util/doc_to_visual_md.py report.odt --output report.md         # con
 ```
 
 `doc_to_visual_md.py` takes every born-digital kind the converter reads, recognised by its content as
-`/reformat` does (since v1.3.0-beta; before, only `.pdf` and `.docx` by extension). Its deprecated
-`--legacy` and `--ocr` converters still take PDF and DOCX only.
+`/reformat` does. Its deprecated `--legacy` and `--ocr` converters take PDF and DOCX only; they are kept for A/B
+checks and are not part of the pipeline, which needs no OCR (see the end of this page).
 
 * **The format.** The Markdown is page-sectioned (`## Page N`). The visual-layout cues ride in HTML
   comments (`DOC_META`, `BBOX`, `PAGE_BREAK`, `NEEDS_OCR`, `HEADER_*`/`FOOTER_*`, headings, GFM
   tables, footnotes). The full taxonomy is `CUE_SCHEMA` in [`api_util/layout_md.py`](../../api_util/layout_md.py).
-* **Text never forges a cue** ([#6](https://github.com/ufal/atrium-digital-convert/issues/6)).
+* **Text never forges a cue.**
   Document text that holds `<!--` or `-->` has them escaped (`&lt;!--`, `--&gt;`), and a line of
   text that starts with `#` starts with `\#`, so a line reading `## Page 7` or `<!-- PAGE_BREAK -->`
   is text. A page label, a `needs_ocr_reason` or a font name inside a cue stays on one line. A
@@ -30,7 +29,7 @@ python3 api_util/doc_to_visual_md.py report.odt --output report.md         # con
   structure: there are exactly as many `## Page` sections as pages. Text without these characters
   renders as before; `--format text` keeps the document's text as it is.
 * **The one model-facing representation.** Annotated Markdown is the single general input a language
-  model is given (digital-convert#3). PDF, DOCX, TEITOK, PAGE XML and ALTO stay upstream, as sources;
+  model is given. PDF, DOCX, TEITOK, PAGE XML and ALTO stay upstream, as sources;
   nothing downstream takes raw HTML or XML as a prompt. The record route and the TEITOK/ALTO route emit
   the same cue vocabulary and the same page labels. What the model said (`enrichment`) is never read back
   into the Markdown, and entities, keywords and enrichment are checked on the record, not in the Markdown.
@@ -40,7 +39,7 @@ python3 api_util/doc_to_visual_md.py report.odt --output report.md         # con
 * **Who uses it.** The whole-document runs of the keyword clients read `.md` files
   ([atrium-keyword-extract](https://github.com/ufal/atrium-keyword-extract)'s `openrouter_client.py` and
   `ollama_client.py`); its service works line by line on the record and does not need it. How the renderer
-  is shared with that repository (vendored with a pin) is still to be settled (atrium-project#72 B).
+  is shared with that repository (vendored with a pin) is not settled yet.
 * **One source.** The rendering is a pure function of the development dict, which the docproc is written from,
   so the Markdown cannot differ from the stored layout. Lines with a decode flag (`decode:garbled`,
   `decode:inverted`; `Garbage`, `Inverted` in an older dict) and
@@ -48,8 +47,7 @@ python3 api_util/doc_to_visual_md.py report.odt --output report.md         # con
 
 ## Detail profiles (`--detail`)
 
-Three cue profiles (hub [#70](https://github.com/ufal/atrium-project/issues/70), item 1; until record schema 2.0
-the values of the record's `regenerable.markdown.detail`):
+Three cue profiles:
 * the **text lines are the same in all three**; a lighter profile only drops cues;
 * the cue sets nest (minimal ⊂ standard ⊂ full);
 * `full` is the default.
@@ -72,8 +70,8 @@ What each profile costs, from `python3 scripts/detail_budget.py` (characters; �
 | `enrichable.pdf` fixture (JSON route)                      | 596             | 354 (−41 %)    | 282 (−53 %)    |
 | `rich.docx` fixture (JSON route; DOCX has no boxes)        | 632             | 632 (0 %)      | 628 (−1 %)     |
 
-* **No recipe.** Record schema 2.0 holds no `regenerable.markdown` recipe (it is run data, D1); the converter id
-  `json_to_md@1.1` stays the renderer's version.
+* **No recipe.** The record holds no recipe for regenerating the Markdown: that would be run data. The converter
+  id `json_to_md@1.1` stays the renderer's version.
 * **Unemitted cues.** Cues in the catalogue that no profile emits (`INDENT`, `LAYOUT_COLUMN`,
   `FONT`, `STYLE`, `WATERMARK`, strike, underline, alignment) are listed, each with its reason, in
   [`layout_md.RESERVED`](../../api_util/layout_md.py).

@@ -1,4 +1,7 @@
-# `digital_born/` — Phase 0 exploration scratch space ([atrium-llm-enrich#18](https://github.com/ufal/atrium-llm-enrich/issues/18))
+# `digital_born/` — Phase 0 exploration scratch space
+
+**Status:** research notes from before release 2.0.0-beta. They describe the converter when it wrote the record
+(`needs_ocr`, `text_layer`, the record's block grants); it now writes docproc ([how it works](../docs/how-it-works.md)).
 
 Not shipped code. Nothing here is imported by `api_util/`, and nothing here is a test.
 This directory exists so the PDF/DOCX tool choices in the plan of
