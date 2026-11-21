@@ -21,8 +21,6 @@
 name: Security & Supply-chain
 
 on:
-  push:
-    branches: [test, main]
   pull_request:
     branches: [test, main]
   release:
