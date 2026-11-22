@@ -1,15 +1,15 @@
 # Formats and what the docproc holds
 
-Every input format, how it is recognised and read, and which layout cues reach which docproc field. Since
-[atrium-project#84](https://github.com/ufal/atrium-project/issues/84) the output is docproc
-([schemas/docproc/](../../schemas/docproc/README.md)), not the record; the development dict behind the Markdown
-view keeps the older record-shaped names (`lines[].group_id`, `style`, `tables[]`), listed last in the table below.
+Every input format, how it is recognised and read, and which layout cues reach which docproc field. The output is
+docproc ([schemas/docproc/](../../schemas/docproc/README.md)), not the record; the development dict behind the
+Markdown view keeps the older record-shaped names (`lines[].group_id`, `style`, `tables[]`), listed last in the table
+below.
 
 ## Formats
 
 The type is decided by the file's content. The extension only names the file, so a mislabelled
 upload is read as what it is; for plain text it chooses the dialect (`.csv`, `.tsv`, `.json`).
-Each type takes one of two workflows ([atrium-digital-convert#9](https://github.com/ufal/atrium-digital-convert/issues/9)):
+Each type takes one of two workflows:
 
 * **visual**: a document with pages. Every page gets a text-layer verdict, and a page whose text cannot be used
   is `needsAtr`, so the whole document goes to the ATR with that page forced and the page goes to
@@ -34,14 +34,15 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
 | JSON  | textual  | text named `.json`                   | `digital_text.py` (the standard `json` module)                              | `json`         | one                                                  | none                                 |
 
 * **`sourceFormat` of a PDF** is `pdf-scanned` when no page's text layer is used (every page needs the ATR),
-  else `pdf-digital`, a mixed PDF too. `txt`, `csv`, `tsv` and `json` extend ask 13's list in the proposal schema.
+  else `pdf-digital`, a mixed PDF too. `txt`, `csv`, `tsv` and `json` are values this repository's schema copy adds
+  to the ATR's list.
 * **Refused with a reason:**
-  * images: `unsupported`, HTTP 415. Images skip digital-convert and go to the ATR (H13);
+  * images: `unsupported`, HTTP 415. Images skip digital-convert and go to the ATR;
   * PPTX, ODP, EPUB, Markdown, JSON Lines, HTML, XML (ALTO, PAGE, hOCR among them), compressed files and any other
     type: `unsupported`, HTTP 415, which lists the accepted types;
   * an encrypted file: `encrypted`;
   * a broken one: `corrupt`. This includes a CSV with a quoting error, a JSON that is not one document, and a
-    reading the shared reader would only make by skipping content (D13);
+    reading the shared reader would only make by skipping content;
   * a ZIP bomb: `zip_limits_exceeded`.
 * **Office documents: native text on rendered pages** (`office_render.py`, `render_place.py`).
   * The text is the native reader's. It reads the document as written: headings, notes, tables, tracked changes
@@ -59,9 +60,9 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
   * A page whose rendered body words the native text covers less than `RENDER_TEXT_COVERAGE` (0.8; 3 words at
     least) shows text the reading does not have, such as a drawing, a chart or an embedded object. It is `needsAtr`.
   * The rendered PDF is what the visual steps read for a page that needs the ATR: page-classification takes PDFs
-    only, and the ATR's page numbers and boxes must be the docproc's (H2, D28). It comes back as `rendered_pdf` from
+    only, and the ATR's page numbers and boxes must be the docproc's. It comes back as `rendered_pdf` from
     `/reformat` (`--rendered-out` on the command line).
-  * The PDF is not stored. The paradata name it by SHA-512, `stored: false` (D23): the PDF this run handed over. A
+  * The PDF is not stored. The paradata name it by SHA-512, `stored: false`: the PDF this run handed over. A
     rerun lays the pages out the same, so the docproc does not change; the PDF's own bytes may differ.
 * **The textual workflow: extracted as it is.**
   * A TXT keeps its physical lines; a blank line ends a paragraph (one block).
@@ -74,10 +75,9 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
   * A line longer than `MAX_LINE_CHARS` (1000) is wrapped at a word boundary, as ocr-postprocess's own text path
     does. Each wrap is a `split` in the paradata `limits` and in `limits_applied`.
   * Decode flags (`decode:garbled`) stay on the lines, but a textual page never needs the ATR.
-* **No geometry is fabricated.** The textual workflow's docproc pages carry no size and their blocks no `bbox` (the
-  proposal allows it for flow documents, ask 13).
-* **Spreadsheets: every cell, as the sheet displays it** (#9, motyc 2026-11-18: in AMČR's sheets the numbers
-  and dates are the content).
+* **No geometry is fabricated.** The textual workflow's docproc pages carry no size and their blocks no `bbox`, as
+  the schema allows for flow documents.
+* **Spreadsheets: every cell, as the sheet displays it.** In AMČR's sheets the numbers and dates are the content.
   * A row's non-empty cells become one line, joined by a tab, as a CSV row does: text, numbers, dates, times,
     percentages, currency, booleans, and a formula as its cached result.
   * An ODS stores the text each cell displayed, and that text is read. A typed cell without it keeps its stored
@@ -87,10 +87,10 @@ Each type takes one of two workflows ([atrium-digital-convert#9](https://github.
     throw-away profile) and the ODS it makes is read: `12`, `1,50`, `12 345`, `25 %`, `15.3.2021`, `13:30`, `PRAVDA`.
     The digit groups' no-break space is read as a space. The paradata name the locale (`spreadsheet_locale`).
   * Every sheet is read, hidden ones too, and each sheet is one block, so a consumer keeps a sheet together. A
-    repeated cell or row past `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` fails the conversion rather than dropping content
-    (D13). Spreadsheet cell grids are a follow-up.
+    repeated cell or row past `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` fails the conversion rather than dropping content.
+    Spreadsheet cell grids are a follow-up.
 * **The shared reader.** ODT, ODS and RTF, and an XLSX or XLS as the ODS LibreOffice makes of it, go through
-  atrium-ocr-postprocess's reader (the hub's "one document reader", atrium-project#72), not a second fork.
+  atrium-ocr-postprocess's reader (the hub's "one document reader"), not a second fork.
   `tests/test_vendored_reader_parity.py` pins the copy by its SHA-256. The para-drift workflow
   compares it with ocr-postprocess's `test` head, and the hub's `scripts/revendor_shared.sh`
   refreshes it.
