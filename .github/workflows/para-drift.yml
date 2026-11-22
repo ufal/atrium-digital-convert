@@ -12,9 +12,9 @@ permissions:
 
 jobs:
   check-drift:
-    uses: ufal/atrium-project/.github/workflows/para-drift.reusable.yml@02cbd0144cfa2d39d981d43eea7f4cd72bed53ba  # v1
+    uses: ufal/atrium-project/.github/workflows/para-drift.reusable.yml@fbffe25a9d1bcf681274d74f0dd026045d0478de  # v1
     with:
-      hub-ref: 02cbd0144cfa2d39d981d43eea7f4cd72bed53ba
+      hub-ref: fbffe25a9d1bcf681274d74f0dd026045d0478de
       # atrium-project#72 B: api_util/teitok_read.py, bbox_scale.py, flexiconv_convert.py and their
       # fixtures are nlp-enrich's, pinned by tests/test_vendored_teitok_parity.py; text_formats.py
       # (the ODT/ODS/XLSX/RTF reader, atrium-digital-convert#2 W2) is ocr-postprocess's, pinned by
