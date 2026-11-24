@@ -41,7 +41,7 @@ The command line gives the same report with `--describe` (`<doc_id>.describe.jso
 |------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
 | `--describe [PATH]`                                  | also write the per-page assessment: `reader`, `pages`, `summary`, `stages` (default `<doc_id>.describe.json`)                |
 | `--stages`                                           | with `--describe`: `page-classification`, `ocr-postprocess`, both comma-separated, or `none`; unset = every configured one   |
-| `--classify-pages`                                   | with `--describe`: `needs_ocr` (default; the service's `needs_atr`) or `all`, the pages page-classification is asked about   |
+| `--classify-pages`                                   | with `--describe`: `needs_atr` (default) or `all`, the pages page-classification is asked about; `needs_ocr` is deprecated   |
 | `--no-text`                                          | with `--describe`: leave `pages[].text` out (`include_text=false`)                                                           |
 | `--page-classification-url`, `--ocr-postprocess-url` | with `--describe`: the stages' base URLs (else `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`)                             |
 

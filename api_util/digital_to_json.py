@@ -1370,7 +1370,7 @@ def convert(
     markdown_out: Optional[str] = None,
     describe_out: Optional[str] = None,
     describe_stages: Optional[str] = None,
-    classify_pages: str = "needs_ocr",
+    classify_pages: str = "needs_atr",
     include_text: bool = True,
 ) -> str:
     """A → D for one file. Returns the written docproc's path (`<doc_id>.docproc.json` in
@@ -1634,9 +1634,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     views.add_argument(
         "--classify-pages",
-        choices=("needs_ocr", "all"),
-        default="needs_ocr",
-        help="with --describe: the pages page-classification is asked about",
+        choices=("needs_atr", "all", "needs_ocr"),
+        default="needs_atr",
+        help="with --describe: the pages page-classification is asked about, as the service's "
+        "`classify_pages`: `needs_atr` (default) or `all`; `needs_ocr` is the deprecated name of `needs_atr`",
     )
     views.add_argument(
         "--no-text",

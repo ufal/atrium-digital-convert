@@ -23,9 +23,8 @@ a ``NEEDS_OCR`` cue rather than transcribed; the OCR path is a benchmark-gated f
 (hub ``atrium-project#22``).
 
 A fourth source joined the dispatcher later: ``*.document.json``, an
-AtriumDocument record (issue #13's JSON plane), via ``json_to_md.py`` — the
-regenerable-recipe path for a consumer that holds only the JSON, not a stored
-TEITOK/PDF/DOCX file.
+AtriumDocument record (issue #13's JSON plane), via ``json_to_md.py`` — the Markdown of a
+consumer that holds only the record, not a stored TEITOK/PDF/DOCX file.
 
 **One route (Issue #18 / #10 G8, 2026-09-25).** Every born-digital input goes through
 ``digital_to_json.build_development()`` (in memory) and then ``json_to_md.render_record()`` —

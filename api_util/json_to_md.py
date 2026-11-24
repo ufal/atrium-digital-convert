@@ -1,12 +1,10 @@
 """
 api_util/json_to_md.py — AtriumDocument JSON → visually-rich Markdown.
 
-Closes the loop `regenerable.markdown` currently leaves open: llm-enrich already
-records the annotated Markdown as a *recipe* rather than a stored path — e.g.
-``{"from": "<doc_id>.document.json", "converter": "json_to_md@1.1", "detail":
-"full"}`` — but until now nothing could actually execute that recipe from just
-the JSON. A consumer holding only the AtriumDocument record (the FAIR search
-artifact issue #13 settled on) had a dangling pointer, not a regenerable one.
+Renders the record itself, so a consumer holding only the AtriumDocument record (the FAIR
+search artifact issue #13 settled on) can make its Markdown again. Record schema 2.0 keeps no
+``regenerable`` recipe (atrium-project#84: a regeneration recipe is run data, not content), so
+the Markdown is made from the record when it is needed and stored nowhere with it.
 
 Renders through the SAME cue vocabulary as the TEITOK/ALTO/PDF/DOCX front-ends
 (``api_util/layout_md.py``'s ``CUE_SCHEMA``, via ``xml_to_md.rows_to_layout_markdown``)
@@ -85,16 +83,14 @@ def load_json(path: str | Path) -> Dict[str, Any]:
     return data
 
 
-#: The recipe id a record's ``regenerable.markdown`` names for this converter. 1.1 added the
-#: ``standard``/``minimal`` profiles and LAYOUT_MARGIN; a 1.0 recipe renders as 1.1 ``full``
-#: minus LAYOUT_MARGIN. The keyword stage (atrium-keyword-extract, where the LLM client moved
-#: in #1) writes the same literal without importing this module; tests/test_json_to_md.py pins
-#: it, so a change here is deliberate and goes there too.
+#: This converter's id and version. 1.1 added the ``standard``/``minimal`` profiles and
+#: LAYOUT_MARGIN. The keyword stage (atrium-keyword-extract, where the LLM client moved in #1)
+#: names the renderer by the same literal in its logs, without importing this module;
+#: tests/test_json_to_md.py pins it, so a change here is deliberate and goes there too.
 CONVERTER_ID = "json_to_md@1.1"
 
-#: Every profile of the schema's ``regenerable.detail`` enum is implemented (atrium-project#70
-#: item 1, 2026-09-30); the table is ``layout_md.PROFILE_CUES``. An unknown value is refused,
-#: never downgraded to ``full``.
+#: Every ``detail`` profile is implemented (atrium-project#70 item 1, 2026-09-30); the table is
+#: ``layout_md.PROFILE_CUES``. An unknown value is refused, never downgraded to ``full``.
 IMPLEMENTED_DETAIL_LEVELS = frozenset(L.DETAIL_LEVELS)
 
 #: `lines[].style.region` values (written by `api_util/digital_to_json.py`; see
