@@ -19,10 +19,11 @@ stages on record schema 2.0 may refuse it, which is reported per stage like any 
     without that endpoint is asked per page through `POST /process` (`task_type=text`) instead;
     its answer then informs the report only.
 
-**Lines ocr-postprocess could not score.** Since its v1.12.0-beta a perplexity batch that runs out
-of GPU memory is split and retried; a line that fails even on its own scores 99999 (`PPL_FAILED`),
-is categorised from that placeholder (usually `Trash`), and is noted only in the answer's
-`limits_applied` (`ppl_batch_lines`, `skipped`). Those lines keep the converter's values in the
+**Lines ocr-postprocess could not score.** ocr-postprocess 2.0.0-beta and later refuse a record with
+a line that fails perplexity even on its own (422 `limit_exceeded`), and the stage reads `error`.
+Its v1.12.0-beta to v1.15.x scored such a line 99999 (`PPL_FAILED`), categorised it from that
+placeholder (usually `Trash`) and noted it only in the answer's `limits_applied` (`ppl_batch_lines`,
+`skipped`); this module still reads that answer: those lines keep the converter's values in the
 record, their page's score is recomputed from the lines that were scored (ocr-postprocess's own
 formula), they are left out of the report, and the stage reads `partial` with `lines_unscored`.
 

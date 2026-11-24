@@ -4,7 +4,7 @@
 #   api              the production service (POST /reformat, POST /describe), image -api
 #   digital          the converter CLI, image -digital:
 #                      docker compose --profile digital run --rm digital-convert-digital \
-#                        /data/report.pdf --document-json-out /data/report.document.json
+#                        /data/report.pdf --docproc-out /data/report.docproc.json
 #   digital-docling  the opt-in heavy engine, built locally, never published
 #   stub             the api service WITH stand-ins for page-classification and
 #                    ocr-postprocess (tools/stage_stub.py), so /describe can be tried end to
