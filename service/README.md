@@ -85,7 +85,7 @@ The response:
 | `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                                                                                                                                                               |
 | `docproc`        | the docproc: pages, blocks with their `lines[]`, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md))                                                                                                                                                   |
 | `reader`         | how the file was read: `kind`, `workflow` (`visual`, `textual`), `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS/XLSX; a spreadsheet's with its `locale`), `rendering` (office documents: `tool`, `version`, `from`, `to`, `pages`, `sha512`), `notes` |
-| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`): when a page is routed `atr`, or with `rendered=true`. The docproc's pages and boxes are its pages; page-classification and the ATR read it                                                   |
+| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`): when a page shows graphics, or with `rendered=true`. The docproc's pages and boxes are its pages; page-classification reads it                                                               |
 | `markdown`       | only with `markdown=true`                                                                                                                                                                                                                                               |
 | `limits_applied` | the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS` (`split`). Nothing is sampled; a limit that would cut content fails the call                                                                                                    |
 | `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                                                                                                                                                                          |
@@ -96,10 +96,11 @@ refused (422 `source_digest_mismatch`), so nothing is produced for the wrong fil
 
 **`paradata`** (paradata schema 3.0): `object` names the upload as `original` and the seed as
 `atrium/document-json`, `result` the docproc as `atr/docproc-json`, each by SHA-512. When a page needs the ATR
-the docproc is an intermediate, `stored: false`: the ATR's docproc is the stored one. An office document's
-rendered PDF is in `result` too, always `stored: false`, with the pinned export options and
-`RENDER_TEXT_COVERAGE` among the `parameters`. `paradataRecord` lists the components used, each with its own terms
-and LibreOffice with its version; no licence of the output is computed.
+the docproc is an intermediate, `stored: false`: the ATR's docproc is the stored one (a PDF only: an office
+document never goes to the ATR). An office document's rendered PDF is in `result` too, always `stored: false`,
+with the pinned export options among the `parameters`; `graphic_min_side_pt` is the smallest image counted in the
+pages' `graphics`. `paradataRecord` lists the components used, each with its own terms and LibreOffice with its
+version; no licence of the output is computed.
 
 **The text layer.** Every page in `pages[]` carries the converter's verdict in `textLayer`:
 
@@ -108,9 +109,20 @@ and LibreOffice with its version; no licence of the output is computed.
 * `ocr`: a prior OCR run;
 * `none`: no text layer.
 
-The `garbled`, `ocr` and `none` pages also carry `needsAtr: true` with a `needsAtrReason`, and are routed `atr` in
-`metadata.routing.pages[]`; an empty page is routed `empty` and is not in `pages[]`. No document is refused for
-its pages.
+A PDF's `garbled`, `ocr` and `none` pages also carry `needsAtr: true` with a `needsAtrReason`, and are routed `atr`
+in `metadata.routing.pages[]`; an empty page is routed `empty` and is not in `pages[]`. No document is refused for
+its pages. An office document (DOCX, DOC, ODT, RTF) never goes to the ATR: its text is its own XML, read in full,
+and a page that holds no text of its own (a pasted scan) is routed `empty`.
+
+**What a page shows.** Each routing entry of a PDF or an office document also says what the page shows besides
+its text, for the pipeline to choose the pages page-classification reads (a proposal to the docproc schema, ask
+14):
+
+* `graphics`: its pictures (raster images of at least 24 pt each way, not counting a logo that recurs at the same
+  place on other pages) and, in a DOCX, the charts, SmartArt diagrams, shapes and embedded objects anchored on it;
+* `tables`: its tables, each a `table` block with its `cellGrid` (the cells as the document holds them).
+
+A page with neither holds running text only.
 
 ### `POST /describe` (parked)
 
@@ -156,7 +168,6 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — LibreOffice did not convert a DOC/XLS/XLSX, or render an office document, in time                                  |
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needsAtr`) when its images cover this share of it          |
 | `bold_heading_max_share`        | `BOLD_HEADING_MAX_SHARE`            | 0.25    | share   | policy: a bold body-size line that reads as a title is a heading while bold body-size text is at most this share; 0 = off                 |
-| `render_text_coverage`          | `RENDER_TEXT_COVERAGE`              | 0.8     | share   | policy: a rendered office page whose body words the document's text covers less (3+ words not covered) needs the ATR                      |
 | `max_line_chars`                | `MAX_LINE_CHARS`                    | 1000    | chars   | a longer line of a text-only input or a spreadsheet row is wrapped; each wrap is a `split` in the paradata `limits`; 0 = never            |
 | `odf_repeat_cap`                | `ATRIUM_TEXT_INGEST_ODF_REPEAT_CAP` | 100     | repeats | the shared reader expands a repeated ODF cell or row at most this often                                                                   |
 
@@ -171,16 +182,18 @@ checks this table against `tool_limits.py` and `.env.example`.
   report, and 560 MB for the 156 MB one. Budget about 1 GB plus `MAX_UPLOAD_MB` per
   `MAX_CONCURRENT_JOBS` slot.
 * **An office document's rendered PDF travels in the answer.** `rendered_pdf` is base64, about 4/3 of the
-  PDF's size, so a DOCX full of photographs gives a large response when a page needs the ATR (or with
-  `rendered=true`); the rendering keeps the images' resolution for the ATR.
+  PDF's size, so a DOCX full of photographs gives a large response: it comes whenever a page shows graphics
+  (or with `rendered=true`), and the rendering keeps the images' resolution for page-classification.
 * **Time.** `/reformat` took 3–58 s per document; `/describe` takes the same, as it calls no other tool.
 
 ## Partial results
 
 A limit that would cut content fails the call: nothing partial is returned. Read these before using the result:
 
-- `needsAtr` pages have no usable text layer and are routed `atr`; the ATR's docproc is then the stored one, and
-  this docproc is an intermediate (`stored: false` in the paradata).
+- `needsAtr` pages (a PDF's only) have no usable text layer and are routed `atr`; the ATR's docproc is then the
+  stored one, and this docproc is an intermediate (`stored: false` in the paradata).
+- An office document's text is what its XML holds: text inside a picture (a pasted scan, a photo of a page) is not
+  read. Such a page shows `graphics`, for page-classification.
 - `limits_applied` lists the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS`
   (`split`), each in full. It is `[]` when nothing was split.
 
@@ -209,7 +222,7 @@ A limit that would cut content fails the call: nothing partial is returned. Read
 | `ALLOWED_ORIGINS`         | `*`       | CSV of CORS origins                                                                                      |
 | `LIBREOFFICE_BIN`         | —         | the LibreOffice binary for DOC/XLS/XLSX and the renderings; unset → `soffice` or `libreoffice` on `PATH` |
 
-Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `RENDER_TEXT_COVERAGE` and the rest — is
+Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `MAX_LINE_CHARS` and the rest — is
 listed under [Limits](#limits); `.env.example` is the complete ledger.
 
 > **Note:** `HOST=127.0.0.1` yields a container that reports **healthy** and serves nobody:

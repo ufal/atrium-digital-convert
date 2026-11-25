@@ -17,6 +17,10 @@ same schema with the asks on #84 that concern the docproc's shape applied, and n
   D27), so the record builder can check them against digital-convert's ``needsAtr`` pages;
 * **ask 10**: a page of an image that docproc wraps into a PDF may carry ``pixelRatio``, the image's
   pixels per unit (D28), so a box can be put back on the image's pixels.
+* **ask 14** (proposed 2026-11-25): a routing entry may say what the page shows besides its text,
+  ``graphics`` (its pictures, charts, diagrams and drawings) and ``tables`` (its tables), so the
+  pipeline can choose the pages page-classification reads: a page with neither holds running
+  text only.
 
 The proposal is a file, not a branch of code: it is what ARÚ/B and the ATR are asked to adopt
 (#84 §7). ``apply_asks()`` builds it from the actual schema; ``tests/test_docproc_writer.py``
@@ -48,17 +52,18 @@ PIPELINE_PATTERN = "^[a-z0-9][a-z0-9-]*(/[a-z0-9-]+)?$"
 
 
 def apply_asks(actual: Dict[str, Any]) -> Dict[str, Any]:
-    """The proposal: ``actual`` with asks 3 and 13 applied (see the module docstring)."""
+    """The proposal: ``actual`` with the asks applied (see the module docstring)."""
     schema = copy.deepcopy(actual)
     schema["$id"] = PROPOSAL_ID
     schema["title"] = (
-        "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3, 5, 10 and 13)"
+        "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3, 5, 10, 13 and 14)"
     )
     schema["description"] = (
         actual["description"]
         + " ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required), 5 (the"
-        " forced pages echoed in routing), 10 (the image pixel ratio) and 13 (other producers, formats,"
-        " the page verdict, block lines, flow documents) applied."
+        " forced pages echoed in routing), 10 (the image pixel ratio), 13 (other producers, formats,"
+        " the page verdict, block lines, flow documents) and 14 (what a page shows besides its text)"
+        " applied."
     )
     props = schema["properties"]
 
@@ -118,6 +123,21 @@ def apply_asks(actual: Dict[str, Any]) -> Dict[str, Any]:
         "description": "ATRIUM proposal (ask 5): the reason the caller gave for forcing the page (its needsAtrReason).",
         "type": "string",
         "minLength": 1,
+    }
+    # ask 14: what a page shows besides its text, for choosing the pages page-classification reads.
+    route["graphics"] = {
+        "description": (
+            "ATRIUM proposal (ask 14): the page's graphics — pictures, charts, diagrams, drawings — "
+            "besides its text; 0 for a page of text only. A logo repeated in the running header or "
+            "footer is not counted."
+        ),
+        "type": "integer",
+        "minimum": 0,
+    }
+    route["tables"] = {
+        "description": "ATRIUM proposal (ask 14): the page's tables, each a `table` block with its cellGrid.",
+        "type": "integer",
+        "minimum": 0,
     }
 
     block = defs["Block"]

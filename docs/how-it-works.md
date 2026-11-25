@@ -13,10 +13,11 @@ AMČR upload ──► seed (doc_id, source.sha512, filename, media_type)
    born-digital? ──yes──► digital-convert  /reformat ──► docproc ──► ocr-postprocess builds the record
                    │        visual: PDF;                 │                ──► nlp-enrich, keyword-extract, …
                    │        DOCX/DOC/ODT/RTF rendered    │
-                   │        textual: sheets, TXT,        └─ pages routed `atr` ──► page-classification (those pages)
-                   │        CSV, TSV, JSON (never ATR)      + the rendered PDF       the ATR (whole document, those
-                   no (an image)                                                      pages forced; its docproc stored)
-                   ▼
+                   │        (never ATR)                  ├─ PDF pages routed `atr` ──► the ATR (whole document, those
+                   │        textual: sheets, TXT,        │                              pages forced; its docproc stored)
+                   │        CSV, TSV, JSON (never ATR)   │
+                   no (an image)                         └─ pages with `graphics` ──► page-classification (those pages
+                   ▼                                                                   of the PDF or the rendered PDF)
                   ATR
 ```
 
@@ -25,10 +26,11 @@ AMČR upload ──► seed (doc_id, source.sha512, filename, media_type)
 * **Visual.** A PDF is read on its own pages. An office document (DOCX, DOC, ODT, RTF) keeps its native text and
   takes its pages from a LibreOffice rendering: each native line is matched word by word to the rendered PDF, cut
   where the rendering breaks it and given the box of its rendered words (`api_util/render_place.py`). Every page
-  then gets the same verdicts as a PDF page. A pasted scan, a page that is only a picture, is `none` and goes to
-  the ATR. A page with good text and a photo does not. The rendered PDF is the page source of the visual steps
-  for an office document: page-classification and the ATR read it, so their page numbers and boxes are the
-  docproc's. It is not stored, and the paradata name it by SHA-512.
+  then gets the same decode verdicts as a PDF page, but an office document never goes to the ATR: its text is
+  what its XML holds, read in full. A pasted scan, a page that is only a picture, has no text of its own and is
+  routed `empty`, with its picture counted in `graphics`. The rendered PDF is the page source of page-classification
+  for an office document, so its page numbers and boxes are the docproc's. It is not stored, and the paradata name
+  it by SHA-512.
 * **Textual.** A spreadsheet or a text-only file (TXT, CSV, TSV, JSON) has no pages to render. Its text is
   extracted as it is, it carries no geometry, and it goes straight to scoring. Its pages are never routed `atr`.
   A sheet keeps every non-empty cell, numbers and dates in the form the sheet displays them: an ODS stores
@@ -42,12 +44,10 @@ digital-convert writes the layout as docproc and no record; ocr-postprocess buil
   never written, and the run's paradata name it as an input.
 * **Pages the converter cannot vouch for** carry `needsAtr` with a reason (`needsAtrReason`), and every page in
   `pages[]` says why in `textLayer` (`digital`, `garbled`, `ocr`, `none`):
-  * no text layer (a scan, text drawn as curves, a picture pasted into an office document): `none`;
+  * no text layer (a scan, text drawn as curves): `none`;
   * a text layer that does not decode (broken font encodings, replacement characters): `garbled`;
-  * a prior OCR run: `ocr`;
-  * an office page whose rendering shows text the document's own text does not place there (a drawing, a chart, an
-    embedded object), below `RENDER_TEXT_COVERAGE`.
-  Those pages are routed `atr` in `metadata.routing.pages[]`. An empty page is routed `empty` and is not in
+  * a prior OCR run: `ocr`.
+  Only a PDF page can need the ATR. Those pages are routed `atr` in `metadata.routing.pages[]`. An empty page is routed `empty` and is not in
   `pages[]`. A PDF page without text counts as empty only when its rendering shows nothing at all: no pixel of a
   50 dpi render darker than 250 of 255 (`BLANK_RENDER_DPI`, `BLANK_INK_LEVEL` in `api_util/digital_pdf.py`, named in
   the paradata as `blank_page`); any mark keeps it `none`, for the ATR. No document is refused for its pages. When a

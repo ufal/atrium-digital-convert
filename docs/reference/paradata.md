@@ -11,12 +11,13 @@ Paradata schema 3.0. What a run read and wrote is named by AMČR distribution na
 * **Output** (`result`): the docproc as `atr/docproc-json`. When a page needs the ATR, the ATR's docproc is the
   stored one, so this one is `stored: false`, still named by its SHA-512. An office document's rendered PDF is an
   output too, as `rendered-pdf` (a stand-in name until AMČR gives one), always `stored: false`: the docproc's pages
-  and boxes are its pages, and the visual steps read it. Its digest names the PDF this run
+  and boxes are its pages, and page-classification reads it. Its digest names the PDF this run
   handed over. A rerun lays the pages out the same, so the docproc does not change, but the PDF's bytes may differ.
   The Markdown and the `/describe` report are development outputs and are not named.
-* **Parameters**: the engine (`light`, `docling`), the workflow (`visual`, `textual`); for an office document, the
-  pinned LibreOffice export options (`render`) and `render_text_coverage`; for an XLSX or XLS, the locale
-  LibreOffice displayed its cells in (`spreadsheet_locale`: `cs-CZ`).
+* **Parameters**: the engine (`light`, `docling`), the workflow (`visual`, `textual`); for the visual workflow, the
+  smallest picture a page's `graphics` count (`graphic_min_side_pt`: 24); for an office document, the pinned
+  LibreOffice export options (`render`); for an XLSX or XLS, the locale LibreOffice displayed its cells in
+  (`spreadsheet_locale`: `cs-CZ`).
 * **Limits**: the splits the output rests on: `max_line_chars` when lines of a textual input were wrapped.
 * **A failed conversion** writes no docproc, and its paradata say `action_status: failed` with the error. On the
   command line a failure after the docproc is written (the rendered PDF, the Markdown) leaves the docproc on disk.

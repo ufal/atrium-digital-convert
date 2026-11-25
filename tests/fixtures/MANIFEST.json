@@ -61,7 +61,7 @@
   },
   "photo_text.docx": {
     "bytes": 5903,
-    "note": "a long paragraph, a photo, a caption on one page — visual lines, no ATR for a photo (#9)",
+    "note": "a long paragraph, a photo, a caption on one page — visual lines; the photo is the page's graphics (#9)",
     "sha256": "2016ed842b08dd73bd076b8ab47014b569068a09dd79e88ea92ca7ff04ab9e07"
   },
   "rich.docx": {
@@ -101,8 +101,13 @@
   },
   "scan_page.docx": {
     "bytes": 6683,
-    "note": "text page, a page of one picture (a pasted scan), text page — only the picture page needs the ATR (#9)",
+    "note": "text page, a page of one picture (a pasted scan), text page — no ATR: the picture page is routed `empty` with its graphics (v2.0.0-beta)",
     "sha256": "3f6932a3362e95750f6d2481f53edae6c13d80bbe167d1870a320eb6815fe113"
+  },
+  "scan_page.pdf": {
+    "bytes": 1572,
+    "note": "text page, a page of one scanned picture, text page — the mixed PDF: only the picture page needs the ATR (#84 H4, H6)",
+    "sha256": "61ac6a4d650dfd71182182bdc00555fd15d0bcc3299ce9dbc39a0ecac80d6f14"
   },
   "small_caps.pdf": {
     "bytes": 1847,

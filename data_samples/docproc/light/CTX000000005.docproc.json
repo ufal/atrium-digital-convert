@@ -322,22 +322,30 @@
         {
           "page": 1,
           "route": "atr",
-          "text_layer": false
+          "text_layer": false,
+          "graphics": 1,
+          "tables": 0
         },
         {
           "page": 2,
           "route": "atr",
-          "text_layer": false
+          "text_layer": false,
+          "graphics": 1,
+          "tables": 0
         },
         {
           "page": 3,
           "route": "atr",
-          "text_layer": false
+          "text_layer": false,
+          "graphics": 1,
+          "tables": 0
         },
         {
           "page": 4,
           "route": "atr",
-          "text_layer": false
+          "text_layer": false,
+          "graphics": 1,
+          "tables": 0
         }
       ],
       "counts": {

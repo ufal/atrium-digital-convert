@@ -241,16 +241,20 @@ def test_a_relationship_that_names_nothing_reads_as_no_text(tmp_path):
 
 
 @needs_libreoffice
-def test_the_rendered_page_is_covered_and_needs_no_atr(tmp_path):
+def test_the_rendered_page_is_covered_and_shows_its_chart_and_diagram(tmp_path):
     """Before v2.0.0-beta the reader skipped the SmartArt and chart text, which the rendering
     shows: 19 of the page's 33 words were not in the document's text (coverage 42 %), and the
-    page went to the ATR."""
+    page went to the ATR. Now the text is read, no office page goes to the ATR, and the chart
+    and the diagram are the page's graphics, for page-classification."""
+    from api_util.digital_ir import page_graphics
+
     path = tmp_path / "objects.docx"
     path.write_bytes(mf.objects_docx())
     document, _dev = d2j.prepare(str(path))
     [page] = document.pages
     assert page.render_words and page.render_matched / page.render_words >= 0.8
     assert not page.needs_ocr, page.needs_ocr_reason
+    assert page_graphics(document) == [2], "the chart and the SmartArt diagram"
     texts = [line.text for line in page.lines]
     assert "x=(-b±√(b^2-4ac))/(2a)" in texts, (
         "an equation LibreOffice draws as curves keeps its text"

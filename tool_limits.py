@@ -10,13 +10,15 @@ startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.exampl
 checks that they agree.
 
 What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
-beside it. Three entries are POLICY thresholds rather than size caps
-(``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``, ``RENDER_TEXT_COVERAGE``): they are
-declared here all the same, because a value a deployment may change and a client must be able to
-read back is exactly what ``/info`` ``limits`` is for. ``ROUTE_DAMAGED_WORD_SHARE`` (#5, 10-22) is
-gone: words that lose letters route nothing since atrium-digital-convert#9. ``STAGE_TIMEOUT_S`` and
-``ROUTE_TRASH_SHARE`` are gone since v2.0.0-beta: ``/describe`` calls no other tool, so it waits
-for no stage and has no quality verdict to route by.
+beside it. Two entries are POLICY thresholds rather than size caps
+(``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``): they are declared here all the
+same, because a value a deployment may change and a client must be able to read back is exactly
+what ``/info`` ``limits`` is for. ``ROUTE_DAMAGED_WORD_SHARE`` (#5, 10-22) is gone: words that lose
+letters route nothing since atrium-digital-convert#9. ``STAGE_TIMEOUT_S`` and ``ROUTE_TRASH_SHARE``
+are gone since v2.0.0-beta: ``/describe`` calls no other tool, so it waits for no stage and has no
+quality verdict to route by. ``RENDER_TEXT_COVERAGE`` is gone since v2.0.0-beta too: an office
+document never goes to the ATR, so no page of it is judged by how much of its rendering the text
+covers.
 
 Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
 CLI converter imports this too.
@@ -70,16 +72,6 @@ BOLD_HEADING_MAX_SHARE = limit(
     "BOLD_HEADING_MAX_SHARE", 0.25, unit="share", kind=float, minimum=0, maximum=1
 )
 
-#: POLICY (atrium-digital-convert#9). An office document's text is read natively and placed on
-#: the pages of its rendering (``api_util/render_place.py``). A rendered page whose body words the
-#: document's own text covers less than this share of (and at least 3 words are not covered) shows
-#: text the reading does not place there: a drawing, a chart, an embedded object, a change the
-#: rendering shows. Such a page needs the ATR (H12: a page that cannot be used is ``needs_atr``).
-#: Running headers and footers, and words without a letter (list numbers, page numbers), do not count.
-RENDER_TEXT_COVERAGE = limit(
-    "RENDER_TEXT_COVERAGE", 0.8, unit="share", kind=float, minimum=0, maximum=1
-)
-
 #: Characters in one line of a text-only input (TXT, CSV, TSV, JSON) or a spreadsheet row, which
 #: have no visual lines. A longer line is wrapped at a word boundary into lines of at most this
 #: length, as atrium-ocr-postprocess's text path does (``text_formats.wrap_line``, the same
@@ -105,7 +97,6 @@ LIMITS = LimitSet(
     LIBREOFFICE_TIMEOUT_S,
     FURNITURE_ONLY_IMAGE_COVERAGE,
     BOLD_HEADING_MAX_SHARE,
-    RENDER_TEXT_COVERAGE,
     MAX_LINE_CHARS,
     ODF_REPEAT_CAP,
 )

@@ -464,6 +464,18 @@ def image_only_pdf() -> bytes:
     return _build_pdf_ex([text, FULL_PAGE_IMAGE, b""])
 
 
+def scan_page_pdf() -> bytes:
+    """The mixed PDF (atrium-project#84, H4, H6): a text page, a page that is one scanned picture,
+    and a text page. The picture page has no text layer, so it needs the ATR; the text pages keep
+    their text layer, and the merge keeps their lines. It is the mixed case of the hub's E2E lane:
+    since v2.0.0-beta an office document never goes to the ATR, so `scan_page.docx` is none."""
+    first = _text_at(
+        72, 720, [b"Nalezova zprava. Na nasledujici strane je naskenovany plan sondy."]
+    )
+    last = _text_at(72, 720, [b"Zaver: sonda byla zasypana."])
+    return _build_pdf_ex([first, FULL_PAGE_IMAGE, last])
+
+
 def blank_page_pdf() -> bytes:
     """D29 (atrium-project#84): a text page, a blank verso, a text page. The blank page renders as
     nothing, so it is `blank` and routed `empty`; nothing goes to the ATR (H4), and the record has a
@@ -1226,7 +1238,9 @@ _PAGE_BREAK = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
 
 def scan_page_docx() -> bytes:
     """A report with a scanned page pasted in as a picture: page 2 has no text, only the
-    picture (6.5 x 9.5 in on A4), and needs the ATR once rendered; pages 1 and 3 have text."""
+    picture (6.5 x 9.5 in on A4); pages 1 and 3 have text. An office document never goes to the
+    ATR (v2.0.0-beta): page 2 is routed `empty` and described by its graphics, for
+    page-classification."""
     body = (
         _p("Nálezová zpráva", style="Heading1")
         + _p("Na následující straně je naskenovaný plán sondy.")
@@ -1621,6 +1635,7 @@ BUILDERS = {
     "rotated.pdf": rotated_pdf,
     "bold_titles.pdf": bold_titles_pdf,
     "scan_page.docx": scan_page_docx,
+    "scan_page.pdf": scan_page_pdf,
     "photo_text.docx": photo_text_docx,
     "sample.txt": sample_txt,
     "sample.csv": sample_csv,
@@ -1649,8 +1664,9 @@ NOTES = {
     "small_caps.pdf": "capitals then smaller capitals in one word; real spaces; a Ts capital (#5)",
     "rotated.pdf": "vertical table headers (ttb with a second subset, btt); a btt caption (#5)",
     "bold_titles.pdf": "bold section titles at the body size; bold lines that are not titles (#5)",
-    "scan_page.docx": "text page, a page of one picture (a pasted scan), text page — only the picture page needs the ATR (#9)",
-    "photo_text.docx": "a long paragraph, a photo, a caption on one page — visual lines, no ATR for a photo (#9)",
+    "scan_page.docx": "text page, a page of one picture (a pasted scan), text page — no ATR: the picture page is routed `empty` with its graphics (v2.0.0-beta)",
+    "scan_page.pdf": "text page, a page of one scanned picture, text page — the mixed PDF: only the picture page needs the ATR (#84 H4, H6)",
+    "photo_text.docx": "a long paragraph, a photo, a caption on one page — visual lines; the photo is the page's graphics (#9)",
     "sample.txt": "two paragraphs, a form feed, a second page — the textual workflow (#9)",
     "sample.csv": "a header row and rows with a text column among others — every column kept (#9)",
     "sample.tsv": "the CSV's rows as tab-separated values (#9)",

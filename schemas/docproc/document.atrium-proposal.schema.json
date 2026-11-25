@@ -1,8 +1,8 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://github.com/ufal/atrium-digital-convert/schemas/docproc/document.atrium-proposal.schema.json",
-    "title": "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3, 5, 10 and 13)",
-    "description": "Structured document produced by docproc /convert, schema v1. Tightened to the values the service actually emits on its local (PDF/image/DOCX/PPTX) and cloud-fallback paths. ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required), 5 (the forced pages echoed in routing), 10 (the image pixel ratio) and 13 (other producers, formats, the page verdict, block lines, flow documents) applied.",
+    "title": "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3, 5, 10, 13 and 14)",
+    "description": "Structured document produced by docproc /convert, schema v1. Tightened to the values the service actually emits on its local (PDF/image/DOCX/PPTX) and cloud-fallback paths. ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required), 5 (the forced pages echoed in routing), 10 (the image pixel ratio), 13 (other producers, formats, the page verdict, block lines, flow documents) and 14 (what a page shows besides its text) applied.",
     "type": "object",
     "required": [
         "version",
@@ -131,6 +131,16 @@
                                         "description": "ATRIUM proposal (ask 5): the reason the caller gave for forcing the page (its needsAtrReason).",
                                         "type": "string",
                                         "minLength": 1
+                                    },
+                                    "graphics": {
+                                        "description": "ATRIUM proposal (ask 14): the page's graphics — pictures, charts, diagrams, drawings — besides its text; 0 for a page of text only. A logo repeated in the running header or footer is not counted.",
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "tables": {
+                                        "description": "ATRIUM proposal (ask 14): the page's tables, each a `table` block with its cellGrid.",
+                                        "type": "integer",
+                                        "minimum": 0
                                     }
                                 }
                             }

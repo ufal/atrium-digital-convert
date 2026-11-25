@@ -1089,6 +1089,10 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
             try:
                 words = _extract_words(page)
                 current.images = len(page.images)
+                current.image_boxes = [
+                    [round(float(im[k]), 2) for k in ("x0", "top", "x1", "bottom")]
+                    for im in page.images
+                ]
                 current.vector_paths = len(page.curves) + len(page.lines) + len(page.rects)
             except Exception as exc:
                 raise _open_error(exc) from exc

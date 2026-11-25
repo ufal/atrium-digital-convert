@@ -7,10 +7,10 @@ Two operations, one converter:
   blocks and lines with each page's text-layer verdict and ``needsAtr``; atrium-project#84), with
   Markdown only on request and the run's Process Run Crate ``CreateAction`` as ``paradata``. Two
   workflows (atrium-digital-convert#9): **visual** — a PDF on its pages; a DOCX, DOC, ODT or RTF
-  as its native text on the pages of its LibreOffice rendering, whose PDF comes back as
-  ``rendered_pdf`` when a page needs the ATR (or with ``rendered=true``) for page-classification
-  and the ATR; **textual** — ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are, without
-  page geometry, never the ATR. No record: ocr-postprocess builds it from the docproc. It calls NO
+  as its native text on the pages of its LibreOffice rendering, never the ATR, whose PDF comes
+  back as ``rendered_pdf`` when a page shows graphics (or with ``rendered=true``) for
+  page-classification; **textual** — ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are,
+  without page geometry, never the ATR. No record: ocr-postprocess builds it from the docproc. It calls NO
   other service: in the AMČR deployment Temporal chains the stages (atrium-digital-convert#1,
   30 September).
 * ``POST /describe`` — parked (not part of the pilot): the same conversion, then a per-page
@@ -208,9 +208,11 @@ class ReformatResponse(BaseModel):
         description=(
             "The document's layout as docproc (`atr/docproc-json`, atrium-project#84): pages with the text-layer "
             "verdict (`textLayer`) and, where the text cannot be used, `needsAtr` with its reason; blocks with their "
-            "`lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`). Valid against "
-            "`schemas/docproc/document.atrium-proposal.schema.json` (the ATR's schema with asks 3 and 13). No record "
-            "is written: ocr-postprocess builds it from this."
+            "`lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`) and, for a PDF or "
+            "an office document, saying what each page shows besides its text (`graphics`, `tables`). An office "
+            "document is never routed `atr`. Valid against `schemas/docproc/document.atrium-proposal.schema.json` "
+            "(the ATR's schema with asks 3, 5, 10, 13 and 14). No record is written: ocr-postprocess builds it from "
+            "this."
         )
     )
     reader: ReaderInfo
@@ -222,8 +224,8 @@ class ReformatResponse(BaseModel):
         None,
         description=(
             "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes "
-            "refer to, which page-classification and the ATR read. Returned when a page is routed `atr`, or always "
-            "with `rendered=true`; absent for a PDF and the textual workflow."
+            "refer to, which page-classification reads. Returned when a page shows graphics (its routing entry's "
+            "`graphics` above 0), or always with `rendered=true`; absent for a PDF and the textual workflow."
         ),
     )
     limits_applied: List[LimitNote] = Field(
@@ -376,7 +378,7 @@ _FILE_HELP = (
     "(textual). Not an image: images go to the ATR (H13)."
 )
 _RENDERED_HELP = (
-    "Also return an office document's rendered PDF (`rendered_pdf`) when no page needs the ATR; it is returned "
+    "Also return an office document's rendered PDF (`rendered_pdf`) when no page shows graphics; it is returned "
     "anyway when one does."
 )
 
@@ -673,12 +675,12 @@ async def reformat(
 ):
     """Convert a born-digital document into docproc (§4.2; atrium-project#84).
 
-    Calls no other service. A page whose text layer cannot be used (it does not decode, it is a
-    prior OCR run, there is none, or an office page's rendering shows text its reading does not
-    place there) carries `needsAtr` with its reason and is routed `atr`; no document is refused
-    for its pages. An office document's rendered PDF comes with it when a page needs the ATR. A
-    textual input is never routed `atr`. No record is written: ocr-postprocess builds it from the
-    docproc.
+    Calls no other service. A PDF page whose text layer cannot be used (it does not decode, it is
+    a prior OCR run, there is none) carries `needsAtr` with its reason and is routed `atr`; no
+    document is refused for its pages. An office document is never routed `atr`: its text is its
+    own XML. Its rendered PDF comes with it when a page shows graphics, the pages
+    page-classification reads. A textual input is never routed `atr`. No record is written:
+    ocr-postprocess builds it from the docproc.
     """
     name, data, baseline, seed_bytes = await _read_parts(file, document_json)
 
@@ -698,7 +700,7 @@ async def reformat(
                 "reader": reader_info(document, dev),
             }
             if document.rendered_pdf is not None and (
-                rendered or docproc_writer.needs_atr(docproc)
+                rendered or docproc_writer.graphics_pages(docproc)
             ):
                 result["rendered_pdf"] = {
                     "media_type": "application/pdf",

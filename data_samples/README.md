@@ -38,7 +38,7 @@ quality, left to ocr-postprocess's scoring of its lines. The caption on page 4 o
 
 | Folder                                    | File per document     | What it is                                                                                                                         |
 |-------------------------------------------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `docproc/light/`                          | `<doc>.docproc.json`  | The CLI's docproc (`atr/docproc-json`), light engine: lines with their positions, tables, and every page's verdict and `needsAtr`. |
+| `docproc/light/`                          | `<doc>.docproc.json`  | The CLI's docproc (`atr/docproc-json`), light engine: lines with their positions, tables, every page's verdict and its routing.    |
 | `docproc/docling/`                        | `<doc>.docproc.json`  | The same with `--engine docling` (Docling's layout and table models), for comparison.                                              |
 | `markdown/full/`, `standard/`, `minimal/` | `<doc>.<detail>.md`   | The document as Markdown at three levels of detail. A page without usable text carries a `<!-- NEEDS_OCR: … -->` cue.              |
 | `reports/reformat/`                       | `<doc>.reformat.json` | The service's `/reformat` answer with `markdown=true`: the docproc and its Markdown.                                               |

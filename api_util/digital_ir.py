@@ -214,6 +214,10 @@ class DigitalLine:
     #: read them. Internal, never serialised: `render_place` aligns a rendered office file's words
     #: with the native text (atrium-digital-convert#9).
     words: List[Tuple[str, List[float]]] = field(default_factory=list)
+    #: The drawings anchored in the native text just before this line that do not render as a
+    #: picture: a chart, a SmartArt diagram, a shape or a group of shapes, an OLE object (DOCX,
+    #: `digital_docx`). Internal: counted in the page's graphics (`page_graphics`).
+    graphics: int = 0
 
 
 #: `group_id` prefix of the lines that are table cells (`tbl{n}-r{r}c{c}`), in every adapter.
@@ -334,6 +338,10 @@ class DigitalPage:
     frame: Optional[PageFrame] = None
     #: The PDF page's /UserUnit when it is not 1 (D28): coordinates are in 1/72 inch x user_unit.
     user_unit: Optional[float] = None
+    #: The boxes of the raster images drawn on the page, `[x0, top, x1, bottom]` in the reader's
+    #: frame (the PDF light engine; a rendered office page's are its rendering's). Internal:
+    #: `page_graphics` counts them.
+    image_boxes: List[List[float]] = field(default_factory=list)
 
     @property
     def has_geometry(self) -> bool:
@@ -361,6 +369,55 @@ def damaged_body_words(page: DigitalPage) -> Tuple[int, int]:
     return count_damaged_words(
         line.text for line in page.lines if line.region not in (REGION_HEADER, REGION_FOOTER)
     )
+
+
+#: An image narrower or lower than this (pt) is not counted as a graphic: a bullet, an icon, a
+#: rule drawn as an image.
+GRAPHIC_MIN_SIDE = 24.0
+
+#: An image that recurs at the same place on several pages is furniture (a logo, a letterhead
+#: band) only while it covers less than this share of its page: a scan or a full-page picture on
+#: every page is each page's own content.
+FURNITURE_GRAPHIC_MAX_SHARE = 0.5
+
+
+def page_graphics(document: DigitalDocument) -> List[int]:
+    """The graphics on each page, in page order: what a page shows besides its text.
+
+    A raster image drawn on the page (a photo, a scan, a map or plan saved as a picture) counts
+    once, unless it is smaller than `GRAPHIC_MIN_SIDE` or it recurs at the same place on another
+    page while covering less than `FURNITURE_GRAPHIC_MAX_SHARE` of it (a logo in the running header
+    or footer; a scan on every page still counts on every page). A drawing that does not render as a picture
+    (a chart, a SmartArt diagram, shapes, an OLE object) counts on the page of the line it is
+    anchored before (`DigitalLine.graphics`, read from a DOCX's own XML). A page with none holds
+    text only.
+    """
+
+    def big(box: List[float]) -> bool:
+        return (
+            float(box[2]) - float(box[0]) >= GRAPHIC_MIN_SIDE
+            and float(box[3]) - float(box[1]) >= GRAPHIC_MIN_SIDE
+        )
+
+    def place(box: List[float]) -> Tuple[int, ...]:
+        return tuple(int(round(float(v) / 4.0)) for v in box)
+
+    def small(box: List[float], page: DigitalPage) -> bool:
+        area = float(page.width) * float(page.height)
+        covered = (float(box[2]) - float(box[0])) * (float(box[3]) - float(box[1]))
+        return area <= 0 or covered < FURNITURE_GRAPHIC_MAX_SHARE * area
+
+    shown = [[box for box in page.image_boxes if big(box)] for page in document.pages]
+    pages_at: Dict[Tuple[int, ...], int] = {}
+    for page, boxes in zip(document.pages, shown, strict=True):
+        for key in {place(box) for box in boxes if small(box, page)}:
+            pages_at[key] = pages_at.get(key, 0) + 1
+    furniture = {key for key, n in pages_at.items() if n > 1}
+    return [
+        sum(1 for box in boxes if place(box) not in furniture)
+        + sum(line.graphics for line in page.lines)
+        for page, boxes in zip(document.pages, shown, strict=True)
+    ]
 
 
 def text_layer_of(page: DigitalPage) -> str:

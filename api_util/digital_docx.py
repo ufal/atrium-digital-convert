@@ -37,8 +37,13 @@ what lost text on the old path. What this module fixes, against the #10 §9 meas
   caches) follow their anchor paragraph as text boxes do, one group per diagram node and one per
   chart. A chart's numbers (values, numeric and date categories) are not read: the rendering
   draws them. Comments stay out, as in the rendering; an embedded OLE object (an Equation 3.0
-  formula, a pasted workbook) has no text to read here, and its rendered words count against the
-  page's coverage (`RENDER_TEXT_COVERAGE`).
+  formula, a pasted workbook) has no text to read here.
+* **Graphics** (`DigitalLine.graphics`). A body drawing that does not render as a picture — a
+  chart, a SmartArt diagram, shapes, a drawing canvas, an OLE object — is counted on the line
+  written next (its own paragraph's, else the caption after it), so the page it lands on is
+  described as showing graphics (`digital_ir.page_graphics`). A picture is counted from the
+  rendering, where it is a raster image; a text box is text; a header's or footer's logo is page
+  furniture and is not counted.
 
 No geometry: a DOCX has none until something renders it, so no `bbox` and no `canvas`.
 """
@@ -155,6 +160,39 @@ def _parse_xml(blob: bytes) -> Any:
 def _ns(el: Any) -> str:
     tag = el.tag if isinstance(el.tag, str) else ""
     return tag[1:].split("}", 1)[0] if tag.startswith("{") else ""
+
+
+#: The `a:graphicData` of a picture: it renders as a raster image, which the rendering counts.
+PICTURE_URI = "http://schemas.openxmlformats.org/drawingml/2006/picture"
+#: VML (`w:pict`, `w:object`) shapes that draw something.
+_VML_SHAPES = frozenset(
+    {"shape", "rect", "roundrect", "oval", "line", "polyline", "arc", "curve", "group"}
+)
+
+
+def drawing_is_graphic(el: Any) -> bool:
+    """Whether a `w:drawing` holds a graphic that does not render as a picture: a chart, a
+    SmartArt diagram, a group of shapes, a drawing canvas, or a shape that is not a plain text
+    box. A picture is counted from the rendering, where it is a raster image; a text box is text."""
+    for data in el.iter(f"{{{A_NS}}}graphicData"):
+        uri = data.get("uri") or ""
+        if uri == PICTURE_URI:
+            continue
+        if uri.endswith("/wordprocessingShape") and any(
+            _local(node.tag) == "txbx" for node in data.iter()
+        ):
+            continue
+        return True
+    return False
+
+
+def pict_is_graphic(el: Any) -> bool:
+    """Whether a VML `w:pict` draws shapes: not a picture (`v:imagedata`, counted from the
+    rendering) and not a plain text box."""
+    names = [_local(node.tag) for node in el.iter()]
+    if "imagedata" in names or "textbox" in names:
+        return False
+    return any(name in _VML_SHAPES for name in names)
 
 
 def _wrap(text: str) -> str:
@@ -527,6 +565,8 @@ class _Flow:
         self.group: Optional[str] = None
         self.heading: Optional[int] = None
         self.region: Optional[str] = None
+        #: Drawings met since the last line was written (`DigitalLine.graphics`).
+        self.pending_graphics = 0
 
     def text(self, value: str, bold: bool, italic: bool) -> None:
         if value:
@@ -548,9 +588,25 @@ class _Flow:
                 heading_level=self.heading,
                 group_id=self.group,
                 region=self.region,
+                graphics=self.pending_graphics,
             )
         )
+        self.pending_graphics = 0
         self._any = True
+
+    def graphic(self) -> None:
+        """A drawing that does not render as a picture: it counts on the next line written."""
+        self.pending_graphics += 1
+
+    def settle_graphics(self) -> None:
+        """Drawings after the last line count on that line."""
+        if not self.pending_graphics:
+            return
+        for page in reversed(self.pages):
+            if page:
+                page[-1].graphics += self.pending_graphics
+                break
+        self.pending_graphics = 0
 
     def explicit_break(self) -> None:
         self.line_break()
@@ -579,8 +635,12 @@ class _Walker:
         group_prefix: str = "p",
         on_note: Optional[Callable[[str, str], None]] = None,
         related: Optional[Callable[[str], Optional[bytes]]] = None,
+        count_graphics: bool = False,
     ) -> None:
         self.flow = flow
+        #: The body's walker counts its drawings (`DigitalLine.graphics`); a header's or footer's
+        #: logo is page furniture, and a note holds none worth a page classification.
+        self.count_graphics = count_graphics
         self.styles = styles
         self.mode = mode
         self.make_table = make_table
@@ -659,6 +719,23 @@ class _Walker:
             handler(el)
         else:
             self.walk_children(el)
+
+    def _on_drawing(self, el: Any) -> None:
+        if self.count_graphics and drawing_is_graphic(el):
+            self.flow.graphic()
+        self.walk_children(el)
+
+    def _on_pict(self, el: Any) -> None:
+        if self.count_graphics and pict_is_graphic(el):
+            self.flow.graphic()
+        self.walk_children(el)
+
+    def _on_object(self, el: Any) -> None:
+        # An embedded OLE object (a pasted workbook, an Equation 3.0 formula, a drawing): what it
+        # shows is not in the document's XML.
+        if self.count_graphics:
+            self.flow.graphic()
+        self.walk_children(el)
 
     def _on_txbxContent(self, el: Any) -> None:
         self.deferred.append(lambda: self.walk_children(el))
@@ -959,10 +1036,12 @@ def extract_docx(path: str, doc_id: str, origin: str, page_breaks: str = "auto")
         make_table,
         on_note=lambda kind, note_id: references.append((kind, note_id, flow.page_index)),
         related=_resolver(source.part),
+        count_graphics=True,
     )
     body = source.element.body
     walker.walk_children(body)
     walker.close_body(body)
+    flow.settle_graphics()
 
     pages = flow.pages
     while len(pages) > 1 and not pages[-1]:
