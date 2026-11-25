@@ -2049,47 +2049,65 @@
         {
           "page": 1,
           "route": "text-layer",
-          "text_layer": true
+          "text_layer": true,
+          "graphics": 0,
+          "tables": 0
         },
         {
           "page": 2,
           "route": "text-layer",
-          "text_layer": true
+          "text_layer": true,
+          "graphics": 0,
+          "tables": 0
         },
         {
           "page": 3,
           "route": "text-layer",
-          "text_layer": true
+          "text_layer": true,
+          "graphics": 0,
+          "tables": 0
         },
         {
           "page": 4,
           "route": "text-layer",
-          "text_layer": true
+          "text_layer": true,
+          "graphics": 0,
+          "tables": 0
         },
         {
           "page": 5,
           "route": "text-layer",
-          "text_layer": true
+          "text_layer": true,
+          "graphics": 0,
+          "tables": 1
         },
         {
           "page": 6,
           "route": "text-layer",
-          "text_layer": true
+          "text_layer": true,
+          "graphics": 1,
+          "tables": 0
         },
         {
           "page": 7,
           "route": "atr",
-          "text_layer": false
+          "text_layer": false,
+          "graphics": 1,
+          "tables": 0
         },
         {
           "page": 8,
           "route": "text-layer",
-          "text_layer": true
+          "text_layer": true,
+          "graphics": 0,
+          "tables": 0
         },
         {
           "page": 9,
           "route": "text-layer",
-          "text_layer": true
+          "text_layer": true,
+          "graphics": 1,
+          "tables": 0
         }
       ],
       "counts": {

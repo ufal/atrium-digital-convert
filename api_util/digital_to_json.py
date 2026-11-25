@@ -11,8 +11,9 @@ Every input takes one of two workflows (atrium-digital-convert#9):
     and RTF with the shared reader atrium-ocr-postprocess owns (`text_formats.py`, vendored; see
     `api_util/digital_text.py`), DOC through its LibreOffice DOCX — and takes its pages from a
     headless LibreOffice rendering (`api_util/office_render.py`): the native text is placed on the
-    rendered pages (`api_util/render_place.py`), which gives it page numbers, boxes in pt and the
-    page verdicts of a PDF. The rendered PDF is what the visual steps read (`--rendered-out`).
+    rendered pages (`api_util/render_place.py`), which gives it page numbers and boxes in pt. Its
+    text is its own XML, in full: an office document never goes to the ATR. The rendered PDF is
+    what page-classification reads for the pages that show graphics (`--rendered-out`).
   * **textual** — text with no pages to render: spreadsheets, every non-empty cell as the sheet
     displays it (an ODS as its file stored it; an XLSX or XLS as LibreOffice displays it in
     cs-CZ, read as ODS, `api_util/digital_legacy.py`), and the text-only inputs (TXT, CSV, TSV,
@@ -311,9 +312,10 @@ MOJIBAKE_FOREIGN_LETTERS = frozenset("àêûœÀÊÛŒ")
 PARAGRAPH_GAP_RATIO = 1.8
 
 #: The two workflows an input takes (atrium-digital-convert#9). `visual`: a document with pages,
-#: each given a verdict, whose unusable pages go to page-classification and the ATR — a PDF on its
-#: own pages, an office document as native text placed on the pages of its rendering. `textual`:
-#: text extracted as it is, with no pages to render, straight to scoring; never the ATR.
+#: each given a verdict and described by what it shows (`graphics`, `tables`) — a PDF on its own
+#: pages, whose unusable pages go to the ATR, and an office document as its native text placed on
+#: the pages of its rendering, never the ATR. `textual`: text extracted as it is, with no pages to
+#: render, straight to scoring; never the ATR.
 WORKFLOW_VISUAL = "visual"
 WORKFLOW_TEXTUAL = "textual"
 
@@ -569,37 +571,16 @@ def _reason_furniture_only(page: DigitalPage) -> str:
     )
 
 
-def _reason_render_coverage(page: DigitalPage) -> Optional[str]:
-    """The rendered page shows text the document's own text does not place there (#9, H12)."""
-    words, matched = page.render_words, page.render_matched
-    if not words or matched is None:
-        return None
-    import tool_limits  # noqa: PLC0415  (repo root)
-
-    threshold = tool_limits.RENDER_TEXT_COVERAGE.get()
-    missing = words - matched
-    if missing < RENDER_MIN_UNCOVERED or matched / words >= threshold:
-        return None
-    return (
-        f"the rendered page shows text the document's text does not place there: {missing} of its "
-        f"{words} words are not in it (coverage {matched / words:.0%} < RENDER_TEXT_COVERAGE "
-        f"{threshold:.0%}) — a drawing, a chart, an embedded object or a change the rendering shows"
-    )
-
-
-#: Fewer words of a rendered page than this, not covered by the document's text, never send the
-#: page to the ATR whatever its coverage: a list number or two on a short page (#9).
-RENDER_MIN_UNCOVERED = 3
-
-
 def assess_page(page: DigitalPage, textual: bool = False) -> None:
     """Fill in the page's `decode_score`, `needs_ocr` and its reason, in place.
 
     A page of the textual workflow (`textual`: a text-only input or a spreadsheet,
     atrium-digital-convert#9 point 4) never needs the ATR: it has nothing to render. Its decode
-    flags stay on its lines for scoring. A rendered office page (its `render_words` measured,
-    `render_place`) also needs the ATR when its rendering shows text the document's own text does
-    not place there (`RENDER_TEXT_COVERAGE`; H12, a page that cannot be used is `needs_atr`).
+    flags stay on its lines for scoring. Nor does a rendered office page (its `render_words`
+    measured, `render_place`): an office document's text is its own XML, read in full, so no
+    page of it goes to the ATR, not even one whose rendering shows text the XML does not hold (a
+    pasted scan, a photo of text). What such a page shows is described by its graphics
+    (`digital_ir.page_graphics`), for page-classification, never read by the ATR.
 
     `needs_ocr_reason` is written whenever `needs_ocr` is, and never alone. The flag means
     different things on the two originator paths — "no text layer" for a scan, "a text
@@ -661,10 +642,7 @@ def assess_page(page: DigitalPage, textual: bool = False) -> None:
             f"source.origin ocr:pdf-text-layer)."
         )
 
-    coverage = _reason_render_coverage(page)
-    if coverage:
-        reasons.append(coverage)
-    if textual:
+    if textual or page.render_words is not None:
         reasons = []
     page.needs_ocr = bool(reasons)
     page.needs_ocr_reason = " ".join(reasons)
@@ -1326,9 +1304,13 @@ def record_run(
             "blank_page",
             {"render_dpi": digital_pdf.BLANK_RENDER_DPI, "ink_level": digital_pdf.BLANK_INK_LEVEL},
         )
+    if document.workflow != WORKFLOW_TEXTUAL:
+        # The pages' `graphics` (docproc routing): the smallest image counted as one.
+        from api_util.digital_ir import GRAPHIC_MIN_SIDE  # noqa: PLC0415
+
+        logger.set_parameter("graphic_min_side_pt", GRAPHIC_MIN_SIDE)
     versions: Dict[str, str] = {}
     if document.rendering is not None:
-        import tool_limits  # noqa: PLC0415  (repo root)
         from api_util.office_render import CONVERT_TO  # noqa: PLC0415
 
         logger.add_output(
@@ -1338,7 +1320,6 @@ def record_run(
             stored=False,
         )
         logger.set_parameter("render", CONVERT_TO)
-        logger.set_parameter("render_text_coverage", tool_limits.RENDER_TEXT_COVERAGE.get())
         if document.rendering.get("version"):
             versions["libreoffice"] = str(document.rendering["version"])
     elif document.conversion and document.conversion.get("tool") == "libreoffice":
@@ -1369,8 +1350,6 @@ def convert(
     rendered_out: Optional[str] = None,
     markdown_out: Optional[str] = None,
     describe_out: Optional[str] = None,
-    describe_stages: Optional[str] = None,
-    classify_pages: str = "needs_ocr",
     include_text: bool = True,
 ) -> str:
     """A → D for one file. Returns the written docproc's path (`<doc_id>.docproc.json` in
@@ -1380,8 +1359,9 @@ def convert(
     failed conversion writes no docproc, and its paradata say `failed` (D13).
 
     With `rendered_out`, an office document's rendered PDF is written there too: the pages the
-    docproc's page numbers and boxes refer to, which page-classification and the ATR read for a
-    page that needs the ATR (atrium-digital-convert#9). A PDF or a textual input has none.
+    docproc's page numbers and boxes refer to, which page-classification reads for the pages that
+    show graphics (atrium-digital-convert#9). An office document never goes to the ATR. A PDF or a
+    textual input has none.
 
     The two views `POST /reformat` and `POST /describe` add, run by the same code
     (`service/describe.py`, atrium-project#72): `markdown_out` writes the development dict as
@@ -1389,22 +1369,13 @@ def convert(
     """
     from api_util import docproc_writer  # noqa: PLC0415
 
-    selected: List[str] = []
-    if describe_out is not None:
-        from service import stages as describe_stages_module  # noqa: PLC0415
-
-        selected = describe_stages_module.select_stages(describe_stages)
     logger = None
     if paradata_dir:
         config = run_config(
             input_path,
             engine,
             markdown=markdown_out is not None,
-            describe=(
-                {"stages": selected, "classify_pages": classify_pages, "include_text": include_text}
-                if describe_out is not None
-                else None
-            ),
+            describe={"include_text": include_text} if describe_out is not None else None,
         )
         logger = _paradata_logger(paradata_dir, config)
     try:
@@ -1436,12 +1407,9 @@ def convert(
             _write_views(
                 document,
                 dev,
-                input_path,
                 written,
                 markdown_out,
                 describe_out,
-                selected,
-                classify_pages,
                 include_text,
                 logger,
             )
@@ -1493,38 +1461,23 @@ def view_path(output_path: str, doc_id: str, requested: str, suffix: str) -> str
 def _write_views(
     document: DigitalDocument,
     data: Dict[str, Any],
-    input_path: str,
     output_path: str,
     markdown_out: Optional[str],
     describe_out: Optional[str],
-    selected: List[str],
-    classify_pages: str,
     include_text: bool,
     logger: Optional[Any],
 ) -> None:
     """`--describe` and `--markdown`: the service's two views, from the service's own code."""
-    from service import describe as views  # noqa: PLC0415  (the stage client, only when asked)
+    from service import describe as views  # noqa: PLC0415
 
     doc_id = str(data["doc_id"])
     if describe_out is not None:
-        with open(input_path, "rb") as fh:
-            raw = fh.read()
-        assessed = views.describe_document(
-            document,
-            data,
-            raw,
-            os.path.basename(input_path),
-            selected,
-            classify_pages=classify_pages,
-            include_text=include_text,
-        )
-        data = assessed["document"]  # with a stage's guarded write, when one was adopted
+        assessed = views.describe_document(document, data, include_text=include_text)
         report = {
             "doc_id": doc_id,
             "reader": views.reader_info(document, data),
             "pages": assessed["pages"],
             "summary": assessed["summary"],
-            "stages": assessed["stages"],
         }
         target = view_path(output_path, doc_id, describe_out, ".describe.json")
         _write_json(target, report)
@@ -1602,8 +1555,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="PATH",
         help="also write an office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the "
-        "docproc's page numbers and boxes refer to, which page-classification and the ATR read for "
-        "a page that needs the ATR. Not stored; the paradata name it by SHA-512",
+        "docproc's page numbers and boxes refer to, which page-classification reads for the pages "
+        "that show graphics. Not stored; the paradata name it by SHA-512",
     )
     views = parser.add_argument_group(
         "views (what POST /reformat's markdown=true and POST /describe return)"
@@ -1623,20 +1576,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="PATH",
         help="also write the per-page assessment of POST /describe (default <doc_id>.describe.json "
-        "beside the docproc); the stages are called when PAGE_CLASSIFICATION_URL / "
-        "OCR_POSTPROCESS_URL (or the two flags below) are set",
-    )
-    views.add_argument(
-        "--stages",
-        default=None,
-        help="with --describe: a comma-separated subset of page-classification, ocr-postprocess; "
-        "unset for every configured one; `none` for none",
-    )
-    views.add_argument(
-        "--classify-pages",
-        choices=("needs_ocr", "all"),
-        default="needs_ocr",
-        help="with --describe: the pages page-classification is asked about",
+        "beside the docproc), from what the converter read; it calls no other tool",
     )
     views.add_argument(
         "--no-text",
@@ -1644,33 +1584,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_false",
         help="with --describe: leave each page's text out of pages[].text",
     )
-    views.add_argument(
-        "--page-classification-url",
-        default=None,
-        help="with --describe: page-classification's base URL (sets PAGE_CLASSIFICATION_URL)",
-    )
-    views.add_argument(
-        "--ocr-postprocess-url",
-        default=None,
-        help="with --describe: ocr-postprocess's base URL (sets OCR_POSTPROCESS_URL)",
-    )
     return parser
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.page_classification_url:
-        os.environ["PAGE_CLASSIFICATION_URL"] = args.page_classification_url
-    if args.ocr_postprocess_url:
-        os.environ["OCR_POSTPROCESS_URL"] = args.ocr_postprocess_url
-    if args.describe is not None:
-        from service import stages as describe_stages_module  # noqa: PLC0415
-
-        try:
-            describe_stages_module.select_stages(args.stages)
-        except ValueError as exc:
-            parser.error(str(exc))
     try:
         written = convert(
             args.input,
@@ -1683,8 +1602,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             rendered_out=args.rendered_out,
             markdown_out=args.markdown,
             describe_out=args.describe,
-            describe_stages=args.stages,
-            classify_pages=args.classify_pages,
             include_text=args.include_text,
         )
     except DigitalInputError as exc:

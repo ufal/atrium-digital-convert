@@ -5,8 +5,9 @@ A DOCX, DOC, ODT or RTF has no pages until something lays it out. digital-conver
 its text with the native readers (`digital_docx`, the shared reader for ODT and RTF) and takes its
 pages from a rendering: headless LibreOffice prints the document to PDF, the light PDF engine reads
 that PDF's pages and words, and `api_util/render_place.py` places the native text on them. The
-rendered PDF is also what the visual steps receive for a page that needs the ATR: page-classification
-reads PDFs only, and the ATR's page numbers and boxes must be the docproc's (H2, D28). It is an
+rendered PDF is also what page-classification receives for the pages that show graphics (the
+docproc routing's `graphics`): page-classification reads PDFs only, and its page numbers must be the
+docproc's (H2, D28). An office document never goes to the ATR: its text is its own. The PDF is an
 intermediate: not stored, named by its SHA-512 in the paradata (D23).
 
 What is rendered is a working copy that reads as the native text does:
@@ -15,14 +16,14 @@ What is rendered is a working copy that reads as the native text does:
     native readers drop it (`digital_docx` G5; the shared reader skips `text:tracked-changes`). A
     DOCX copy drops `w:del`/`w:moveFrom` and unwraps `w:ins`/`w:moveTo` in the main, header,
     footer and note parts; an ODT copy drops `text:tracked-changes` and the change marks. An RTF
-    is rendered as it is: a page where its changes show is one whose rendered words the native
-    text does not cover, and goes to the ATR (`render_place`), so nothing is lost;
+    is rendered as it is: its changes may show in the rendering, while its text is the native
+    reading;
   * **the package repaired** — a DOCX whose main part has no WordprocessingML content type is one
     LibreOffice will not load ("source file could not be loaded"); the copy carries the Override
     the native reader adds in memory (`digital_docx.repaired_package`, G4).
 
 The PDF export options are pinned (`PDF_EXPORT_OPTIONS`): comments are not printed, images keep
-their resolution (the ATR and page-classification read them), automatically inserted blank pages
+their resolution (page-classification reads them), automatically inserted blank pages
 are kept (they are routed `empty`). Hyphenation dictionaries are not installed in the image, so
 LibreOffice never hyphenates a word the native text has whole.
 

@@ -2,8 +2,8 @@
 
 Textual: TXT, CSV, TSV and JSON are extracted as they are — every column, every string value —
 into a docproc without geometry whose pages never go to the ATR; long lines are wrapped and the
-wrap recorded as a split (D13). Visual: an office document's pages are its rendering's, only a
-page whose text cannot be used goes to the ATR, and the rendered PDF is handed over with it.
+wrap recorded as a split (D13). Visual: an office document's pages are its rendering's, none of
+them goes to the ATR, and the rendered PDF is handed over when a page shows graphics.
 """
 
 from __future__ import annotations
@@ -190,13 +190,17 @@ def test_every_kind_has_a_workflow():
 
 
 @needs_libreoffice
-def test_only_the_page_that_is_a_picture_goes_to_the_atr(tmp_path):
+def test_an_office_document_never_goes_to_the_atr(tmp_path):
+    """A pasted scan's page has no text of its own: it is routed `empty` and described by its
+    graphics, for page-classification; the ATR never reads an office document (v2.0.0-beta)."""
     rendered = tmp_path / "scan_page.pdf"
     docproc = _docproc(tmp_path, "scan_page.docx", rendered_out=str(rendered))
-    routes = [r["route"] for r in docproc["metadata"]["routing"]["pages"]]
-    assert routes == ["text-layer", "atr", "text-layer"]
-    picture = next(p for p in docproc["pages"] if p["pageNumber"] == 2)
-    assert picture["needsAtr"] and "no extractable text layer" in picture["needsAtrReason"]
+    routing = docproc["metadata"]["routing"]["pages"]
+    routes = [r["route"] for r in routing]
+    assert routes == ["text-layer", "empty", "text-layer"]
+    assert [r["graphics"] for r in routing] == [0, 1, 0]
+    assert not any(page.get("needsAtr") for page in docproc["pages"])
+    assert [p["pageNumber"] for p in docproc["pages"]] == [1, 3]
     assert all(page["coordinateUnit"] == "pt" and page["width"] > 0 for page in docproc["pages"])
     import pypdfium2 as pdfium
 
@@ -215,6 +219,26 @@ def test_a_page_with_good_text_and_a_photo_stays_on_its_text_layer(tmp_path):
     assert {line["bboxPrecision"] for line in paragraph["lines"]} == {"measured"}
     tops = [line["bbox"][1] for line in paragraph["lines"]]
     assert tops == sorted(tops) and len(set(tops)) == len(tops)
+    assert docproc["metadata"]["routing"]["pages"][0]["graphics"] == 1, "the photo"
+
+
+@needs_libreoffice
+def test_a_docx_table_is_a_table_block_with_its_cell_grid(tmp_path):
+    docproc = _docproc(tmp_path, "rich.docx")
+    tables = [
+        (page["pageNumber"], block)
+        for page in docproc["pages"]
+        for block in page["blocks"]
+        if block["type"] == "table"
+    ]
+    assert tables, "rich.docx has a table"
+    for number, block in tables:
+        rows = block["cellGrid"]["rows"]
+        assert rows and all(row["cells"] for row in rows)
+        entry = next(r for r in docproc["metadata"]["routing"]["pages"] if r["page"] == number)
+        assert entry["tables"] >= 1
+    routing = docproc["metadata"]["routing"]["pages"]
+    assert all(r["graphics"] == 0 for r in routing), "a text box is text, not a graphic"
 
 
 @needs_libreoffice
@@ -231,8 +255,11 @@ def test_the_paradata_name_the_rendered_pdf_not_stored(tmp_path):
         "media_type": "application/pdf",
         "stored": False,
     }
-    assert outputs["atr/docproc-json"]["stored"] is False, "a page needs the ATR (H14)"
+    assert outputs["atr/docproc-json"]["stored"] is True, (
+        "no page needs the ATR: this docproc is stored"
+    )
     assert paradata["parameters"]["render"].startswith("pdf:writer_pdf_Export:")
+    assert paradata["parameters"]["graphic_min_side_pt"] == 24.0
     libreoffice = next(c for c in paradata["components"] if c["name"] == "libreoffice")
     assert libreoffice.get("version"), "the component with its version, as a fact"
     assert not {"license", "license_url", "license_detail"} & set(paradata)
@@ -263,7 +290,7 @@ def test_info_lists_the_inputs_of_each_workflow(client):
     info = client.get("/info").json()
     assert set(info["workflows"]["visual"]) == {"pdf", "docx", "odt", "rtf", "doc"}
     assert set(info["workflows"]["textual"]) == {"ods", "xlsx", "xls", "txt", "csv", "tsv", "json"}
-    assert ".csv" in info["supported_inputs"] and "render_text_coverage" in info["limits"]
+    assert ".csv" in info["supported_inputs"] and "render_text_coverage" not in info["limits"]
 
 
 def test_reformat_reads_a_csv_without_a_rendering(client):
@@ -281,8 +308,9 @@ def test_reformat_reports_a_wrapped_line_in_limits_applied(client):
 
 
 @needs_libreoffice
-def test_reformat_hands_over_the_rendered_pdf_when_a_page_needs_the_atr(client):
+def test_reformat_hands_over_the_rendered_pdf_when_a_page_shows_graphics(client):
     body = _reformat(client, "scan_page.docx")
+    assert not any(p.get("needsAtr") for p in body["docproc"]["pages"])
     data = base64.b64decode(body["rendered_pdf"]["data"])
     assert data.startswith(b"%PDF") and body["rendered_pdf"]["media_type"] == "application/pdf"
     assert (
@@ -295,6 +323,7 @@ def test_reformat_hands_over_the_rendered_pdf_when_a_page_needs_the_atr(client):
 
 
 @needs_libreoffice
-def test_reformat_returns_the_rendered_pdf_of_a_good_document_only_when_asked(client):
-    assert "rendered_pdf" not in _reformat(client, "photo_text.docx")
-    assert _reformat(client, "photo_text.docx", rendered="true")["rendered_pdf"]["data"]
+def test_reformat_returns_the_rendered_pdf_of_a_text_only_document_only_when_asked(client):
+    assert "rendered_pdf" in _reformat(client, "photo_text.docx"), "its photo is a graphic"
+    assert "rendered_pdf" not in _reformat(client, "rich.docx"), "text and a table only"
+    assert _reformat(client, "rich.docx", rendered="true")["rendered_pdf"]["data"]

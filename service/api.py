@@ -7,15 +7,15 @@ Two operations, one converter:
   blocks and lines with each page's text-layer verdict and ``needsAtr``; atrium-project#84), with
   Markdown only on request and the run's Process Run Crate ``CreateAction`` as ``paradata``. Two
   workflows (atrium-digital-convert#9): **visual** — a PDF on its pages; a DOCX, DOC, ODT or RTF
-  as its native text on the pages of its LibreOffice rendering, whose PDF comes back as
-  ``rendered_pdf`` when a page needs the ATR (or with ``rendered=true``) for page-classification
-  and the ATR; **textual** — ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are, without
-  page geometry, never the ATR. No record: ocr-postprocess builds it from the docproc. It calls NO
+  as its native text on the pages of its LibreOffice rendering, never the ATR, whose PDF comes
+  back as ``rendered_pdf`` when a page shows graphics (or with ``rendered=true``) for
+  page-classification; **textual** — ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are,
+  without page geometry, never the ATR. No record: ocr-postprocess builds it from the docproc. It calls NO
   other service: in the AMČR deployment Temporal chains the stages (atrium-digital-convert#1,
   30 September).
 * ``POST /describe`` — parked (not part of the pilot): the same conversion, then a per-page
-  assessment (``api_util/digital_report.py``) of the converter's development dict, with the
-  two adjacent stages called when their URLs are configured (``service/stages.py``).
+  assessment (``api_util/digital_report.py``) of what the converter read. It calls no other
+  service either (since v2.0.0-beta).
 
 The common contract (atrium-project#32/#53/#55/#71): ``/health``, ``/ready``, ``/info`` with every
 setting of ``tool_limits.py``; typed responses documented in the committed
@@ -50,7 +50,7 @@ import tempfile
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
@@ -67,8 +67,6 @@ from tool_limits import (
     MAX_CONCURRENT_JOBS,
     MAX_UPLOAD,
 )
-
-from . import stages
 
 # Shared ATRIUM meta-contract helpers (§4). Byte-identical across every service,
 # enforced by para-drift.reusable.yml.
@@ -210,9 +208,11 @@ class ReformatResponse(BaseModel):
         description=(
             "The document's layout as docproc (`atr/docproc-json`, atrium-project#84): pages with the text-layer "
             "verdict (`textLayer`) and, where the text cannot be used, `needsAtr` with its reason; blocks with their "
-            "`lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`). Valid against "
-            "`schemas/docproc/document.atrium-proposal.schema.json` (the ATR's schema with asks 3 and 13). No record "
-            "is written: ocr-postprocess builds it from this."
+            "`lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`) and, for a PDF or "
+            "an office document, saying what each page shows besides its text (`graphics`, `tables`). An office "
+            "document is never routed `atr`. Valid against `schemas/docproc/document.atrium-proposal.schema.json` "
+            "(the ATR's schema with asks 3, 5, 10, 13 and 14). No record is written: ocr-postprocess builds it from "
+            "this."
         )
     )
     reader: ReaderInfo
@@ -224,8 +224,8 @@ class ReformatResponse(BaseModel):
         None,
         description=(
             "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes "
-            "refer to, which page-classification and the ATR read. Returned when a page is routed `atr`, or always "
-            "with `rendered=true`; absent for a PDF and the textual workflow."
+            "refer to, which page-classification reads. Returned when a page shows graphics (its routing entry's "
+            "`graphics` above 0), or always with `rendered=true`; absent for a PDF and the textual workflow."
         ),
     )
     limits_applied: List[LimitNote] = Field(
@@ -241,53 +241,6 @@ class ReformatResponse(BaseModel):
             "(`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). "
             "An office document's rendered PDF is in `result` too, `stored: false` (D23)."
         )
-    )
-
-
-class PageCategory(BaseModel):
-    """page-classification's answer for one page."""
-
-    model_config = ConfigDict(extra="allow")
-
-    label: Optional[str] = Field(
-        description="The top category (`TEXT_P`, `TEXT_HW`, `DRAW`, ...; page-category scheme)."
-    )
-    confidence: Optional[float] = Field(description="Its score, from 0 to 1.")
-    top: List[Dict[str, Any]] = Field(description="The `topn` categories with scores, best first.")
-    source: str = Field(description="`page-classification`.")
-
-
-class PageQuality(BaseModel):
-    """Whether a page's text reads: ocr-postprocess's common line-quality model."""
-
-    model_config = ConfigDict(extra="allow")
-
-    source: str = Field(description="`ocr-postprocess` (the common line-quality model).")
-    score: Optional[float] = Field(
-        description="From 0 to 1: the mean line-quality score of the lines it judged (Clear/Noisy/Trash; "
-        "a pre-filter answer's 0.0 placeholder is left out)."
-    )
-    band: Optional[str] = Field(
-        description="`Clear`, `Noisy` or `Trash`, the plurality of its line verdicts; null when no line was judged."
-    )
-    lines_by_category: Dict[str, int] = Field(
-        description="Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty`."
-    )
-    lang: Optional[str] = Field(
-        description="The page's dominant language among the lines the model judged, when it reports one."
-    )
-    lines_scored: int = Field(
-        description="Lines the verdict is based on. ocr-postprocess: the lines it judged Clear, Noisy or "
-        "Trash; `Non-text`/`Empty` lines are counted in `lines_by_category` only."
-    )
-    prose_lines_scored: Optional[int] = Field(
-        None,
-        description="ocr-postprocess only: the scored lines that are prose — outside a table, at "
-        "least 20 characters, mostly letters, not a table-of-contents line. The quality rule of a "
-        "`digital` page counts only these (`ROUTE_TRASH_SHARE`).",
-    )
-    prose_lines_by_category: Optional[Dict[str, int]] = Field(
-        None, description="ocr-postprocess only: `lines_by_category` over the prose lines."
     )
 
 
@@ -334,7 +287,7 @@ class PageLayout(BaseModel):
     damaged_words: int = Field(
         description="Of those, the words that lost a letter to a glyph without a Unicode mapping "
         "(U+FFFD). Counted for information: they route nothing (atrium-digital-convert#9); whether "
-        "the text reads is ocr-postprocess's scoring."
+        "the text reads is ocr-postprocess's scoring, a step of the pipeline."
     )
 
 
@@ -352,15 +305,10 @@ class PageReport(BaseModel):
     needs_atr_reason: Optional[str] = Field(
         description="Why; docproc's `needsAtrReason`. Null when it does not."
     )
-    category: Optional[PageCategory] = Field(
-        description="Null when page-classification did not run for the page."
-    )
-    quality: Optional[PageQuality] = Field(
-        description="Null for a page without lines, and when ocr-postprocess did not score the page."
-    )
     decode: Optional[PageDecode] = Field(description="Null for a page without lines.")
     route: str = Field(
-        description="`nlp`, `ocr` (ATR), `htr` (handwriting) or `none` (nothing to read)."
+        description="`nlp`, `ocr` (ATR), `htr` (handwriting) or `none` (nothing to read), from the "
+        "converter's own signals: a page that does not decode or has no text layer goes to `ocr`."
     )
     route_reason: str
     layout: PageLayout
@@ -383,54 +331,18 @@ class DescribeSummary(BaseModel):
     document_route: str = Field(description="`nlp`, `ocr`, `htr`, `none`, or `mixed`.")
 
 
-class StageOutcomeModel(BaseModel):
-    """What one adjacent stage did."""
-
-    model_config = ConfigDict(extra="allow")
-
-    stage: str = Field(description="`page-classification` or `ocr-postprocess`.")
-    status: str = Field(
-        description="`ok`, `partial`, `not_configured`, `not_requested`, `skipped`, `unavailable`, `error` or `rejected`."
-    )
-    detail: str
-    url: Optional[str] = Field(description="The stage's base URL; null when not configured.")
-    http_status: Optional[int]
-    reason: Optional[str] = Field(
-        description="The stage's reason code, or the guard's (`page_key_mismatch`, ...)."
-    )
-    elapsed_s: Optional[float]
-    service_version: Optional[str]
-    pages: Optional[List[int]] = Field(description="`page_index` of the pages sent.")
-    record_adopted: bool = Field(
-        description="Whether the stage's write was taken into `document` (the development dict)."
-    )
-    paradata: Optional[Dict[str, Any]] = Field(
-        description="The stage's own `CreateAction`, when it returned one."
-    )
-    lines_unscored: Optional[int] = Field(
-        None,
-        description="ocr-postprocess: lines it could not score (out of GPU memory even one at a time; "
-        "its `limits_applied` `ppl_batch_lines`). They keep the converter's values in the record and "
-        "are left out of the report; the stage is then `partial`.",
-    )
-
-
 class DescribeResponse(ReformatResponse):
-    """`/describe` (parked): the docproc, the development dict, the per-page assessment and what
-    each stage did."""
+    """`/describe` (parked): the docproc, the development dict and the per-page assessment."""
 
     document: Dict[str, Any] = Field(
         description=(
-            "The converter's development dict as the stages left it: record-shaped (`pages`, `lines` with "
-            "`group_id`, `style` and decode `flags`, `content`, `tables`), never a record and never stored."
+            "The converter's development dict: record-shaped (`pages`, `lines` with `group_id`, `style` and "
+            "decode `flags`, `content`, `tables`), never a record and never stored."
         )
     )
 
     pages: List[PageReport] = Field(description="One entry per page, in page order.")
     summary: DescribeSummary
-    stages: List[StageOutcomeModel] = Field(
-        description="One entry per stage, in the order they run."
-    )
 
 
 class DigitalInfo(InfoBase):
@@ -452,9 +364,6 @@ class DigitalInfo(InfoBase):
     libreoffice: bool = Field(
         description="Whether office documents can be rendered and DOC/XLS converted in this deployment."
     )
-    stages: Dict[str, bool] = Field(
-        description="Which adjacent stages `/describe` can call (their URLs are configured)."
-    )
 
 
 _RECORD_PART_HELP = (
@@ -469,7 +378,7 @@ _FILE_HELP = (
     "(textual). Not an image: images go to the ATR (H13)."
 )
 _RENDERED_HELP = (
-    "Also return an office document's rendered PDF (`rendered_pdf`) when no page needs the ATR; it is returned "
+    "Also return an office document's rendered PDF (`rendered_pdf`) when no page shows graphics; it is returned "
     "anyway when one does."
 )
 
@@ -531,12 +440,10 @@ async def lifespan(app: FastAPI):
         # shape at the default LOG_LEVEL (atrium-project#61), and nothing else here logs at INFO.
         from api_util.digital_legacy import libreoffice_binary  # noqa: PLC0415
 
-        configured = [stage for stage, on in stages.configured().items() if on]
         logger.info(
-            "digital-convert %s ready: LibreOffice %s; /describe stages configured: %s",
+            "digital-convert %s ready: LibreOffice %s",
             app.version,
             "available" if libreoffice_binary() else "not found (DOC/XLS are refused)",
-            ", ".join(configured) or "none",
         )
     _state.warm = problem is None
     async with serve_lifecycle(_state):
@@ -547,8 +454,9 @@ app = FastAPI(
     title="ATRIUM digital-convert API",
     version=read_tool_version(Path(__file__).resolve().parent),
     description=(
-        "Born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, DOC, XLS) into the ATRIUM document record, "
-        "and a per-page assessment of whether each page's text can be used as it is."
+        "Born-digital documents (PDF, DOCX, DOC, ODT, RTF, ODS, XLSX, XLS, TXT, CSV, TSV, JSON) into docproc "
+        "(atr/docproc-json), the layout ocr-postprocess builds the record from, and a per-page assessment of "
+        "whether each page's text can be used as it is."
     ),
     lifespan=lifespan,
     responses=error_responses(422, 500),
@@ -739,7 +647,6 @@ async def info() -> Dict[str, Any]:
             for workflow in (d2j.WORKFLOW_VISUAL, d2j.WORKFLOW_TEXTUAL)
         },
         libreoffice=libreoffice_binary() is not None,
-        stages=stages.configured(),
     )
 
 
@@ -769,12 +676,12 @@ async def reformat(
 ):
     """Convert a born-digital document into docproc (§4.2; atrium-project#84).
 
-    Calls no other service. A page whose text layer cannot be used (it does not decode, it is a
-    prior OCR run, there is none, or an office page's rendering shows text its reading does not
-    place there) carries `needsAtr` with its reason and is routed `atr`; no document is refused
-    for its pages. An office document's rendered PDF comes with it when a page needs the ATR. A
-    textual input is never routed `atr`. No record is written: ocr-postprocess builds it from the
-    docproc.
+    Calls no other service. A PDF page whose text layer cannot be used (it does not decode, it is
+    a prior OCR run, there is none) carries `needsAtr` with its reason and is routed `atr`; no
+    document is refused for its pages. An office document is never routed `atr`: its text is its
+    own XML. Its rendered PDF comes with it when a page shows graphics, the pages
+    page-classification reads. A textual input is never routed `atr`. No record is written:
+    ocr-postprocess builds it from the docproc.
     """
     name, data, baseline, seed_bytes = await _read_parts(file, document_json)
 
@@ -794,7 +701,7 @@ async def reformat(
                 "reader": reader_info(document, dev),
             }
             if document.rendered_pdf is not None and (
-                rendered or docproc_writer.needs_atr(docproc)
+                rendered or docproc_writer.graphics_pages(docproc)
             ):
                 result["rendered_pdf"] = {
                     "media_type": "application/pdf",
@@ -817,7 +724,7 @@ async def reformat(
     responses={
         200: {
             "model": DescribeResponse,
-            "description": "The record, the per-page assessment, and what each adjacent stage did.",
+            "description": "The docproc, the development dict and the per-page assessment.",
         },
         **error_responses(413, 415, 429, 501, 503),
     },
@@ -829,37 +736,16 @@ async def describe(
         description=_RECORD_PART_HELP,
         json_schema_extra={"contentMediaType": "application/json"},
     ),
-    stages_requested: Optional[str] = Form(
-        None,
-        alias="stages",
-        description=(
-            "Which adjacent stages to call: a comma-separated subset of `page-classification`, `ocr-postprocess`; "
-            "empty for every configured one; `none` for none (the assessment then rests on the converter alone)."
-        ),
-    ),
-    classify_pages: Literal["needs_atr", "all", "needs_ocr"] = Form(
-        "needs_atr",
-        description=(
-            "Pages page-classification is asked about: `needs_atr`, those without a usable text layer and those "
-            "whose only text is a running header or footer over an image (default), or `all`. `needs_ocr` is the "
-            "deprecated name of `needs_atr`."
-        ),
-    ),
     include_text: bool = Form(True, description="Include each page's text in `pages[].text`."),
 ):
     """Convert a born-digital document and assess every page (§4.2). Parked: not part of the
     pilot (atrium-project#84, H11).
 
-    For each page: whether its text layer can be used, what kind of page it is
-    (page-classification), whether its text reads (ocr-postprocess), and where it should go
-    next (`nlp`, `ocr`, `htr`, `none`). A stage that is not configured, not running or answers
-    badly is reported in `stages[]`; the request still succeeds. The stages are sent the
-    converter's development dict, which stages on record schema 2.0 may refuse.
+    For each page, from what the converter itself read: whether its text layer can be used,
+    whether its characters decode, its layout, and where it should go next (`nlp`, `ocr`,
+    `htr`, `none`). It calls no other service: a page's type and the quality of its text are
+    the pipeline's own steps (page-classification, ocr-postprocess).
     """
-    try:
-        selected = stages.select_stages(stages_requested)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
     name, data, baseline, seed_bytes = await _read_parts(file, document_json)
 
     def work() -> Dict[str, Any]:
@@ -873,15 +759,9 @@ async def describe(
                 upload,
                 baseline,
                 "/describe",
-                describe={
-                    "stages": selected,
-                    "classify_pages": classify_pages,
-                    "include_text": include_text,
-                },
+                describe={"include_text": include_text},
             )
-            assessed = describe_document(
-                document, dev, data, name, selected, classify_pages, include_text
-            )
+            assessed = describe_document(document, dev, include_text)
             # The run ends with the assessment, as the command line's --describe run does.
             run.log_success("describe_json")
             current = assessed["document"]
@@ -893,7 +773,6 @@ async def describe(
                 "reader": reader_info(document, current),
                 "pages": assessed["pages"],
                 "summary": assessed["summary"],
-                "stages": assessed["stages"],
                 "paradata": _action(run, data, document, docproc, docproc_data, seed_bytes),
                 "limits_applied": run.limits,
             }

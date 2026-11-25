@@ -34,15 +34,15 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NLP_ENRICH = REPO_ROOT.parent / "atrium-nlp-enrich"
 
-#: The owner revision the copies were taken from (atrium-project#82): c9e94ee, the
-#: atrium-nlp-enrich commit of 2026-11-10 that pins flexiconv v0.3.12 (ufal/flexiconv#1); its files have
-#: the digests below. Only requirements_flexiconv.txt changed since the 2026-11-02 adoption (ba81709,
-#: v1.3.2-beta, flexiconv v0.3.11). "release" is the nlp-enrich release that will first carry it, the
-#: one after v1.3.4-beta: correct it if that release takes another number.
+#: The owner revision the copies were taken from (atrium-project#82): afc5aaf, the
+#: atrium-nlp-enrich commit of 2026-11-25 whose samples were made again with v2.0.0-beta on LINDAT
+#: (OntoNotes labels); its files have the digests below. Only the writer's sample
+#: (`data_samples/TEITOK/CTX000000002.teitok.xml`) changed since c9e94ee (2026-11-10, flexiconv
+#: v0.3.12). "release" is the nlp-enrich release that first carries it.
 ADOPTED = {
     "owner": "atrium-nlp-enrich",
-    "commit": "c9e94eeb49c60d64ae9adae97bd9643b42485837",
-    "release": "v1.3.5-beta",
+    "commit": "afc5aaf61f2454d78fcaf73135b3ad631cadbc18",
+    "release": "v2.0.0-beta",
 }
 
 VENDORED = {
@@ -56,7 +56,7 @@ VENDORED = {
     "tests/fixtures/teitok/flexiconv/md.teitok.xml": "fac1588e979eb0273938a584fe8446e1bc22f380908572372fc8092617a088e1",
     "tests/fixtures/teitok/flexiconv/page.teitok.xml": "b5749dfd7ee4317d62a6f5771b44479d202f5db3545a9dec0b741e2e03138190",
     "tests/fixtures/teitok/flexiconv/txt.teitok.xml": "178a152004ce337819e0ad0c08680a8b5d686911558d21ddef99e35ca9501e35",
-    "tests/fixtures/teitok/writer/CTX000000002.teitok.xml": "ac775d849aae7178eca2192748b5e508b71e92802282bfbad2f3969f8b40024e",
+    "tests/fixtures/teitok/writer/CTX000000002.teitok.xml": "b7b4fb4a4aeab7c0bcdf43ecabdedb8f0854e661b3bde1ca34caabba2f929456",
 }
 
 #: Copies kept under another path than in atrium-nlp-enrich: the writer's released sample

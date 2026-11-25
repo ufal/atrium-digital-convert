@@ -32,8 +32,10 @@ which gives the physical pages, their sizes in pt, the words' boxes and the page
    table spread over pages becomes one table per page, each with its rows.
 5. **Coverage.** Each rendered page counts its body words (not its running header or footer, and
    only words with a letter) and how many of them the native text matched
-   (`DigitalPage.render_words`, `render_matched`). A page whose rendering shows text the native
-   text does not place there needs the ATR (`digital_to_json.assess_page`, H12).
+   (`DigitalPage.render_words`, `render_matched`). This measures the placement; it sends no page
+   to the ATR: an office document's text is its own (`digital_to_json.assess_page`). What a page
+   shows besides that text — its images, and the drawings anchored on it (`DigitalLine.graphics`,
+   kept on a line's first visual line) — is its graphics (`digital_ir.page_graphics`).
 """
 
 from __future__ import annotations
@@ -386,7 +388,13 @@ def _segments(natives: List[_Native], words: List[_Word]) -> List[_Segment]:
                     (nat.order, n),
                     page,
                     replace(
-                        nat.line, text=text, bbox=_union(boxes), words=[], group_id=group_of(nat)
+                        nat.line,
+                        text=text,
+                        bbox=_union(boxes),
+                        words=[],
+                        group_id=group_of(nat),
+                        # a drawing anchored before the line counts once, on its first visual line
+                        graphics=nat.line.graphics if n == 0 else 0,
                     ),
                 )
             )
@@ -479,6 +487,7 @@ def place(native: DigitalDocument, rendered: DigitalDocument) -> DigitalDocument
                 unit=rp.unit,
                 text_layer=rp.text_layer,
                 images=rp.images,
+                image_boxes=[list(box) for box in rp.image_boxes],
                 vector_paths=rp.vector_paths,
                 text_objects=rp.text_objects,
                 invisible_text_objects=rp.invisible_text_objects,

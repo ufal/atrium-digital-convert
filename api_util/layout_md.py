@@ -79,10 +79,10 @@ INLINE_CUES: dict[str, str] = {
 # Detail profiles (atrium-project#70 item 1; llm-enrich#13 §B)
 #
 # What the record route (json_to_md -> xml_to_md.rows_to_layout_markdown) emits
-# at each ``detail`` level — the values of the schema's ``regenerable.<k>.detail``
-# enum. The TEXT lines are identical in all three; only cues are dropped, and the
-# cue sets nest (minimal ⊂ standard ⊂ full), so a lighter profile never says
-# anything the full one does not.
+# at each ``detail`` level (``full``, ``standard``, ``minimal``). The TEXT lines
+# are identical in all three; only cues are dropped, and the cue sets nest
+# (minimal ⊂ standard ⊂ full), so a lighter profile never says anything the full
+# one does not.
 #
 #   full      every cue the record can support: BBOX per line, DOC_META, OCR,
 #             emphasis, and LAYOUT_MARGIN on pages with a canvas and body boxes.

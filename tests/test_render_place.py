@@ -229,7 +229,10 @@ def test_ligatures_and_soft_hyphens_match():
     assert placed.pages[0].lines[0].bbox is not None
 
 
-def test_a_rendered_page_the_native_text_does_not_cover_needs_the_atr():
+def test_a_rendered_page_the_native_text_does_not_cover_keeps_its_own_text():
+    """An office document's text is its own XML, in full: a page whose rendering shows words the
+    XML does not hold (a legend drawn in a picture) is measured, never sent to the ATR
+    (v2.0.0-beta; until then RENDER_TEXT_COVERAGE sent it there)."""
     native = _native([("Krátký popis.", "p0"), ("Další strana.", "p1")])
     rendered = _rendered(
         [
@@ -239,9 +242,9 @@ def test_a_rendered_page_the_native_text_does_not_cover_needs_the_atr():
     )
     placed = d2j.normalize(place(native, rendered))
     first, second = placed.pages
-    assert not first.needs_ocr
-    assert second.needs_ocr and "does not place there" in second.needs_ocr_reason
-    assert "RENDER_TEXT_COVERAGE" in second.needs_ocr_reason
+    assert not first.needs_ocr and not second.needs_ocr
+    assert second.render_matched < second.render_words
+    assert _texts(placed) == [["Krátký popis."], ["Další strana."]]
 
 
 def test_a_few_uncovered_words_do_not_send_a_page_to_the_atr():
@@ -251,13 +254,54 @@ def test_a_few_uncovered_words_do_not_send_a_page_to_the_atr():
     assert not placed.pages[0].needs_ocr, "one list letter is not text the page lacks"
 
 
-def test_a_page_of_one_picture_needs_the_atr():
+def test_a_page_of_one_picture_goes_to_no_atr_and_shows_a_graphic():
+    """A pasted scan: the page has no text of its own, so it is routed `empty`, and its picture
+    makes it a page for page-classification (`graphics`), not for the ATR (v2.0.0-beta)."""
+    from api_util import docproc_writer
+    from api_util.digital_ir import page_graphics
+
     native = _native([("Před plánem.", "p0"), ("Po plánu.", "p1")])
     rendered = _rendered([["Před plánem."], [], ["Po plánu."]], images=[0, 1, 0])
     rendered.pages[1].text_layer = "none"
+    rendered.pages[1].image_boxes = [[40.0, 40.0, 555.0, 800.0]]
     placed = d2j.normalize(place(native, rendered))
-    assert [page.needs_ocr for page in placed.pages] == [False, True, False]
-    assert "no extractable text layer" in placed.pages[1].needs_ocr_reason
+    assert [page.needs_ocr for page in placed.pages] == [False, False, False]
+    assert [docproc_writer.route(page) for page in placed.pages] == [
+        "text-layer",
+        "empty",
+        "text-layer",
+    ]
+    assert page_graphics(placed) == [0, 1, 0]
+
+
+def test_a_drawing_counts_once_on_the_first_visual_line_of_its_line():
+    native = _native([("Graf ukazuje počty nálezů v jednotlivých sondách za celou sezónu.", "p0")])
+    native.pages[0].lines[0].graphics = 1
+    rendered = _rendered([["Graf ukazuje počty nálezů", "v jednotlivých sondách za celou sezónu."]])
+    placed = place(native, rendered)
+    assert [line.graphics for line in placed.pages[0].lines] == [1, 0]
+
+
+def test_a_logo_repeated_on_every_page_is_not_a_graphic():
+    from api_util.digital_ir import page_graphics
+
+    native = _native([("První strana.", "p0"), ("Druhá strana.", "p1")])
+    rendered = _rendered([["První strana."], ["Druhá strana."]], images=[2, 1])
+    logo = [500.0, 20.0, 560.0, 60.0]
+    rendered.pages[0].image_boxes = [list(logo), [60.0, 200.0, 400.0, 500.0]]
+    rendered.pages[1].image_boxes = [list(logo)]
+    assert page_graphics(place(native, rendered)) == [1, 0]
+
+
+def test_a_scan_on_every_page_is_a_graphic_on_every_page():
+    """A page-sized picture at the same place on every page is the pages' content, not furniture."""
+    from api_util.digital_ir import page_graphics
+
+    native = _native([("První strana.", "p0"), ("Druhá strana.", "p1")])
+    rendered = _rendered([["První strana."], ["Druhá strana."]], images=[1, 1])
+    for page in rendered.pages:
+        page.image_boxes = [[0.0, 0.0, 595.0, 842.0]]
+    assert page_graphics(place(native, rendered)) == [1, 1]
 
 
 @pytest.mark.parametrize("seed", range(5))

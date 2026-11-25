@@ -16,17 +16,19 @@ network.
 | Input                                                                                        | Output                                                                                                                                |
 |----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | **visual**: PDF; DOCX, DOC, ODT, RTF (native text on the pages of a LibreOffice rendering)   | docproc: pages, blocks with their `lines[]`, tables as `cellGrid`; validated against [its schema](schemas/docproc/README.md)          |
-| **textual**: ODS, XLSX, XLS; TXT, CSV, TSV, JSON (extracted as they are; no pages to render) | per page, `textLayer` and, where the text cannot be used, `needsAtr` with its reason; `metadata.routing` routes every page            |
-| recognised by content; images are not inputs (they go to the ATR)                            | an office document's rendered PDF, for page-classification and the ATR (`rendered_pdf`, `--rendered-out`)                             |
+| **textual**: ODS, XLSX, XLS; TXT, CSV, TSV, JSON (extracted as they are; no pages to render) | per page, `textLayer` and, for a PDF page whose text cannot be used, `needsAtr`; routing: every page, its `graphics` and `tables`     |
+| recognised by content; images are not inputs (they go to the ATR)                            | an office document's rendered PDF, for page-classification of the pages that show graphics (`rendered_pdf`, `--rendered-out`)         |
 | optionally, AMČR's seed (`doc_id`, `source.sha512`), checked against the file                | on request, the document as annotated Markdown; the run's paradata: what it read and wrote, by distribution name and SHA-512          |
 
 Two workflows:
 
-- **Visual.** A page whose text layer does not decode, is an earlier OCR run, or has no text needs the ATR, and the
-  whole document goes through the ATR once, with those pages forced. page-classification classifies those pages
-  beside it. An office document is read as its own text and placed on the pages LibreOffice renders, so it gets page
-  numbers and boxes in pt like a PDF. Its rendered PDF is what the visual steps read. A page with good text and a
-  photo stays on its text layer.
+- **Visual.** A PDF page whose text layer does not decode, is an earlier OCR run, or has no text needs the ATR,
+  and the whole document goes through the ATR once, with those pages forced. An office document never goes to the
+  ATR: it is read as its own text, in full from its XML (tables, notes, text boxes, equations, SmartArt and chart
+  text included), and placed on the pages LibreOffice renders, so it gets page numbers and boxes in pt like a PDF.
+  Every page says what it shows besides its text: `graphics` (pictures, charts, diagrams, drawings) and `tables`
+  (each a `table` block with its `cellGrid`). A page with neither holds running text only; the pages with graphics
+  are the ones for page-classification, which reads them from the PDF, or from an office document's rendered PDF.
 - **Textual.** Text with nothing to render: a spreadsheet's rows, a text file's lines, every CSV column, every JSON
   string. A sheet keeps every cell, numbers and dates as it displays them: an ODS as its file stored them, an XLSX
   or XLS as LibreOffice shows it in cs-CZ (`1,50`, `15.3.2021`). It has no geometry and never goes to the ATR, only
@@ -40,7 +42,7 @@ The service and the command line take the same inputs and give the same results:
 | Result                             | Service                                                   | Command line (`api_util/digital_to_json.py`)          |
 |------------------------------------|-----------------------------------------------------------|-------------------------------------------------------|
 | the docproc                        | `POST /reformat` → `docproc`                              | `<doc_id>.docproc.json` (or `--docproc-out PATH`)     |
-| an office document's rendered PDF  | `rendered_pdf` (a page needs the ATR, or `rendered=true`) | `--rendered-out PATH`                                 |
+| an office document's rendered PDF  | `rendered_pdf` (a page with graphics, or `rendered=true`) | `--rendered-out PATH`                                 |
 | the document as annotated Markdown | `markdown=true` → `markdown`                              | `--markdown` → `<doc_id>.md`                          |
 | the seed (read only)               | the `document_json` part                                  | `--document-json`                                     |
 | the run's paradata                 | `paradata`, a `CreateAction` in the answer                | a file, with `--paradata-dir`                         |
@@ -137,9 +139,9 @@ ATRIUM](https://marketplace.sshopencloud.eu/tool-or-service/jGxgQI).
   structure over the same lines; text it reads that no line holds keeps Docling's own box, which is not checked on a
   page whose CropBox or MediaBox is offset.
 - **An office document's pages are LibreOffice's.** They follow LibreOffice's layout with metric-compatible fonts,
-  which can break pages differently from Word. The docproc, the rendered PDF and the ATR all use the same pages.
-  Tracked changes are accepted in a DOCX, DOC and ODT before rendering, but not in an RTF. A page where the rendering
-  shows text the reading lacks goes to the ATR, so nothing is lost.
+  which can break pages differently from Word. The docproc and the rendered PDF use the same pages. Tracked
+  changes are accepted in a DOCX, DOC and ODT before rendering, but not in an RTF. An office document never goes to
+  the ATR, so text inside a picture pasted into it (a scanned page, a photo of a table) is not read.
 - **No partial output.** A step that cannot finish fails the job and writes nothing: a limit that would cut content
   (the ODF repeat cap) fails the conversion. On the command line the docproc is written before the rendered PDF and
   the Markdown, so a failure in those leaves it on disk, with paradata that say the run failed.

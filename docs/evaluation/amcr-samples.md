@@ -65,11 +65,12 @@ the following about the collection, and the converter handles each point as stat
   * memory follows the text a document holds, not its size. Budget about 1 GB plus the upload limit per
     `MAX_CONCURRENT_JOBS` slot. `MAX_UPLOAD_MB` is 250 by default;
   * Docling (`--engine docling`, on the GPU) takes 25–341 s and 2.2–7.4 GB per document;
-  * `/describe` with both stages takes up to 276 s: page-classification 135 s on 149 flagged pages, and 202 s on
-    all 529 with `classify_pages=all`. `STAGE_TIMEOUT_S` is 360 s by default.
-* **What the stages receive.** The compact record `/describe` sends a stage reached 14 MB. page-classification
-  also gets the whole PDF, and its defaults (10 MB per part, 50 pages per call) need raising for these files
-  ([the stages' own limits](../reference/parked.md#large-documents-with-describe)).
+  * `/describe` with both stages took up to 276 s: page-classification 135 s on 149 flagged pages, and 202 s on
+    all 529 with `classify_pages=all` (since v2.0.0-beta `/describe` calls neither, and the pipeline runs them as
+    its own steps).
+* **What the stages received.** The compact record `/describe` sent a stage reached 14 MB. page-classification
+  also got the whole PDF, and its defaults (10 MB per part, 50 pages per call) need raising for these files when
+  the pipeline sends them.
 * **For a model.** The Markdown runs up to about 290k tokens at `full` and 150k at `minimal` for a 400–530-page
   report, so a model stage downstream has to chunk it.
 

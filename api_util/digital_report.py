@@ -1,16 +1,13 @@
 """
 api_util/digital_report.py — the per-page assessment `/describe` answers with (#2).
 
-For every page of a converted document it says, in one place:
+For every page of a converted document it says, in one place, what digital-convert itself read:
 
   * **text_layer** — is there an embedded text layer, and can it be taken as it is?
       `digital` a layer that decodes; `garbled` a layer that exists but does not decode
       (mojibake, U+FFFD/control characters); `ocr` the layer is a prior OCR run's invisible text;
       `none` no text layer (a scan, text drawn as curves, an empty page); `blank` an empty page
       of a format without page images (DOCX/ODT/sheets) — nothing to re-acquire.
-  * **category** — what kind of page it is, from page-classification (when it ran for the page).
-  * **quality** — does the text read as language: ocr-postprocess's common line-quality model,
-    null when it did not run.
   * **decode** — do the characters decode: the converter's own check, apart from quality (D18
     rules 2 and 3): the page's `decode_score` and its lines per decode flag (`decode:garbled`,
     `decode:inverted`). It says "decodes", never "reads well".
@@ -23,9 +20,15 @@ For every page of a converted document it says, in one place:
     without a Unicode mapping are counted (`layout.damaged_words`) but route nothing: since
     atrium-digital-convert#9 (point 3, 11-13) they are a question of text quality, for
     ocr-postprocess's scoring (#5 routed such a page to `ocr` from 10-22).
-    A `digital` page also goes to `ocr` instead of `nlp`
-    when the quality model calls more than ROUTE_TRASH_SHARE of its *prose* lines Trash. A prose
-    line is outside a table, at least `PROSE_MIN_CHARS` long, mostly letters and not a dot
+  * **layout** and **text** — what the converter found on the page.
+
+Since v2.0.0-beta `/describe` calls no other tool, so the report routes by the converter's own
+signals: a page that does not decode, or has no text layer, goes to `ocr` (its page type is not
+known here). `route_page` also holds the rules for the answers of the pipeline's own steps, for a
+caller that has them (`tools/samples_report.py` re-applies them to the #5 runs):
+    A `digital` page goes to `ocr` instead of `nlp`
+    when the quality model calls more than `trash_share_limit` (0.5) of its *prose* lines Trash. A
+    prose line is outside a table, at least `PROSE_MIN_CHARS` long, mostly letters and not a dot
     leader, and the page needs `MIN_PROSE_LINES` of them: the model is trained on running text,
     and on born-digital pages its Trash lines are table cells, codes, coordinates and tables of
     contents, whose text is exact (612 of 1,981 AMČR pages were moved for that before #5).
@@ -33,14 +36,12 @@ For every page of a converted document it says, in one place:
     routed by its page type when page-classification gave one: a drawing with a legend or a
     page of text carries its text in the image, which the text layer does not hold (#5: six
     excavation plans whose labels nothing read).
-  * **layout** and **text** — what the converter found on the page.
 
-Everything here is derived: from the converter's internal document, the record and the stages'
-answers. Nothing is stored — docproc keeps the persisted signals (`needsAtr` and its reason, the
-decode flags), the record `category` and the quality fields, and this view is regenerated from
-them on request.
+Everything here is derived from the converter's internal document. Nothing is stored — docproc
+keeps the persisted signals (`needsAtr` and its reason, the decode flags), and this view is
+regenerated from them on request.
 
-The route rules are deterministic and deliberately simple (README, "The per-page report"). Page
+The route rules are deterministic and deliberately simple (docs/reference/parked.md). Page
 categories are read through `atrium_vocab.COLLECTIONS["page-category"]` (handwritten / printed /
 typed / graphical / tabular), so a category added to the registry is routed without an edit here.
 """
@@ -387,33 +388,17 @@ def _layout(page: DigitalPage) -> Dict[str, Any]:
     return layout
 
 
-def build_report(
-    document: DigitalDocument,
-    categories: Optional[Mapping[int, Mapping[str, Any]]] = None,
-    quality: Optional[Mapping[int, Mapping[str, Any]]] = None,
-    trash_share_limit: float = 0.5,
-    include_text: bool = True,
-) -> Dict[str, Any]:
-    """`{"pages": [...], "summary": {...}}` for a converted document.
-
-    `categories` and `quality` are keyed by `page_index` (1-based): what page-classification
-    and ocr-postprocess answered for that page, as `stages.py` normalises it.
-    `trash_share_limit` is ROUTE_TRASH_SHARE (`tool_limits.py`).
-    """
-    categories = categories or {}
-    quality = quality or {}
+def build_report(document: DigitalDocument, include_text: bool = True) -> Dict[str, Any]:
+    """`{"pages": [...], "summary": {...}}` for a converted document, from its own signals."""
     collections = page_category_collections()
     pages: List[Dict[str, Any]] = []
     for page in document.pages:
         layer = text_layer_of(page)
-        category = categories.get(page.page_index)
-        page_quality = quality.get(page.page_index)
         layout = _layout(page)
         route, reason = route_page(
             layer,
-            (category or {}).get("label"),
-            page_quality,
-            trash_share_limit=trash_share_limit,
+            None,
+            None,
             collections=collections,
             drew_anything=bool(page.images or page.vector_paths or page.lines),
             furniture_only=furniture_only(page),
@@ -424,8 +409,6 @@ def build_report(
             "text_layer": layer,
             "needs_atr": bool(page.needs_ocr),
             "needs_atr_reason": page.needs_ocr_reason or None,
-            "category": dict(category) if category else None,
-            "quality": dict(page_quality) if page_quality else None,
             "decode": _decode_check(page),
             "route": route,
             "route_reason": reason,

@@ -57,7 +57,7 @@ python3 api_util/digital_to_json.py report.pdf  --out-dir out/ --markdown
 | `--document-json`                                    | the AMČR seed, read only: its `doc_id` names the output, its `source.sha512` is checked                                      |
 | `--doc-id`                                           | override the doc_id derived from the file name (a seed's doc_id always wins)                                                 |
 | `--engine`                                           | `light` (default) or `docling` (PDF only, needs `requirements_digital_docling.txt` and its models)                           |
-| `--rendered-out`                                     | also write an office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc refers to, for the visual steps    |
+| `--rendered-out`                                     | also write an office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc refers to, for page-classification |
 | `--paradata-dir`                                     | also write the run's paradata record (the original read, the docproc written, by SHA-512)                                    |
 | `--markdown [PATH]`                                  | also write the document as annotated Markdown, as `/reformat`'s `markdown=true` (default `<doc_id>.md` beside the docproc)   |
 
@@ -92,8 +92,8 @@ curl -F file=@report.pdf -F document_json=@seed.json -F markdown=true http://loc
 | Endpoint                         | Does                                                                                                 | Calls other services                                              |
 |----------------------------------|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | `POST /reformat`                 | file (+ seed) → `docproc`, Markdown on request, `paradata`                                           | **never**                                                         |
-| `POST /describe` (parked)        | the per-page assessment ([parked features](reference/parked.md))                                     | page-classification and ocr-postprocess, **only when configured** |
-| `GET /info`, `/health`, `/ready` | the ATRIUM service contract: identity, limits, readers, LibreOffice availability, stages configured  | —                                                                 |
+| `POST /describe` (parked)        | the per-page assessment ([parked features](reference/parked.md))                                     | **never**                                                         |
+| `GET /info`, `/health`, `/ready` | the ATRIUM service contract: identity, limits, readers, LibreOffice availability                     | —                                                                 |
 
 The command line gives every result of `/reformat`: the docproc, the rendered PDF and `--markdown` (above). Where
 the two differ, and why: [The command line and the service](#the-command-line-and-the-service).
@@ -111,7 +111,7 @@ attached to every release.
 | `digital`         | `ghcr.io/ufal/atrium-digital-convert-digital` | the converter's command line (published, never pinned)                                    |
 | `digital-docling` | built locally                                 | the heavy PDF engine, with Docling's models downloaded at build time                      |
 
-The tag is the release **without** its leading `v` (`1.4.7-beta` for `v1.4.7-beta`); the target is
+The tag is the release **without** its leading `v` (`2.0.0-beta` for `v2.0.0-beta`); the target is
 part of the image name.
 
 The batch image passes its arguments to `api_util/digital_to_json.py` (`docker run IMAGE /data/report.pdf
@@ -129,7 +129,7 @@ docker build --target digital-docling -t atrium-digital-convert-digital-docling 
 
 * **Image contents.** [`.github/production-image.json`](../.github/production-image.json) declares
   the first-party files of the `api` image. The hub's `tools/ci/image_closure.py` checks it on every
-  pull request; research tools, tests and the stage stub stay out (`.dockerignore`).
+  pull request; research tools and tests stay out (`.dockerignore`).
 * **Image size.** LibreOffice (writer and calc, `-nogui`) adds roughly 300 MB to `digital` and `api`.
 
 > [!NOTE]
@@ -151,12 +151,12 @@ a broken package, and seeds that match, mismatch or cannot be opened.
 | Input or setting                   | Command line                                                                                                   | Service                                                           | Same?                                                                  |
 |------------------------------------|----------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------|
 | The formats, recognised by content | visual: PDF, DOCX, DOC, ODT, RTF; textual: ODS, XLSX, XLS, TXT, CSV, TSV, JSON                                 | the same                                                          | the same                                                               |
-| An office document's rendered PDF  | `--rendered-out PATH`                                                                                          | `rendered_pdf` when a page needs the ATR, or with `rendered=true` | the same bytes and SHA-512                                             |
+| An office document's rendered PDF  | `--rendered-out PATH`                                                                                          | `rendered_pdf` when a page shows graphics or with `rendered=true` | the same bytes and SHA-512                                             |
 | An empty file                      | exit 4, `corrupt`                                                                                              | 422, `cause: corrupt`                                             | the same                                                               |
 | A seed                             | `--document-json`; its `source.sha512` checked; read only                                                      | the `document_json` part; checked the same way                    | the same                                                               |
 | A seed that cannot be opened       | exit 3, `invalid_record`                                                                                       | 422 `invalid_record`                                              | the same                                                               |
 | The doc_id                         | from the file name; `--doc-id` overrides it; a seed's wins                                                     | from the upload's name; a seed's wins                             | the same derivation; `--doc-id` is for a pipeline driver               |
 | Markdown                           | `--markdown`, the `full` profile; others with `api_util/json_to_md.py --detail`                                | `markdown=true`, the `full` profile                               | the same                                                               |
 | The engine                         | `light`, or `--engine docling` (a local build)                                                                 | `light`                                                           | differs: Docling is not in the image                                   |
-| Limits                             | `MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`, `RENDER_TEXT_COVERAGE`, `MAX_LINE_CHARS`; `MAX_UPLOAD_MB` in the readers | all, and the upload itself, `MAX_CONCURRENT_JOBS`                 | differs: the service bounds what it accepts                            |
+| Limits                             | `MAX_PAGES`, `LIBREOFFICE_TIMEOUT_S`, `MAX_LINE_CHARS`; `MAX_UPLOAD_MB` in the readers                         | all, and the upload itself, `MAX_CONCURRENT_JOBS`                 | differs: the service bounds what it accepts                            |
 | Paradata                           | a file, with `--paradata-dir`                                                                                  | the answer's `paradata`, a `CreateAction`; config adds `endpoint` | the same parameters and counts                                         |

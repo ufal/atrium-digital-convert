@@ -9,24 +9,21 @@ repository_fallback = https://github.com/ufal/atrium-digital-convert
 
 [components]
 # name = <license> ; <always|conditional> ; <role>
-# "always"      -> component is part of every core run (worst-case baseline)
-# "conditional" -> only counts toward the license when log_component() is called
-#                  (or, via the CLI shim, when `--component NAME` is passed to
-#                  `start`/`success`).
+# "always"      -> listed in the `components` of every run's paradata
+# "conditional" -> listed only when the run calls log_component() (or, via the CLI
+#                  shim, when `--component NAME` is passed to `start`/`success`).
+# Paradata 3.0 list each component a run used with these terms, as facts: no licence is
+# computed or merged from them (D2, atrium-project#84).
 #
 # ── the born-digital converter (program `digital-convert`) ─────────────────────
-# It is not bookkeeping. Without these rows log_component("pdfplumber") stores
-# "UNKNOWN", and para_licenses.resolve_effective_license() treats UNKNOWN as
-# MAXIMALLY RESTRICTIVE, so a born-digital record would come out with
-# `provenance.license = "UNKNOWN"` — worse than the conservative CC BY-NC 4.0
-# default, and the opposite of the permissive result the pdfplumber-over-PyMuPDF
-# choice in requirements_digital.txt exists to secure.
+# Without these rows log_component("pdfplumber") would list the component with the terms
+# "UNKNOWN".
 #
-# All "conditional": a run only touches the libraries the input format needs.
-# api_util/digital_to_json.py LOGS what it uses (license_detail_for()). The light
+# All "conditional": a run only touches the libraries the input format needs, and
+# api_util/digital_to_json.record_run() logs what it used, with versions. The light
 # engine's rows are the libraries that parse the file (pdfminer.six under pdfplumber;
 # pypdfium2 for page labels and the OCR-layer census; lxml under python-docx and the
-# shared reader) plus jsonschema, which gates every record.
+# shared reader) plus jsonschema, which gates every docproc.
 pdfplumber   = MIT          ; conditional ; born-digital PDF words, geometry, fonts, ruled tables
 pdfminer.six = MIT          ; conditional ; PDF parser under pdfplumber
 pypdfium2    = Apache-2.0   ; conditional ; PDF page labels + text render mode (OCR-layer census), page counts
@@ -43,16 +40,14 @@ text_formats = MIT          ; conditional ; ODT/ODS/XLSX/RTF reader, text decodi
 # DOCX/XLSX before the readers above read it, and since atrium-digital-convert#9 renders an office
 # document (DOCX, DOC, ODT, RTF) to PDF for its pages; the text stays the native readers'. AMČR's
 # condition on #4 was that it "adds nothing to the licence of the record": paradata 3.0 computes no
-# licence at all (D2, atrium-project#84), so it is now LOGGED like every component a run uses, with
-# its version, as a fact (api_util/digital_to_json.record_run). Until 3.0 it was declared and never
-# logged, because logging it would have put MPL 2.0 into the record's licence union.
+# licence at all (D2, atrium-project#84), so it is LOGGED like every component a run uses, with
+# its version, as a fact (api_util/digital_to_json.record_run).
 libreoffice  = MPL 2.0      ; conditional ; DOC -> DOCX and XLS -> XLSX conversion; office documents rendered to PDF for their pages (api_util/digital_legacy.py, api_util/office_render.py)
 #
 # Heavy engine (`--engine docling`, requirements_digital_docling.txt; PDF only; a local
 # build, never in the service image). The two model rows are the weights Docling downloads,
 # licensed separately from its MIT code. TableFormer's weights are CDLA-Permissive-2.0,
-# which para_licenses.py ranks with MIT: it places no terms on Results, the output of a
-# computation over the data. So a docling run's record resolves to MIT.
+# which places no terms on Results, the output of a computation over the data.
 docling              = MIT                 ; conditional ; heavy PDF engine: layout + table structure
 docling-parse        = MIT                 ; conditional ; Docling's PDF backend
 docling-layout-heron = Apache-2.0          ; conditional ; layout model weights (docling-project/docling-layout-heron)
@@ -71,9 +66,8 @@ flexiconv   = MIT     ; conditional ; flexiconv document -> TEITOK converter (ap
 # Clef-Flash (Cloudflare) and Strands Decider 2B, all Apache-2.0. No image and no service run them.
 decision_model = Apache-2.0 ; conditional ; decision models (Clef, Clef-Flash, Strands Decider 2B) for the #8 experiments
 #
-# PyMuPDF is intentionally NOT listed. It is AGPL-3.0, and rule 5's most-restrictive union
-# would put AGPL-3.0 into provenance.license for every born-digital document. See
-# requirements_digital.txt before adding it.
+# PyMuPDF is intentionally NOT listed and not used: it is AGPL-3.0, and every born-digital run
+# would list it. See requirements_digital.txt before adding it.
 #
 # The LLM/vocabulary rows (amcr_vocab, teater_data and the model TODO) left with the keyword
 # code for atrium-keyword-extract (atrium-digital-convert#1).

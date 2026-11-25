@@ -180,7 +180,7 @@ def test_deep_health_reports_draining_with_operator_fields():
 # tests/test_openapi_contract.py (canonical, vendored) checks the committed spec itself. What
 # these add is the part only this repo can do: drive the real endpoints on the generated digital
 # fixtures and hold every response — 200s and refusals alike — to the schema the PUBLISHED spec
-# declares for it. No stage is configured here (tests/test_describe.py drives the stages).
+# declares for it.
 
 import hashlib  # noqa: E402
 import json  # noqa: E402
@@ -195,12 +195,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "fixtures" / "digital")
 import make_fixtures  # noqa: E402
 
 pytestmark = [pytest.mark.filterwarnings("ignore::DeprecationWarning")]
-
-
-@pytest.fixture(autouse=True)
-def _no_stages(monkeypatch):
-    for name in ("PAGE_CLASSIFICATION_URL", "OCR_POSTPROCESS_URL"):
-        monkeypatch.delenv(name, raising=False)
 
 
 def _conforms(path, status, response):
@@ -407,10 +401,10 @@ def test_a_draining_service_refuses_new_work_with_503():
         _state.draining = was
 
 
-def test_describe_without_stages_conforms_and_routes_every_page():
+def test_describe_conforms_and_routes_every_page():
     files = {"file": ("img.pdf", _pdf("image_only.pdf"), "application/pdf")}
     body = _conforms("/describe", 200, client.post("/describe", files=files))
-    assert [s["status"] for s in body["stages"]] == ["not_configured", "not_configured"]
+    assert "stages" not in body
     routes = [(p["text_layer"], p["route"]) for p in body["pages"]]
     assert routes[0] == ("digital", "nlp") and routes[1] == ("none", "ocr")
     assert (
@@ -418,13 +412,6 @@ def test_describe_without_stages_conforms_and_routes_every_page():
         and body["summary"]["document_route"] == "mixed"
     )
     assert atrium_rocrate.action_problems(body["paradata"]) == []
-
-
-def test_describe_refuses_an_unknown_stage_name():
-    files = {"file": ("zprava.pdf", _pdf(), "application/pdf")}
-    response = client.post("/describe", files=files, data={"stages": "ocr-postprocess,translator"})
-    body = _conforms("/describe", 422, response)
-    assert "translator" in body["detail"]
 
 
 def test_the_rename_from_llm_enrich_is_declared_in_the_spec():

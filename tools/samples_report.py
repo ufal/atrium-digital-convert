@@ -15,24 +15,33 @@ PDFs (the 15 AMČR documents of atrium-digital-convert#5) and leaves one run dir
                suggests, and the delivery set (one record and one `/describe` report per
                document)
 
+It reads the run directories of the 1.x command line (October 2026), which wrote a record with
+`--document-json-out`; since v2.0.0-beta the command line writes docproc, so a new run needs
+this tool adapted first.
+
     python tools/samples_report.py inventory --samples DIR --out RUN/02_inventory/inventory.tsv
     python tools/samples_report.py measure --out RUN/10_cli_light/X.run.json --timeout 7200 -- \\
-        python api_util/digital_to_json.py X.pdf --document-json-out RUN/10_cli_light/X.document.json
+        python api_util/digital_to_json.py X.pdf --document-json-out RUN/10_cli_light/X.document.json  # 1.x
     python tools/samples_report.py report --samples DIR --run RUN --thumbnails
 
 The run directory; every stage is optional and one that did not run shows as "—":
 
     02_inventory/inventory.tsv, .env      `inventory` (the .env holds shell variables for the job)
-    10_cli_light/<doc>.document.json      the CLI's record; <doc>.run.json (`measure`), <doc>.err
+    10_cli_light/<doc>.document.json      the 1.x CLI's record; <doc>.run.json (`measure`), <doc>.err
     11_cli_negative/results.tsv           check, expected, got, ok
     20_cli_docling/<doc>.*                as 10, with `--engine docling`
     30_markdown/<doc>.<detail>.md         `json_to_md.py --detail full|standard|minimal`
     40_service_contract/results.tsv       check, expected, got, ok
     41_reformat/<doc>.reformat.json       `/reformat markdown=true`; <doc>.run.json: http, wall_s,
                                           vmhwm_ready_kb, vmhwm_after_kb (the server's peak memory)
-    50_describe_none/<doc>.describe.json  `/describe stages=none`; <doc>.run.json: http, wall_s
+    50_describe_none/<doc>.describe.json  `/describe` (`stages=none` before v2.0.0-beta);
+                                          <doc>.run.json: http, wall_s
     61_describe_stages/<doc>.*            `/describe` with page-classification and ocr-postprocess
     62_describe_all/<doc>.*               `/describe stages=page-classification classify_pages=all`
+
+61 and 62 exist only in runs made before v2.0.0-beta, when `/describe` called those two tools
+(the #5 run of 2026-10): it calls no other tool since, so a new run has neither. Their columns
+show as "—" then.
 
 Image coverage is the share of a page's crop box under the union of its image objects, measured
 by `api_util/pdf_coverage.py`: the same helper the light engine applies to a page whose only text
@@ -73,9 +82,9 @@ from api_util.pdf_coverage import image_boxes, page_frame, union_share  # noqa: 
 PC_RENDER_DPI = 300
 PC_MAX_IMAGE_PIXELS = 178_956_970
 #: The other defaults the limits table compares with (each service's tool_limits.py). This
-#: repository's upload default is 250 since 2026-10-22 (200 from the #5 run, 50 before), its stage
-#: timeout 360 since the re-run (120 before).
-DEFAULTS = {"upload": 250, "pages": 2000, "stage_timeout": 360, "pc_upload": 10, "pc_pages": 50}
+#: repository's upload default is 250 since 2026-10-22 (200 from the #5 run, 50 before). Its stage
+#: timeout (`STAGE_TIMEOUT_S`) is gone since v2.0.0-beta: `/describe` calls no other tool.
+DEFAULTS = {"upload": 250, "pages": 2000, "pc_upload": 10, "pc_pages": 50}
 #: The share of a `digital` page's body words losing a letter (U+FFFD) at which #5 sent the page to
 #: OCR (ROUTE_DAMAGED_WORD_SHARE, 10-22 to 11-13; removed by #9: such pages are left to scoring). Kept
 #: here to report the #5 samples as they were measured.
@@ -107,7 +116,7 @@ TEXT_LAYERS = ("digital", "garbled", "ocr", "none", "blank")
 DETAILS = ("full", "standard", "minimal")
 ROUTES = ("nlp", "ocr", "htr", "none")
 PC, OP = "page-classification", "ocr-postprocess"
-#: Stage statuses that are not worth listing as a problem (service/stages.py).
+#: Stage statuses that are not worth listing as a problem (`service/stages.py` before v2.0.0-beta).
 QUIET = {"ok", "skipped", "not_requested", "not_configured"}
 
 INVENTORY, CLI, NEGATIVE, DOCLING = (
@@ -410,7 +419,8 @@ def record_facts(record: Mapping[str, Any], prefix: str = "") -> Dict[str, Any]:
     facts["needs_ocr"] = len(flagged)
     facts["needs_ocr_pages"] = _ranges(p.get("page_index") for p in flagged)
     facts["needs_ocr_kinds"] = "; ".join(f"{k} ×{n}" for k, n in kinds.most_common())
-    # The size of the record part `/describe` sends a stage (service/stages.py `_record_part`).
+    # The size of the record part `/describe` sent a stage (`service/stages.py` `_record_part`,
+    # before v2.0.0-beta).
     facts["record_mb"] = round(len(json.dumps(record, ensure_ascii=False).encode()) / MIB, 2)
     return facts
 
@@ -963,24 +973,10 @@ def limits_md(run: Run, rows: Sequence[Mapping[str, Any]]) -> str:
     record, flagged = top("record_mb", rows), int(top("needs_ocr", rows))
     over = sum(_int(r.get("pages_over_pc_pixels")) or 0 for r in run.inventory)
     upload = max(DEFAULTS["upload"], math.ceil(largest / 10) * 10)
-    stage_calls = [
-        (_num(s.get("elapsed_s")), str(s.get("status")), str(s.get("detail") or ""))
-        for name in (DESCRIBE, DESCRIBE_ALL)
-        for path in sorted((run.root / name).glob("*.describe.json"))
-        for s in (_load_json(path) or {}).get("stages") or []
-        if isinstance(s, dict)
-    ]
-    answered = [t for t, status, _ in stage_calls if t is not None and status in ("ok", "partial")]
-    timed_out = [
-        d for _, status, d in stage_calls if status == "unavailable" and "STAGE_TIMEOUT_S" in d
-    ]
     table = [
         ["digital-convert", "MAX_UPLOAD_MB", DEFAULTS["upload"], upload, "the largest file, rounded up to 10 MB"],
         ["digital-convert", "MAX_PAGES", DEFAULTS["pages"], max(DEFAULTS["pages"], math.ceil(max_pages / 500) * 500),
          "unchanged unless a document has more pages"],
-        ["digital-convert", "STAGE_TIMEOUT_S", DEFAULTS["stage_timeout"],
-         max(DEFAULTS["stage_timeout"], math.ceil(max(answered) * 1.5 / 60) * 60) if answered else "",
-         f"the slowest stage call ({max(answered):.0f} s) × 1.5" if answered else "needs runs 61/62"],
         ["page-classification", "MAX_UPLOAD_MB", DEFAULTS["pc_upload"],
          max(DEFAULTS["pc_upload"], math.ceil(max(largest, record) / 10) * 10),
          "per part: the PDF, and the record `/describe` sends with it"],
@@ -1041,12 +1037,6 @@ def limits_md(run: Run, rows: Sequence[Mapping[str, Any]]) -> str:
             f"converted, in {min(seconds):g}–{max(seconds):g} s each, peaking at "
             f"{min(peaks_gb):.1f}–{max(peaks_gb):.1f} GB{f' (GPU: {gpu})' if gpu else ''}. The service "
             "image runs the light engine only; budget Docling per job when a batch runs it.",
-        ]
-    if timed_out:
-        text += [
-            "",
-            f"**Timeouts.** {len(timed_out)} stage call(s) hit STAGE_TIMEOUT_S, so the "
-            "suggestion above is a lower bound: raise the timeout and re-run 61/62.",
         ]
     return "\n".join(text) + "\n"
 

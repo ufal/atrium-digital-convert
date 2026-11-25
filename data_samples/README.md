@@ -38,18 +38,17 @@ quality, left to ocr-postprocess's scoring of its lines. The caption on page 4 o
 
 | Folder                                    | File per document     | What it is                                                                                                                         |
 |-------------------------------------------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `docproc/light/`                          | `<doc>.docproc.json`  | The CLI's docproc (`atr/docproc-json`), light engine: lines with their positions, tables, and every page's verdict and `needsAtr`. |
+| `docproc/light/`                          | `<doc>.docproc.json`  | The CLI's docproc (`atr/docproc-json`), light engine: lines with their positions, tables, every page's verdict and its routing.    |
 | `docproc/docling/`                        | `<doc>.docproc.json`  | The same with `--engine docling` (Docling's layout and table models), for comparison.                                              |
 | `markdown/full/`, `standard/`, `minimal/` | `<doc>.<detail>.md`   | The document as Markdown at three levels of detail. A page without usable text carries a `<!-- NEEDS_OCR: … -->` cue.              |
 | `reports/reformat/`                       | `<doc>.reformat.json` | The service's `/reformat` answer with `markdown=true`: the docproc and its Markdown.                                               |
-| `reports/describe/none/`                  | `<doc>.describe.json` | `/describe` without other services: per page, its text layer and where it goes next (`route`, `route_reason`).                     |
-| `reports/describe/stages/`                | `<doc>.describe.json` | `/describe` with page-classification (on the pages without usable text) and ocr-postprocess's line-quality model (on the text).    |
-| `reports/describe/all/`                   | `<doc>.describe.json` | `/describe` with page-classification on every page: the page type of each one.                                                     |
+| `reports/describe/none/`                  | `<doc>.describe.json` | `/describe`, which calls no other service: per page, its text layer and where it goes next (`route`, `route_reason`).              |
 
 The `reports/describe/` answers come from the per-page assessment, parked during the AMČR pilot
-([parked features](../docs/reference/parked.md)). Their routes, page types and quality bands come from the two
-services' models, page-classification 1.9.10-beta and ocr-postprocess 1.12.1-beta, which still accepted the
-converter's development dict; the versions are in each report (`stages[].service_version`, `paradata`).
+([parked features](../docs/reference/parked.md)). Until v2.0.0-beta `/describe` could also call page-classification
+and ocr-postprocess; the answers made that way (`stages/`, `all/`) are no longer committed: page-classification
+1.9.10-beta and ocr-postprocess 1.12.1-beta returned a 1.0 record that carried a calculated licence, which record
+schema 2.0 removed. Git history up to `v1.4.7-beta` keeps them.
 
 ## Making them again
 
@@ -67,15 +66,10 @@ python3 api_util/doc_to_visual_md.py X.pdf --detail full --output data_samples/m
 curl -F file=@X.pdf -F markdown=true http://localhost:8000/reformat       # this service on port 8000
 ```
 
-The `/describe` reports also need the two stages, each on a port of its own: page-classification with
-`PORT=8001 python -m service.api` in its checkout, ocr-postprocess with `PORT=8002 python service/text_api.py` in
-its checkout, and this service started with `PAGE_CLASSIFICATION_URL=http://localhost:8001` and
-`OCR_POSTPROCESS_URL=http://localhost:8002`:
+The `/describe` report:
 
 ```bash
-curl -F file=@X.pdf -F stages=none http://localhost:8000/describe
 curl -F file=@X.pdf http://localhost:8000/describe
-curl -F file=@X.pdf -F stages=page-classification -F classify_pages=all http://localhost:8000/describe
 ```
 
 `standard` and `minimal` Markdown take `--detail standard` and `--detail minimal`.

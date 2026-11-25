@@ -10,12 +10,15 @@ startup, naming the variable (``atrium_limits.LimitConfigError``). ``.env.exampl
 checks that they agree.
 
 What happens over each limit — refused (with the HTTP status), or a policy threshold — is said
-beside it. Four entries are POLICY thresholds rather than size caps
-(``ROUTE_TRASH_SHARE``, ``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``,
-``RENDER_TEXT_COVERAGE``): they are declared here all
-the same, because a value a deployment may change and a client must be able to read back is exactly what ``/info``
-``limits`` is for. ``ROUTE_DAMAGED_WORD_SHARE`` (#5, 10-22) is gone: words that lose letters route nothing since
-atrium-digital-convert#9.
+beside it. Two entries are POLICY thresholds rather than size caps
+(``FURNITURE_ONLY_IMAGE_COVERAGE``, ``BOLD_HEADING_MAX_SHARE``): they are declared here all the
+same, because a value a deployment may change and a client must be able to read back is exactly
+what ``/info`` ``limits`` is for. ``ROUTE_DAMAGED_WORD_SHARE`` (#5, 10-22) is gone: words that lose
+letters route nothing since atrium-digital-convert#9. ``STAGE_TIMEOUT_S`` and ``ROUTE_TRASH_SHARE``
+are gone since v2.0.0-beta: ``/describe`` calls no other tool, so it waits for no stage and has no
+quality verdict to route by. ``RENDER_TEXT_COVERAGE`` is gone since v2.0.0-beta too: an office
+document never goes to the ATR, so no page of it is judged by how much of its rendering the text
+covers.
 
 Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
 CLI converter imports this too.
@@ -51,22 +54,6 @@ LIBREOFFICE_TIMEOUT_S = limit(
     "LIBREOFFICE_TIMEOUT_S", 120, unit="s", kind=float, minimum=1, status=422
 )
 
-#: Seconds `/describe` waits for one call to an adjacent stage (page-classification,
-#: ocr-postprocess). Over it the stage is reported ``unavailable``; the request still succeeds.
-#: The slowest call measured on the AMČR samples (atrium-digital-convert#5) was page-classification
-#: on all 529 pages of one report, 202 s (135 s on its 149 flagged pages): 360 is that × 1.5, up
-#: from 120.
-STAGE_TIMEOUT_S = limit("STAGE_TIMEOUT_S", 360, unit="s", kind=float, minimum=1)
-
-#: POLICY (`/describe` only). A page whose text layer decodes is routed to NLP — unless the
-#: common quality model (ocr-postprocess) calls more than this share of its prose lines
-#: ``Trash``; then the page is routed to OCR instead. Prose lines are those outside tables, of at
-#: least 20 characters, mostly letters and not a table of contents; a page needs 5 of them
-#: (``api_util/digital_report.py``). Lines without a verdict do not count. Since
-#: atrium-digital-convert#5: counted over every line, the rule sent 612 of 1,981 born-digital AMČR
-#: pages to OCR for their table cells, codes and coordinates.
-ROUTE_TRASH_SHARE = limit("ROUTE_TRASH_SHARE", 0.5, unit="share", kind=float, minimum=0, maximum=1)
-
 #: POLICY. A PDF page whose only text is its running header or footer (a page number, a stamp)
 #: is ``none`` — no text layer under the furniture, ``needs_ocr`` — when its images cover at
 #: least this share of the page: a scan the PDF's producer numbered (atrium-digital-convert#5).
@@ -83,16 +70,6 @@ FURNITURE_ONLY_IMAGE_COVERAGE = limit(
 #: document that sets whole paragraphs in bold has no bold titles to find. 0 switches it off.
 BOLD_HEADING_MAX_SHARE = limit(
     "BOLD_HEADING_MAX_SHARE", 0.25, unit="share", kind=float, minimum=0, maximum=1
-)
-
-#: POLICY (atrium-digital-convert#9). An office document's text is read natively and placed on
-#: the pages of its rendering (``api_util/render_place.py``). A rendered page whose body words the
-#: document's own text covers less than this share of (and at least 3 words are not covered) shows
-#: text the reading does not place there: a drawing, a chart, an embedded object, a change the
-#: rendering shows. Such a page needs the ATR (H12: a page that cannot be used is ``needs_atr``).
-#: Running headers and footers, and words without a letter (list numbers, page numbers), do not count.
-RENDER_TEXT_COVERAGE = limit(
-    "RENDER_TEXT_COVERAGE", 0.8, unit="share", kind=float, minimum=0, maximum=1
 )
 
 #: Characters in one line of a text-only input (TXT, CSV, TSV, JSON) or a spreadsheet row, which
@@ -118,11 +95,8 @@ LIMITS = LimitSet(
     MAX_PAGES,
     MAX_CONCURRENT_JOBS,
     LIBREOFFICE_TIMEOUT_S,
-    STAGE_TIMEOUT_S,
-    ROUTE_TRASH_SHARE,
     FURNITURE_ONLY_IMAGE_COVERAGE,
     BOLD_HEADING_MAX_SHARE,
-    RENDER_TEXT_COVERAGE,
     MAX_LINE_CHARS,
     ODF_REPEAT_CAP,
 )

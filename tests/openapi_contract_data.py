@@ -27,10 +27,6 @@ SERVICES = [
 #: Settings besides every [limit] variable (which the test perturbs from tool_limits.LIMITS)
 #: that a deployment changes and that must not change the spec.
 ENV_PERTURB = {
-    "PAGE_CLASSIFICATION_URL": "http://page-classification.example:8000",
-    "OCR_POSTPROCESS_URL": "http://ocr-postprocess.example:8000",
-    "PAGE_CLASSIFICATION_VERSION": "v4.3",
-    "PAGE_CLASSIFICATION_TOPN": "5",
     "LIBREOFFICE_BIN": "/usr/bin/soffice",
     "ALLOWED_ORIGINS": "https://example.org",
 }

@@ -79,20 +79,14 @@ a place; they are not interchangeable.
 
 ## The PyMuPDF licence A/B — run this before PR 3
 
-**Why it matters more than a normal dependency choice.** Rule 5 of the accretion contract
-merges component licences as a **most-restrictive union** into `provenance.license` on
-every document record. Declaring PyMuPDF (AGPL-3.0) as a component of a `digital-convert`
-run therefore sets `provenance.license = AGPL-3.0` for **every digital-born document**. That
-field is a calculated label (`license_basis: "calculated"`), not the output's licence
-(atrium-project#6), but it would name AGPL-3.0 on every record of an entire input class.
+**Why it matters more than a normal dependency choice.** Every `digital-convert` run lists the
+components it used, each with its terms, in its paradata (paradata 3.0 compute no licence from
+them; atrium-project#84, #6). Depending on PyMuPDF (AGPL-3.0) would put AGPL-3.0 terms into
+the run of **every digital-born document**.
 
-That union only works if the components are *declared*. `../para_config.txt` now carries
-`[components]` rows for `docling`, `pdfplumber`, `python-docx` and `docx2python` — without
-them `log_component()` records `UNKNOWN`, `para_licenses` treats `UNKNOWN` as maximally
-restrictive, and a digital-born record came out with `provenance.license = "UNKNOWN"`
-regardless of how permissive the real stack was. Add a library to
-`../requirements_digital.txt` and to `../para_config.txt` in the same change, or this whole
-section is theatre.
+The terms come from `../para_config.txt`: a component without a `[components]` row is listed
+with the terms `UNKNOWN`. Add a library to `../requirements_digital.txt` and to
+`../para_config.txt` in the same change.
 
 **Why PyMuPDF is probably avoidable.** Docling already owns structural grouping, so
 PyMuPDF's unique contribution is only precise span geometry and its block API. Measured

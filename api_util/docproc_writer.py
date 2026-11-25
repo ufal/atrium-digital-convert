@@ -23,7 +23,13 @@ builds the record from it (#84 §1). ``build_docproc()`` maps the converter's in
   (``decode:garbled``, ``decode:inverted``: ``atrium_vocab.DECODE_FLAGS``; D18 rule 2).
 * **routing** -- ``metadata.routing.pages[]`` lists every page: ``page``, ``route``
   (``text-layer``, ``atr``, ``empty``) and ``text_layer`` (whether the page's text layer is
-  used).
+  used). A page of the visual workflow (a PDF, an office document's rendered page) also says what
+  it shows besides its text, for the pipeline to choose the pages page-classification reads:
+  ``graphics``, its pictures, charts, diagrams and drawings (``digital_ir.page_graphics``: a
+  logo repeated in the running header or footer and images under 24 pt are not counted), and
+  ``tables``, its tables, written as ``table`` blocks with their ``cellGrid``. A page with neither
+  holds running text only. An office document never goes to the ATR: its text is its own, and a
+  page whose only content is a picture is routed ``empty`` with its ``graphics``.
 
 No run data: no ``processedAt``, ``pipeline``, ``sourceFile`` or ``sourceHash`` (the run, the
 original and its SHA-512 are the paradata's; ask 3). The output validates against
@@ -53,6 +59,7 @@ from api_util.digital_ir import (
     DigitalLine,
     DigitalPage,
     DigitalTable,
+    page_graphics,
     text_layer_of,
 )
 
@@ -280,6 +287,12 @@ def build_docproc(document: DigitalDocument) -> Dict[str, Any]:
         }
         for page in document.pages
     ]
+    if getattr(document, "workflow", "") == "visual":
+        for entry, page, graphics in zip(
+            routing, document.pages, page_graphics(document), strict=True
+        ):
+            entry["graphics"] = graphics
+            entry["tables"] = len(page.tables)
     by_route: Dict[str, int] = {}
     for entry in routing:
         by_route[entry["route"]] = by_route.get(entry["route"], 0) + 1
@@ -291,6 +304,15 @@ def build_docproc(document: DigitalDocument) -> Dict[str, Any]:
     out["metadata"] = {"routing": {"pages": routing, "counts": {"by_route": by_route}}}
     validate(out)
     return out
+
+
+def graphics_pages(docproc: Dict[str, Any]) -> List[int]:
+    """The pages whose routing entry counts graphics: those page-classification is for."""
+    return [
+        int(entry["page"])
+        for entry in docproc["metadata"]["routing"]["pages"]
+        if int(entry.get("graphics") or 0) > 0
+    ]
 
 
 def needs_atr(docproc: Dict[str, Any]) -> bool:
@@ -331,6 +353,7 @@ __all__ = [
     "ROUTE_TEXT_LAYER",
     "DocprocError",
     "build_docproc",
+    "graphics_pages",
     "needs_atr",
     "problems",
     "route",

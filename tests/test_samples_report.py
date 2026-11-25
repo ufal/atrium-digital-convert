@@ -299,7 +299,7 @@ def test_the_quality_model_section_counts_what_it_moved_and_why():
     )
 
 
-def test_limits_take_the_new_stage_timeout_and_report_docling(tmp_path):
+def test_limits_name_only_settings_that_exist_and_report_docling(tmp_path):
     run_dir = tmp_path / "run"
     (run_dir / sr.INVENTORY).mkdir(parents=True)
     (run_dir / sr.INVENTORY / "inventory.tsv").write_text(
@@ -310,6 +310,7 @@ def test_limits_take_the_new_stage_timeout_and_report_docling(tmp_path):
         {"doc": "CTX1", "mb": 5.0, "docling_rc": 0, "docling_s": 30.5, "docling_peak_mb": 2182.3}
     ]
     text = sr.limits_md(sr.Run(run_dir), rows)
-    assert "| digital-convert | STAGE_TIMEOUT_S | 360 |" in text
+    assert "| digital-convert | MAX_UPLOAD_MB | 250 |" in text
+    assert "STAGE_TIMEOUT_S" not in text, "gone since v2.0.0-beta: /describe calls no other tool"
     assert "**Docling (`--engine docling`, stage 20).** 1 of 1 documents converted" in text
     assert "2.2–2.2 GB (GPU: NVIDIA A40, 46068 MiB)" in text

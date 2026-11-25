@@ -11,10 +11,11 @@ The type is decided by the file's content. The extension only names the file, so
 upload is read as what it is; for plain text it chooses the dialect (`.csv`, `.tsv`, `.json`).
 Each type takes one of two workflows:
 
-* **visual**: a document with pages. Every page gets a text-layer verdict, and a page whose text cannot be used
-  is `needsAtr`, so the whole document goes to the ATR with that page forced and the page goes to
-  page-classification. An office document keeps its native text and takes its pages from a LibreOffice rendering
-  (see below).
+* **visual**: a document with pages. Every page gets a text-layer verdict, and a PDF page whose text cannot be
+  used is `needsAtr`, so the whole document goes to the ATR with that page forced. An office document keeps its
+  native text and takes its pages from a LibreOffice rendering (see below); it never goes to the ATR. Every page
+  says what it shows besides its text (`graphics`, `tables`), and the pages with graphics are the ones for
+  page-classification.
 * **textual**: text with nothing to render, extracted as it is. It has no page geometry and never goes to the
   ATR, only straight to scoring.
 
@@ -47,6 +48,11 @@ Each type takes one of two workflows:
 * **Office documents: native text on rendered pages** (`office_render.py`, `render_place.py`).
   * The text is the native reader's. It reads the document as written: headings, notes, tables, tracked changes
     accepted.
+  * A DOCX is read in full from its XML, including text outside its runs: an equation (Office Math) joins its
+    paragraph as linear text (`x^2`, `a/b`, `√x`); a SmartArt diagram's node text and a chart's titles, axis
+    titles, series names and text categories follow their anchor paragraph, as a text box does. A chart's numbers
+    are not read: the rendering draws them. Comments stay out, as in the rendering. An embedded OLE object (an
+    Equation 3.0 formula, a pasted workbook) has no text in the XML; it counts among the page's graphics.
   * The pages are LibreOffice's rendering of the document, read by the light PDF engine. The rendering is made from
     a copy with the tracked changes accepted (DOCX and ODT; a DOC from its converted DOCX), because LibreOffice
     draws deletions.
@@ -55,13 +61,12 @@ Each type takes one of two workflows:
     (`measured`).
   * A native line the rendering does not show, such as hidden text or a text box with no size, keeps its text on
     the page of the line before it, with `bboxPrecision: absent`. It is never dropped.
-  * Each page then gets the PDF rules. Text over a picture (a scan pasted into a report) is `needsAtr`; a page with
-    text and a photo is not.
-  * A page whose rendered body words the native text covers less than `RENDER_TEXT_COVERAGE` (0.8; 3 words at
-    least) shows text the reading does not have, such as a drawing, a chart or an embedded object. It is `needsAtr`.
-  * The rendered PDF is what the visual steps read for a page that needs the ATR: page-classification takes PDFs
-    only, and the ATR's page numbers and boxes must be the docproc's. It comes back as `rendered_pdf` from
-    `/reformat` (`--rendered-out` on the command line).
+  * Each page then gets the PDF page's decode verdicts, but no page of an office document is `needsAtr`: its text
+    is what the XML holds. Text inside a picture (a scan pasted into a report) is not read; a page that holds
+    only such a picture has no text of its own and is routed `empty`, with the picture in its `graphics`.
+  * The rendered PDF is what page-classification reads for the pages that show graphics: it takes PDFs only, and
+    its page numbers must be the docproc's. It comes back as `rendered_pdf` from `/reformat` whenever a page
+    shows graphics, or when asked for (`rendered=true`; `--rendered-out` on the command line).
   * The PDF is not stored. The paradata name it by SHA-512, `stored: false`: the PDF this run handed over. A
     rerun lays the pages out the same, so the docproc does not change; the PDF's own bytes may differ.
 * **The textual workflow: extracted as it is.**
@@ -107,19 +112,20 @@ Each type takes one of two workflows:
 
 ## What the docproc holds
 
-| Layout cue                | PDF (light engine)                                     | DOCX, DOC                                                | ODT / RTF             | ODS / XLSX / XLS | TXT / CSV / TSV / JSON                     | docproc field (development dict)                                         |
-|---------------------------|--------------------------------------------------------|----------------------------------------------------------|-----------------------|------------------|--------------------------------------------|--------------------------------------------------------------------------|
-| Pages                     | PDF pages, named by `/PageLabels`                      | the rendering's pages                                    | the rendering's pages | sheets           | form-feed sections (TXT); one              | `pages[].pageNumber`, routing (`pages[]`: `page`, `page_index`)          |
-| Text blocks / paragraphs  | vertical gaps, per column                              | one per paragraph and page, one per table cell           | paragraph, table cell | sheet            | paragraph (TXT), file, string value (JSON) | `blocks[]` with `lines[]` (`lines[].group_id`)                           |
-| Lines                     | visual lines                                           | visual lines of the native text                          | the same              | rows             | physical lines, rows; wrapped at 1000      | `blocks[].lines[]`                                                       |
-| Reading order             | words, columns (column-major), headers first           | document order; text boxes after their anchor            | document order        | row order        | file order                                 | `readingOrder` (`lines[]` order)                                         |
-| Headings                  | font size against the body size; bold body-size titles | outline level, then style name (`Heading N`, `Nadpis N`) | —                     | —                | —                                          | `type: heading`, `level` (`style.heading_level`)                         |
-| Bold / italic             | font name                                              | run → character style → paragraph style                  | —                     | —                | —                                          | — (`style.bold` / `.italic`)                                             |
-| Running header / footer   | margin lines repeated across pages, page numbers       | each section's header and footer                         | —                     | —                | —                                          | `type: header` / `footer` (`style.region`)                               |
-| Footnotes                 | — (Docling engine: yes)                                | footnotes and endnotes                                   | —                     | —                | —                                          | `type: footnote` (`style.region = footnote`)                             |
-| Tables                    | ruled tables (Docling engine: any)                     | tables, merged cells, one per page they reach            | cells as lines        | — (follow-up)    | — (rows as lines)                          | `type: table`, `cellGrid` (`tables[]` + `cells[].group_id`)              |
-| Bounding boxes, page size | exact, points, top-left origin                         | measured on the rendering, points                        | the same              | none             | none                                       | block and line `bbox`, `bboxPrecision`, page `width`/`height` (`canvas`) |
-| Untrustworthy text        | mojibake, unmapped glyphs, no text layer, prior OCR    | the same, and text the rendering shows that it lacks     | the same              | decode flag only | decode flag only                           | line `flags: [decode:garbled]`, page `textLayer`, `needsAtr`             |
+| Layout cue                | PDF (light engine)                                     | DOCX, DOC                                                          | ODT / RTF             | ODS / XLSX / XLS | TXT / CSV / TSV / JSON                     | docproc field (development dict)                                         |
+|---------------------------|--------------------------------------------------------|--------------------------------------------------------------------|-----------------------|------------------|--------------------------------------------|--------------------------------------------------------------------------|
+| Pages                     | PDF pages, named by `/PageLabels`                      | the rendering's pages                                              | the rendering's pages | sheets           | form-feed sections (TXT); one              | `pages[].pageNumber`, routing (`pages[]`: `page`, `page_index`)          |
+| Text blocks / paragraphs  | vertical gaps, per column                              | one per paragraph and page, one per table cell                     | paragraph, table cell | sheet            | paragraph (TXT), file, string value (JSON) | `blocks[]` with `lines[]` (`lines[].group_id`)                           |
+| Lines                     | visual lines                                           | visual lines of the native text                                    | the same              | rows             | physical lines, rows; wrapped at 1000      | `blocks[].lines[]`                                                       |
+| Reading order             | words, columns (column-major), headers first           | document order; text boxes, SmartArt and charts after their anchor | document order        | row order        | file order                                 | `readingOrder` (`lines[]` order)                                         |
+| Headings                  | font size against the body size; bold body-size titles | outline level, then style name (`Heading N`, `Nadpis N`)           | —                     | —                | —                                          | `type: heading`, `level` (`style.heading_level`)                         |
+| Bold / italic             | font name                                              | run → character style → paragraph style                            | —                     | —                | —                                          | — (`style.bold` / `.italic`)                                             |
+| Running header / footer   | margin lines repeated across pages, page numbers       | each section's header and footer                                   | —                     | —                | —                                          | `type: header` / `footer` (`style.region`)                               |
+| Footnotes                 | — (Docling engine: yes)                                | footnotes and endnotes                                             | —                     | —                | —                                          | `type: footnote` (`style.region = footnote`)                             |
+| Tables                    | ruled tables (Docling engine: any)                     | tables, merged cells, one per page they reach                      | cells as lines        | — (follow-up)    | — (rows as lines)                          | `type: table`, `cellGrid` (`tables[]` + `cells[].group_id`)              |
+| Bounding boxes, page size | exact, points, top-left origin                         | measured on the rendering, points                                  | the same              | none             | none                                       | block and line `bbox`, `bboxPrecision`, page `width`/`height` (`canvas`) |
+| Graphics                  | pictures 24 pt or more, but not a repeated logo        | the rendering's pictures; charts, SmartArt, drawings, OLE objects  | the same              | —                | —                                          | routing `pages[].graphics` (proposal ask 14)                             |
+| Untrustworthy text        | mojibake, unmapped glyphs, no text layer, prior OCR    | decode flag only (never `needsAtr`)                                | the same              | decode flag only | decode flag only                           | line `flags: [decode:garbled]`, page `textLayer`, `needsAtr`             |
 
 * **Engines.**
   * `--engine light` (default) uses `requirements_digital.txt`: permissive licences, no models, no

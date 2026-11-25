@@ -37,9 +37,8 @@ The converter is built in layers. Each module's docstring carries the detail.
 3. **The per-page assessment** (parked during the AMČR pilot). `api_util/digital_report.py` is pure and
    deterministic: routes, quality summaries, layout counts.
 4. **The service.** `service/api.py` serves `/reformat`, `/describe` and the shared `/info`, `/health` and
-   `/ready`. `service/stages.py` holds the page-classification and ocr-postprocess clients and the guard on
-   what they return (`/describe`, parked during the AMČR pilot).
-   `tools/stage_stub.py` stands in for both stages in tests and local demos.
+   `/ready`, and calls no other tool: the pipeline chains the steps (`/describe`, parked during the AMČR pilot,
+   too since v2.0.0-beta).
 5. **The renderer.** `api_util/json_to_md.py`, `layout_md.py` and `xml_to_md.py` turn a record or the
    development dict, or TEITOK or ALTO, into annotated Markdown. atrium-keyword-extract vendors them.
 6. **The document types, offline** (parked during the AMČR pilot). `tools/build_document_types.py` generates
