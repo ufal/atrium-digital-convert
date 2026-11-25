@@ -24,8 +24,7 @@ Paradata schema 3.0. What a run read and wrote is named by AMČR distribution na
 Where it is:
 
 * **The service.** Every `/reformat` response carries `paradata`: the run's RO-Crate `CreateAction`
-  (`atrium_rocrate.action_from_paradata`), program `digital-convert`. The parked `/describe` also returns each
-  stage's own paradata in `stages[]`.
+  (`atrium_rocrate.action_from_paradata`), program `digital-convert`, and so does the parked `/describe`.
 * **The command line.** `--paradata-dir DIR` writes `YYMMDD-HHmmss_digital-convert.json`
   ([`atrium_paradata.py`](../../atrium_paradata.py)).
 

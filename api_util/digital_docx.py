@@ -29,6 +29,16 @@ what lost text on the old path. What this module fixes, against the #10 §9 meas
 * **Furniture and notes** (`lines[].style.region`). Each section's header and footer, once
   per section — the header on its first page, the footer on its last — and footnotes at the
   end of the page that references them, endnotes at the end of the document.
+* **Equations, SmartArt and charts** (v2.0.0-beta). An Office Math equation (`m:oMath`,
+  `m:oMathPara`) joins its paragraph's text in reading order, written linearly
+  (`_omml_text`: `x^2`, `a/b`, `√x`, `∑_(i=1)^n`). A SmartArt diagram's node text (its data
+  part, `dgm:relIds r:dm`) and a chart's text (`c:chart`, `cx:chart`: the titles, the axis
+  titles, the series names, the text categories and custom data labels, from the chart part's
+  caches) follow their anchor paragraph as text boxes do, one group per diagram node and one per
+  chart. A chart's numbers (values, numeric and date categories) are not read: the rendering
+  draws them. Comments stay out, as in the rendering; an embedded OLE object (an Equation 3.0
+  formula, a pasted workbook) has no text to read here, and its rendered words count against the
+  page's coverage (`RENDER_TEXT_COVERAGE`).
 
 No geometry: a DOCX has none until something renders it, so no `bbox` and no `canvas`.
 """
@@ -59,6 +69,11 @@ from api_util.digital_ir import (
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+C_NS = "http://schemas.openxmlformats.org/drawingml/2006/chart"
+CX_NS = "http://schemas.microsoft.com/office/drawing/2014/chartex"
+DGM_NS = "http://schemas.openxmlformats.org/drawingml/2006/diagram"
 CT_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
 PKG_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 WML_MAIN = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
@@ -132,6 +147,187 @@ def _parse_xml(blob: bytes) -> Any:
         resolve_entities=False, no_network=True, load_dtd=False, huge_tree=False
     )
     return etree.fromstring(blob, parser)
+
+
+# ── equations, SmartArt and charts: text outside WordprocessingML runs ────────
+
+
+def _ns(el: Any) -> str:
+    tag = el.tag if isinstance(el.tag, str) else ""
+    return tag[1:].split("}", 1)[0] if tag.startswith("{") else ""
+
+
+def _wrap(text: str) -> str:
+    """An operand of a linear equation: in parentheses unless it is a single token."""
+    text = text.strip()
+    return text if len(text) <= 1 or text.isalpha() or text.isdigit() else f"({text})"
+
+
+def _chr(el: Any, prop: str, name: str, default: str) -> str:
+    """A character property of an OMML object (`m:begChr` in `m:dPr` …); `default` when absent."""
+    props = next((c for c in el if _local(c.tag) == prop), None)
+    found = _child(props, name)
+    if found is None:
+        return default
+    value = found.get(f"{{{M_NS}}}val")
+    return default if value is None else value
+
+
+def _omml_text(el: Any) -> str:
+    """An Office Math element as linear text, close to UnicodeMath: `x^2`, `x_i`, `a/b`, `√x`,
+    `(a,b)`, `∑_(i=1)^n x_i`, `sin x`. Every character the equation shows is kept; the layout
+    becomes `^`, `_`, `/` and parentheses. Tracked deletions inside it are left out."""
+    name = _local(el.tag)
+    if not name:
+        return ""
+    if _ns(el) == W_NS:
+        if name in _SKIP:
+            return ""
+        if name == "t":
+            return el.text or ""
+        return "".join(_omml_text(c) for c in el)
+    if _ns(el) != M_NS or name.endswith("Pr"):
+        return ""
+    if name == "t":
+        return el.text or ""
+
+    def part(tag: str) -> str:
+        found = _child(el, tag)
+        return _omml_text(found).strip() if found is not None else ""
+
+    if name == "f":
+        return f"{_wrap(part('num'))}/{_wrap(part('den'))}"
+    if name == "sSup":
+        return f"{part('e')}^{_wrap(part('sup'))}"
+    if name == "sSub":
+        return f"{part('e')}_{_wrap(part('sub'))}"
+    if name == "sSubSup":
+        return f"{part('e')}_{_wrap(part('sub'))}^{_wrap(part('sup'))}"
+    if name == "sPre":
+        return f"_{_wrap(part('sub'))}^{_wrap(part('sup'))}{part('e')}"
+    if name == "rad":
+        degree, body = part("deg"), part("e")
+        return f"√({degree}&{body})" if degree else f"√{_wrap(body)}"
+    if name == "d":
+        begin, end = _chr(el, "dPr", "begChr", "("), _chr(el, "dPr", "endChr", ")")
+        separator = _chr(el, "dPr", "sepChr", "|")
+        items = [_omml_text(c).strip() for c in el if _local(c.tag) == "e"]
+        return f"{begin}{separator.join(items)}{end}"
+    if name == "nary":
+        symbol = _chr(el, "naryPr", "chr", "∫")
+        lower, upper = part("sub"), part("sup")
+        bounds = (f"_{_wrap(lower)}" if lower else "") + (f"^{_wrap(upper)}" if upper else "")
+        return f"{symbol}{bounds} {part('e')}"
+    if name == "func":
+        return f"{part('fName')} {part('e')}"
+    if name == "limLow":
+        return f"{part('e')}_{_wrap(part('lim'))}"
+    if name == "limUpp":
+        return f"{part('e')}^{_wrap(part('lim'))}"
+    if name == "acc":
+        return part("e") + _chr(el, "accPr", "chr", "\u0302")
+    if name == "eqArr":
+        return "; ".join(_omml_text(c).strip() for c in el if _local(c.tag) == "e")
+    if name == "m":
+        rows = [
+            " ".join(_omml_text(cell).strip() for cell in row if _local(cell.tag) == "e")
+            for row in el
+            if _local(row.tag) == "mr"
+        ]
+        return f"[{'; '.join(rows)}]"
+    if name == "oMathPara":
+        return " ".join(_omml_text(c).strip() for c in el if _local(c.tag) == "oMath")
+    return "".join(_omml_text(c) for c in el)
+
+
+def _drawingml_lines(el: Any) -> List[str]:
+    """The text of a DrawingML text body (`a:p` paragraphs, `a:t` runs, `a:br` breaks) as lines."""
+    lines: List[str] = []
+    for para in el.iter(f"{{{A_NS}}}p"):
+        current: List[str] = []
+        for node in para.iter(f"{{{A_NS}}}t", f"{{{A_NS}}}br"):
+            if _local(node.tag) == "br":
+                lines.append("".join(current))
+                current = []
+            else:
+                current.append(node.text or "")
+        lines.append("".join(current))
+    return [line for line in (re.sub(r"\s+", " ", x).strip() for x in lines) if line]
+
+
+def smartart_lines(blob: bytes) -> List[List[str]]:
+    """A SmartArt data part (`word/diagrams/dataN.xml`): the lines of each node that carries text,
+    in the data model's order. Connector, presentation and document points carry none."""
+    nodes: List[List[str]] = []
+    for point in _parse_xml(blob).iter(f"{{{DGM_NS}}}pt"):
+        if (point.get("type") or "node") not in ("node", "asst"):
+            continue
+        body = _child(point, "t")
+        lines = _drawingml_lines(body) if body is not None else []
+        if lines:
+            nodes.append(lines)
+    return nodes
+
+
+def _cached_strings(el: Any, ns: str) -> List[str]:
+    """The cached strings below `el` (`c:pt/c:v` of a `strCache` or `multiLvlStrCache`;
+    `cx:pt` of a `cx:strDim`)."""
+    if ns == C_NS:
+        cache = [c for tag in ("strCache", "multiLvlStrCache") for c in el.iter(f"{{{ns}}}{tag}")]
+        values = [
+            v for c in cache for pt in c.iter(f"{{{ns}}}pt") for v in pt if _local(v.tag) == "v"
+        ]
+        return [v.text.strip() for v in values if v.text and v.text.strip()]
+    return [pt.text.strip() for pt in el.iter(f"{{{ns}}}pt") if pt.text and pt.text.strip()]
+
+
+def _title_lines(title: Any, ns: str) -> List[str]:
+    """A chart or axis title: its rich text, else its cached or literal text."""
+    rich = _drawingml_lines(title)
+    if rich:
+        return rich
+    texts = _cached_strings(title, ns)
+    if not texts:
+        texts = [v.text.strip() for v in title.iter(f"{{{ns}}}v") if v.text and v.text.strip()]
+    return texts
+
+
+def chart_lines(blob: bytes) -> List[str]:
+    """A chart part's text: the chart title, the axis titles, the series names, the text
+    categories and custom data labels, from the caches the part carries (`c:` charts and
+    `cx:` chartex alike). Values and numeric or date categories are numbers the rendering draws:
+    not read."""
+    root = _parse_xml(blob)
+    ns = CX_NS if _ns(root) == CX_NS else C_NS
+    lines: List[str] = []
+
+    def add(texts: List[str]) -> None:
+        for text in texts:
+            text = re.sub(r"\s+", " ", text).strip()
+            if text and text not in lines:
+                lines.append(text)
+
+    for title in root.iter(f"{{{ns}}}title"):
+        add(_title_lines(title, ns))
+    series = "ser" if ns == C_NS else "series"
+    for ser in root.iter(f"{{{ns}}}{series}"):
+        name = _child(ser, "tx")
+        if name is not None:
+            add(_cached_strings(name, ns) or [v.text or "" for v in name.iter(f"{{{ns}}}v")])
+    if ns == C_NS:
+        for ser in root.iter(f"{{{ns}}}ser"):
+            for tag in ("cat", "xVal"):
+                found = _child(ser, tag)
+                if found is not None:
+                    add(_cached_strings(found, ns))
+        for label in root.iter(f"{{{ns}}}dLbl"):
+            text = _child(label, "tx")
+            if text is not None:
+                add(_drawingml_lines(text))
+    else:
+        for dim in root.iter(f"{{{ns}}}strDim"):
+            add(_cached_strings(dim, ns))
+    return lines
 
 
 # ── opening the package ───────────────────────────────────────────────────────
@@ -382,6 +578,7 @@ class _Walker:
         make_table: Callable[[Any], Any],
         group_prefix: str = "p",
         on_note: Optional[Callable[[str, str], None]] = None,
+        related: Optional[Callable[[str], Optional[bytes]]] = None,
     ) -> None:
         self.flow = flow
         self.styles = styles
@@ -389,12 +586,16 @@ class _Walker:
         self.make_table = make_table
         self.group_prefix = group_prefix
         self.on_note = on_note
+        #: The blob of a part the story's own part relates to, by relationship id (a chart, a
+        #: SmartArt data part); None when it names none.
+        self.related = related or (lambda _rid: None)
         self.paragraphs = 0
         self.tables: List[Tuple[int, DigitalTable]] = []
         self.table_count = 0
         self.cell_group: Optional[str] = None
         self.depth = 0
-        self.deferred: List[Any] = []
+        #: Text that follows the anchor paragraph: text boxes, SmartArt, charts.
+        self.deferred: List[Callable[[], None]] = []
         self.sections: List[Tuple[Any, int, int]] = []  # (sectPr, first page, last page)
         self._section_start = 0
         self._run: List[Tuple[bool, bool]] = []
@@ -440,18 +641,52 @@ class _Walker:
         name = _local(el.tag)
         if not name or name in _SKIP:
             return
+        namespace = _ns(el)
+        if namespace == M_NS and name in ("oMath", "oMathPara"):
+            self.flow.text(_omml_text(el), *self._flags())
+            return
+        if namespace in (C_NS, CX_NS) and name == "chart":
+            self._defer_part(el.get(f"{{{R_NS}}}id"), chart_lines, nodes=False)
+            return
+        if namespace == DGM_NS and name == "relIds":
+            self._defer_part(el.get(f"{{{R_NS}}}dm"), smartart_lines, nodes=True)
+            return
         # Handlers fire for WordprocessingML only: DrawingML reuses the local names `t`,
-        # `br`, `p` and `r` (`a:t`, `a:br` …) for chart and SmartArt text, which is not
-        # the document's own text flow.
-        in_wml = isinstance(el.tag, str) and el.tag.startswith(f"{{{W_NS}}}")
-        handler = getattr(self, f"_on_{name}", None) if in_wml else None
+        # `br`, `p` and `r` (`a:t`, `a:br` …) for chart and SmartArt text, which is read from
+        # their own parts above, not from the drawing's cached shapes.
+        handler = getattr(self, f"_on_{name}", None) if namespace == W_NS else None
         if handler is not None:
             handler(el)
         else:
             self.walk_children(el)
 
     def _on_txbxContent(self, el: Any) -> None:
-        self.deferred.append(el)
+        self.deferred.append(lambda: self.walk_children(el))
+
+    def _defer_part(self, rel_id: Optional[str], read: Callable[[bytes], Any], nodes: bool) -> None:
+        """A chart or a SmartArt diagram: its part's text, after the anchor paragraph. A
+        diagram gives one group per node, a chart one group."""
+        blob = self.related(rel_id) if rel_id else None
+        if not blob:
+            return
+        groups = read(blob) if nodes else [read(blob)]
+        self.deferred.append(lambda: self._emit_groups(groups))
+
+    def _emit_groups(self, groups: List[List[str]]) -> None:
+        saved = (self.flow.group, self.flow.heading)
+        for lines in groups:
+            if not lines:
+                continue
+            if self.cell_group is None:
+                self.paragraphs += 1
+                self.flow.group = f"{self.group_prefix}{self.paragraphs - 1}"
+            else:
+                self.flow.group = self.cell_group
+            self.flow.heading = None
+            for line in lines:
+                self.flow.text(line, False, False)
+                self.flow.line_break()
+        self.flow.group, self.flow.heading = saved
 
     def _on_p(self, el: Any) -> None:
         ppr = _child(el, "pPr")
@@ -484,7 +719,7 @@ class _Walker:
         if self.depth == 0 and self.deferred:
             boxes, self.deferred = self.deferred, []
             for box in boxes:
-                self.walk_children(box)
+                box()
 
     def _end_section(self, sect: Any) -> None:
         self.sections.append((sect, self._section_start, self.flow.page_index))
@@ -618,6 +853,33 @@ def _related_blobs(document: Any) -> Tuple[Dict[str, bytes], Dict[str, bytes]]:
     return by_type, by_id
 
 
+def _resolver(part: Any) -> Callable[[str], Optional[bytes]]:
+    """rId → the blob of the part `part` relates to under it (a chart, a SmartArt data part),
+    None when it names no internal part. Each story resolves through its own part's rels."""
+
+    def related(rel_id: str) -> Optional[bytes]:
+        try:
+            rel = part.rels[rel_id]
+            return None if rel.is_external else rel.target_part.blob
+        except Exception:
+            return None
+
+    return related
+
+
+def _related_part(document: Any, rel_id: Optional[str] = None, reltype: str = "") -> Any:
+    """The document part's related part, by rId or by relationship-type suffix; None if none."""
+    for rel in document.part.rels.values():
+        if rel.is_external:
+            continue
+        if (rel_id and rel.rId == rel_id) or (reltype and rel.reltype.endswith("/" + reltype)):
+            try:
+                return rel.target_part
+            except Exception:
+                return None
+    return None
+
+
 def _notes(blob: Optional[bytes]) -> Dict[str, Any]:
     """{w:id: note element}; separators are identified by `w:type`, not by id."""
     if not blob:
@@ -633,13 +895,29 @@ def _notes(blob: Optional[bytes]) -> Dict[str, Any]:
 
 
 def _story_lines(
-    element: Any, styles: _Styles, make_table: Callable[[Any], Any], prefix: str, region: str
+    element: Any,
+    styles: _Styles,
+    make_table: Callable[[Any], Any],
+    prefix: str,
+    region: str,
+    part: Any = None,
 ) -> List[DigitalLine]:
-    """Lines of a header, footer or note: its own flow, no page breaks, one region."""
+    """Lines of a header, footer or note: its own flow, no page breaks, one region. `part` is
+    the story's own package part, whose relationships name its charts and diagrams."""
     flow = _Flow()
     flow.region = region
-    walker = _Walker(flow, styles, "none", make_table, group_prefix=prefix)
+    walker = _Walker(
+        flow,
+        styles,
+        "none",
+        make_table,
+        group_prefix=prefix,
+        related=_resolver(part) if part is not None else None,
+    )
     walker.walk_children(element)
+    for deferred in walker.deferred:  # a story whose last paragraph anchors a chart
+        deferred()
+    walker.deferred = []
     flow.line_break()
     lines = [line for page in flow.pages for line in page]
     for line in lines:
@@ -680,6 +958,7 @@ def extract_docx(path: str, doc_id: str, origin: str, page_breaks: str = "auto")
         page_breaks,
         make_table,
         on_note=lambda kind, note_id: references.append((kind, note_id, flow.page_index)),
+        related=_resolver(source.part),
     )
     body = source.element.body
     walker.walk_children(body)
@@ -695,13 +974,18 @@ def extract_docx(path: str, doc_id: str, origin: str, page_breaks: str = "auto")
 
     # Notes, at the end of the page that references them (endnotes: the last page).
     footnotes, endnotes = _notes(by_type.get("footnotes")), _notes(by_type.get("endnotes"))
+    note_parts = {
+        kind: _related_part(source, reltype=f"{kind}s") for kind in ("footnote", "endnote")
+    }
     for kind, note_id, page_no in references:
         store, prefix = (footnotes, "fn") if kind == "footnote" else (endnotes, "en")
         note = store.pop(note_id, None)
         if note is None:
             continue
         target = min(page_no, n_pages - 1) if kind == "footnote" else n_pages - 1
-        lines = _story_lines(note, styles, make_table, f"{prefix}{note_id}-", REGION_FOOTNOTE)
+        lines = _story_lines(
+            note, styles, make_table, f"{prefix}{note_id}-", REGION_FOOTNOTE, note_parts[kind]
+        )
         for line in lines:
             line.group_id = f"{prefix}{note_id}"
         ends[target].extend(lines)
@@ -728,7 +1012,12 @@ def extract_docx(path: str, doc_id: str, origin: str, page_breaks: str = "auto")
                 if blob:
                     prefix = "hdr" if kind == "header" else "ftr"
                     lines = _story_lines(
-                        _parse_xml(blob), styles, make_table, f"{prefix}{number}-", region
+                        _parse_xml(blob),
+                        styles,
+                        make_table,
+                        f"{prefix}{number}-",
+                        region,
+                        _related_part(source, rel_id=refs.get(ref_type)),
                     )
                     if lines:
                         break

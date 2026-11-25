@@ -245,7 +245,7 @@
     "/describe": {
       "post": {
         "summary": "Describe",
-        "description": "Convert a born-digital document and assess every page (§4.2). Parked: not part of the\npilot (atrium-project#84, H11).\n\nFor each page: whether its text layer can be used, what kind of page it is\n(page-classification), whether its text reads (ocr-postprocess), and where it should go\nnext (`nlp`, `ocr`, `htr`, `none`). A stage that is not configured, not running or answers\nbadly is reported in `stages[]`; the request still succeeds. The stages are sent the\nconverter's development dict, which stages on record schema 2.0 may refuse.",
+        "description": "Convert a born-digital document and assess every page (§4.2). Parked: not part of the\npilot (atrium-project#84, H11).\n\nFor each page, from what the converter itself read: whether its text layer can be used,\nwhether its characters decode, its layout, and where it should go next (`nlp`, `ocr`,\n`htr`, `none`). It calls no other service: a page's type and the quality of its text are\nthe pipeline's own steps (page-classification, ocr-postprocess).",
         "operationId": "describe",
         "requestBody": {
           "content": {
@@ -259,7 +259,7 @@
         },
         "responses": {
           "200": {
-            "description": "The record, the per-page assessment, and what each adjacent stage did.",
+            "description": "The docproc, the development dict and the per-page assessment.",
             "content": {
               "application/json": {
                 "schema": {
@@ -365,29 +365,6 @@
             "contentMediaType": "application/json",
             "title": "Document Json",
             "description": "Optional: the AMČR seed of the document (`doc_id`, `source` with `sha512`, `filename`, `media_type`), read only. Its `doc_id` names the result; its `sha512` must be the uploaded file's (else 422 `source_digest_mismatch`). Nothing is written into it: since atrium-project#84 the record is built by ocr-postprocess from the docproc. A part that cannot be opened is refused (422 `invalid_record`); an empty part counts as none."
-          },
-          "stages": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stages",
-            "description": "Which adjacent stages to call: a comma-separated subset of `page-classification`, `ocr-postprocess`; empty for every configured one; `none` for none (the assessment then rests on the converter alone)."
-          },
-          "classify_pages": {
-            "type": "string",
-            "enum": [
-              "needs_atr",
-              "all",
-              "needs_ocr"
-            ],
-            "title": "Classify Pages",
-            "description": "Pages page-classification is asked about: `needs_atr`, those without a usable text layer and those whose only text is a running header or footer over an image (default), or `all`. `needs_ocr` is the deprecated name of `needs_atr`.",
-            "default": "needs_atr"
           },
           "include_text": {
             "type": "boolean",
@@ -693,7 +670,7 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Document",
-            "description": "The converter's development dict as the stages left it: record-shaped (`pages`, `lines` with `group_id`, `style` and decode `flags`, `content`, `tables`), never a record and never stored."
+            "description": "The converter's development dict: record-shaped (`pages`, `lines` with `group_id`, `style` and decode `flags`, `content`, `tables`), never a record and never stored."
           },
           "pages": {
             "items": {
@@ -705,14 +682,6 @@
           },
           "summary": {
             "$ref": "#/components/schemas/DescribeSummary"
-          },
-          "stages": {
-            "items": {
-              "$ref": "#/components/schemas/StageOutcomeModel"
-            },
-            "type": "array",
-            "title": "Stages",
-            "description": "One entry per stage, in the order they run."
           }
         },
         "additionalProperties": true,
@@ -726,11 +695,10 @@
           "paradata",
           "document",
           "pages",
-          "summary",
-          "stages"
+          "summary"
         ],
         "title": "DescribeResponse",
-        "description": "`/describe` (parked): the docproc, the development dict, the per-page assessment and what\neach stage did."
+        "description": "`/describe` (parked): the docproc, the development dict and the per-page assessment."
       },
       "DescribeSummary": {
         "properties": {
@@ -871,14 +839,6 @@
             "type": "boolean",
             "title": "Libreoffice",
             "description": "Whether office documents can be rendered and DOC/XLS converted in this deployment."
-          },
-          "stages": {
-            "additionalProperties": {
-              "type": "boolean"
-            },
-            "type": "object",
-            "title": "Stages",
-            "description": "Which adjacent stages `/describe` can call (their URLs are configured)."
           }
         },
         "additionalProperties": true,
@@ -894,8 +854,7 @@
           "supported_inputs",
           "media_types",
           "workflows",
-          "libreoffice",
-          "stages"
+          "libreoffice"
         ],
         "title": "DigitalInfo",
         "description": "`/info` of atrium-digital-convert."
@@ -1231,58 +1190,6 @@
         "title": "LimitRef",
         "description": "Which limit a `limit_exceeded` refusal is about, and by how much."
       },
-      "PageCategory": {
-        "properties": {
-          "label": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Label",
-            "description": "The top category (`TEXT_P`, `TEXT_HW`, `DRAW`, ...; page-category scheme)."
-          },
-          "confidence": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Confidence",
-            "description": "Its score, from 0 to 1."
-          },
-          "top": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Top",
-            "description": "The `topn` categories with scores, best first."
-          },
-          "source": {
-            "type": "string",
-            "title": "Source",
-            "description": "`page-classification`."
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "label",
-          "confidence",
-          "top",
-          "source"
-        ],
-        "title": "PageCategory",
-        "description": "page-classification's answer for one page."
-      },
       "PageDecode": {
         "properties": {
           "decode_score": {
@@ -1384,7 +1291,7 @@
           "damaged_words": {
             "type": "integer",
             "title": "Damaged Words",
-            "description": "Of those, the words that lost a letter to a glyph without a Unicode mapping (U+FFFD). Counted for information: they route nothing (atrium-digital-convert#9); whether the text reads is ocr-postprocess's scoring."
+            "description": "Of those, the words that lost a letter to a glyph without a Unicode mapping (U+FFFD). Counted for information: they route nothing (atrium-digital-convert#9); whether the text reads is ocr-postprocess's scoring, a step of the pipeline."
           }
         },
         "additionalProperties": true,
@@ -1404,103 +1311,6 @@
         ],
         "title": "PageLayout",
         "description": "What the converter found on the page."
-      },
-      "PageQuality": {
-        "properties": {
-          "source": {
-            "type": "string",
-            "title": "Source",
-            "description": "`ocr-postprocess` (the common line-quality model)."
-          },
-          "score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score",
-            "description": "From 0 to 1: the mean line-quality score of the lines it judged (Clear/Noisy/Trash; a pre-filter answer's 0.0 placeholder is left out)."
-          },
-          "band": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Band",
-            "description": "`Clear`, `Noisy` or `Trash`, the plurality of its line verdicts; null when no line was judged."
-          },
-          "lines_by_category": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Lines By Category",
-            "description": "Lines per category: `Clear`/`Noisy`/`Trash`/`Non-text`/`Empty`."
-          },
-          "lang": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lang",
-            "description": "The page's dominant language among the lines the model judged, when it reports one."
-          },
-          "lines_scored": {
-            "type": "integer",
-            "title": "Lines Scored",
-            "description": "Lines the verdict is based on. ocr-postprocess: the lines it judged Clear, Noisy or Trash; `Non-text`/`Empty` lines are counted in `lines_by_category` only."
-          },
-          "prose_lines_scored": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Prose Lines Scored",
-            "description": "ocr-postprocess only: the scored lines that are prose — outside a table, at least 20 characters, mostly letters, not a table-of-contents line. The quality rule of a `digital` page counts only these (`ROUTE_TRASH_SHARE`)."
-          },
-          "prose_lines_by_category": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "type": "integer"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Prose Lines By Category",
-            "description": "ocr-postprocess only: `lines_by_category` over the prose lines."
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "source",
-          "score",
-          "band",
-          "lines_by_category",
-          "lang",
-          "lines_scored"
-        ],
-        "title": "PageQuality",
-        "description": "Whether a page's text reads: ocr-postprocess's common line-quality model."
       },
       "PageReport": {
         "properties": {
@@ -1536,28 +1346,6 @@
             "title": "Needs Atr Reason",
             "description": "Why; docproc's `needsAtrReason`. Null when it does not."
           },
-          "category": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PageCategory"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Null when page-classification did not run for the page."
-          },
-          "quality": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PageQuality"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Null for a page without lines, and when ocr-postprocess did not score the page."
-          },
           "decode": {
             "anyOf": [
               {
@@ -1572,7 +1360,7 @@
           "route": {
             "type": "string",
             "title": "Route",
-            "description": "`nlp`, `ocr` (ATR), `htr` (handwriting) or `none` (nothing to read)."
+            "description": "`nlp`, `ocr` (ATR), `htr` (handwriting) or `none` (nothing to read), from the converter's own signals: a page that does not decode or has no text layer goes to `ocr`."
           },
           "route_reason": {
             "type": "string",
@@ -1602,8 +1390,6 @@
           "text_layer",
           "needs_atr",
           "needs_atr_reason",
-          "category",
-          "quality",
           "decode",
           "route",
           "route_reason",
@@ -1812,143 +1598,6 @@
         ],
         "title": "RenderedPdf",
         "description": "An office document's rendered PDF (atrium-digital-convert#9)."
-      },
-      "StageOutcomeModel": {
-        "properties": {
-          "stage": {
-            "type": "string",
-            "title": "Stage",
-            "description": "`page-classification` or `ocr-postprocess`."
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "`ok`, `partial`, `not_configured`, `not_requested`, `skipped`, `unavailable`, `error` or `rejected`."
-          },
-          "detail": {
-            "type": "string",
-            "title": "Detail"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Url",
-            "description": "The stage's base URL; null when not configured."
-          },
-          "http_status": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Http Status"
-          },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason",
-            "description": "The stage's reason code, or the guard's (`page_key_mismatch`, ...)."
-          },
-          "elapsed_s": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Elapsed S"
-          },
-          "service_version": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Service Version"
-          },
-          "pages": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pages",
-            "description": "`page_index` of the pages sent."
-          },
-          "record_adopted": {
-            "type": "boolean",
-            "title": "Record Adopted",
-            "description": "Whether the stage's write was taken into `document` (the development dict)."
-          },
-          "paradata": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Paradata",
-            "description": "The stage's own `CreateAction`, when it returned one."
-          },
-          "lines_unscored": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lines Unscored",
-            "description": "ocr-postprocess: lines it could not score (out of GPU memory even one at a time; its `limits_applied` `ppl_batch_lines`). They keep the converter's values in the record and are left out of the report; the stage is then `partial`."
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "stage",
-          "status",
-          "detail",
-          "url",
-          "http_status",
-          "reason",
-          "elapsed_s",
-          "service_version",
-          "pages",
-          "record_adopted",
-          "paradata"
-        ],
-        "title": "StageOutcomeModel",
-        "description": "What one adjacent stage did."
       }
     }
   },

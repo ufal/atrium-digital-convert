@@ -84,7 +84,7 @@ jobs:
 
       - name: Install dependencies
         # requirements-test.txt carries the converter's readers and the web stack, so the
-        # whole suite runs here — /describe over the stage stub included. flexiconv is added
+        # whole suite runs here — /describe included. flexiconv is added
         # for the two tests that skip without its CLI, and requirements_docmd.txt (pytesseract)
         # for the OCR fallback. No LibreOffice: the DOC/XLS tests run against a fake `soffice`.
         # A failed install fails the lane: it used to be swallowed (`|| echo`), so the tests it

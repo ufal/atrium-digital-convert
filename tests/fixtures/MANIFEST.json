@@ -49,6 +49,11 @@
     "note": "2 pages, 3 text blocks, no diacritics — happy path for bbox + group_id",
     "sha256": "a1a820cec34892d05880fb22a0b900acd3eede535869aed4c6732b0e83cddece"
   },
+  "objects.docx": {
+    "bytes": 12978,
+    "note": "an inline and a display equation, a SmartArt of three nodes, a bar chart with titles, series and categories — read from the XML (v2.0.0-beta)",
+    "sha256": "a9e07b81d84d17a943ccc46009a2543eb730677a5c7d15ce0aceb26bb0d2cfd0"
+  },
   "ocr_layer.pdf": {
     "bytes": 1303,
     "note": "page image + invisible (3 Tr) text on both pages — G7 OCR layer",

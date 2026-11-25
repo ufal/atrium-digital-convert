@@ -1369,8 +1369,6 @@ def convert(
     rendered_out: Optional[str] = None,
     markdown_out: Optional[str] = None,
     describe_out: Optional[str] = None,
-    describe_stages: Optional[str] = None,
-    classify_pages: str = "needs_atr",
     include_text: bool = True,
 ) -> str:
     """A → D for one file. Returns the written docproc's path (`<doc_id>.docproc.json` in
@@ -1389,22 +1387,13 @@ def convert(
     """
     from api_util import docproc_writer  # noqa: PLC0415
 
-    selected: List[str] = []
-    if describe_out is not None:
-        from service import stages as describe_stages_module  # noqa: PLC0415
-
-        selected = describe_stages_module.select_stages(describe_stages)
     logger = None
     if paradata_dir:
         config = run_config(
             input_path,
             engine,
             markdown=markdown_out is not None,
-            describe=(
-                {"stages": selected, "classify_pages": classify_pages, "include_text": include_text}
-                if describe_out is not None
-                else None
-            ),
+            describe={"include_text": include_text} if describe_out is not None else None,
         )
         logger = _paradata_logger(paradata_dir, config)
     try:
@@ -1436,12 +1425,9 @@ def convert(
             _write_views(
                 document,
                 dev,
-                input_path,
                 written,
                 markdown_out,
                 describe_out,
-                selected,
-                classify_pages,
                 include_text,
                 logger,
             )
@@ -1493,38 +1479,23 @@ def view_path(output_path: str, doc_id: str, requested: str, suffix: str) -> str
 def _write_views(
     document: DigitalDocument,
     data: Dict[str, Any],
-    input_path: str,
     output_path: str,
     markdown_out: Optional[str],
     describe_out: Optional[str],
-    selected: List[str],
-    classify_pages: str,
     include_text: bool,
     logger: Optional[Any],
 ) -> None:
     """`--describe` and `--markdown`: the service's two views, from the service's own code."""
-    from service import describe as views  # noqa: PLC0415  (the stage client, only when asked)
+    from service import describe as views  # noqa: PLC0415
 
     doc_id = str(data["doc_id"])
     if describe_out is not None:
-        with open(input_path, "rb") as fh:
-            raw = fh.read()
-        assessed = views.describe_document(
-            document,
-            data,
-            raw,
-            os.path.basename(input_path),
-            selected,
-            classify_pages=classify_pages,
-            include_text=include_text,
-        )
-        data = assessed["document"]  # with a stage's guarded write, when one was adopted
+        assessed = views.describe_document(document, data, include_text=include_text)
         report = {
             "doc_id": doc_id,
             "reader": views.reader_info(document, data),
             "pages": assessed["pages"],
             "summary": assessed["summary"],
-            "stages": assessed["stages"],
         }
         target = view_path(output_path, doc_id, describe_out, ".describe.json")
         _write_json(target, report)
@@ -1623,21 +1594,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="PATH",
         help="also write the per-page assessment of POST /describe (default <doc_id>.describe.json "
-        "beside the docproc); the stages are called when PAGE_CLASSIFICATION_URL / "
-        "OCR_POSTPROCESS_URL (or the two flags below) are set",
-    )
-    views.add_argument(
-        "--stages",
-        default=None,
-        help="with --describe: a comma-separated subset of page-classification, ocr-postprocess; "
-        "unset for every configured one; `none` for none",
-    )
-    views.add_argument(
-        "--classify-pages",
-        choices=("needs_atr", "all", "needs_ocr"),
-        default="needs_atr",
-        help="with --describe: the pages page-classification is asked about, as the service's "
-        "`classify_pages`: `needs_atr` (default) or `all`; `needs_ocr` is the deprecated name of `needs_atr`",
+        "beside the docproc), from what the converter read; it calls no other tool",
     )
     views.add_argument(
         "--no-text",
@@ -1645,33 +1602,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_false",
         help="with --describe: leave each page's text out of pages[].text",
     )
-    views.add_argument(
-        "--page-classification-url",
-        default=None,
-        help="with --describe: page-classification's base URL (sets PAGE_CLASSIFICATION_URL)",
-    )
-    views.add_argument(
-        "--ocr-postprocess-url",
-        default=None,
-        help="with --describe: ocr-postprocess's base URL (sets OCR_POSTPROCESS_URL)",
-    )
     return parser
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.page_classification_url:
-        os.environ["PAGE_CLASSIFICATION_URL"] = args.page_classification_url
-    if args.ocr_postprocess_url:
-        os.environ["OCR_POSTPROCESS_URL"] = args.ocr_postprocess_url
-    if args.describe is not None:
-        from service import stages as describe_stages_module  # noqa: PLC0415
-
-        try:
-            describe_stages_module.select_stages(args.stages)
-        except ValueError as exc:
-            parser.error(str(exc))
     try:
         written = convert(
             args.input,
@@ -1684,8 +1620,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             rendered_out=args.rendered_out,
             markdown_out=args.markdown,
             describe_out=args.describe,
-            describe_stages=args.stages,
-            classify_pages=args.classify_pages,
             include_text=args.include_text,
         )
     except DigitalInputError as exc:

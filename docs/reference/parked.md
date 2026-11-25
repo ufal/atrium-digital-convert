@@ -9,59 +9,46 @@ tools that ask a decision model the document type of PDF pages. What the pipelin
 
 Parked during the AMČR pilot: not part of the pipeline. The service still answers `POST /describe`.
 
-`/describe` runs the conversion of `/reformat` and then answers, page by page:
+`/describe` runs the conversion of `/reformat` and then answers, page by page, from what the converter itself read:
 
 * can the embedded text be used as it is?
-* if not, what kind of page is it?
-* does the text read?
+* do its characters decode?
 * where should the page go next?
 
-To answer the last three it asks page-classification and ocr-postprocess, when their URLs are configured. It sends
-them the converter's development dict: record-shaped, never a record. Stages on record schema 2.0 may refuse it,
-which is reported per stage. Nothing the assessment finds reaches the docproc.
+It calls no other tool (since v2.0.0-beta). What kind of page it is, and whether its text reads, are answered by
+page-classification and ocr-postprocess, which the pipeline runs as its own steps. Nothing the assessment finds
+reaches the docproc.
 
 ### Asking for it
 
-The service takes the fields of `/reformat` without `markdown` and `rendered`, plus:
-
-| Field            | Meaning                                                                                                                                                                                                                                          |
-|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `stages`         | a comma-separated subset of `page-classification`, `ocr-postprocess`; empty → every configured one; `none` → none; an unknown name is a 422                                                                                                      |
-| `classify_pages` | `needs_atr` (default): page-classification is asked about the pages without a usable text layer, and the pages whose only text is a running header or footer over an image; `all`: about every page; `needs_ocr`: deprecated name of `needs_atr` |
-| `include_text`   | `false` to leave `pages[].text` out                                                                                                                                                                                                              |
+The service takes the fields of `/reformat` without `markdown` and `rendered`, plus `include_text` (`false` to
+leave `pages[].text` out).
 
 ```bash
 curl -F file=@report.pdf http://localhost:8000/describe
-curl -F file=@report.pdf -F stages=none http://localhost:8000/describe
 ```
 
 The command line gives the same report with `--describe` (`<doc_id>.describe.json`, beside the docproc):
 
-| Option                                               | Meaning                                                                                                                      |
-|------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `--describe [PATH]`                                  | also write the per-page assessment: `reader`, `pages`, `summary`, `stages` (default `<doc_id>.describe.json`)                |
-| `--stages`                                           | with `--describe`: `page-classification`, `ocr-postprocess`, both comma-separated, or `none`; unset = every configured one   |
-| `--classify-pages`                                   | with `--describe`: `needs_atr` (default) or `all`, the pages page-classification is asked about; `needs_ocr` is deprecated   |
-| `--no-text`                                          | with `--describe`: leave `pages[].text` out (`include_text=false`)                                                           |
-| `--page-classification-url`, `--ocr-postprocess-url` | with `--describe`: the stages' base URLs (else `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL`)                             |
+| Option              | Meaning                                                                                             |
+|---------------------|-----------------------------------------------------------------------------------------------------|
+| `--describe [PATH]` | also write the per-page assessment: `reader`, `pages`, `summary` (default `<doc_id>.describe.json`) |
+| `--no-text`         | with `--describe`: leave `pages[].text` out (`include_text=false`)                                  |
 
 ```bash
-PAGE_CLASSIFICATION_URL=http://localhost:8001 OCR_POSTPROCESS_URL=http://localhost:8002 \
-    python3 api_util/digital_to_json.py report.pdf --out-dir out/ --describe --classify-pages all
+python3 api_util/digital_to_json.py report.pdf --out-dir out/ --describe
 ```
 
 `--describe` runs the service's own code (`service/describe.py`), so a file gives the same assessment on both sides.
-A stage that is not configured, is down or answers badly is reported in `stages[]`; the run still exits 0, as the
-service still answers 200. An unknown `--stages` value is exit status 2, as the service's 422.
 
-**Trying it without the stages.** `tools/stage_stub.py` is a stand-in for both stages, never part of an image:
-`docker compose --profile stub up`, or `python tools/stage_stub.py --port 8090` with
-`PAGE_CLASSIFICATION_URL=http://127.0.0.1:8090 OCR_POSTPROCESS_URL=http://127.0.0.1:8090`.
+**Before v2.0.0-beta** `/describe` also asked page-classification and ocr-postprocess, when their URLs were set
+(`stages`, `classify_pages`, `STAGE_TIMEOUT_S`, `ROUTE_TRASH_SHARE`, the answer's `stages[]` and the pages'
+`category` and `quality`). That is gone: a deployment that still sets `PAGE_CLASSIFICATION_URL` or
+`OCR_POSTPROCESS_URL` changes nothing, and a client that still sends `stages` gets the assessment without them.
 
 ### What it returns
 
-An excerpt for the `garbled.pdf` test fixture (a PDF whose font encoding turns Czech diacritics into mojibake), with
-no stage configured:
+An excerpt for the `garbled.pdf` test fixture (a PDF whose font encoding turns Czech diacritics into mojibake):
 
 ```json
 {
@@ -70,8 +57,6 @@ no stage configured:
     "text_layer": "garbled",
     "needs_atr": true,
     "needs_atr_reason": "embedded text layer does not decode: 3 of 3 lines carry CP1250 bytes read as CP1252 (mojibake diacritics), …",
-    "category": null,
-    "quality": null,
     "decode": {"decode_score": 0.9356, "lines_by_flag": {"decode:garbled": 3}, "lines_decoded": 0},
     "route": "ocr",
     "route_reason": "the text layer does not decode; page type unknown (page-classification not run): default to ATR",
@@ -82,15 +67,11 @@ no stage configured:
     "text": "Zpráva o sondì èíslo 3.\n…"
   }],
   "summary": {"pages": 1, "routes": {"nlp": 0, "ocr": 1, "htr": 0, "none": 0},
-              "needs_atr_pages": [1], "reacquire_pages": [1], "document_route": "ocr"},
-  "stages": [
-    {"stage": "page-classification", "status": "not_configured", "detail": "PAGE_CLASSIFICATION_URL is not set", "record_adopted": false},
-    {"stage": "ocr-postprocess",     "status": "not_configured", "detail": "OCR_POSTPROCESS_URL is not set",     "record_adopted": false}
-  ]
+              "needs_atr_pages": [1], "reacquire_pages": [1], "document_route": "ocr"}
 }
 ```
 
-The response is `/reformat`'s plus `document` (the converter's development dict, as the stages left it) and:
+The response is `/reformat`'s plus `document` (the converter's development dict) and:
 
 * `pages[]`, one per page:
   * `page`, `page_index`;
@@ -100,107 +81,41 @@ The response is `/reformat`'s plus `document` (the converter's development dict,
     `FURNITURE_ONLY_IMAGE_COVERAGE` of it), `blank` (an empty page: nothing on a page of a format without page
     images, or nothing rendered on a PDF page);
   * `needs_atr`, `needs_atr_reason` (docproc's `needsAtr`, `needsAtrReason`);
-  * `category`: page-classification's answer (`label`, `confidence`, `top`), or null. PDF only;
-  * `quality`: `source: ocr-postprocess` (the common line-quality model: `score`, `band`, `lines_by_category`,
-    `lang`, and `prose_lines_scored` / `prose_lines_by_category`, the lines its route rule counts; `score`, `lang`
-    and `lines_scored` count only the lines it judged Clear, Noisy or Trash, not its pre-filter's `Non-text` and
-    `Empty` placeholders); null when it did not score the page;
-  * `decode`: the converter's decode check, apart from quality: `decode_score` (how the characters decode, not how
-    the text reads), `lines_by_flag` (`decode:garbled`, `decode:inverted`), `lines_decoded`;
+  * `decode`: the converter's decode check: `decode_score` (how the characters decode, not how the text reads),
+    `lines_by_flag` (`decode:garbled`, `decode:inverted`), `lines_decoded`;
   * `route` and `route_reason`, below;
   * `layout`: `canvas`, `lines`, `blocks`, `tables`, `headings`, `regions`, `columns`, `images`, `vector_paths`,
     `words` (of the body text, outside the running header and footer), `damaged_words` (those of them that lost a
     letter to a glyph without a Unicode mapping, U+FFFD);
   * `text`, the page's text in reading order.
 * `summary`: `pages`, `routes` (pages per route), `needs_atr_pages`, `reacquire_pages`, `document_route` (`nlp`,
-  `ocr`, `htr`, `none` or `mixed`). `reacquire_pages` (routes `ocr` and `htr`) is the page list for text
-  recognition or handwriting recognition: it adds the decoding pages the two rules below send to `ocr`, and leaves
-  out the graphical pages, which `needs_atr_pages` (docproc's flags) keeps.
-* `stages[]`, per stage: `status`, `detail`, `url`, `http_status`, `reason`, `elapsed_s`, `service_version`, `pages`
-  sent, `record_adopted` (whether its write was adopted into the development dict), the stage's own `paradata`, and
-  for ocr-postprocess `lines_unscored`.
+  `ocr`, `htr`, `none` or `mixed`). `reacquire_pages` is the pages routed `ocr` or `htr`.
 
 ### Routes
 
-Deterministic (`api_util/digital_report.py`):
+Deterministic (`api_util/digital_report.py`), from the converter's own signals:
 
-| The page                                                                                                         | Route                                                       |
-|------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| its text layer decodes                                                                                           | `nlp`, unless one of the two rules below sends it elsewhere |
-| no usable text layer, category handwritten only (`TEXT_HW`, `LINE_HW`)                                           | `htr`                                                       |
-| no usable text layer, printed, typed or tabular text (`TEXT_P`, `TEXT_T`, `TEXT`, `LINE_*`, `DRAW_L`, `PHOTO_L`) | `ocr`                                                       |
-| no usable text layer, graphical only (`DRAW`, `PHOTO`)                                                           | `none`                                                      |
-| no usable text layer, category unknown (classifier not run)                                                      | `ocr`                                                       |
-| blank                                                                                                            | `none`                                                      |
+| The page                                        | Route  |
+|-------------------------------------------------|--------|
+| its text layer decodes                          | `nlp`  |
+| no usable text layer (`garbled`, `ocr`, `none`) | `ocr`  |
+| `none` and nothing drawn                        | `none` |
+| blank                                           | `none` |
 
-Categories are read through the page-category facets of `atrium_vocab.COLLECTIONS` (handwritten, printed, typed,
-graphical, tabular), so a category added to the registry is routed without a code change.
+Words that lose a letter to a glyph without a Unicode mapping route nothing: they are counted, and their quality is
+scoring's question.
 
-* **The quality model.** A page whose text layer decodes goes to `ocr` when ocr-postprocess calls more than
-  `ROUTE_TRASH_SHARE` (0.5) of its *prose* lines `Trash`, and the page has at least 5 of them. A prose line is
-  outside a table, at least 20 characters long, mostly letters and not a table-of-contents line. The model judges
-  running text; on born-digital pages its other `Trash` lines are table cells, codes, coordinates and contents
-  pages, whose text is exact. Counting every line would send 612 of the 1,981 born-digital AMČR pages of the samples
-  to OCR; counting prose lines sends none ([the samples](../evaluation/amcr-samples.md)). Words that lose a letter to
-  a glyph without a Unicode mapping route nothing: they are counted, and their quality is scoring's question.
-* **Running header or footer only.** A decoding page whose only text is its running header or footer, over an image
-  or a drawing, goes where its page type sends it when that type carries text (`DRAW_L`, `PHOTO_L`, `TEXT_*`,
-  `LINE_*`): the image holds text the layer lacks, such as an excavation plan's labels and title block. With a
-  graphical or unknown type it keeps its route. page-classification is asked about these pages by default.
+`route_page` in the same module also holds the rules for a caller that has page-classification's and
+ocr-postprocess's answers (`tools/samples_report.py` re-applies them to the runs of
+[the samples](../evaluation/amcr-samples.md)): a page type sends a page without a usable text layer to `htr`
+(handwritten only), `ocr` (printed, typed or tabular) or `none` (graphical only); a decoding page goes to `ocr` when
+the quality model calls more than half of its prose lines `Trash` (at least 5 of them); and a decoding page whose only
+text is its running header or footer goes where a text-bearing page type (`DRAW_L`, `PHOTO_L`, `TEXT_*`, `LINE_*`)
+sends it. Categories are read through the page-category facets of `atrium_vocab.COLLECTIONS`, so a category added to
+the registry is routed without a code change.
 
 In the pipeline no route is taken from this report: digital-convert's docproc marks the pages that need the ATR
-(`needsAtr`), and a `Trash` line sends nothing back for another recognition pass.
-
-### Stage statuses
-
-* `ok`;
-* `partial`: some pages failed, or some lines could not be scored;
-* `not_configured`: its URL is unset;
-* `not_requested`;
-* `skipped`: nothing to do (not a PDF, no page needs classifying, no lines);
-* `unavailable`: a connection error, a timeout (`STAGE_TIMEOUT_S`), or a 429 or 5xx answer;
-* `error`: another 4xx, a payload that is not the expected JSON, or no line could be scored;
-* `rejected`: the guard below refused its record.
-
-A stage that is down or slow is reported, never a failed request.
-
-**Lines ocr-postprocess could not score.** ocr-postprocess 2.0.0-beta and later refuse a record with a line that
-fails perplexity even on its own (422 `limit_exceeded`), and the stage reads `error`. Earlier versions scored such a
-line 99999 and noted it only in their `limits_applied`; the stage then read `partial` with `lines_unscored`, the
-line kept the converter's values, and its page's score was recomputed from the lines that were scored.
-
-**What the stages may write.** Each stage is sent the development dict as its `document_json` and writes only its
-own fields: page-classification `page_categories` and `pages[].category/category_confidence`; ocr-postprocess
-`lines[].categ/quality_score/lang` and `pages[].quality_score/quality_band` for every line, a flagged one too. The
-converter's decode flags (`decode:garbled`, `decode:inverted`) and `decode_score` stay beside them. The returned dict
-is adopted only when it is the same document with the converter's part intact: the same `doc_id`, `source`,
-`content`, `tables`, page and line rows, and the converter's own fields unchanged (`text`, `bbox`, `group_id`,
-`style`, `page_index`, `canvas`, `needs_ocr`, `needs_ocr_reason`, `text_layer`; a guard in `service/stages.py`).
-Otherwise the stage is `rejected`, the dict stays as it was, and the stage's answer goes into `pages[]` only. An
-example is `page_key_mismatch`: an older page-classification keys pages by physical number on a PDF whose pages
-carry labels.
-
-**Older stage versions.** A page-classification without the `pages` subset classifies every page: only the
-requested ones are used. An ocr-postprocess without `/score_record` is asked page by page through `/process`
-(`task_type=text`): its verdict goes into `pages[]`, not into the development dict.
-
-### Large documents with `/describe`
-
-Measured on 15 AMČR excavation reports, up to 156 MB and 529 pages ([what they showed](../evaluation/amcr-samples.md)):
-
-* **Time.** `/describe` with both stages took up to 276 s (a 529-page report). page-classification took 135 s for its
-  149 flagged pages and 202 s for all of them (`classify_pages=all`); ocr-postprocess took up to 76 s (88 s at 32
-  lines a batch). `STAGE_TIMEOUT_S` is 360 s by default. A client, a proxy and `GRACEFUL_SHUTDOWN_S` must allow about
-  5 minutes for one such request.
-* **The stages' GPU.** This service needs none. page-classification takes 4.0 GB with its five models.
-  ocr-postprocess's line-quality model peaked at 9.5 GB scoring 32 lines at a time, so the two fit one 24 GB card.
-  At 128 lines the model peaked at 23.3 GB, and on a 24 GB card next to page-classification some batches ran out of
-  memory.
-* **The stages' own limits decide first.** The development dict `/describe` sends a stage reached 14 MB compact.
-  page-classification also receives the whole PDF, and takes 10 MB per part and 50 pages per call by default: these
-  samples need its `MAX_UPLOAD_MB` ≥ 160 and `MAX_PDF_PAGES` ≥ 157 (the most flagged pages in one document), or ≥ 529
-  with `classify_pages=all`. ocr-postprocess takes a 25 MB record. A stage that refuses a part (413) is that
-  document's stage `error`; the request still answers 200. Set the stages' limits together with this service's.
+(`needsAtr`), and the pipeline's own steps classify the pages and score the lines.
 
 ## Document types for decision models (offline)
 

@@ -57,22 +57,14 @@ def test_a_clean_start_logs_one_info_record_in_the_agreed_shape(start, monkeypat
     assert api._state.warm is True
 
 
-def test_the_startup_record_names_the_configured_stages_never_their_urls(start, monkeypatch):
+def test_the_startup_record_names_no_other_service(start, monkeypatch):
+    """Since v2.0.0-beta the service calls no other tool, so its startup names none, even where
+    an old deployment still sets the URLs `/describe` used to call."""
     monkeypatch.setattr(api, "_deep_health", lambda: None)
     monkeypatch.setenv("PAGE_CLASSIFICATION_URL", "http://pc.internal.example:8000")
-    monkeypatch.delenv("OCR_POSTPROCESS_URL", raising=False)
     message = next(r.getMessage() for r in start() if " ready: " in r.getMessage())
-    assert "stages configured: page-classification" in message
-    assert "ocr-postprocess" not in message
-    assert "internal.example" not in message
-
-
-def test_no_configured_stage_is_reported_as_none(start, monkeypatch):
-    monkeypatch.setattr(api, "_deep_health", lambda: None)
-    monkeypatch.delenv("PAGE_CLASSIFICATION_URL", raising=False)
-    monkeypatch.delenv("OCR_POSTPROCESS_URL", raising=False)
-    message = next(r.getMessage() for r in start() if " ready: " in r.getMessage())
-    assert message.endswith("stages configured: none")
+    assert "stage" not in message and "internal.example" not in message
+    assert "LibreOffice" in message
 
 
 def test_a_failed_deep_check_logs_a_warning_and_no_ready_record(start, monkeypatch):

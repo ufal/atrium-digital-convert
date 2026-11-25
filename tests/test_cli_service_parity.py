@@ -40,12 +40,6 @@ client = TestClient(api.app)
 FIXTURES = make_fixtures.build_all()
 
 
-@pytest.fixture
-def no_stages(monkeypatch):
-    monkeypatch.delenv("PAGE_CLASSIFICATION_URL", raising=False)
-    monkeypatch.delenv("OCR_POSTPROCESS_URL", raising=False)
-
-
 def _cli(tmp_path: Path, name: str, *flags: str) -> Path:
     src = tmp_path / "in" / name
     src.parent.mkdir(parents=True, exist_ok=True)
@@ -107,36 +101,41 @@ def _without_rendering_digest(reader: dict) -> dict:
 @pytest.mark.parametrize(
     "name", ["garbled.pdf", pytest.param("minimal.docx", marks=needs_libreoffice)]
 )
-def test_the_assessment_is_the_same_from_the_cli_and_from_describe(tmp_path, no_stages, name):
+def test_the_assessment_is_the_same_from_the_cli_and_from_describe(tmp_path, name):
     out = _cli(tmp_path, name, "--describe")
     stem = Path(name).stem
     report = json.loads((out / f"{stem}.describe.json").read_text(encoding="utf-8"))
     body = _service("/describe", name)
-    for key in ("pages", "summary", "stages"):
+    for key in ("pages", "summary"):
         assert report[key] == body[key], key
     assert _without_rendering_digest(report["reader"]) == _without_rendering_digest(body["reader"])
-    assert {s["status"] for s in report["stages"]} == {"not_configured"}
+    assert "stages" not in report and "stages" not in body
 
 
-def test_the_describe_options_mean_the_same_on_both_sides(tmp_path, no_stages):
-    out = _cli(tmp_path, "minimal.pdf", "--describe", "--stages", "none", "--no-text")
+def test_the_describe_options_mean_the_same_on_both_sides(tmp_path):
+    out = _cli(tmp_path, "minimal.pdf", "--describe", "--no-text")
     report = json.loads((out / "minimal.describe.json").read_text(encoding="utf-8"))
-    body = _service("/describe", "minimal.pdf", stages="none", include_text="false")
+    body = _service("/describe", "minimal.pdf", include_text="false")
     assert report["pages"] == body["pages"]
-    assert report["stages"] == body["stages"]
     assert all(page.get("text") is None for page in report["pages"])
 
 
-def test_a_bad_stages_value_is_refused_by_both(tmp_path, capsys):
+def test_the_old_stage_options_are_gone_from_both(tmp_path, capsys):
+    """v2.0.0-beta: `--stages`, `--classify-pages` and the two stage URLs are no CLI options, and
+    the service no longer reads `stages`; a client that still sends it gets the local assessment."""
     src = tmp_path / "minimal.pdf"
     src.write_bytes(FIXTURES["minimal.pdf"])
-    with pytest.raises(SystemExit) as caught:
-        d2j.main([str(src), "--describe", "--stages", "no-such-stage"])
-    assert caught.value.code == 2
-    files = {"file": ("minimal.pdf", FIXTURES["minimal.pdf"], "application/pdf")}
-    assert (
-        client.post("/describe", files=files, data={"stages": "no-such-stage"}).status_code == 422
-    )
+    for flag in (
+        "--stages",
+        "--classify-pages",
+        "--page-classification-url",
+        "--ocr-postprocess-url",
+    ):
+        with pytest.raises(SystemExit) as caught:
+            d2j.main([str(src), "--describe", flag, "x"])
+        assert caught.value.code == 2, flag
+    body = _service("/describe", "minimal.pdf", stages="page-classification")
+    assert "stages" not in body
 
 
 def test_paradata_is_a_file_on_the_cli_and_a_create_action_in_the_service(tmp_path):

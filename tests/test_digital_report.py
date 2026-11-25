@@ -296,12 +296,14 @@ def test_a_furniture_only_digital_page_is_routed_by_a_page_type_that_carries_tex
     assert R.route_page("digital", category, None, furniture_only=False)[0] == "nlp"
 
 
-def test_the_report_routes_a_furniture_only_page_by_its_page_type():
+def test_the_report_routes_a_furniture_only_page_on_its_own_signals():
+    """Since v2.0.0-beta the report has no page type (`/describe` calls no other tool): a
+    furniture-only `digital` page keeps the converter's route, and the page-type rule above is
+    for a caller that has page-classification's answer."""
     from api_util.digital_ir import DigitalDocument
 
     document = DigitalDocument(doc_id="d", origin="digital-born-pdf", media_type="application/pdf")
-    document.pages = [_furniture_page(1), _furniture_page(2), _furniture_page(3, body=True)]
-    categories = {1: {"label": "DRAW_L"}, 2: {"label": "PHOTO"}, 3: {"label": "DRAW_L"}}
-    pages = R.build_report(document, categories=categories)["pages"]
-    assert [p["route"] for p in pages] == ["ocr", "nlp", "nlp"]
-    assert "in its image" in pages[0]["route_reason"]
+    document.pages = [_furniture_page(1), _furniture_page(2, body=True)]
+    pages = R.build_report(document)["pages"]
+    assert [p["route"] for p in pages] == ["nlp", "nlp"]
+    assert all("category" not in p and "quality" not in p for p in pages)

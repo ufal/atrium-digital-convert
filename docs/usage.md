@@ -92,8 +92,8 @@ curl -F file=@report.pdf -F document_json=@seed.json -F markdown=true http://loc
 | Endpoint                         | Does                                                                                                 | Calls other services                                              |
 |----------------------------------|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | `POST /reformat`                 | file (+ seed) → `docproc`, Markdown on request, `paradata`                                           | **never**                                                         |
-| `POST /describe` (parked)        | the per-page assessment ([parked features](reference/parked.md))                                     | page-classification and ocr-postprocess, **only when configured** |
-| `GET /info`, `/health`, `/ready` | the ATRIUM service contract: identity, limits, readers, LibreOffice availability, stages configured  | —                                                                 |
+| `POST /describe` (parked)        | the per-page assessment ([parked features](reference/parked.md))                                     | **never**                                                         |
+| `GET /info`, `/health`, `/ready` | the ATRIUM service contract: identity, limits, readers, LibreOffice availability                     | —                                                                 |
 
 The command line gives every result of `/reformat`: the docproc, the rendered PDF and `--markdown` (above). Where
 the two differ, and why: [The command line and the service](#the-command-line-and-the-service).
@@ -129,7 +129,7 @@ docker build --target digital-docling -t atrium-digital-convert-digital-docling 
 
 * **Image contents.** [`.github/production-image.json`](../.github/production-image.json) declares
   the first-party files of the `api` image. The hub's `tools/ci/image_closure.py` checks it on every
-  pull request; research tools, tests and the stage stub stay out (`.dockerignore`).
+  pull request; research tools and tests stay out (`.dockerignore`).
 * **Image size.** LibreOffice (writer and calc, `-nogui`) adds roughly 300 MB to `digital` and `api`.
 
 > [!NOTE]

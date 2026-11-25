@@ -1,28 +1,25 @@
 """
 service/describe.py — the per-page assessment and the Markdown view, shared by the service and the CLI.
 
-`POST /describe` and `api_util/digital_to_json.py --describe` run the same code: the stage loop
-that asks page-classification and ocr-postprocess (through `service/stages.py`), the guard that
-adopts their writes, and the report of `api_util/digital_report.py`. `POST /reformat`'s
-`markdown=true` and the CLI's `--markdown` render the development dict through the same
-function. The module imports no FastAPI, so the CLI image runs it as it is (atrium-project#72).
+`POST /describe` and `api_util/digital_to_json.py --describe` run the same code: the report of
+`api_util/digital_report.py` over what the converter read. `POST /reformat`'s `markdown=true` and
+the CLI's `--markdown` render the development dict through the same function. The module imports
+no FastAPI, so the CLI image runs it as it is (atrium-project#72).
 
 Since atrium-project#84 digital-convert writes docproc, not a record, and `/describe` is parked
 (not part of the pilot, H11): it works on the converter's development dict
-(`digital_to_json.development_dict()`), record-shaped but no record. The stages are sent that
-dict as their `document_json`; stages on record schema 2.0 may refuse it, which `/describe`
-reports per stage as for any stage failure, until the scope resumes.
+(`digital_to_json.development_dict()`), record-shaped but no record. Since v2.0.0-beta it calls no
+other tool: the assessment rests on what the converter itself read from the file. A page's type
+and the quality of its text come from page-classification and ocr-postprocess, which the
+pipeline runs as its own steps.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 from api_util.digital_ir import DigitalDocument
-from api_util.digital_report import build_report, furniture_only
-from tool_limits import ROUTE_TRASH_SHARE, STAGE_TIMEOUT_S
-
-from . import stages
+from api_util.digital_report import build_report
 
 
 def render_markdown(record: Dict[str, Any]) -> str:
@@ -55,118 +52,9 @@ def reader_info(document: DigitalDocument, record: Dict[str, Any]) -> Dict[str, 
     }
 
 
-def run_stages(
-    document: DigitalDocument,
-    record: Dict[str, Any],
-    data: bytes,
-    name: str,
-    selected: List[str],
-    classify_pages: str,
-    timeout: Optional[float] = None,
-) -> Tuple[
-    Dict[str, Any], List[stages.StageOutcome], Dict[int, Dict[str, Any]], Dict[int, Dict[str, Any]]
-]:
-    """Call the selected, configured stages in order; adopt each guarded write to the dict."""
-    timeout = float(STAGE_TIMEOUT_S.get()) if timeout is None else timeout
-    current = record
-    outcomes: List[stages.StageOutcome] = []
-    categories: Dict[int, Dict[str, Any]] = {}
-    quality: Dict[int, Dict[str, Any]] = {}
-    for stage in stages.STAGES:
-        base = stages.stage_url(stage)
-        if stage not in selected:
-            outcomes.append(
-                stages.StageOutcome(stage=stage, status=stages.STATUS_NOT_REQUESTED, url=base)
-            )
-            continue
-        if base is None:
-            outcomes.append(
-                stages.StageOutcome(
-                    stage=stage,
-                    status=stages.STATUS_NOT_CONFIGURED,
-                    detail=f"{stages.URL_ENV[stage]} is not set",
-                )
-            )
-            continue
-        if stage == stages.PAGE_CLASSIFICATION:
-            if document.kind != "pdf":
-                outcomes.append(
-                    stages.StageOutcome(
-                        stage=stage,
-                        status=stages.STATUS_SKIPPED,
-                        url=base,
-                        detail=f"page-classification reads the page images of a PDF; a {document.kind.upper()} has none",
-                    )
-                )
-                continue
-            # A page whose only text is its running header or footer is asked about too: its page
-            # type says whether its image holds text the text layer lacks (#5, plans with legends).
-            wanted = [
-                page.page_index
-                for page in document.pages
-                if classify_pages == "all" or page.needs_ocr or furniture_only(page)
-            ]
-            if not wanted:
-                outcomes.append(
-                    stages.StageOutcome(
-                        stage=stage,
-                        status=stages.STATUS_SKIPPED,
-                        url=base,
-                        detail="every page has usable body text (send classify_pages=all to classify them anyway)",
-                    )
-                )
-                continue
-            result = stages.run_page_classification(base, data, name, current, wanted, timeout)
-            categories = result.per_page
-        else:
-            lines = {
-                page.page_index: (page.page, [line.text for line in page.lines])
-                for page in document.pages
-                if page.lines
-            }
-            if not lines:
-                outcomes.append(
-                    stages.StageOutcome(
-                        stage=stage,
-                        status=stages.STATUS_SKIPPED,
-                        url=base,
-                        detail="the document has no lines to score",
-                    )
-                )
-                continue
-            result = stages.run_ocr_postprocess(base, current, lines, timeout)
-            quality = result.per_page
-        # The guard (`stages.guard`) is the check: the development dict is no record, so there
-        # is no record schema to validate it against (atrium-project#84).
-        current = stages.adopt(result, current)
-        outcomes.append(result.outcome)
-    return current, outcomes, categories, quality
-
-
 def describe_document(
-    document: DigitalDocument,
-    record: Dict[str, Any],
-    data: bytes,
-    name: str,
-    selected: List[str],
-    classify_pages: str = "needs_atr",
-    include_text: bool = True,
+    document: DigitalDocument, record: Dict[str, Any], include_text: bool = True
 ) -> Dict[str, Any]:
-    """The assessment of `/describe`: the development dict as the stages left it (`document`),
-    `pages`, `summary`, `stages`."""
-    current, outcomes, categories, quality = run_stages(
-        document, record, data, name, selected, classify_pages
-    )
-    report = build_report(
-        document,
-        categories=categories,
-        quality=quality,
-        trash_share_limit=ROUTE_TRASH_SHARE.get(),
-        include_text=include_text,
-    )
-    return {
-        "document": current,
-        "pages": report["pages"],
-        "summary": report["summary"],
-        "stages": [outcome.to_dict() for outcome in outcomes],
-    }
+    """The assessment of `/describe`: the development dict (`document`), `pages`, `summary`."""
+    report = build_report(document, include_text=include_text)
+    return {"document": record, "pages": report["pages"], "summary": report["summary"]}

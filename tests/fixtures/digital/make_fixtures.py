@@ -119,6 +119,15 @@ dates as it displays them); every earlier fixture keeps its bytes:
                       a date in the locale's short format (numFmt 14) and one in `d.m.yyyy`, a
                       time, a boolean, a formula with its cached result, and a hidden sheet of
                       S-JTSK coordinates. LibreOffice displays it in cs-CZ.
+
+Added 2026-11-25 for v2.0.0-beta (a DOCX's text read in full from its XML); every earlier
+fixture keeps its bytes:
+
+    objects.docx      an inline equation and a display one (Office Math), a SmartArt process of
+                      three nodes and a bar chart with titles, two series and three text
+                      categories, on one page. LibreOffice draws the equations as curves; the
+                      SmartArt and chart text are words of the rendering, which the native text
+                      now covers.
 """
 
 from __future__ import annotations
@@ -132,7 +141,7 @@ import sys
 import zipfile
 import zlib
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 #: Fixed zip timestamp. Any real clock value makes the DOCX non-reproducible.
 ZIP_EPOCH: Tuple[int, int, int, int, int, int] = (1980, 1, 1, 0, 0, 0)
@@ -1250,6 +1259,198 @@ def photo_text_docx() -> bytes:
     return _picture_docx(body, _png(30, 20, 160))
 
 
+# ── v2.0.0-beta: equations, SmartArt and charts read from the DOCX's own XML ──
+
+M_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+C_NS = "http://schemas.openxmlformats.org/drawingml/2006/chart"
+DGM_NS = "http://schemas.openxmlformats.org/drawingml/2006/diagram"
+DSP_NS = "http://schemas.microsoft.com/office/drawing/2008/diagram"
+_DRAWINGML = "application/vnd.openxmlformats-officedocument.drawingml."
+
+OBJECTS_CONTENT_TYPES = CONTENT_TYPES.replace(
+    "</Types>",
+    f'<Override PartName="/word/charts/chart1.xml" ContentType="{_DRAWINGML}chart+xml"/>'
+    f'<Override PartName="/word/diagrams/data1.xml" ContentType="{_DRAWINGML}diagramData+xml"/>'
+    '<Override PartName="/word/diagrams/drawing1.xml" '
+    'ContentType="application/vnd.ms-office.drawingml.diagramDrawing+xml"/>'
+    "</Types>",
+)
+
+OBJECTS_DOC_RELS = DOC_RELS.replace(
+    "</Relationships>",
+    f'<Relationship Id="rId20" Type="{_REL}chart" Target="charts/chart1.xml"/>'
+    f'<Relationship Id="rId21" Type="{_REL}diagramData" Target="diagrams/data1.xml"/>'
+    '<Relationship Id="rId22" Type="http://schemas.microsoft.com/office/2007/relationships/'
+    'diagramDrawing" Target="diagrams/drawing1.xml"/>'
+    "</Relationships>",
+)
+
+
+def _m(text: str) -> str:
+    return f"<m:r><m:t>{text}</m:t></m:r>"
+
+
+#: S = πr² inline, and a display equation: x = (-b ± √(b² - 4ac)) / 2a.
+_INLINE_EQUATION = (
+    "<m:oMath>" + _m("S=π") + f"<m:sSup><m:e>{_m('r')}</m:e><m:sup>{_m('2')}</m:sup></m:sSup>"
+    "</m:oMath>"
+)
+_DISPLAY_EQUATION = (
+    "<m:oMathPara><m:oMath>"
+    + _m("x=")
+    + "<m:f><m:num>"
+    + _m("-b±")
+    + '<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/><m:e>'
+    + f"<m:sSup><m:e>{_m('b')}</m:e><m:sup>{_m('2')}</m:sup></m:sSup>"
+    + _m("-4ac")
+    + "</m:e></m:rad></m:num><m:den>"
+    + _m("2a")
+    + "</m:den></m:f></m:oMath></m:oMathPara>"
+)
+
+#: The three nodes of a SmartArt process, with the connector and presentation points a data part
+#: also holds (they carry no text).
+_SMARTART_NODES = ("Výkop sondy", "Dokumentace profilu", "Odběr vzorků")
+
+OBJECTS_SMARTART_DATA = XML_DECL + (
+    f'<dgm:dataModel xmlns:dgm="{DGM_NS}" xmlns:a="{A_NS}" xmlns:dsp="{DSP_NS}" xmlns:r="{R_NS}">'
+    '<dgm:ptLst><dgm:pt modelId="{00000000-0000-0000-0000-000000000000}" type="doc">'
+    "<dgm:prSet/><dgm:spPr/><dgm:t><a:bodyPr/><a:p><a:endParaRPr/></a:p></dgm:t></dgm:pt>"
+    + "".join(
+        f'<dgm:pt modelId="{{00000000-0000-0000-0000-00000000000{n}}}"><dgm:prSet/><dgm:spPr/>'
+        f"<dgm:t><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{text}</a:t></a:r></a:p></dgm:t></dgm:pt>"
+        for n, text in enumerate(_SMARTART_NODES, start=1)
+    )
+    + '<dgm:pt modelId="{00000000-0000-0000-0000-000000000009}" type="parTrans"><dgm:prSet/>'
+    "<dgm:spPr/><dgm:t><a:bodyPr/><a:p><a:endParaRPr/></a:p></dgm:t></dgm:pt>"
+    "</dgm:ptLst><dgm:cxnLst/><dgm:bg/><dgm:whole/>"
+    '<dgm:extLst><a:ext uri="http://schemas.microsoft.com/office/drawing/2008/diagram">'
+    '<dsp:dataModelExt relId="rId22" minVer="http://schemas.openxmlformats.org/drawingml/2006/diagram"/>'
+    "</a:ext></dgm:extLst></dgm:dataModel>"
+)
+
+#: The diagram as Word draws it, which LibreOffice renders: one box per node, side by side.
+OBJECTS_SMARTART_DRAWING = XML_DECL + (
+    f'<dsp:drawing xmlns:dsp="{DSP_NS}" xmlns:dgm="{DGM_NS}" xmlns:a="{A_NS}"><dsp:spTree>'
+    '<dsp:nvGrpSpPr><dsp:cNvPr id="0" name=""/><dsp:cNvGrpSpPr/></dsp:nvGrpSpPr><dsp:grpSpPr/>'
+    + "".join(
+        f'<dsp:sp modelId="{{10000000-0000-0000-0000-00000000000{n}}}">'
+        f'<dsp:nvSpPr><dsp:cNvPr id="{n}" name=""/><dsp:cNvSpPr/></dsp:nvSpPr>'
+        f'<dsp:spPr><a:xfrm><a:off x="{(n - 1) * 1900000}" y="0"/><a:ext cx="1800000" cy="900000"/>'
+        '</a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
+        '<a:solidFill><a:srgbClr val="DDDDDD"/></a:solidFill></dsp:spPr>'
+        '<dsp:txBody><a:bodyPr wrap="square" anchor="ctr"/><a:lstStyle/>'
+        f'<a:p><a:pPr algn="ctr"/><a:r><a:rPr lang="cs-CZ" sz="1200"><a:solidFill><a:srgbClr val="000000"/>'
+        f"</a:solidFill></a:rPr><a:t>{text}</a:t></a:r></a:p></dsp:txBody>"
+        f'<dsp:txXfrm><a:off x="{(n - 1) * 1900000}" y="0"/><a:ext cx="1800000" cy="900000"/>'
+        "</dsp:txXfrm></dsp:sp>"
+        for n, text in enumerate(_SMARTART_NODES, start=1)
+    )
+    + "</dsp:spTree></dsp:drawing>"
+)
+
+
+def _str_cache(values: Sequence[str]) -> str:
+    points = "".join(f'<c:pt idx="{i}"><c:v>{v}</c:v></c:pt>' for i, v in enumerate(values))
+    return f'<c:strCache><c:ptCount val="{len(values)}"/>{points}</c:strCache>'
+
+
+def _num_cache(values: Sequence[float]) -> str:
+    points = "".join(f'<c:pt idx="{i}"><c:v>{v}</c:v></c:pt>' for i, v in enumerate(values))
+    return f'<c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="{len(values)}"/>{points}</c:numCache>'
+
+
+def _rich(text: str) -> str:
+    return f"<c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>{text}</a:t></a:r></a:p></c:rich></c:tx>"
+
+
+_CHART_CATEGORIES = ("Keramika", "Kosti", "Mazanice")
+
+
+def _chart_series(index: int, name: str, values: Sequence[float]) -> str:
+    return (
+        f'<c:ser><c:idx val="{index}"/><c:order val="{index}"/>'
+        f"<c:tx><c:strRef><c:f>List1!$B${index + 1}</c:f>{_str_cache([name])}</c:strRef></c:tx>"
+        f"<c:cat><c:strRef><c:f>List1!$A$2:$A$4</c:f>{_str_cache(_CHART_CATEGORIES)}</c:strRef></c:cat>"
+        f"<c:val><c:numRef><c:f>List1!$B$2:$B$4</c:f>{_num_cache(values)}</c:numRef></c:val></c:ser>"
+    )
+
+
+#: A bar chart: a title, two series, three text categories, two axis titles, and numbers.
+OBJECTS_CHART = XML_DECL + (
+    f'<c:chartSpace xmlns:c="{C_NS}" xmlns:a="{A_NS}" xmlns:r="{R_NS}"><c:chart>'
+    f'<c:title>{_rich("Nálezy podle sond")}<c:overlay val="0"/></c:title>'
+    '<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>'
+    '<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/>'
+    + _chart_series(0, "Sonda I", (12, 5, 3))
+    + _chart_series(1, "Sonda II", (7, 9, 1))
+    + '<c:axId val="111"/><c:axId val="222"/></c:barChart>'
+    '<c:catAx><c:axId val="111"/><c:scaling><c:orientation val="minMax"/></c:scaling>'
+    f'<c:delete val="0"/><c:axPos val="b"/><c:title>{_rich("Druh nálezu")}</c:title>'
+    '<c:crossAx val="222"/></c:catAx>'
+    '<c:valAx><c:axId val="222"/><c:scaling><c:orientation val="minMax"/></c:scaling>'
+    f'<c:delete val="0"/><c:axPos val="l"/><c:title>{_rich("Počet kusů")}</c:title>'
+    '<c:crossAx val="111"/></c:valAx></c:plotArea>'
+    '<c:legend><c:legendPos val="r"/></c:legend><c:plotVisOnly val="1"/></c:chart></c:chartSpace>'
+)
+
+
+def _inline_graphic(uri: str, inner: str, pic_id: int, width_in: float, height_in: float) -> str:
+    cx, cy = int(width_in * EMU_PER_INCH), int(height_in * EMU_PER_INCH)
+    return (
+        f'<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
+        f'<wp:extent cx="{cx}" cy="{cy}"/><wp:docPr id="{pic_id}" name="Objekt {pic_id}"/>'
+        f'<a:graphic><a:graphicData uri="{uri}">{inner}</a:graphicData></a:graphic>'
+        "</wp:inline></w:drawing></w:r>"
+    )
+
+
+def objects_docx() -> bytes:
+    """An equation inline and one on its own line, a SmartArt process of three nodes (its data
+    part, and the drawing LibreOffice renders) and a bar chart (title, axis titles, two series,
+    three text categories): text that lives outside WordprocessingML runs, on one A4 page."""
+    smartart = _inline_graphic(
+        DGM_NS,
+        f'<dgm:relIds xmlns:dgm="{DGM_NS}" r:dm="rId21" r:lo="" r:qs="" r:cs=""/>',
+        1,
+        6.0,
+        1.2,
+    )
+    chart = _inline_graphic(C_NS, f'<c:chart xmlns:c="{C_NS}" r:id="rId20"/>', 2, 5.5, 3.0)
+    body = (
+        _p("Výpočty a přehledy", style="Heading1")
+        + '<w:p><w:r><w:t xml:space="preserve">Plocha sondy je </w:t></w:r>'
+        + _INLINE_EQUATION
+        + '<w:r><w:t xml:space="preserve"> podle poloměru.</w:t></w:r></w:p>'
+        + f"<w:p>{_DISPLAY_EQUATION}</w:p>"
+        + _p("Postup výzkumu:")
+        + f"<w:p>{smartart}</w:p>"
+        + _p("Přehled nálezů:")
+        + f"<w:p>{chart}</w:p>"
+        + _p("Konec přehledu.")
+    )
+    document = XML_DECL + (
+        f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" '
+        f'xmlns:a="{A_NS}" xmlns:m="{M_NS}"><w:body>{body}'
+        '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
+        '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" '
+        'w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>'
+    )
+    return _zip_parts(
+        [
+            ("[Content_Types].xml", OBJECTS_CONTENT_TYPES),
+            ("_rels/.rels", ROOT_RELS),
+            ("docProps/core.xml", CORE_PROPS),
+            ("word/_rels/document.xml.rels", OBJECTS_DOC_RELS),
+            ("word/document.xml", document),
+            ("word/styles.xml", STYLES),
+            ("word/charts/chart1.xml", OBJECTS_CHART),
+            ("word/diagrams/data1.xml", OBJECTS_SMARTART_DATA),
+            ("word/diagrams/drawing1.xml", OBJECTS_SMARTART_DRAWING),
+        ]
+    )
+
+
 def sample_txt() -> bytes:
     return (
         "Nálezová zpráva\n"
@@ -1426,6 +1627,7 @@ BUILDERS = {
     "sample.tsv": sample_tsv,
     "sample.json": sample_json,
     "sample.xlsx": sample_xlsx,
+    "objects.docx": objects_docx,
 }
 
 NOTES = {
@@ -1454,6 +1656,7 @@ NOTES = {
     "sample.tsv": "the CSV's rows as tab-separated values (#9)",
     "sample.json": "string values in objects and lists, with keys and numbers — every string kept (#9)",
     "sample.xlsx": "find records: counts, decimals, an area, a share, two dates, a time, a boolean, a formula, a hidden sheet — every cell as displayed (#9)",
+    "objects.docx": "an inline and a display equation, a SmartArt of three nodes, a bar chart with titles, series and categories — read from the XML (v2.0.0-beta)",
 }
 
 

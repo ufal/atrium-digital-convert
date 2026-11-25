@@ -6,11 +6,6 @@
 #                      docker compose --profile digital run --rm digital-convert-digital \
 #                        /data/report.pdf --docproc-out /data/report.docproc.json
 #   digital-docling  the opt-in heavy engine, built locally, never published
-#   stub             the api service WITH stand-ins for page-classification and
-#                    ocr-postprocess (tools/stage_stub.py), so /describe can be tried end to
-#                    end before those services are deployed beside it:
-#                      docker compose --profile stub up
-#                      curl -F file=@data/report.pdf http://localhost:8000/describe
 #
 # Images run as `${ATRIUM_UID:-10001}:0` (atrium-project#69, roadmap B6): on Linux set
 # ATRIUM_UID to your own uid in .env so the container can write ./data.
@@ -73,34 +68,5 @@ services:
       ATRIUM_RUNNER_IMAGE: atrium-digital-convert-digital-docling:local
       ATRIUM_RUNNER_REPO: https://github.com/ufal/atrium-digital-convert
       ATRIUM_RUNNER_REF: ${ATRIUM_RUNNER_REF:-dev}
-    volumes:
-      - ./data:/data
-
-  # ── profile `stub`: /describe end to end, with stand-ins for the two stages ──────────────
-  stage-stub:
-    profiles: [stub]
-    image: ghcr.io/ufal/atrium-digital-convert-api:${ATRIUM_VERSION:-dev}
-    user: "${ATRIUM_UID:-10001}:0"
-    # The stub is not in the image (.dockerignore keeps tools/ out); it is mounted.
-    entrypoint: ["python", "/app/tools/stage_stub.py", "--host", "0.0.0.0", "--port", "8090"]
-    healthcheck:
-      disable: true
-    volumes:
-      - ./tools:/app/tools:ro
-
-  digital-convert-api-stub:
-    profiles: [stub]
-    image: ghcr.io/ufal/atrium-digital-convert-api:${ATRIUM_VERSION:-dev}
-    user: "${ATRIUM_UID:-10001}:0"
-    build:
-      context: .
-      target: api
-    depends_on: [stage-stub]
-    environment:
-      PORT: ${PORT:-8000}
-      PAGE_CLASSIFICATION_URL: http://stage-stub:8090
-      OCR_POSTPROCESS_URL: http://stage-stub:8090
-    ports:
-      - "${PORT:-8000}:${PORT:-8000}"
     volumes:
       - ./data:/data

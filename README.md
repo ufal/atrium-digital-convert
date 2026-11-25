@@ -25,7 +25,8 @@ Two workflows:
 - **Visual.** A page whose text layer does not decode, is an earlier OCR run, or has no text needs the ATR, and the
   whole document goes through the ATR once, with those pages forced. page-classification classifies those pages
   beside it. An office document is read as its own text and placed on the pages LibreOffice renders, so it gets page
-  numbers and boxes in pt like a PDF. Its rendered PDF is what the visual steps read. A page with good text and a
+  numbers and boxes in pt like a PDF. A DOCX's text is read in full from its XML, equations, SmartArt and chart text
+  included. Its rendered PDF is what the visual steps read. A page with good text and a
   photo stays on its text layer.
 - **Textual.** Text with nothing to render: a spreadsheet's rows, a text file's lines, every CSV column, every JSON
   string. A sheet keeps every cell, numbers and dates as it displays them: an ODS as its file stored them, an XLSX

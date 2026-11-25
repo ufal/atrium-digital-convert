@@ -7,8 +7,8 @@ ocr-postprocess builds the ATRIUM record from it. The version it reports is read
 * **`POST /reformat`** — the production endpoint the AMČR route calls. File (and optionally the
   AMČR seed) in, docproc out; Markdown on request; run `paradata`. **Calls no other service** —
   in the AMČR deployment the pipeline's orchestrator (Temporal) chains the steps.
-* **`POST /describe`** — parked during the AMČR pilot: a per-page assessment
-  ([parked features](../docs/reference/parked.md)).
+* **`POST /describe`** — parked during the AMČR pilot: a per-page assessment of what the converter read; calls
+  no other service either ([parked features](../docs/reference/parked.md)).
 
 Inputs, by content (the extension only names the file), in two workflows: **visual**, PDF and the office
 documents DOCX, DOC, ODT and RTF (native text on the pages of a headless LibreOffice rendering); **textual**, ODS,
@@ -21,7 +21,7 @@ as they are and never sent to the ATR. Images are not inputs: they go to the ATR
 
 | Image                                               | CPU / GPU        | Memory                                                                                                      | Volumes                                   | Calls out to                                                                                                        | Ready after                                                                         |
 |-----------------------------------------------------|------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| `ghcr.io/ufal/atrium-digital-convert-api:<version>` | CPU only; no GPU | budget about 1 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot; the largest peak measured was 783 MB | none (compose mounts `./data` as `/data`) | `/reformat`: nothing. The parked `/describe`: page-classification and ocr-postprocess, only when their URLs are set | about 3 s from a checkout (no model to load); the health check allows 30 s to start |
+| `ghcr.io/ufal/atrium-digital-convert-api:<version>` | CPU only; no GPU | budget about 1 GB plus `MAX_UPLOAD_MB` per `MAX_CONCURRENT_JOBS` slot; the largest peak measured was 783 MB | none (compose mounts `./data` as `/data`) | nothing                                                                                                             | about 3 s from a checkout (no model to load); the health check allows 30 s to start |
 
 The published image (2.0.0-beta or later, the release without its leading `v`) is what a deployment runs, and it
 needs no checkout. Start it in the background and wait until it is ready:
@@ -56,7 +56,6 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 | What                                                               | From where                                       | Revision                           | Into          | Without egress                                                                |
 |--------------------------------------------------------------------|--------------------------------------------------|------------------------------------|---------------|-------------------------------------------------------------------------------|
 | LibreOffice and its fonts (office documents, XLSX, XLS)            | in the image                                     | the image's package                | —             | nothing needed; a deployment without it answers 501 for DOCX/DOC/ODT/RTF/XLS  |
-| page-classification, ocr-postprocess (the parked `/describe` only) | `PAGE_CLASSIFICATION_URL`, `OCR_POSTPROCESS_URL` | their own releases                 | —             | the stage reads `not_configured` or `unavailable`; the request still succeeds |
 | Docling (optional engine)                                          | a local build only, not the API image            | `requirements_digital_docling.txt` | its own cache | not part of the API image                                                     |
 
 ## Endpoints
@@ -116,8 +115,8 @@ its pages.
 ### `POST /describe` (parked)
 
 Parked during the AMČR pilot: not part of the pipeline. The service still answers it: the conversion of `/reformat`,
-then a per-page assessment that asks page-classification and ocr-postprocess when their URLs are configured. Its
-fields, routes and stage statuses are in [parked features](../docs/reference/parked.md).
+then a per-page assessment of what the converter read. It calls no other tool (since v2.0.0-beta). Its fields and
+routes are in [parked features](../docs/reference/parked.md).
 
 ## Errors
 
@@ -133,7 +132,7 @@ cause in `cause`. Each row gives the status, the cause and what to do.
 | 422    | `source_digest_mismatch` | the seed's `source.sha512` is not the uploaded file's                                                                                                                                                                                                  | send the file the seed was made for, or a new seed                                 |
 | 422    | `invalid_record`         | `document_json` cannot be opened (not UTF-8 JSON, not an object, a newer schema major)                                                                                                                                                                 | send the seed AMČR made; update this service if the record is newer                |
 | 422    | `limit_exceeded`         | over `MAX_PAGES` or `LIBREOFFICE_TIMEOUT_S`; a repeated ODF cell or row past the repeat cap (`limit.effect` `trimmed`: no content is cut)                                                                                                              | raise the setting `limit.env` names, or split the document                         |
-| 422    | `null`                   | an empty or broken file (`cause`: `corrupt` — a CSV/JSON that does not parse, a reading that would skip content —, `encrypted`, `zip_limits_exceeded`, `conversion_failed` — a failed conversion or rendering); an unknown `stages` name (`/describe`) | repair or decrypt the file `cause` names; fix the `stages` value                   |
+| 422    | `null`                   | an empty or broken file (`cause`: `corrupt` — a CSV/JSON that does not parse, a reading that would skip content —, `encrypted`, `zip_limits_exceeded`, `conversion_failed` — a failed conversion or rendering)                                         | repair or decrypt the file `cause` names                                           |
 | 429    | `busy`                   | `MAX_CONCURRENT_JOBS` conversions already running; retry after `Retry-After`                                                                                                                                                                           | retry after `Retry-After`; raise `MAX_CONCURRENT_JOBS` if memory allows            |
 | 501    | `null`                   | an office document (DOCX, DOC, ODT, RTF), an XLSX or an XLS with no LibreOffice in this deployment (`cause`: `dependency_missing`)                                                                                                                     | use the image (it has LibreOffice)                                                 |
 | 503    | `null`                   | the service is shutting down; retry against a live replica                                                                                                                                                                                             | retry on another replica                                                           |
@@ -155,8 +154,6 @@ checks this table against `tool_limits.py` and `.env.example`.
 | `max_pages`                     | `MAX_PAGES`                         | 2000    | pages   | 422 `limit_exceeded` — split the document                                                                                                 |
 | `max_concurrent_jobs`           | `MAX_CONCURRENT_JOBS`               | 2       | jobs    | 429 `busy` with `Retry-After`                                                                                                             |
 | `libreoffice_timeout_s`         | `LIBREOFFICE_TIMEOUT_S`             | 120     | s       | 422 `limit_exceeded` — LibreOffice did not convert a DOC/XLS/XLSX, or render an office document, in time                                  |
-| `stage_timeout_s`               | `STAGE_TIMEOUT_S`                   | 360     | s       | `/describe` (parked): the stage is reported `unavailable`; the request still succeeds                                                     |
-| `route_trash_share`             | `ROUTE_TRASH_SHARE`                 | 0.5     | share   | policy (`/describe`, parked): a decoding page goes to `ocr` instead of `nlp` when the quality model calls more of its prose lines `Trash` |
 | `furniture_only_image_coverage` | `FURNITURE_ONLY_IMAGE_COVERAGE`     | 0.85    | share   | policy: a PDF page whose only text is its running header or footer is `none` (`needsAtr`) when its images cover this share of it          |
 | `bold_heading_max_share`        | `BOLD_HEADING_MAX_SHARE`            | 0.25    | share   | policy: a bold body-size line that reads as a title is a heading while bold body-size text is at most this share; 0 = off                 |
 | `render_text_coverage`          | `RENDER_TEXT_COVERAGE`              | 0.8     | share   | policy: a rendered office page whose body words the document's text covers less (3+ words not covered) needs the ATR                      |
@@ -176,8 +173,7 @@ checks this table against `tool_limits.py` and `.env.example`.
 * **An office document's rendered PDF travels in the answer.** `rendered_pdf` is base64, about 4/3 of the
   PDF's size, so a DOCX full of photographs gives a large response when a page needs the ATR (or with
   `rendered=true`); the rendering keeps the images' resolution for the ATR.
-* **Time.** `/reformat` took 3–58 s per document. What `/describe` takes with its stages is in
-  [parked features](../docs/reference/parked.md#large-documents-with-describe).
+* **Time.** `/reformat` took 3–58 s per document; `/describe` takes the same, as it calls no other tool.
 
 ## Partial results
 
@@ -211,11 +207,9 @@ A limit that would cut content fails the call: nothing partial is returned. Read
 | `RELOAD`                  | `false`   | filesystem auto-reload — development only                                                                |
 | `LOG_LEVEL`               | `INFO`    | root logger level for the `python -m service.api` start path                                             |
 | `ALLOWED_ORIGINS`         | `*`       | CSV of CORS origins                                                                                      |
-| `PAGE_CLASSIFICATION_URL` | —         | base URL of atrium-page-classification, for the parked `/describe`; unset → `not_configured`             |
-| `OCR_POSTPROCESS_URL`     | —         | base URL of atrium-ocr-postprocess, for the parked `/describe`; unset → `not_configured`                 |
 | `LIBREOFFICE_BIN`         | —         | the LibreOffice binary for DOC/XLS/XLSX and the renderings; unset → `soffice` or `libreoffice` on `PATH` |
 
-Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `ROUTE_TRASH_SHARE` and the rest — is
+Every limit and setting — `MAX_UPLOAD_MB`, `MAX_PAGES`, `RENDER_TEXT_COVERAGE` and the rest — is
 listed under [Limits](#limits); `.env.example` is the complete ledger.
 
 > **Note:** `HOST=127.0.0.1` yields a container that reports **healthy** and serves nobody:
@@ -238,8 +232,7 @@ listed under [Limits](#limits); `.env.example` is the complete ledger.
 4. **Build and gate the docproc** — `api_util/docproc_writer.py`, validated against its schema
    (`schemas/docproc/`); a docproc that fails is never returned. The paradata name the original and the docproc by SHA-512 and list the
    components that ran, each with its own terms (`para_config.txt`).
-5. The parked `/describe` only: **the stages** (`service/stages.py`), then the **report**
-   (`api_util/digital_report.py`), both run from `service/describe.py`.
+5. The parked `/describe` only: the **report** (`api_util/digital_report.py`), run from `service/describe.py`.
 
 The command line runs the same steps, the same output gate and the same Markdown view (`--markdown` is
 `markdown=true`). It refuses the same inputs (an empty file exit 4, an unreadable seed exit 3) and records the same
@@ -268,11 +261,9 @@ python atrium_openapi.py check  --app service.api:app --spec service/openapi.jso
 
 ```bash
 pytest tests/test_api_contract.py tests/test_openapi_contract.py   # the contract
-pytest tests/test_describe.py tests/test_digital_report.py         # the parked /describe, its stages and routes
+pytest tests/test_describe.py tests/test_digital_report.py         # the parked /describe and its routes
 pytest tests/test_digital_formats.py tests/test_digital_to_json.py # the converter
 pytest tests/test_cli_service_parity.py                            # the CLI and the service agree
 ```
 
-`tests/test_describe.py` serves `tools/stage_stub.py` — a model-free stand-in for page-classification
-and ocr-postprocess with their request and response shapes — on a local port, and drives the
-failure modes (down, timeout, 500, older versions, a rewriting stage) through `requests`.
+`tests/test_describe.py` also checks that `/describe` opens no connection to another service.

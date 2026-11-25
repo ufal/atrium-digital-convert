@@ -169,10 +169,9 @@ CMD ["--help"]
 
 # ---------------------------------------------------------------------------
 # API service — published as :<version>-api, THE production image (atrium-project#72)
-# `api-digital` (atrium-digital-convert#2): POST /reformat (the AMČR route's endpoint;
-# calls no other service) and POST /describe (the per-page assessment; calls
-# page-classification and ocr-postprocess only when PAGE_CLASSIFICATION_URL /
-# OCR_POSTPROCESS_URL are set). The `digital` stack + the web server; no model, no GPU.
+# `api-digital` (atrium-digital-convert#2): POST /reformat (the AMČR route's endpoint) and
+# POST /describe (the parked per-page assessment). Neither calls another service. The
+# `digital` stack + the web server; no model, no GPU.
 # ---------------------------------------------------------------------------
 FROM digital AS api
 
@@ -201,9 +200,8 @@ STOPSIGNAL SIGTERM
 #
 # GRACEFUL_SHUTDOWN_S carries the `--timeout-graceful-shutdown 20` that used to sit on
 # the ENTRYPOINT line. It bounds uvicorn's wait for in-flight HTTP requests. A
-# conversion takes seconds; a /describe with stages configured waits for them (up to
-# STAGE_TIMEOUT_S per call), so raise this together with the deployment's grace period
-# when /describe is used (docs/k8s_deployment.md in the hub).
+# conversion takes seconds, an office rendering up to LIBREOFFICE_TIMEOUT_S; raise this
+# together with the deployment's grace period (docs/k8s_deployment.md in the hub).
 ENV PORT=8000 GRACEFUL_SHUTDOWN_S=20
 
 # `python -m service.api`, NOT `python service/api.py`: a script launch puts
