@@ -2,8 +2,8 @@
 
 Textual: TXT, CSV, TSV and JSON are extracted as they are — every column, every string value —
 into a docproc without geometry whose pages never go to the ATR; long lines are wrapped and the
-wrap recorded as a split (D13). Visual: an office document's pages are its rendering's, only a
-page whose text cannot be used goes to the ATR, and the rendered PDF is handed over with it.
+wrap recorded as a split (D13). Visual: an office document's pages are its rendering's, none of
+them goes to the ATR, and the rendered PDF is handed over when a page shows graphics.
 """
 
 from __future__ import annotations

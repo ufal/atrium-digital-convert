@@ -454,8 +454,9 @@ app = FastAPI(
     title="ATRIUM digital-convert API",
     version=read_tool_version(Path(__file__).resolve().parent),
     description=(
-        "Born-digital documents (PDF, DOCX, ODT, ODS, XLSX, RTF, DOC, XLS) into the ATRIUM document record, "
-        "and a per-page assessment of whether each page's text can be used as it is."
+        "Born-digital documents (PDF, DOCX, DOC, ODT, RTF, ODS, XLSX, XLS, TXT, CSV, TSV, JSON) into docproc "
+        "(atr/docproc-json), the layout ocr-postprocess builds the record from, and a per-page assessment of "
+        "whether each page's text can be used as it is."
     ),
     lifespan=lifespan,
     responses=error_responses(422, 500),

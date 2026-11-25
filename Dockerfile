@@ -136,7 +136,7 @@ CMD ["--help"]
 #
 #   docker build --target digital-docling -t atrium-digital-convert-digital-docling .
 #   docker run --rm -v "$PWD:/data" atrium-digital-convert-digital-docling \
-#       /data/report.pdf --engine docling --document-json-out /data/report.document.json
+#       /data/report.pdf --engine docling --docproc-out /data/report.docproc.json
 #
 # `--engine docling` (api_util/digital_docling.py): Docling's layout and table models
 # decide reading order, headings, furniture and tables on complex PDFs; the light

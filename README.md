@@ -42,7 +42,7 @@ The service and the command line take the same inputs and give the same results:
 | Result                             | Service                                                   | Command line (`api_util/digital_to_json.py`)          |
 |------------------------------------|-----------------------------------------------------------|-------------------------------------------------------|
 | the docproc                        | `POST /reformat` → `docproc`                              | `<doc_id>.docproc.json` (or `--docproc-out PATH`)     |
-| an office document's rendered PDF  | `rendered_pdf` (a page needs the ATR, or `rendered=true`) | `--rendered-out PATH`                                 |
+| an office document's rendered PDF  | `rendered_pdf` (a page with graphics, or `rendered=true`) | `--rendered-out PATH`                                 |
 | the document as annotated Markdown | `markdown=true` → `markdown`                              | `--markdown` → `<doc_id>.md`                          |
 | the seed (read only)               | the `document_json` part                                  | `--document-json`                                     |
 | the run's paradata                 | `paradata`, a `CreateAction` in the answer                | a file, with `--paradata-dir`                         |
@@ -139,9 +139,9 @@ ATRIUM](https://marketplace.sshopencloud.eu/tool-or-service/jGxgQI).
   structure over the same lines; text it reads that no line holds keeps Docling's own box, which is not checked on a
   page whose CropBox or MediaBox is offset.
 - **An office document's pages are LibreOffice's.** They follow LibreOffice's layout with metric-compatible fonts,
-  which can break pages differently from Word. The docproc, the rendered PDF and the ATR all use the same pages.
-  Tracked changes are accepted in a DOCX, DOC and ODT before rendering, but not in an RTF. A page where the rendering
-  shows text the reading lacks goes to the ATR, so nothing is lost.
+  which can break pages differently from Word. The docproc and the rendered PDF use the same pages. Tracked
+  changes are accepted in a DOCX, DOC and ODT before rendering, but not in an RTF. An office document never goes to
+  the ATR, so text inside a picture pasted into it (a scanned page, a photo of a table) is not read.
 - **No partial output.** A step that cannot finish fails the job and writes nothing: a limit that would cut content
   (the ODF repeat cap) fails the conversion. On the command line the docproc is written before the rendered PDF and
   the Markdown, so a failure in those leaves it on disk, with paradata that say the run failed.

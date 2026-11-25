@@ -15,15 +15,19 @@ PDFs (the 15 AMČR documents of atrium-digital-convert#5) and leaves one run dir
                suggests, and the delivery set (one record and one `/describe` report per
                document)
 
+It reads the run directories of the 1.x command line (October 2026), which wrote a record with
+`--document-json-out`; since v2.0.0-beta the command line writes docproc, so a new run needs
+this tool adapted first.
+
     python tools/samples_report.py inventory --samples DIR --out RUN/02_inventory/inventory.tsv
     python tools/samples_report.py measure --out RUN/10_cli_light/X.run.json --timeout 7200 -- \\
-        python api_util/digital_to_json.py X.pdf --document-json-out RUN/10_cli_light/X.document.json
+        python api_util/digital_to_json.py X.pdf --document-json-out RUN/10_cli_light/X.document.json  # 1.x
     python tools/samples_report.py report --samples DIR --run RUN --thumbnails
 
 The run directory; every stage is optional and one that did not run shows as "—":
 
     02_inventory/inventory.tsv, .env      `inventory` (the .env holds shell variables for the job)
-    10_cli_light/<doc>.document.json      the CLI's record; <doc>.run.json (`measure`), <doc>.err
+    10_cli_light/<doc>.document.json      the 1.x CLI's record; <doc>.run.json (`measure`), <doc>.err
     11_cli_negative/results.tsv           check, expected, got, ok
     20_cli_docling/<doc>.*                as 10, with `--engine docling`
     30_markdown/<doc>.<detail>.md         `json_to_md.py --detail full|standard|minimal`

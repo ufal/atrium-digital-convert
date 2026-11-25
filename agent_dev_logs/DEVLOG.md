@@ -11,7 +11,7 @@
 > 11-03) · **Starting set of the pilot phase: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
 > **v1.4.5-beta** (11-06, the Galaxy entry point) · **v1.4.7-beta** (11-08, atrium-project#10's fixes); v1.4.3-beta and
 > v1.4.6-beta were tagged, not released. `test` (= `main`, `88137dd`) is 13 commits past v1.4.7-beta and declares the
-> unreleased v2.0.0-beta (record 2.0, docproc). Hub workflows pinned to `02cbd01` (`v1`). Latest entry: 2026-11-19
+> unreleased v2.0.0-beta (record 2.0, docproc). Hub workflows pinned to `02cbd01` (`v1`). Latest entry: 2026-11-25 (v2.0.0-beta release prep)
 > (log round)._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
@@ -1675,4 +1675,27 @@ Documentation only; no code, test or configuration change.
 * **Detail:** hub [plan of #79](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/79.plan.md),
   "Where it stands — 2026-11-22";
   [plan of #40](https://github.com/ufal/atrium-project/blob/test/agent_dev_logs/plans/40.plan.md).
+* Logs only; not pushed.
+
+## 2026-11-24 → 2026-11-25 — v2.0.0-beta release prep (#17): the office route, samples
+
+* **PR #17** (`v2-beta-prep` → `test`, head `3737cb2`), release prep with #9's last decisions:
+  * `/describe` calls no other tool: `service/stages.py`, `tools/stage_stub.py`, the stage fields, flags and
+    settings removed (`772a523`, `fc992ee`).
+  * A DOCX's text in full: equations, SmartArt and chart text (`772a523`; `objects.docx`, `b931d06`).
+  * An office document never goes to the ATR (`RENDER_TEXT_COVERAGE` gone); every page's routing says `graphics`
+    and `tables` (proposal ask 14); `/reformat` returns `rendered_pdf` when a page shows graphics; `scan_page.pdf`
+    is the mixed fixture (`73c0f6e`).
+  * Samples made with this version: the light and Docling docproc, the `/reformat` and `/describe` reports
+    (`73c0f6e`, `3737cb2`); the 1.x-stage `/describe` reports removed (`4a6a841`).
+* **Checked 11-25:** CI green on #17. Regenerated at the head, the light docproc is byte-identical, the reports and
+  Markdown the same (paradata aside), and all six docproc samples pass the proposal schema. The hub's born-digital
+  lane, replayed on `3737cb2` with hub `814cb7e`: 13 CLI cases, the mixed stand-in and 5 service cases pass.
+* **Route question with ARÚP** ([#84](https://github.com/ufal/atrium-project/issues/84), K4TEL 11-24, updated 11-25): page-classification also on the
+  pages with graphics, and whether AMČR stores the rendered PDF (`rendered-pdf`, `stored: false` today). Until then
+  the agreed route.
+* **Written here (not pushed):** the docs the source changes left stale: README (the `rendered_pdf` row, the
+  office-page limit), `service/README.md` (`rendered`), the OpenAPI description (docproc, not the record), the CLI,
+  test and fixture docstrings, the Dockerfile's Docling example, `tools/samples_report.py` (reads 1.x runs).
+* **Open:** text inside a picture pasted into an office document is not read.
 * Logs only; not pushed.

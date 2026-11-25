@@ -75,7 +75,7 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 | `file`             | yes      | the document                                                                                                 |
 | `document_json`    | no       | the AMČR seed (`doc_id`, `source.sha512`, `filename`, `media_type`), read only; an empty part counts as none |
 | `markdown`         | no       | `true` to also get the document rendered as annotated Markdown (`json_to_md`; a development view)            |
-| `rendered`         | no       | `true` to get an office document's rendered PDF even when no page needs the ATR                              |
+| `rendered`         | no       | `true` to get an office document's rendered PDF even when no page shows graphics                             |
 
 The response:
 

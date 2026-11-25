@@ -103,7 +103,8 @@ Added 2026-11-14 for atrium-digital-convert#9 (visual and textual inputs); every
 keeps its bytes:
 
     scan_page.docx    a text page, a page that is only a picture (a scan pasted into a report)
-                      and a text page: rendered, only the picture page needs the ATR.
+                      and a text page: rendered; since v2.0.0-beta no page goes to the ATR, and
+                      the picture page is routed `empty` with one graphic.
     photo_text.docx   a long paragraph, a photo and a short paragraph on one page: the paragraph
                       becomes visual lines on the rendering, and a page with good text and a
                       photo does not go to the ATR (motyc's point 5 on #9).

@@ -1,5 +1,6 @@
 # Strategy — [atrium-project#84](https://github.com/ufal/atrium-project/issues/84) (doc-schema-v2): digital-convert's part
 
+> _**Refreshed 2026-11-25**: Status — 11-25 (the v2.0.0-beta release prep)._
 > _**Refreshed 2026-11-19**: "Status — 11-19": rounds 7–9 merged, Ronald's answers, the tag after the cluster run._
 > _**Refreshed 2026-11-14 (afternoon)**: "Status — round 6 (11-14)": the hub merged, the pins moved, round 6._
 > _**Refreshed 2026-11-14**: "Status — PR (11-14)": the PR's checks and round 5's fixes._
@@ -13,6 +14,8 @@
 > This file is the repository's slice only; its 11-11 version (written before the
 > issue existed), in which digital-convert wrote the born-digital record, read images and CSV, and kept the
 > `ocr_text_layer` refusal — all superseded below._
+
+**Status (2026-11-25)**: 🟡 **v2.0.0-beta release prep in #17 (`v2-beta-prep` → `test`): office documents never go to the ATR, every page says what it shows (`graphics`, `tables`), `/describe` calls no other tool, the samples are this version's. Tag 26 November after the merge; the route question (pages with graphics to page-classification, the rendered PDF stored or not) is ARÚP's on atrium-project#84. See the DEVLOG entry of 11-25.**
 
 **Status (2026-11-19)**: 🟡 **Everything of this repository's part is on `test` (#10–#14), pinned to the hub's
 `02cbd01`. Kate's and Ronald's answers are in. Ronald's ask 10 leaves one risk on the ATR's side (a rotated or

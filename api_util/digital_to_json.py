@@ -1359,8 +1359,9 @@ def convert(
     failed conversion writes no docproc, and its paradata say `failed` (D13).
 
     With `rendered_out`, an office document's rendered PDF is written there too: the pages the
-    docproc's page numbers and boxes refer to, which page-classification and the ATR read for a
-    page that needs the ATR (atrium-digital-convert#9). A PDF or a textual input has none.
+    docproc's page numbers and boxes refer to, which page-classification reads for the pages that
+    show graphics (atrium-digital-convert#9). An office document never goes to the ATR. A PDF or a
+    textual input has none.
 
     The two views `POST /reformat` and `POST /describe` add, run by the same code
     (`service/describe.py`, atrium-project#72): `markdown_out` writes the development dict as
