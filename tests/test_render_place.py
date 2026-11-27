@@ -254,24 +254,38 @@ def test_a_few_uncovered_words_do_not_send_a_page_to_the_atr():
     assert not placed.pages[0].needs_ocr, "one list letter is not text the page lacks"
 
 
-def test_a_page_of_one_picture_goes_to_no_atr_and_shows_a_graphic():
-    """A pasted scan: the page has no text of its own, so it is routed `empty`, and its picture
-    makes it a page for page-classification (`graphics`), not for the ATR (v2.0.0-beta)."""
+def test_a_page_of_one_picture_goes_to_the_atr_and_shows_a_graphic():
+    """A pasted scan: the page has no running text and shows a picture, so it goes to the ATR,
+    and the whole document with it (atrium-project#84 decision 3); its picture also makes it a
+    page for page-classification (decision 4). The text pages keep their own text."""
     from api_util import docproc_writer
-    from api_util.digital_ir import page_graphics
+    from api_util.digital_ir import graphics_pages, page_graphics
 
     native = _native([("Před plánem.", "p0"), ("Po plánu.", "p1")])
     rendered = _rendered([["Před plánem."], [], ["Po plánu."]], images=[0, 1, 0])
     rendered.pages[1].text_layer = "none"
     rendered.pages[1].image_boxes = [[40.0, 40.0, 555.0, 800.0]]
     placed = d2j.normalize(place(native, rendered))
-    assert [page.needs_ocr for page in placed.pages] == [False, False, False]
+    assert [page.needs_ocr for page in placed.pages] == [False, True, False]
+    assert "without running text" in placed.pages[1].needs_ocr_reason
     assert [docproc_writer.route(page) for page in placed.pages] == [
         "text-layer",
-        "empty",
+        "atr",
         "text-layer",
     ]
     assert page_graphics(placed) == [0, 1, 0]
+    assert graphics_pages(placed) == [2]
+
+
+def test_a_page_with_only_its_rule_and_a_small_image_stays_empty():
+    """R2: vector paths (a header's rule, a page border) and an image under `GRAPHIC_MIN_SIDE`
+    are not objects: a page with nothing else stays `empty`, and the document keeps its text."""
+    native = _native([("Před prázdnou stranou.", "p0")])
+    rendered = _rendered([["Před prázdnou stranou."], []], images=[0, 1])
+    rendered.pages[1].vector_paths = 3
+    rendered.pages[1].image_boxes = [[500.0, 20.0, 520.0, 40.0]]
+    placed = d2j.normalize(place(native, rendered))
+    assert [page.needs_ocr for page in placed.pages] == [False, False]
 
 
 def test_a_drawing_counts_once_on_the_first_visual_line_of_its_line():

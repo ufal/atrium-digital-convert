@@ -33,9 +33,10 @@ which gives the physical pages, their sizes in pt, the words' boxes and the page
 5. **Coverage.** Each rendered page counts its body words (not its running header or footer, and
    only words with a letter) and how many of them the native text matched
    (`DigitalPage.render_words`, `render_matched`). This measures the placement; it sends no page
-   to the ATR: an office document's text is its own (`digital_to_json.assess_page`). What a page
-   shows besides that text — its images, and the drawings anchored on it (`DigitalLine.graphics`,
-   kept on a line's first visual line) — is its graphics (`digital_ir.page_graphics`).
+   to the ATR: what does is a page with no running text that shows an object
+   (`digital_to_json.assess_page`, atrium-project#84 decision 3). What a page shows besides its
+   text — its images, and the drawings anchored on it (`DigitalLine.graphics`, kept on a line's
+   first visual line) — is its graphics (`digital_ir.page_graphics`).
 """
 
 from __future__ import annotations

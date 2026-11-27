@@ -12,8 +12,11 @@ Every input takes one of two workflows (atrium-digital-convert#9):
     `api_util/digital_text.py`), DOC through its LibreOffice DOCX — and takes its pages from a
     headless LibreOffice rendering (`api_util/office_render.py`): the native text is placed on the
     rendered pages (`api_util/render_place.py`), which gives it page numbers and boxes in pt. Its
-    text is its own XML, in full: an office document never goes to the ATR. The rendered PDF is
-    what page-classification reads for the pages that show graphics (`--rendered-out`).
+    text is its own XML, read in full; a rendered page with no running text that shows an object
+    (a picture, a chart, a table, a text box) is `needs_atr` all the same, for the text its
+    objects may hold (atrium-project#84 decision 3). The rendered PDF is what the ATR and
+    page-classification read (`--rendered-out`); the pages that show graphics go to
+    page-classification beside the forced ones (decision 4, `--graphics-pages-out`).
   * **textual** — text with no pages to render: spreadsheets, every non-empty cell as the sheet
     displays it (an ODS as its file stored it; an XLSX or XLS as LibreOffice displays it in
     cs-CZ, read as ODS, `api_util/digital_legacy.py`), and the text-only inputs (TXT, CSV, TSV,
@@ -90,8 +93,11 @@ register): a page with no text layer but an image or vector paths on it (a scann
 text drawn as curves), a text layer of U+FFFD/control characters (a subset font without
 /ToUnicode; pdfminer's `(cid:N)` placeholders count, #5), and a text layer that is a prior OCR
 run's invisible text over a page image. A page whose only text is its running header or footer,
-over images that cover it, has no text layer either (#5). No document is refused for its pages
-(#84 §1): until #84 a PDF mostly of prior-OCR pages was refused whole (`ocr_text_layer`).
+over images that cover it, has no text layer either (#5). An office document's rendered page with
+no running text that shows an object (a picture, a chart, a table, a text box) goes to the ATR
+too, for the text its objects may hold (atrium-project#84 decision 3, `_reason_objects_only`).
+No document is refused for its pages (#84 §1): until #84 a PDF mostly of prior-OCR pages was
+refused whole (`ocr_text_layer`).
 
 ## Layout cues (the #18 mapping table), as docproc carries them
 
@@ -128,7 +134,7 @@ flow documents, ask 13).
 Usage:
     python api_util/digital_to_json.py report.pdf --docproc-out report.docproc.json
     python api_util/digital_to_json.py report.docx --document-json seed.document.json --out-dir out/ \
-        --rendered-out out/report.rendered.pdf
+        --rendered-out out/report.rendered.pdf --graphics-pages-out out/report.graphics.json
     python api_util/digital_to_json.py finds.csv --docproc-out finds.docproc.json
     python api_util/digital_to_json.py report.pdf --engine docling --paradata-dir paradata/
 """
@@ -165,8 +171,11 @@ from api_util.digital_ir import (  # noqa: E402  (re-exported: `d2j.DigitalLine`
     DigitalPage,
     DigitalTable,
     font_flags,
+    graphics_pages,
     is_inverted,
     missing_dependency,
+    page_graphics,
+    running_text,
     sha512_file,
     text_layer_of,
 )
@@ -175,6 +184,11 @@ from atrium_document import (  # noqa: E402
     canonical_doc_id,
 )
 from atrium_limits import ContentLimitError, LimitExceeded  # noqa: E402
+
+try:
+    from atrium_paradata import RENDERED_PDF_DISTRIBUTION  # noqa: E402
+except ImportError:  # pragma: no cover - a bundle without the paradata module writes none
+    RENDERED_PDF_DISTRIBUTION = "rendered-pdf"
 
 __all__ = [
     "REGION_FOOTER",
@@ -312,10 +326,11 @@ MOJIBAKE_FOREIGN_LETTERS = frozenset("àêûœÀÊÛŒ")
 PARAGRAPH_GAP_RATIO = 1.8
 
 #: The two workflows an input takes (atrium-digital-convert#9). `visual`: a document with pages,
-#: each given a verdict and described by what it shows (`graphics`, `tables`) — a PDF on its own
-#: pages, whose unusable pages go to the ATR, and an office document as its native text placed on
-#: the pages of its rendering, never the ATR. `textual`: text extracted as it is, with no pages to
-#: render, straight to scoring; never the ATR.
+#: each given a verdict and described by what it shows (its graphics, `digital_ir.graphics_pages`)
+#: — a PDF on its own pages, whose unusable pages go to the ATR, and an office document as its
+#: native text placed on the pages of its rendering, whose pages without running text that show
+#: an object go to the ATR (atrium-project#84 decision 3). `textual`: text extracted as it is,
+#: with no pages to render, straight to scoring; never the ATR.
 WORKFLOW_VISUAL = "visual"
 WORKFLOW_TEXTUAL = "textual"
 
@@ -571,16 +586,62 @@ def _reason_furniture_only(page: DigitalPage) -> str:
     )
 
 
-def assess_page(page: DigitalPage, textual: bool = False) -> None:
+def _reason_objects_only(page: DigitalPage, graphics: int, structured: bool) -> str:
+    """Why a rendered office page goes to the ATR (atrium-project#84 decision 3), or "" when it
+    keeps its own text.
+
+    A page goes when it has no running text (`digital_ir.running_text`: no line outside the page
+    furniture, the footnotes, the tables and the objects' text) and shows an object: graphics (a
+    picture of at least `GRAPHIC_MIN_SIDE`, not a repeated logo; a chart, a SmartArt diagram, a
+    shape), a table, or a chart's, a diagram's or a text box's text. Vector paths alone do not
+    count: a header's rule or a page border is drawn with them. A page with nothing on it stays
+    `empty`, and a page whose only text is its running header or footer keeps it. For ODT and RTF
+    (`structured` False: plain lines from the shared reader) only a page with no line at all that
+    shows graphics goes.
+    """
+    if structured:
+        if running_text(page):
+            return ""
+        tables = len(page.tables)
+        objects = sum(1 for line in page.lines if line.object_text)
+    else:
+        if page.lines:
+            return ""
+        tables = objects = 0
+    shown: List[str] = []
+    if graphics:
+        shown.append(f"{graphics} graphic(s)")
+    if tables:
+        shown.append(f"{tables} table(s)")
+    if objects:
+        shown.append(f"{objects} line(s) of chart, diagram or text-box text")
+    if not shown:
+        return ""
+    return (
+        f"an office page without running text: it shows {' and '.join(shown)}, whose text the "
+        f"document may not hold (a pasted scan, a photo of text); read whole by the ATR "
+        f"(atrium-project#84 decision 3)"
+    )
+
+
+def assess_page(
+    page: DigitalPage,
+    textual: bool = False,
+    graphics: int = 0,
+    structured: bool = True,
+) -> None:
     """Fill in the page's `decode_score`, `needs_ocr` and its reason, in place.
 
     A page of the textual workflow (`textual`: a text-only input or a spreadsheet,
     atrium-digital-convert#9 point 4) never needs the ATR: it has nothing to render. Its decode
-    flags stay on its lines for scoring. Nor does a rendered office page (its `render_words`
-    measured, `render_place`): an office document's text is its own XML, read in full, so no
-    page of it goes to the ATR, not even one whose rendering shows text the XML does not hold (a
-    pasted scan, a photo of text). What such a page shows is described by its graphics
-    (`digital_ir.page_graphics`), for page-classification, never read by the ATR.
+    flags stay on its lines for scoring. A rendered office page (its `render_words` measured,
+    `render_place`) keeps its text, which is its own XML read in full, and is judged by what it
+    holds instead (`_reason_objects_only`, atrium-project#84 decision 3): a page with no running
+    text that shows an object — `graphics` pictures or drawings (`digital_ir.page_graphics`), a
+    table, a chart's, a diagram's or a text box's text — goes to the ATR for the text its objects
+    may hold (a pasted scan, a photo of text). `structured` is False for ODT and RTF, whose shared
+    reader gives plain lines (no table, furniture or object marks): such a page goes to the ATR
+    only when it has no line at all and shows graphics.
 
     `needs_ocr_reason` is written whenever `needs_ocr` is, and never alone. The flag means
     different things on the two originator paths — "no text layer" for a scan, "a text
@@ -642,8 +703,11 @@ def assess_page(page: DigitalPage, textual: bool = False) -> None:
             f"source.origin ocr:pdf-text-layer)."
         )
 
-    if textual or page.render_words is not None:
+    if textual:
         reasons = []
+    elif page.render_words is not None:
+        objects = _reason_objects_only(page, graphics, structured)
+        reasons = [objects] if objects else []
     page.needs_ocr = bool(reasons)
     page.needs_ocr_reason = " ".join(reasons)
 
@@ -658,7 +722,13 @@ def normalize(doc: DigitalDocument) -> DigitalDocument:
     Only the shared-letter requirement is relaxed there; a French letter or a character
     CP1252 cannot hold still clears the line.
     """
-    for page in doc.pages:
+    # What each page shows (atrium-project#84 decision 3): counted once, across pages, because a
+    # picture that recurs at the same place is furniture (`page_graphics`).
+    graphics = page_graphics(doc) if doc.workflow == WORKFLOW_VISUAL else [0] * len(doc.pages)
+    # ODT and RTF come from the shared reader as plain lines (`api_util/digital_text.py`): no table,
+    # furniture or object marks, so only a page with no line at all is judged by its graphics.
+    structured = doc.kind not in ("odt", "rtf")
+    for page, shown in zip(doc.pages, graphics, strict=True):
         reports: Dict[int, DecodeReport] = {}
         for line in page.lines:
             report = decode_sanity(line.text)
@@ -684,7 +754,12 @@ def normalize(doc: DigitalDocument) -> DigitalDocument:
                 ):
                     line.decode = DECODE_GARBLED
         assign_group_ids(page.lines, prefix=f"p{page.page_index}-")
-        assess_page(page, textual=doc.workflow == WORKFLOW_TEXTUAL)
+        assess_page(
+            page,
+            textual=doc.workflow == WORKFLOW_TEXTUAL,
+            graphics=shown,
+            structured=structured,
+        )
     return doc
 
 
@@ -1228,10 +1303,24 @@ def build_development(
 #: AMČR distribution names (atrium-project#84). The original's name is open (#84, Q11).
 ORIGINAL_DISTRIBUTION = "original"
 RECORD_DISTRIBUTION = "atrium/document-json"
-#: The rendered PDF of an office document (atrium-digital-convert#9): an intermediate the visual
-#: steps read, never stored, named by its SHA-512 (D23). Its distribution name is AMČR's to give
-#: (open, as the original's is, #84 Q11); this one stands in until then.
-RENDERED_DISTRIBUTION = "rendered-pdf"
+#: The rendered PDF of an office document (atrium-digital-convert#9): the pages the docproc's page
+#: numbers and boxes refer to. Stored whenever the ATR or page-classification reads it
+#: (atrium-project#84 decision 5, `rendered_pdf_read`), and then named in `result`; otherwise it is
+#: not handed over and not named. Its distribution name is AMČR's to give; the shared stand-in
+#: (`atrium_paradata.RENDERED_PDF_DISTRIBUTION`) holds until then.
+RENDERED_DISTRIBUTION = RENDERED_PDF_DISTRIBUTION
+
+
+def rendered_pdf_read(document: DigitalDocument, docproc: Dict[str, Any]) -> bool:
+    """Whether an office document's rendered PDF is read downstream (atrium-project#84 decisions
+    4 and 5): by the ATR when a page is forced to it (the whole document goes there, as the
+    rendered PDF, whose pages and boxes the docproc's are), or by page-classification when a page
+    shows graphics. Only then is it handed over and stored."""
+    from api_util import docproc_writer  # noqa: PLC0415
+
+    return document.rendered_pdf is not None and (
+        docproc_writer.needs_atr(docproc) or bool(graphics_pages(document))
+    )
 
 
 def _paradata_logger(paradata_dir: str, config: Dict[str, Any]) -> Optional[Any]:
@@ -1268,15 +1357,18 @@ def record_run(
     original: Dict[str, Any],
     docproc_data: bytes,
     seed: Optional[Dict[str, Any]] = None,
+    rendered_handed_over: bool = False,
 ) -> None:
     """Paradata 3.0 of one conversion (atrium-project#84, H14): the original read (`original`,
     and the seed if one was sent, by SHA-512), the docproc written (`atr/docproc-json`, marked
     `stored: false` when a page needs the ATR: the ATR's docproc is then the stored one), the
     parameters that shaped it, the splits it rests on, and the components used, as facts.
 
-    An office document's rendering (atrium-digital-convert#9) adds the rendered PDF to `result`,
-    by SHA-512 and never stored (D23), the pinned export options and the placement threshold to
-    `parameters`, and LibreOffice with its version to `components`. A text-only input's wrapped
+    An office document's rendering (atrium-digital-convert#9) adds the pinned export options to
+    `parameters` and LibreOffice with its version to `components`; the rendered PDF itself is in
+    `result`, by SHA-512 and stored, only when `rendered_handed_over` (atrium-project#84 decision 5:
+    the ATR or page-classification reads it, `rendered_pdf_read`, and this run handed it over: the
+    service's `rendered_pdf`, the command line's `--rendered-out`). A text-only input's wrapped
     lines are `split` notes in `limits` (D13)."""
     from api_util import docproc_writer  # noqa: PLC0415
 
@@ -1305,7 +1397,8 @@ def record_run(
             {"render_dpi": digital_pdf.BLANK_RENDER_DPI, "ink_level": digital_pdf.BLANK_INK_LEVEL},
         )
     if document.workflow != WORKFLOW_TEXTUAL:
-        # The pages' `graphics` (docproc routing): the smallest image counted as one.
+        # What a page shows (`graphics_pages`, the run hand-over; atrium-project#84 decisions 3, 4):
+        # the smallest image counted as one.
         from api_util.digital_ir import GRAPHIC_MIN_SIDE  # noqa: PLC0415
 
         logger.set_parameter("graphic_min_side_pt", GRAPHIC_MIN_SIDE)
@@ -1313,12 +1406,12 @@ def record_run(
     if document.rendering is not None:
         from api_util.office_render import CONVERT_TO  # noqa: PLC0415
 
-        logger.add_output(
-            RENDERED_DISTRIBUTION,
-            sha512=document.rendering["sha512"],
-            media_type="application/pdf",
-            stored=False,
-        )
+        if rendered_handed_over:
+            logger.add_output(
+                RENDERED_DISTRIBUTION,
+                sha512=document.rendering["sha512"],
+                media_type="application/pdf",
+            )
         logger.set_parameter("render", CONVERT_TO)
         if document.rendering.get("version"):
             versions["libreoffice"] = str(document.rendering["version"])
@@ -1351,6 +1444,7 @@ def convert(
     markdown_out: Optional[str] = None,
     describe_out: Optional[str] = None,
     include_text: bool = True,
+    graphics_pages_out: Optional[str] = None,
 ) -> str:
     """A → D for one file. Returns the written docproc's path (`<doc_id>.docproc.json` in
     `out_dir` unless `out_path` names one).
@@ -1358,10 +1452,17 @@ def convert(
     With `paradata_dir`, the run also writes its paradata record there (`record_run()`). A
     failed conversion writes no docproc, and its paradata say `failed` (D13).
 
-    With `rendered_out`, an office document's rendered PDF is written there too: the pages the
-    docproc's page numbers and boxes refer to, which page-classification reads for the pages that
-    show graphics (atrium-digital-convert#9). An office document never goes to the ATR. A PDF or a
-    textual input has none.
+    With `rendered_out`, an office document's rendered PDF is written there too when it is read
+    downstream (`rendered_pdf_read`, atrium-project#84 decision 5): by the ATR when a page is forced
+    to it, by page-classification when a page shows graphics. The paradata name it, stored, only
+    then: naming follows writing. A rendered PDF that is read but not asked for is neither written
+    nor named, with a NOTE; LibreOffice's output differs per run, so a later step uses the bytes
+    handed over, never a re-render. A PDF or a textual input has none.
+
+    With `graphics_pages_out`, the pages that show graphics are written there as
+    `{"graphics_pages": [...]}` (`digital_ir.graphics_pages`; empty for the textual workflow): the
+    run hand-over that, with the pages the docproc forces to the ATR, selects the pages
+    page-classification reads (atrium-project#84 decisions 4 and 6). It is not stored.
 
     The two views `POST /reformat` and `POST /describe` add, run by the same code
     (`service/describe.py`, atrium-project#72): `markdown_out` writes the development dict as
@@ -1393,16 +1494,34 @@ def convert(
         data = docproc_bytes(docproc)
         written = out_path or os.path.join(out_dir, f"{document.doc_id}.docproc.json")
         _write_bytes(written, data)
+        read = rendered_pdf_read(document, docproc)
+        rendered_written = False
         if rendered_out:
-            if document.rendered_pdf is not None:
-                _write_bytes(rendered_out, document.rendered_pdf)
-                print(f"[digital-convert] wrote {rendered_out}")
-            else:
+            if document.rendered_pdf is None:
                 print(
                     f"[digital-convert] NOTE - --rendered-out: a {document.kind.upper()} is not rendered "
                     f"(only DOCX, DOC, ODT and RTF are); nothing written",
                     file=sys.stderr,
                 )
+            elif not read:
+                print(
+                    "[digital-convert] NOTE - --rendered-out: no page goes to the ATR and none shows "
+                    "graphics, so nothing reads the rendered PDF; nothing written",
+                    file=sys.stderr,
+                )
+            else:
+                _write_bytes(rendered_out, document.rendered_pdf)
+                rendered_written = True
+                print(f"[digital-convert] wrote {rendered_out}")
+        elif read:
+            print(
+                "[digital-convert] NOTE - the ATR / page-classification need the rendered PDF: pass "
+                "--rendered-out (without it the paradata do not name it)",
+                file=sys.stderr,
+            )
+        if graphics_pages_out:
+            _write_json(graphics_pages_out, {"graphics_pages": graphics_pages(document)})
+            print(f"[digital-convert] wrote {graphics_pages_out}")
         if markdown_out is not None or describe_out is not None:
             _write_views(
                 document,
@@ -1426,6 +1545,7 @@ def convert(
             {"path": input_path, "media_type": document.media_type},
             data,
             {"path": baseline, "media_type": "application/json"} if baseline else None,
+            rendered_handed_over=rendered_written,
         )
         logger.log_success("docproc_json")
         logger.log_document_success()
@@ -1554,9 +1674,17 @@ def build_parser() -> argparse.ArgumentParser:
         "--rendered-out",
         default=None,
         metavar="PATH",
-        help="also write an office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the "
-        "docproc's page numbers and boxes refer to, which page-classification reads for the pages "
-        "that show graphics. Not stored; the paradata name it by SHA-512",
+        help="also write an office document's rendered PDF (DOCX, DOC, ODT, RTF) when the ATR or "
+        "page-classification reads it (a page forced to the ATR, a page that shows graphics): the "
+        "pages the docproc's page numbers and boxes refer to. Stored; the paradata name it by "
+        "SHA-512 only when it is written",
+    )
+    parser.add_argument(
+        "--graphics-pages-out",
+        default=None,
+        metavar="PATH",
+        help='also write the pages that show graphics, {"graphics_pages": [...]}: with the pages the '
+        "docproc forces to the ATR, the pages page-classification reads. A run hand-over, not stored",
     )
     views = parser.add_argument_group(
         "views (what POST /reformat's markdown=true and POST /describe return)"
@@ -1603,6 +1731,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             markdown_out=args.markdown,
             describe_out=args.describe,
             include_text=args.include_text,
+            graphics_pages_out=args.graphics_pages_out,
         )
     except DigitalInputError as exc:
         print(f"[digital-convert] {exc.reason}: {exc}", file=sys.stderr)

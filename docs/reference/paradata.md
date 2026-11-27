@@ -10,12 +10,14 @@ Paradata schema 3.0. What a run read and wrote is named by AMČR distribution na
   seed, when one was sent, as `atrium/document-json`.
 * **Output** (`result`): the docproc as `atr/docproc-json`. When a page needs the ATR, the ATR's docproc is the
   stored one, so this one is `stored: false`, still named by its SHA-512. An office document's rendered PDF is an
-  output too, as `rendered-pdf` (a stand-in name until AMČR gives one), always `stored: false`: the docproc's pages
-  and boxes are its pages, and page-classification reads it. Its digest names the PDF this run
-  handed over. A rerun lays the pages out the same, so the docproc does not change, but the PDF's bytes may differ.
-  The Markdown and the `/describe` report are development outputs and are not named.
+  output too, a stored distribution named `rendered-pdf` (a stand-in name until AMČR gives one), whenever the ATR
+  or page-classification reads it and the run hands it over: `/reformat`'s `rendered_pdf`, or the command line's
+  `--rendered-out` (atrium-project#84 decision 5). A rendering nothing reads, or one the command line did not
+  write, is not named. Its digest names the PDF this run handed over: a rerun lays the pages out the same, so the
+  docproc does not change, but the PDF's bytes may differ. The Markdown, the `/describe` report and the pages that
+  show graphics (`graphics_pages`, a run hand-over) are not named.
 * **Parameters**: the engine (`light`, `docling`), the workflow (`visual`, `textual`); for the visual workflow, the
-  smallest picture a page's `graphics` count (`graphic_min_side_pt`: 24); for an office document, the pinned
+  smallest picture counted as a graphic (`graphic_min_side_pt`: 24); for an office document, the pinned
   LibreOffice export options (`render`); for an XLSX or XLS, the locale LibreOffice displayed its cells in
   (`spreadsheet_locale`: `cs-CZ`).
 * **Limits**: the splits the output rests on: `max_line_chars` when lines of a textual input were wrapped.

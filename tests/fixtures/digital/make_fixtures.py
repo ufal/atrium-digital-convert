@@ -1207,10 +1207,13 @@ _PICTURE_DOC_RELS = DOC_RELS.replace(
 )
 
 
-def _picture_docx(body: str, png: bytes) -> bytes:
+def _picture_docx(body: str, png: bytes, shapes: bool = False) -> bytes:
+    """A DOCX of `body` with one picture part (`rId9`). `shapes` also declares the namespaces a
+    text box needs (`_textbox_run`)."""
+    extra = f' xmlns:mc="{MC_NS}" xmlns:wps="{WPS_NS}" xmlns:v="{V_NS}"' if shapes else ""
     document = XML_DECL + (
         f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" '
-        f'xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"><w:body>{body}'
+        f'xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"{extra}><w:body>{body}'
         '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
         '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" '
         'w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>'
@@ -1237,20 +1240,61 @@ def _picture_docx(body: str, png: bytes) -> bytes:
 _PAGE_BREAK = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
 
 
+def _textbox_run(
+    text: str, x_in: float, y_in: float, width_in: float, height_in: float, shape_id: int
+) -> str:
+    """A text box floating over the page at (`x_in`, `y_in`) from the page's corner: DrawingML as
+    Word writes it (`wp:anchor`, `wps:wsp` with `txBox`), and the VML fallback. A run, to sit in
+    the paragraph it is anchored to; its text is object text, not running text."""
+    cx, cy = int(width_in * EMU_PER_INCH), int(height_in * EMU_PER_INCH)
+    x, y = int(x_in * EMU_PER_INCH), int(y_in * EMU_PER_INCH)
+    content = f'<w:txbxContent><w:p><w:r><w:t xml:space="preserve">{text}</w:t></w:r></w:p></w:txbxContent>'
+    return (
+        '<w:r><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing>'
+        '<wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="2" '
+        'behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">'
+        '<wp:simplePos x="0" y="0"/>'
+        f'<wp:positionH relativeFrom="page"><wp:posOffset>{x}</wp:posOffset></wp:positionH>'
+        f'<wp:positionV relativeFrom="page"><wp:posOffset>{y}</wp:posOffset></wp:positionV>'
+        f'<wp:extent cx="{cx}" cy="{cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>'
+        f'<wp:docPr id="{shape_id}" name="Popisek {shape_id}"/><wp:cNvGraphicFramePr/>'
+        f'<a:graphic><a:graphicData uri="{WPS_NS}"><wps:wsp><wps:cNvSpPr txBox="1"/>'
+        f'<wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+        '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
+        '<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></wps:spPr>'
+        f"<wps:txbx>{content}</wps:txbx>"
+        '<wps:bodyPr rot="0" vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" '
+        'bIns="45720" anchor="t"><a:noAutofit/></wps:bodyPr></wps:wsp></a:graphicData></a:graphic>'
+        "</wp:anchor></w:drawing></mc:Choice><mc:Fallback><w:pict>"
+        f'<v:shape style="position:absolute;margin-left:{x_in * 72:g}pt;margin-top:{y_in * 72:g}pt;'
+        f"width:{width_in * 72:g}pt;height:{height_in * 72:g}pt;mso-position-horizontal-relative:page;"
+        f'mso-position-vertical-relative:page"><v:textbox>{content}</v:textbox></v:shape>'
+        "</w:pict></mc:Fallback></mc:AlternateContent></w:r>"
+    )
+
+
+#: The caption of scan_page.docx's scan, in a text box over the page: object text.
+SCAN_CAPTION = "Obr. 2: Plán sondy II, sken z terénního deníku."
+
+
 def scan_page_docx() -> bytes:
-    """A report with a scanned page pasted in as a picture: page 2 has no text, only the
-    picture (6.5 x 9.5 in on A4); pages 1 and 3 have text. An office document never goes to the
-    ATR (v2.0.0-beta): page 2 is routed `empty` and described by its graphics, for
-    page-classification."""
+    """A report with a scanned page pasted in as a picture: page 2 holds the picture (6.5 x 9.5
+    in on A4) and its caption in a text box floating over it, no running text; pages 1 and 3
+    have text. Page 2 goes
+    to the ATR, and the whole document with it (atrium-project#84 decision 3): the caption is
+    object text, so the record keeps it beside the ATR's reading of the scan (keep-native, R8)."""
     body = (
         _p("Nálezová zpráva", style="Heading1")
         + _p("Na následující straně je naskenovaný plán sondy.")
         + _PAGE_BREAK
-        + _picture("rId9", "plan.png", 6.5, 9.5, 1)
+        # The scan, and its caption floating over the scan's lower part.
+        + _picture("rId9", "plan.png", 6.5, 9.5, 1).replace(
+            "</w:r></w:p>", "</w:r>" + _textbox_run(SCAN_CAPTION, 1.5, 9.4, 5.0, 0.5, 7) + "</w:p>"
+        )
         + _PAGE_BREAK
         + _p("Závěr: sonda byla zasypána.")
     )
-    return _picture_docx(body, _png(32, 48, 96))
+    return _picture_docx(body, _png(32, 48, 96), shapes=True)
 
 
 #: A paragraph long enough to wrap onto several lines of an A4 page.
@@ -1466,6 +1510,100 @@ def objects_docx() -> bytes:
     )
 
 
+#: objects_pages.docx's header: a ruled paragraph with a small logo, repeated on every page.
+_RULED_HEADER = (
+    '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="000000"/></w:pBdr></w:pPr>'
+    + '<w:r><w:t xml:space="preserve">Archeologický ústav – příloha zprávy </w:t></w:r>'
+    + "</w:p>"
+)
+
+
+def objects_pages_docx() -> bytes:
+    """Five A4 pages under a ruled running header with a small logo on every page: what an office
+    page holds decides whether it goes to the ATR (atrium-project#84 decision 3, R2):
+
+    1. a picture only (a pasted scan), under the header → the ATR;
+    2. a table only → the ATR;
+    3. a chart only (its titles and series are its text) → the ATR;
+    4. nothing: the header's rule and logo alone → `empty`;
+    5. running text → its own text.
+    """
+    logo = _picture("rId11", "logo.png", 0.6, 0.3, 50)
+    header = XML_DECL + (
+        f'<w:hdr xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" xmlns:a="{A_NS}" '
+        f'xmlns:pic="{PIC_NS}">{_RULED_HEADER}{logo}</w:hdr>'
+    )
+    table = (
+        "<w:tbl>"
+        '<w:tblPr><w:tblW w:w="9070" w:type="dxa"/><w:tblBorders>'
+        '<w:top w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/>'
+        '<w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/>'
+        "</w:tblBorders></w:tblPr>"
+        '<w:tblGrid><w:gridCol w:w="4535"/><w:gridCol w:w="4535"/></w:tblGrid>'
+        f"<w:tr>{_cell('Objekt')}{_cell('Datace')}</w:tr>"
+        f"<w:tr>{_cell('Jáma 12')}{_cell('Halštat')}</w:tr>"
+        f"<w:tr>{_cell('Žlab 3')}{_cell('Laténe')}</w:tr>"
+        "</w:tbl>"
+    )
+    chart = _inline_graphic(C_NS, f'<c:chart xmlns:c="{C_NS}" r:id="rId20"/>', 2, 5.5, 3.0)
+    body = (
+        _picture("rId9", "sken.png", 6.0, 8.0, 1)
+        + _PAGE_BREAK
+        + table
+        + _PAGE_BREAK
+        + f"<w:p>{chart}</w:p>"
+        + _PAGE_BREAK
+        + _PAGE_BREAK
+        + _p("Závěrečné shrnutí výzkumu na páté straně.")
+        + '<w:sectPr><w:headerReference w:type="default" r:id="rId10"/>'
+        '<w:pgSz w:w="11906" w:h="16838"/>'
+        '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" '
+        'w:footer="567" w:gutter="0"/></w:sectPr>'
+    )
+    document = XML_DECL + (
+        f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" '
+        f'xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"><w:body>{body}</w:body></w:document>'
+    )
+    content_types = _PICTURE_CONTENT_TYPES.replace(
+        "</Types>",
+        f'<Override PartName="/word/charts/chart1.xml" ContentType="{_DRAWINGML}chart+xml"/>'
+        f'<Override PartName="/word/header1.xml" ContentType="{_CT}header+xml"/></Types>',
+    )
+    doc_rels = DOC_RELS.replace(
+        "</Relationships>",
+        f'<Relationship Id="rId9" Type="{_REL}image" Target="media/picture.png"/>'
+        f'<Relationship Id="rId10" Type="{_REL}header" Target="header1.xml"/>'
+        f'<Relationship Id="rId20" Type="{_REL}chart" Target="charts/chart1.xml"/>'
+        "</Relationships>",
+    )
+    header_rels = XML_DECL + (
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        f'<Relationship Id="rId11" Type="{_REL}image" Target="media/logo.png"/>'
+        "</Relationships>"
+    )
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=ZIP_COMPRESSION) as zf:
+        for name, data in (
+            ("[Content_Types].xml", content_types.encode("utf-8")),
+            ("_rels/.rels", ROOT_RELS.encode("utf-8")),
+            ("docProps/core.xml", CORE_PROPS.encode("utf-8")),
+            ("word/_rels/document.xml.rels", doc_rels.encode("utf-8")),
+            ("word/_rels/header1.xml.rels", header_rels.encode("utf-8")),
+            ("word/document.xml", document.encode("utf-8")),
+            ("word/styles.xml", STYLES.encode("utf-8")),
+            ("word/header1.xml", header.encode("utf-8")),
+            ("word/charts/chart1.xml", OBJECTS_CHART.encode("utf-8")),
+            ("word/media/picture.png", _png(32, 44, 90)),
+            ("word/media/logo.png", _png(12, 6, 40)),
+        ):
+            info = zipfile.ZipInfo(name, date_time=ZIP_EPOCH)
+            info.compress_type = ZIP_COMPRESSION
+            info.create_system = ZIP_CREATE_SYSTEM
+            info.external_attr = 0o600 << 16
+            zf.writestr(info, data)
+    return buf.getvalue()
+
+
 def sample_txt() -> bytes:
     return (
         "Nálezová zpráva\n"
@@ -1644,6 +1782,7 @@ BUILDERS = {
     "sample.json": sample_json,
     "sample.xlsx": sample_xlsx,
     "objects.docx": objects_docx,
+    "objects_pages.docx": objects_pages_docx,
 }
 
 NOTES = {
@@ -1665,7 +1804,7 @@ NOTES = {
     "small_caps.pdf": "capitals then smaller capitals in one word; real spaces; a Ts capital (#5)",
     "rotated.pdf": "vertical table headers (ttb with a second subset, btt); a btt caption (#5)",
     "bold_titles.pdf": "bold section titles at the body size; bold lines that are not titles (#5)",
-    "scan_page.docx": "text page, a page of one picture (a pasted scan), text page — no ATR: the picture page is routed `empty` with its graphics (v2.0.0-beta)",
+    "scan_page.docx": "text page, a page of one picture (a pasted scan) with its caption in a text box, text page — the mixed DOCX: the picture page goes to the ATR, its caption kept (#84 decision 3, R8)",
     "scan_page.pdf": "text page, a page of one scanned picture, text page — the mixed PDF: only the picture page needs the ATR (#84 H4, H6)",
     "photo_text.docx": "a long paragraph, a photo, a caption on one page — visual lines; the photo is the page's graphics (#9)",
     "sample.txt": "two paragraphs, a form feed, a second page — the textual workflow (#9)",
@@ -1674,6 +1813,7 @@ NOTES = {
     "sample.json": "string values in objects and lists, with keys and numbers — every string kept (#9)",
     "sample.xlsx": "find records: counts, decimals, an area, a share, two dates, a time, a boolean, a formula, a hidden sheet — every cell as displayed (#9)",
     "objects.docx": "an inline and a display equation, a SmartArt of three nodes, a bar chart with titles, series and categories — read from the XML (v2.0.0-beta)",
+    "objects_pages.docx": "a ruled header with a logo over five pages: a picture, a table, a chart, nothing, running text — the first three to the ATR, the fourth `empty` (#84 decision 3, R2)",
 }
 
 

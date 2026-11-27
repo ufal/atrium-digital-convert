@@ -69,7 +69,8 @@ def test_the_proposal_changes_only_what_the_asks_name():
     assert set(block["properties"]) - set(actual["$defs"]["Block"]["properties"]) == {"lines"}
     assert set(proposal["$defs"]) - set(actual["$defs"]) == {"Line"}
 
-    # ask 5: a routing entry may echo a forced page; ask 14: what the page shows besides its text
+    # ask 5: a routing entry may echo a forced page. Ask 14 (`graphics`, `tables`) is withdrawn
+    # (atrium-project#84 decision 6): what a page shows is a run hand-over, not docproc.
     def route(schema):
         return schema["properties"]["metadata"]["properties"]["routing"]["properties"]["pages"][
             "items"
@@ -78,13 +79,11 @@ def test_the_proposal_changes_only_what_the_asks_name():
     assert set(route(proposal)["properties"]) - set(route(actual)["properties"]) == {
         "forced",
         "forced_reason",
-        "graphics",
-        "tables",
     }
     # nothing else moved: every other definition is the ATR's own
     for name in set(actual["$defs"]) - {"Page", "Block"}:
         assert proposal["$defs"][name] == actual["$defs"][name], name
-    for key in ("forced", "forced_reason", "graphics", "tables"):
+    for key in ("forced", "forced_reason"):
         del route(proposal)["properties"][key]
     assert {
         k: v for k, v in proposal["properties"].items() if k not in ("pipeline", "sourceFormat")
@@ -166,22 +165,23 @@ def test_every_page_is_routed_and_an_empty_one_is_not_listed(fixtures):
     assert [r["page"] for r in routing] == [1, 2, 3]
     listed = {p["pageNumber"] for p in docproc["pages"]}
     assert listed == {r["page"] for r in routing if r["route"] != "empty"}
-    assert routing[0] == {
-        "page": 1,
-        "route": "text-layer",
-        "text_layer": True,
-        "graphics": 0,
-        "tables": 0,
-    }
+    assert routing[0] == {"page": 1, "route": "text-layer", "text_layer": True}
 
 
-def test_each_page_says_what_it_shows_besides_its_text(fixtures):
-    """Ask 14: `graphics` and `tables` per routed page, for the pipeline to choose the pages
-    page-classification reads. The scanned plate is a graphic; a page of text shows none."""
-    routing = _docproc(fixtures / "image_only.pdf")["metadata"]["routing"]["pages"]
-    assert [(r["graphics"], r["tables"]) for r in routing] == [(0, 0), (1, 0), (0, 0)]
-    assert docproc_writer.graphics_pages(_docproc(fixtures / "image_only.pdf")) == [2]
-    assert docproc_writer.graphics_pages(_docproc(fixtures / "minimal.pdf")) == []
+def test_routing_says_nothing_but_the_route(fixtures):
+    """atrium-project#84 decision 6: a routing entry carries `page`, `route` and `text_layer`
+    only; what a page shows besides its text is handed over with the run
+    (`digital_ir.graphics_pages`), never written into docproc."""
+    for name in ("image_only.pdf", "scan_page.pdf", "minimal.pdf", "sample.csv"):
+        for entry in _docproc(fixtures / name)["metadata"]["routing"]["pages"]:
+            assert set(entry) == {"page", "route", "text_layer"}, (name, entry)
+
+
+def test_the_pages_that_show_graphics_are_handed_over(fixtures):
+    """Decision 4: the pages that show graphics go to page-classification beside the forced
+    ones. The scanned plate is a graphic; a page of text shows none."""
+    assert d2j.graphics_pages(d2j.prepare(str(fixtures / "image_only.pdf"))[0]) == [2]
+    assert d2j.graphics_pages(d2j.prepare(str(fixtures / "minimal.pdf"))[0]) == []
 
 
 def test_the_mixed_pdf_sends_only_its_picture_page_to_the_atr(fixtures):
@@ -190,12 +190,11 @@ def test_the_mixed_pdf_sends_only_its_picture_page_to_the_atr(fixtures):
     docproc = _docproc(fixtures / "scan_page.pdf")
     routing = docproc["metadata"]["routing"]["pages"]
     assert [r["route"] for r in routing] == ["text-layer", "atr", "text-layer"]
-    assert [r["graphics"] for r in routing] == [0, 1, 0]
+    assert d2j.graphics_pages(d2j.prepare(str(fixtures / "scan_page.pdf"))[0]) == [2]
 
 
-def test_a_textual_input_is_not_described_by_graphics(fixtures):
-    routing = _docproc(fixtures / "sample.csv")["metadata"]["routing"]["pages"]
-    assert routing and not any("graphics" in r or "tables" in r for r in routing)
+def test_a_textual_input_shows_no_graphics(fixtures):
+    assert d2j.graphics_pages(d2j.prepare(str(fixtures / "sample.csv"))[0]) == []
 
 
 def test_a_page_for_the_atr_says_why(fixtures):

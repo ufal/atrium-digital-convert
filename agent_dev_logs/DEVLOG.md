@@ -1699,3 +1699,15 @@ Documentation only; no code, test or configuration change.
   test and fixture docstrings, the Dockerfile's Docling example, `tools/samples_report.py` (reads 1.x runs).
 * **Open:** text inside a picture pasted into an office document is not read.
 * Logs only; not pushed.
+
+## 2026-11-27 — atrium-project#84: the non-A options prepared (ARÚP's answers pending)
+
+* **3b:** `assess_page` routes a rendered office page `atr` when it has no running text (`digital_ir.running_text`: no line outside furniture, footnotes, tables and object text) and shows an object: graphics (`page_graphics`), a table or object text (`DigitalLine.object_text`, set for chart, SmartArt and text-box lines in `digital_docx`). Vector paths alone do not count (R2); ODT/RTF only with no line and a picture (R3). `text_layer_of` keeps a rendered page's census.
+* **6c and 4b:** `build_docproc` writes `page`, `route`, `text_layer` only; `graphics_pages()` moved to `digital_ir`; `/reformat` returns `graphics_pages`, the CLI writes `--graphics-pages-out`. `tools/docproc_proposal.py` drops ask 14; the regenerated proposal schema equals the pre-#17 one.
+* **5b:** `rendered_pdf_read()`; `/reformat` hands the PDF over and names it, stored, when read; the CLI writes it with `--rendered-out` only then and names it only when written (R5, a NOTE otherwise); the `rendered` form field is gone; `/describe` (parked) is not extended.
+* **Fixtures:** `scan_page.docx` page 2 is a scan with its caption in an anchored text box (R8); `objects_pages.docx` (picture, table, chart, empty page under a ruled header with a logo, running text). New tests for 3b, R2, R3 (an ODT converted at test time) and R5.
+* **Checked:** 1038 passed (1032 at the pristine `test` head), with LibreOffice; openapi regenerated; ruff clean; the hub's lane replayed locally.
+* **Shared:** the re-vendored `atrium_paradata.py` (`name_only`, `start --config-name`, `RENDERED_PDF_DISTRIBUTION`), `atrium_document.schema.json` (H3 descriptions: the forced pages and the pages showing graphics) and `atrium_rocrate.py` (a docstring), byte-identical to the hub's; the pin moves to the hub's squash commit before the PR opens.
+* **Not in the PR:** the committed samples, regenerated from the merged code before the tags.
+* The change is `atrium-digital-convert.decisions-84.zip`, these logs `atrium-digital-convert.agent_dev_logs.zip`.
+* Logs only; not pushed.

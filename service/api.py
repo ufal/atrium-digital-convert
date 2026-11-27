@@ -7,10 +7,11 @@ Two operations, one converter:
   blocks and lines with each page's text-layer verdict and ``needsAtr``; atrium-project#84), with
   Markdown only on request and the run's Process Run Crate ``CreateAction`` as ``paradata``. Two
   workflows (atrium-digital-convert#9): **visual** — a PDF on its pages; a DOCX, DOC, ODT or RTF
-  as its native text on the pages of its LibreOffice rendering, never the ATR, whose PDF comes
-  back as ``rendered_pdf`` when a page shows graphics (or with ``rendered=true``) for
-  page-classification; **textual** — ODS, XLSX, XLS, TXT, CSV, TSV, JSON, extracted as they are,
-  without page geometry, never the ATR. No record: ocr-postprocess builds it from the docproc. It calls NO
+  as its native text on the pages of its LibreOffice rendering, a page with no running text that
+  shows an object routed to the ATR (atrium-project#84 decision 3), the rendering's PDF back as
+  ``rendered_pdf``, stored, when the ATR or page-classification reads it (decision 5); the pages
+  that show graphics as ``graphics_pages`` (decision 4); **textual** — ODS, XLSX, XLS, TXT, CSV,
+  TSV, JSON, extracted as they are, without page geometry, never the ATR. No record: ocr-postprocess builds it from the docproc. It calls NO
   other service: in the AMČR deployment Temporal chains the stages (atrium-digital-convert#1,
   30 September).
 * ``POST /describe`` — parked (not part of the pilot): the same conversion, then a per-page
@@ -58,7 +59,7 @@ from pydantic import BaseModel, ConfigDict, Field
 import atrium_rocrate
 from api_util import digital_to_json as d2j
 from api_util import docproc_writer
-from api_util.digital_ir import DigitalDocument, DigitalInputError
+from api_util.digital_ir import DigitalDocument, DigitalInputError, graphics_pages
 from atrium_document import canonical_doc_id
 from atrium_limits import LimitExceeded
 from atrium_paradata import ParadataLogger
@@ -191,7 +192,9 @@ class RenderedPdf(BaseModel):
     """An office document's rendered PDF (atrium-digital-convert#9)."""
 
     media_type: str = Field(description="`application/pdf`.")
-    sha512: str = Field(description="Its SHA-512, as the paradata name it (not stored, D23).")
+    sha512: str = Field(
+        description="Its SHA-512, as the paradata name it: a stored distribution (atrium-project#84 decision 5)."
+    )
     data: str = Field(description="The PDF, base64-encoded.")
 
 
@@ -208,11 +211,11 @@ class ReformatResponse(BaseModel):
         description=(
             "The document's layout as docproc (`atr/docproc-json`, atrium-project#84): pages with the text-layer "
             "verdict (`textLayer`) and, where the text cannot be used, `needsAtr` with its reason; blocks with their "
-            "`lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`) and, for a PDF or "
-            "an office document, saying what each page shows besides its text (`graphics`, `tables`). An office "
-            "document is never routed `atr`. Valid against `schemas/docproc/document.atrium-proposal.schema.json` "
-            "(the ATR's schema with asks 3, 5, 10, 13 and 14). No record is written: ocr-postprocess builds it from "
-            "this."
+            "`lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`). An office "
+            "document's page with no running text that shows an object (a picture, a chart, a table, a text box) is "
+            "routed `atr` (atrium-project#84 decision 3). Valid against "
+            "`schemas/docproc/document.atrium-proposal.schema.json` (the ATR's schema with asks 3, 5, 10 and 13). No "
+            "record is written: ocr-postprocess builds it from this."
         )
     )
     reader: ReaderInfo
@@ -220,12 +223,23 @@ class ReformatResponse(BaseModel):
         None,
         description="Only with `markdown=true`: the document rendered as annotated Markdown (json_to_md).",
     )
+    graphics_pages: List[int] = Field(
+        description=(
+            "The pages that show graphics (pictures of at least 24 pt, charts, diagrams, shapes; a logo repeated in "
+            "the running header or footer is not counted), by page number: with the pages the docproc routes `atr`, "
+            "the pages page-classification reads (atrium-project#84 decision 4). A run hand-over, not written into "
+            "the docproc (decision 6) and not stored. Empty for the textual workflow."
+        )
+    )
     rendered_pdf: Optional[RenderedPdf] = Field(
         None,
         description=(
             "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes "
-            "refer to, which page-classification reads. Returned when a page shows graphics (its routing entry's "
-            "`graphics` above 0), or always with `rendered=true`; absent for a PDF and the textual workflow."
+            "refer to. Returned when it is read downstream: by the ATR when a page is routed `atr` (the whole "
+            "document goes there as this PDF), by page-classification when a page shows graphics "
+            "(`graphics_pages`). Then a stored distribution, named in the paradata `result` (atrium-project#84 "
+            "decision 5); otherwise absent and not named. Absent for a PDF and the textual workflow. A later step "
+            "uses these bytes, never a re-render: LibreOffice's output differs per run."
         ),
     )
     limits_applied: List[LimitNote] = Field(
@@ -239,7 +253,7 @@ class ReformatResponse(BaseModel):
             "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` "
             "is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc "
             "(`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). "
-            "An office document's rendered PDF is in `result` too, `stored: false` (D23)."
+            "An office document's rendered PDF is in `result` too, stored, when it is returned (`rendered_pdf`)."
         )
     )
 
@@ -334,6 +348,11 @@ class DescribeSummary(BaseModel):
 class DescribeResponse(ReformatResponse):
     """`/describe` (parked): the docproc, the development dict and the per-page assessment."""
 
+    graphics_pages: Optional[List[int]] = Field(
+        None,
+        description="Not returned by `/describe`, which is parked and not extended: `/reformat` hands it over.",
+    )
+
     document: Dict[str, Any] = Field(
         description=(
             "The converter's development dict: record-shaped (`pages`, `lines` with `group_id`, `style` and "
@@ -376,10 +395,6 @@ _RECORD_PART_HELP = (
 _FILE_HELP = (
     "The document, decided by content: PDF, DOCX, DOC, ODT, RTF (visual); ODS, XLSX, XLS, TXT, CSV, TSV, JSON "
     "(textual). Not an image: images go to the ATR (H13)."
-)
-_RENDERED_HELP = (
-    "Also return an office document's rendered PDF (`rendered_pdf`) when no page shows graphics; it is returned "
-    "anyway when one does."
 )
 
 
@@ -569,10 +584,12 @@ def _action(
     docproc: Dict[str, Any],
     docproc_data: bytes,
     seed_bytes: Optional[bytes],
+    rendered_handed_over: bool = False,
 ) -> Dict[str, Any]:
     """The call's CreateAction (paradata 3.0, atrium-project#84): the original read and the
     docproc written, by distribution name and SHA-512 (`d2j.record_run`, as the command line).
     The seed, when one was sent, is an input as the bytes of the part (`atrium/document-json`).
+    An office document's rendered PDF is an output, stored, when it was handed over (decision 5).
     The Markdown is a development output and is not named."""
     seed = None
     if seed_bytes is not None:
@@ -584,6 +601,7 @@ def _action(
         {"data": upload_bytes, "media_type": document.media_type},
         docproc_data,
         seed,
+        rendered_handed_over=rendered_handed_over,
     )
     run.finalize()
     return atrium_rocrate.action_from_paradata(run.record)
@@ -672,16 +690,17 @@ async def reformat(
         False,
         description="Also return the document rendered as annotated Markdown (a development view).",
     ),
-    rendered: bool = Form(False, description=_RENDERED_HELP),
 ):
     """Convert a born-digital document into docproc (§4.2; atrium-project#84).
 
     Calls no other service. A PDF page whose text layer cannot be used (it does not decode, it is
     a prior OCR run, there is none) carries `needsAtr` with its reason and is routed `atr`; no
-    document is refused for its pages. An office document is never routed `atr`: its text is its
-    own XML. Its rendered PDF comes with it when a page shows graphics, the pages
-    page-classification reads. A textual input is never routed `atr`. No record is written:
-    ocr-postprocess builds it from the docproc.
+    document is refused for its pages. An office document keeps its own text, but a page of it
+    with no running text that shows an object is routed `atr` too (atrium-project#84 decision 3).
+    `graphics_pages` names the pages that show graphics (decision 4: with the forced pages, those
+    page-classification reads). An office document's rendered PDF comes with it, stored, when
+    the ATR or page-classification reads it (decision 5). A textual input is never routed `atr`.
+    No record is written: ocr-postprocess builds it from the docproc.
     """
     name, data, baseline, seed_bytes = await _read_parts(file, document_json)
 
@@ -699,10 +718,10 @@ async def reformat(
                 "doc_id": document.doc_id,
                 "docproc": docproc,
                 "reader": reader_info(document, dev),
+                "graphics_pages": graphics_pages(document),
             }
-            if document.rendered_pdf is not None and (
-                rendered or docproc_writer.graphics_pages(docproc)
-            ):
+            handed_over = d2j.rendered_pdf_read(document, docproc)
+            if handed_over:
                 result["rendered_pdf"] = {
                     "media_type": "application/pdf",
                     "sha512": document.rendering["sha512"],
@@ -711,7 +730,15 @@ async def reformat(
             if markdown:
                 result["markdown"] = render_markdown(dev)
                 run.log_success("markdown")
-            result["paradata"] = _action(run, data, document, docproc, docproc_data, seed_bytes)
+            result["paradata"] = _action(
+                run,
+                data,
+                document,
+                docproc,
+                docproc_data,
+                seed_bytes,
+                rendered_handed_over=handed_over,
+            )
             result["limits_applied"] = run.limits
             return result
 

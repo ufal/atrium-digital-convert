@@ -45,21 +45,23 @@ The flexiconv adapter (MIT, `requirements_flexiconv.txt`) is an optional TEITOK 
 python3 api_util/digital_to_json.py report.pdf  --docproc-out report.docproc.json
 python3 api_util/digital_to_json.py report.odt  --document-json seed.json --out-dir out/
 python3 api_util/digital_to_json.py budget.xls  --out-dir out/
-python3 api_util/digital_to_json.py report.docx --out-dir out/ --rendered-out out/report.rendered.pdf
+python3 api_util/digital_to_json.py report.docx --out-dir out/ --rendered-out out/report.rendered.pdf \
+    --graphics-pages-out out/report.graphics.json
 python3 api_util/digital_to_json.py finds.csv   --out-dir out/
 python3 api_util/digital_to_json.py report.pdf  --engine docling --paradata-dir out/paradata/
 python3 api_util/digital_to_json.py report.pdf  --out-dir out/ --markdown
 ```
 
-| Option                                               | Meaning                                                                                                                      |
-|------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
-| `--docproc-out` (`--out`)                            | where to write the docproc (default `<out-dir>/<doc_id>.docproc.json`)                                                       |
-| `--document-json`                                    | the AMČR seed, read only: its `doc_id` names the output, its `source.sha512` is checked                                      |
-| `--doc-id`                                           | override the doc_id derived from the file name (a seed's doc_id always wins)                                                 |
-| `--engine`                                           | `light` (default) or `docling` (PDF only, needs `requirements_digital_docling.txt` and its models)                           |
-| `--rendered-out`                                     | also write an office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc refers to, for page-classification |
-| `--paradata-dir`                                     | also write the run's paradata record (the original read, the docproc written, by SHA-512)                                    |
-| `--markdown [PATH]`                                  | also write the document as annotated Markdown, as `/reformat`'s `markdown=true` (default `<doc_id>.md` beside the docproc)   |
+| Option                    | Meaning                                                                                                                                                              |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--docproc-out` (`--out`) | where to write the docproc (default `<out-dir>/<doc_id>.docproc.json`)                                                                                               |
+| `--document-json`         | the AMČR seed, read only: its `doc_id` names the output, its `source.sha512` is checked                                                                              |
+| `--doc-id`                | override the doc_id derived from the file name (a seed's doc_id always wins)                                                                                         |
+| `--engine`                | `light` (default) or `docling` (PDF only, needs `requirements_digital_docling.txt` and its models)                                                                   |
+| `--rendered-out`          | also write an office document's rendered PDF (DOCX, DOC, ODT, RTF) when the ATR or page-classification reads it; stored, and named in the paradata only when written |
+| `--graphics-pages-out`    | also write the pages that show graphics, `{"graphics_pages": [...]}`: with the forced pages, those page-classification reads                                         |
+| `--paradata-dir`          | also write the run's paradata record (the original read, the docproc written, by SHA-512)                                                                            |
+| `--markdown [PATH]`       | also write the document as annotated Markdown, as `/reformat`'s `markdown=true` (default `<doc_id>.md` beside the docproc)                                           |
 
 `--markdown` runs the service's own code (`service/describe.py`), so a file gives the same Markdown on both sides.
 `--describe` and its options belong to the parked per-page assessment ([parked features](reference/parked.md)).
@@ -151,7 +153,8 @@ a broken package, and seeds that match, mismatch or cannot be opened.
 | Input or setting                   | Command line                                                                                                   | Service                                                           | Same?                                                                  |
 |------------------------------------|----------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|------------------------------------------------------------------------|
 | The formats, recognised by content | visual: PDF, DOCX, DOC, ODT, RTF; textual: ODS, XLSX, XLS, TXT, CSV, TSV, JSON                                 | the same                                                          | the same                                                               |
-| An office document's rendered PDF  | `--rendered-out PATH`                                                                                          | `rendered_pdf` when a page shows graphics or with `rendered=true` | the same bytes and SHA-512                                             |
+| An office document's rendered PDF  | `--rendered-out PATH`, written when the ATR or page-classification reads it                                    | `rendered_pdf`, returned then                                     | the same bytes and SHA-512                                             |
+| The pages that show graphics       | `--graphics-pages-out PATH`                                                                                    | `graphics_pages`                                                  | the same list                                                          |
 | An empty file                      | exit 4, `corrupt`                                                                                              | 422, `cause: corrupt`                                             | the same                                                               |
 | A seed                             | `--document-json`; its `source.sha512` checked; read only                                                      | the `document_json` part; checked the same way                    | the same                                                               |
 | A seed that cannot be opened       | exit 3, `invalid_record`                                                                                       | 422 `invalid_record`                                              | the same                                                               |

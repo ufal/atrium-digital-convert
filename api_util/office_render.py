@@ -5,10 +5,11 @@ A DOCX, DOC, ODT or RTF has no pages until something lays it out. digital-conver
 its text with the native readers (`digital_docx`, the shared reader for ODT and RTF) and takes its
 pages from a rendering: headless LibreOffice prints the document to PDF, the light PDF engine reads
 that PDF's pages and words, and `api_util/render_place.py` places the native text on them. The
-rendered PDF is also what page-classification receives for the pages that show graphics (the
-docproc routing's `graphics`): page-classification reads PDFs only, and its page numbers must be the
-docproc's (H2, D28). An office document never goes to the ATR: its text is its own. The PDF is an
-intermediate: not stored, named by its SHA-512 in the paradata (D23).
+rendered PDF is also what the ATR and page-classification receive (atrium-project#84 decisions 3-5):
+the ATR the whole document when a page with no running text shows an object, page-classification
+the pages that show graphics. Both read PDFs, and their page numbers must be the docproc's (H2,
+D28). When one of them reads it, the PDF is handed over and stored, named by its SHA-512 in the
+paradata; otherwise it is neither handed over nor named.
 
 What is rendered is a working copy that reads as the native text does:
 

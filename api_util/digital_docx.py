@@ -44,6 +44,10 @@ what lost text on the old path. What this module fixes, against the #10 §9 meas
   described as showing graphics (`digital_ir.page_graphics`). A picture is counted from the
   rendering, where it is a raster image; a text box is text; a header's or footer's logo is page
   furniture and is not counted.
+* **Object text** (`DigitalLine.object_text`). A chart's, a SmartArt diagram's and a text box's
+  text is read in full, but it is not the page's running text (`digital_ir.running_text`): a
+  rendered page whose only text is object text, table cells or page furniture, and which shows an
+  object, goes to the ATR (atrium-project#84 decision 3).
 
 No geometry: a DOCX has none until something renders it, so no `bbox` and no `canvas`.
 """
@@ -567,6 +571,9 @@ class _Flow:
         self.region: Optional[str] = None
         #: Drawings met since the last line was written (`DigitalLine.graphics`).
         self.pending_graphics = 0
+        #: Set while an object's text is written: a chart's, a SmartArt diagram's or a text box's
+        #: (`DigitalLine.object_text`), which is not the page's running text.
+        self.object_text = False
 
     def text(self, value: str, bold: bool, italic: bool) -> None:
         if value:
@@ -589,6 +596,7 @@ class _Flow:
                 group_id=self.group,
                 region=self.region,
                 graphics=self.pending_graphics,
+                object_text=self.object_text,
             )
         )
         self.pending_graphics = 0
@@ -738,7 +746,17 @@ class _Walker:
         self.walk_children(el)
 
     def _on_txbxContent(self, el: Any) -> None:
-        self.deferred.append(lambda: self.walk_children(el))
+        self.deferred.append(lambda: self._walk_object(el))
+
+    def _walk_object(self, el: Any) -> None:
+        """A text box's content, after the anchor paragraph: object text (`DigitalLine.object_text`)."""
+        saved = self.flow.object_text
+        self.flow.object_text = True
+        try:
+            self.walk_children(el)
+        finally:
+            self.flow.line_break()
+            self.flow.object_text = saved
 
     def _defer_part(self, rel_id: Optional[str], read: Callable[[bytes], Any], nodes: bool) -> None:
         """A chart or a SmartArt diagram: its part's text, after the anchor paragraph. A
@@ -750,7 +768,8 @@ class _Walker:
         self.deferred.append(lambda: self._emit_groups(groups))
 
     def _emit_groups(self, groups: List[List[str]]) -> None:
-        saved = (self.flow.group, self.flow.heading)
+        saved = (self.flow.group, self.flow.heading, self.flow.object_text)
+        self.flow.object_text = True
         for lines in groups:
             if not lines:
                 continue
@@ -763,7 +782,7 @@ class _Walker:
             for line in lines:
                 self.flow.text(line, False, False)
                 self.flow.line_break()
-        self.flow.group, self.flow.heading = saved
+        self.flow.group, self.flow.heading, self.flow.object_text = saved
 
     def _on_p(self, el: Any) -> None:
         ppr = _child(el, "pPr")

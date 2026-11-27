@@ -75,7 +75,6 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 | `file`             | yes      | the document                                                                                                 |
 | `document_json`    | no       | the AMČR seed (`doc_id`, `source.sha512`, `filename`, `media_type`), read only; an empty part counts as none |
 | `markdown`         | no       | `true` to also get the document rendered as annotated Markdown (`json_to_md`; a development view)            |
-| `rendered`         | no       | `true` to get an office document's rendered PDF even when no page shows graphics                             |
 
 The response:
 
@@ -85,7 +84,8 @@ The response:
 | `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                                                                                                                                                               |
 | `docproc`        | the docproc: pages, blocks with their `lines[]`, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md))                                                                                                                                                   |
 | `reader`         | how the file was read: `kind`, `workflow` (`visual`, `textual`), `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS/XLSX; a spreadsheet's with its `locale`), `rendering` (office documents: `tool`, `version`, `from`, `to`, `pages`, `sha512`), `notes` |
-| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`): when a page shows graphics, or with `rendered=true`. The docproc's pages and boxes are its pages; page-classification reads it                                                               |
+| `graphics_pages` | the pages that show graphics, by page number (empty for the textual workflow): with the pages routed `atr`, the pages page-classification reads. A run hand-over, not stored and not in the docproc                                                                     |
+| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`), when the ATR (a page routed `atr`) or page-classification (`graphics_pages`) reads it. The docproc's pages and boxes are its pages. Stored; use these bytes, never a re-render               |
 | `markdown`       | only with `markdown=true`                                                                                                                                                                                                                                               |
 | `limits_applied` | the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS` (`split`). Nothing is sampled; a limit that would cut content fails the call                                                                                                    |
 | `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                                                                                                                                                                          |
@@ -96,10 +96,10 @@ refused (422 `source_digest_mismatch`), so nothing is produced for the wrong fil
 
 **`paradata`** (paradata schema 3.0): `object` names the upload as `original` and the seed as
 `atrium/document-json`, `result` the docproc as `atr/docproc-json`, each by SHA-512. When a page needs the ATR
-the docproc is an intermediate, `stored: false`: the ATR's docproc is the stored one (a PDF only: an office
-document never goes to the ATR). An office document's rendered PDF is in `result` too, always `stored: false`,
-with the pinned export options among the `parameters`; `graphic_min_side_pt` is the smallest image counted in the
-pages' `graphics`. `paradataRecord` lists the components used, each with its own terms and LibreOffice with its
+the docproc is an intermediate, `stored: false`: the ATR's docproc is the stored one. An office document's
+rendered PDF is in `result` too when it is returned (`rendered_pdf`), as the stored distribution `rendered-pdf` (a
+stand-in name until AMČR gives one); the pinned export options are among the `parameters` either way.
+`graphic_min_side_pt` is the smallest image counted as a graphic (`graphics_pages`). `paradataRecord` lists the components used, each with its own terms and LibreOffice with its
 version; no licence of the output is computed.
 
 **The text layer.** Every page in `pages[]` carries the converter's verdict in `textLayer`:
@@ -111,18 +111,18 @@ version; no licence of the output is computed.
 
 A PDF's `garbled`, `ocr` and `none` pages also carry `needsAtr: true` with a `needsAtrReason`, and are routed `atr`
 in `metadata.routing.pages[]`; an empty page is routed `empty` and is not in `pages[]`. No document is refused for
-its pages. An office document (DOCX, DOC, ODT, RTF) never goes to the ATR: its text is its own XML, read in full,
-and a page that holds no text of its own (a pasted scan) is routed `empty`.
+its pages. An office document (DOCX, DOC, ODT, RTF) keeps its own text, read in full from its XML, but a page with
+no running text that shows an object goes to the ATR too, for the text its objects may hold (a pasted scan, a photo
+of text): a picture, a chart, a SmartArt diagram, a table or a text box, with no paragraph of running text beside
+it (the running header, footer and footnotes do not count). Its `textLayer` stays the rendering's (`digital` or
+`none`). A rule, a page border or a repeated logo alone sends no page, and a page with nothing on it is `empty`. ODT
+and RTF are read as plain lines, so only a page with no text at all that shows a picture goes.
 
-**What a page shows.** Each routing entry of a PDF or an office document also says what the page shows besides
-its text, for the pipeline to choose the pages page-classification reads (a proposal to the docproc schema, ask
-14):
-
-* `graphics`: its pictures (raster images of at least 24 pt each way, not counting a logo that recurs at the same
-  place on other pages) and, in a DOCX, the charts, SmartArt diagrams, shapes and embedded objects anchored on it;
-* `tables`: its tables, each a `table` block with its `cellGrid` (the cells as the document holds them).
-
-A page with neither holds running text only.
+**What a page shows.** `graphics_pages` lists the pages that show graphics: pictures (raster images of at least
+24 pt each way, not counting a logo that recurs at the same place on other pages) and, in a DOCX, the charts,
+SmartArt diagrams, shapes and embedded objects anchored on them. With the pages routed `atr`, they are the pages
+page-classification reads. They are not written into the docproc: what a page shows was proposed for its routing
+(ask 14) and withdrawn.
 
 ### `POST /describe` (parked)
 
@@ -182,18 +182,20 @@ checks this table against `tool_limits.py` and `.env.example`.
   report, and 560 MB for the 156 MB one. Budget about 1 GB plus `MAX_UPLOAD_MB` per
   `MAX_CONCURRENT_JOBS` slot.
 * **An office document's rendered PDF travels in the answer.** `rendered_pdf` is base64, about 4/3 of the
-  PDF's size, so a DOCX full of photographs gives a large response: it comes whenever a page shows graphics
-  (or with `rendered=true`), and the rendering keeps the images' resolution for page-classification.
+  PDF's size, so a DOCX full of photographs gives a large response: it comes whenever a page goes to the ATR or
+  shows graphics, and the rendering keeps the images' resolution for the ATR and page-classification.
 * **Time.** `/reformat` took 3–58 s per document; `/describe` takes the same, as it calls no other tool.
 
 ## Partial results
 
 A limit that would cut content fails the call: nothing partial is returned. Read these before using the result:
 
-- `needsAtr` pages (a PDF's only) have no usable text layer and are routed `atr`; the ATR's docproc is then the
-  stored one, and this docproc is an intermediate (`stored: false` in the paradata).
-- An office document's text is what its XML holds: text inside a picture (a pasted scan, a photo of a page) is not
-  read. Such a page shows `graphics`, for page-classification.
+- `needsAtr` pages are routed `atr`: a PDF's pages with no usable text layer, and an office document's pages with
+  no running text that show an object. The ATR's docproc is then the stored one, and this docproc is an
+  intermediate (`stored: false` in the paradata).
+- An office page with running text keeps its text as the XML holds it: text inside a picture on such a page (a
+  photo of a page beside a paragraph) is not read; the page is in `graphics_pages`, for page-classification. ODT and
+  RTF send only a page with no text at all that shows a picture.
 - `limits_applied` lists the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS`
   (`split`), each in full. It is `[]` when nothing was split.
 

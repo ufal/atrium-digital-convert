@@ -54,6 +54,11 @@
     "note": "an inline and a display equation, a SmartArt of three nodes, a bar chart with titles, series and categories — read from the XML (v2.0.0-beta)",
     "sha256": "a9e07b81d84d17a943ccc46009a2543eb730677a5c7d15ce0aceb26bb0d2cfd0"
   },
+  "objects_pages.docx": {
+    "bytes": 13186,
+    "note": "a ruled header with a logo over five pages: a picture, a table, a chart, nothing, running text — the first three to the ATR, the fourth `empty` (#84 decision 3, R2)",
+    "sha256": "64194b6cc9d589739424e044829736a62a630a517bafe39c5f531cc3b37a465d"
+  },
   "ocr_layer.pdf": {
     "bytes": 1303,
     "note": "page image + invisible (3 Tr) text on both pages — G7 OCR layer",
@@ -100,9 +105,9 @@
     "sha256": "210ab42b248361c5de076fa9a5ef9a02f8caba9d4fa370194caa51eab96e51bd"
   },
   "scan_page.docx": {
-    "bytes": 6683,
-    "note": "text page, a page of one picture (a pasted scan), text page — no ATR: the picture page is routed `empty` with its graphics (v2.0.0-beta)",
-    "sha256": "3f6932a3362e95750f6d2481f53edae6c13d80bbe167d1870a320eb6815fe113"
+    "bytes": 8525,
+    "note": "text page, a page of one picture (a pasted scan) with its caption in a text box, text page — the mixed DOCX: the picture page goes to the ATR, its caption kept (#84 decision 3, R8)",
+    "sha256": "4c1b8ee5b9270e865d0753bb33707743589daacbc18ea09492bf1309a87eed18"
   },
   "scan_page.pdf": {
     "bytes": 1572,

@@ -13,7 +13,9 @@ validates against; a new version from ARÚP is copied here.
 
 The second file is generated, never edited by hand: `python tools/docproc_proposal.py` writes it from the first, and
 `tests/test_docproc_writer.py` pins that the two differ only by these changes. The generator names them by the
-numbers of the requests sent to ARÚP (3, 5, 10 and 13).
+numbers of the requests sent to ARÚP (3, 5, 10 and 13). Request 14, what a page shows besides its text (`graphics`,
+`tables` in routing), is withdrawn (atrium-project#84 decision 6): digital-convert hands the pages that show graphics
+over with the run (`graphics_pages`), outside docproc.
 
 **No run data required** (request 3): `processedAt` and `pipeline` are not required; the run, the original and its
 digest are the paradata's. digital-convert writes neither, nor `sourceFile` or `sourceHash` (a SHA-256).

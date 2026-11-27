@@ -218,6 +218,11 @@ class DigitalLine:
     #: picture: a chart, a SmartArt diagram, a shape or a group of shapes, an OLE object (DOCX,
     #: `digital_docx`). Internal: counted in the page's graphics (`page_graphics`).
     graphics: int = 0
+    #: The line is the text of an object, not running text: a chart's or a SmartArt diagram's
+    #: text, or a text box's (DOCX, `digital_docx`). Internal: a rendered office page whose only
+    #: text is object text, table cells or page furniture holds no running text (`running_text`),
+    #: and goes to the ATR when it shows an object (atrium-project#84 decision 3).
+    object_text: bool = False
 
 
 #: `group_id` prefix of the lines that are table cells (`tbl{n}-r{r}c{c}`), in every adapter.
@@ -420,10 +425,38 @@ def page_graphics(document: DigitalDocument) -> List[int]:
     ]
 
 
+def graphics_pages(document: DigitalDocument) -> List[int]:
+    """The pages that show graphics (`page_graphics` > 0), by page index, in page order: with the
+    pages forced to the ATR, the pages page-classification reads (atrium-project#84 decision 4).
+    A run hand-over (`/reformat`'s `graphics_pages`, `--graphics-pages-out`), never written into
+    docproc (decision 6). Empty for the textual workflow, which has no pages to show anything."""
+    if getattr(document, "workflow", "visual") != "visual":
+        return []
+    return [
+        page.page_index
+        for page, graphics in zip(document.pages, page_graphics(document), strict=True)
+        if graphics > 0
+    ]
+
+
+def running_text(page: DigitalPage) -> List[DigitalLine]:
+    """The page's running text: its lines outside the page furniture and the footnotes
+    (`region`), outside a table (`in_table`) and outside an object (`object_text`: a chart's,
+    a SmartArt diagram's or a text box's text). What a rendered office page needs to keep its
+    own text instead of going to the ATR (atrium-project#84 decision 3)."""
+    return [
+        line
+        for line in page.lines
+        if line.region is None and not in_table(line.group_id) and not line.object_text
+    ]
+
+
 def text_layer_of(page: DigitalPage) -> str:
     """The page's text-layer verdict, as the record (`pages[].text_layer`) and `/describe` give it:
-    the adapter's census, with a `digital` layer that does not decode (`needs_ocr`) as `garbled`."""
-    if page.text_layer == TEXT_LAYER_DIGITAL and page.needs_ocr:
+    the adapter's census, with a `digital` layer that does not decode (`needs_ocr`) as `garbled`.
+    A rendered office page (`render_words` measured) keeps its census: when it goes to the ATR, it is
+    for what its objects show (atrium-project#84 decision 3), not for a layer that does not decode."""
+    if page.text_layer == TEXT_LAYER_DIGITAL and page.needs_ocr and page.render_words is None:
         return TEXT_LAYER_GARBLED
     if page.text_layer in TEXT_LAYERS:
         return page.text_layer
