@@ -1711,3 +1711,27 @@ Documentation only; no code, test or configuration change.
 * **Not in the PR:** the committed samples, regenerated from the merged code before the tags.
 * The change is `atrium-digital-convert.decisions-84.zip`, these logs `atrium-digital-convert.agent_dev_logs.zip`.
 * Logs only; not pushed.
+
+## 2026-11-27 (evening) — atrium-project#84: ARÚP's answers, #18 adjusted
+
+* **ARÚP (comment 7, motyc 16:25):** 1(c), 2(b), 3(b) pictures only, 4(b) with the rule in `parameters`, 5(a) named
+  and not stored, 6(c) with `figure` blocks.
+* **Decision 3:** `_reason_picture_only`: a rendered office page is `atr` when it has no line outside its header and
+  footer and shows a picture (`page_graphics` > 0), DOCX, DOC, ODT and RTF alike. `running_text`,
+  `DigitalLine.object_text` and the DOCX object-text marking go.
+* **Decision 6:** `page_pictures()`; `build_docproc` writes one `figure` block per picture or drawing (`bbox`, no
+  `lines`, no `imageRef`), on both engines. Drawings are boxed on the rendering from their DOCX size; one without a
+  match keeps no box and is counted in `parameters.figures_without_box`. `graphics_pages`, `--graphics-pages-out` and
+  the `/describe` override go. The proposal schema no longer requires `imageRef` (Ronald's answer 12).
+* **Decision 5:** `rendered-pdf` named for every office document, `stored: false`; handed over when the ATR or
+  page-classification reads it (a forced page or a figure block).
+* **Decision 1:** `run_config` without `input`; `bench_compare.py` names its manifest, gold, predictions and reports
+  as file entries.
+* **Fixtures:** `scan_page.docx` page 2 a picture only again; `objects_pages.docx` asserts that table-, chart- and
+  text-box-only pages stay `text-layer`.
+* The change is `atrium-digital-convert.decisions-84.zip` (deliverables `answers-84/`), these logs
+  `atrium-digital-convert.agent_dev_logs.zip`.
+* **Verified:** 1048 passed, 8 skipped; the light samples regenerated with Python 3.11 (`figure` blocks on the photo,
+  plan and scan pages, no `graphics`/`tables` in the routing, `config` without the file name; the Markdown
+  unchanged); the hub lane's fixtures through the CLI and `/reformat`.
+* Not pushed.
