@@ -312,8 +312,8 @@ def test_an_invalid_docproc_is_not_written_at_all(tmp_path, digital_fixtures, mo
 
     original = docproc_writer._page
 
-    def broken(page):
-        out = original(page)
+    def broken(page, *args):
+        out = original(page, *args)
         out["pageNumber"] = 0  # the schema says >= 1
         return out
 

@@ -1699,3 +1699,39 @@ Documentation only; no code, test or configuration change.
   test and fixture docstrings, the Dockerfile's Docling example, `tools/samples_report.py` (reads 1.x runs).
 * **Open:** text inside a picture pasted into an office document is not read.
 * Logs only; not pushed.
+
+## 2026-11-27 — atrium-project#84: the non-A options prepared (ARÚP's answers pending)
+
+* **3b:** `assess_page` routes a rendered office page `atr` when it has no running text (`digital_ir.running_text`: no line outside furniture, footnotes, tables and object text) and shows an object: graphics (`page_graphics`), a table or object text (`DigitalLine.object_text`, set for chart, SmartArt and text-box lines in `digital_docx`). Vector paths alone do not count (R2); ODT/RTF only with no line and a picture (R3). `text_layer_of` keeps a rendered page's census.
+* **6c and 4b:** `build_docproc` writes `page`, `route`, `text_layer` only; `graphics_pages()` moved to `digital_ir`; `/reformat` returns `graphics_pages`, the CLI writes `--graphics-pages-out`. `tools/docproc_proposal.py` drops ask 14; the regenerated proposal schema equals the pre-#17 one.
+* **5b:** `rendered_pdf_read()`; `/reformat` hands the PDF over and names it, stored, when read; the CLI writes it with `--rendered-out` only then and names it only when written (R5, a NOTE otherwise); the `rendered` form field is gone; `/describe` (parked) is not extended.
+* **Fixtures:** `scan_page.docx` page 2 is a scan with its caption in an anchored text box (R8); `objects_pages.docx` (picture, table, chart, empty page under a ruled header with a logo, running text). New tests for 3b, R2, R3 (an ODT converted at test time) and R5.
+* **Checked:** 1038 passed (1032 at the pristine `test` head), with LibreOffice; openapi regenerated; ruff clean; the hub's lane replayed locally.
+* **Shared:** the re-vendored `atrium_paradata.py` (`name_only`, `start --config-name`, `RENDERED_PDF_DISTRIBUTION`), `atrium_document.schema.json` (H3 descriptions: the forced pages and the pages showing graphics) and `atrium_rocrate.py` (a docstring), byte-identical to the hub's; the pin moves to the hub's squash commit before the PR opens.
+* **Not in the PR:** the committed samples, regenerated from the merged code before the tags.
+* The change is `atrium-digital-convert.decisions-84.zip`, these logs `atrium-digital-convert.agent_dev_logs.zip`.
+* Logs only; not pushed.
+
+## 2026-11-27 (evening) — atrium-project#84: ARÚP's answers, #18 adjusted
+
+* **ARÚP (comment 7, motyc 16:25):** 1(c), 2(b), 3(b) pictures only, 4(b) with the rule in `parameters`, 5(a) named
+  and not stored, 6(c) with `figure` blocks.
+* **Decision 3:** `_reason_picture_only`: a rendered office page is `atr` when it has no line outside its header and
+  footer and shows a picture (`page_graphics` > 0), DOCX, DOC, ODT and RTF alike. `running_text`,
+  `DigitalLine.object_text` and the DOCX object-text marking go.
+* **Decision 6:** `page_pictures()`; `build_docproc` writes one `figure` block per picture or drawing (`bbox`, no
+  `lines`, no `imageRef`), on both engines. Drawings are boxed on the rendering from their DOCX size; one without a
+  match keeps no box and is counted in `parameters.figures_without_box`. `graphics_pages`, `--graphics-pages-out` and
+  the `/describe` override go. The proposal schema no longer requires `imageRef` (Ronald's answer 12).
+* **Decision 5:** `rendered-pdf` named for every office document, `stored: false`; handed over when the ATR or
+  page-classification reads it (a forced page or a figure block).
+* **Decision 1:** `run_config` without `input`; `bench_compare.py` names its manifest, gold, predictions and reports
+  as file entries.
+* **Fixtures:** `scan_page.docx` page 2 a picture only again; `objects_pages.docx` asserts that table-, chart- and
+  text-box-only pages stay `text-layer`.
+* The change is `atrium-digital-convert.decisions-84.zip` (deliverables `answers-84/`), these logs
+  `atrium-digital-convert.agent_dev_logs.zip`.
+* **Verified:** 1048 passed, 8 skipped; the light samples regenerated with Python 3.11 (`figure` blocks on the photo,
+  plan and scan pages, no `graphics`/`tables` in the routing, `config` without the file name; the Markdown
+  unchanged); the hub lane's fixtures through the CLI and `/reformat`.
+* Not pushed.

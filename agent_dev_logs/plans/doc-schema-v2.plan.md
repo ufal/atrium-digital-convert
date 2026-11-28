@@ -1,5 +1,7 @@
 # Strategy — [atrium-project#84](https://github.com/ufal/atrium-project/issues/84) (doc-schema-v2): digital-convert's part
 
+> _**Refreshed 2026-11-27 (evening)**: Status — 11-27 (evening) (ARÚP's answers on atrium-project#84, comment 7; the PR adjusted)._
+> _**Refreshed 2026-11-27**: Status — 11-27 (the non-A options of atrium-project#84 prepared, not pushed)._
 > _**Refreshed 2026-11-25**: Status — 11-25 (the v2.0.0-beta release prep)._
 > _**Refreshed 2026-11-19**: "Status — 11-19": rounds 7–9 merged, Ronald's answers, the tag after the cluster run._
 > _**Refreshed 2026-11-14 (afternoon)**: "Status — round 6 (11-14)": the hub merged, the pins moved, round 6._
@@ -14,6 +16,10 @@
 > This file is the repository's slice only; its 11-11 version (written before the
 > issue existed), in which digital-convert wrote the born-digital record, read images and CSV, and kept the
 > `ocr_text_layer` refusal — all superseded below._
+
+**Status (2026-11-27, evening)**: 🟡 **ARÚP answered atrium-project#84 (comment 7). #18 is adjusted: an office page with no line outside its header and footer that shows a picture goes to the ATR, every office format alike (decision 3); each picture or drawing is a `figure` block with a `bbox` and no `imageRef`, and the `graphics_pages` hand-over goes (decision 6); `rendered-pdf` is named for every office document, `stored: false` (decision 5); no file names in `config` (decision 1). See the DEVLOG entry of 11-27 (evening).**
+
+**Status (2026-11-27)**: 🟡 **The non-A options of atrium-project#84 prepared (not pushed; ARÚP has not answered): an office page with no running text that shows an object goes to the ATR (decision 3); the pages that show graphics are handed over with the run (`graphics_pages`), `graphics`/`tables` leave the docproc and ask 14 is withdrawn (decisions 4, 6); the rendered PDF is stored when the ATR or page-classification reads it (decision 5). One PR, after the hub's. See the DEVLOG entry of 11-27.**
 
 **Status (2026-11-25)**: 🟡 **v2.0.0-beta release prep in #17 (`v2-beta-prep` → `test`): office documents never go to the ATR, every page says what it shows (`graphics`, `tables`), `/describe` calls no other tool, the samples are this version's. Tag 26 November after the merge; the route question (pages with graphics to page-classification, the rendered PDF stored or not) is ARÚP's on atrium-project#84. See the DEVLOG entry of 11-25.**
 

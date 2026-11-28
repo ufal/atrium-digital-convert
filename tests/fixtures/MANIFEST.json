@@ -54,6 +54,11 @@
     "note": "an inline and a display equation, a SmartArt of three nodes, a bar chart with titles, series and categories — read from the XML (v2.0.0-beta)",
     "sha256": "a9e07b81d84d17a943ccc46009a2543eb730677a5c7d15ce0aceb26bb0d2cfd0"
   },
+  "objects_pages.docx": {
+    "bytes": 15099,
+    "note": "a ruled header with a logo over six pages: a picture, a table, a chart, a text box, nothing, running text — only the picture page to the ATR, the fifth `empty`; figure blocks on the picture and chart pages (#84 decisions 3, 6)",
+    "sha256": "aa046d9a3fc92390033b2044b83a2c6ba046949c5c024bbc07933a91cf8e1f4a"
+  },
   "ocr_layer.pdf": {
     "bytes": 1303,
     "note": "page image + invisible (3 Tr) text on both pages — G7 OCR layer",
@@ -61,7 +66,7 @@
   },
   "photo_text.docx": {
     "bytes": 5903,
-    "note": "a long paragraph, a photo, a caption on one page — visual lines; the photo is the page's graphics (#9)",
+    "note": "a long paragraph, a photo, a caption on one page — visual lines; the page keeps its text, the photo a figure block (#9, #84 decision 6)",
     "sha256": "2016ed842b08dd73bd076b8ab47014b569068a09dd79e88ea92ca7ff04ab9e07"
   },
   "rich.docx": {
@@ -101,7 +106,7 @@
   },
   "scan_page.docx": {
     "bytes": 6683,
-    "note": "text page, a page of one picture (a pasted scan), text page — no ATR: the picture page is routed `empty` with its graphics (v2.0.0-beta)",
+    "note": "text page, a page of one picture (a pasted scan), text page — the mixed DOCX: the picture page goes to the ATR, as a PDF page without text does (#84 decision 3); its picture a figure block (decision 6)",
     "sha256": "3f6932a3362e95750f6d2481f53edae6c13d80bbe167d1870a320eb6815fe113"
   },
   "scan_page.pdf": {

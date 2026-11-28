@@ -244,8 +244,8 @@ def test_a_relationship_that_names_nothing_reads_as_no_text(tmp_path):
 def test_the_rendered_page_is_covered_and_shows_its_chart_and_diagram(tmp_path):
     """Before v2.0.0-beta the reader skipped the SmartArt and chart text, which the rendering
     shows: 19 of the page's 33 words were not in the document's text (coverage 42 %), and the
-    page went to the ATR. Now the text is read, no office page goes to the ATR, and the chart
-    and the diagram are the page's graphics, for page-classification."""
+    page went to the ATR. Now the text is read, the page keeps it (it is the page's own text), and
+    the chart and the diagram are the page's pictures, figure blocks for page-classification."""
     from api_util.digital_ir import page_graphics
 
     path = tmp_path / "objects.docx"
@@ -259,3 +259,52 @@ def test_the_rendered_page_is_covered_and_shows_its_chart_and_diagram(tmp_path):
     assert "x=(-b±√(b^2-4ac))/(2a)" in texts, (
         "an equation LibreOffice draws as curves keeps its text"
     )
+
+
+# ── a drawing's size, for its box on the rendering (atrium-project#84 decision 6) ─────────────
+
+
+def test_a_drawing_carries_its_size_from_the_docx(tmp_path):
+    """The SmartArt diagram (6 x 1.2 in) and the chart (5.5 x 3 in) of objects.docx: their sizes
+    go with the line they count on, in pt, so the rendering can box them."""
+    document = _read(tmp_path, "o.docx", mf.objects_docx())
+    sizes = [size for page in document.pages for line in page.lines for size in line.graphic_sizes]
+    assert sizes == [(432.0, 86.4), (396.0, 216.0)]
+    counted = [line.graphics for page in document.pages for line in page.lines if line.graphics]
+    assert counted == [1, 1]
+
+
+def test_vml_and_ole_sizes_are_read_in_pt():
+    V = 'xmlns:v="urn:schemas-microsoft-com:vml"'
+    pict = dd._parse_xml(
+        f'<w:pict xmlns:w="{mf.W_NS}" {V}><v:rect style="width:2in;height:36pt"/></w:pict>'.encode()
+    )
+    assert dd._vml_size(pict) == (144.0, 36.0)
+    ole = dd._parse_xml(
+        f'<w:object xmlns:w="{mf.W_NS}" w:dxaOrig="2880" w:dyaOrig="1440"/>'.encode()
+    )
+    assert dd.object_size(ole) == (144.0, 72.0)
+    bare = dd._parse_xml(
+        f'<w:object xmlns:w="{mf.W_NS}" {V}><v:shape style="width:96;height:48"/></w:object>'.encode()
+    )
+    assert dd.object_size(bare) == (72.0, 36.0), "a bare number is a pixel at 96 dpi"
+    assert dd._vml_size(dd._parse_xml(f'<w:pict xmlns:w="{mf.W_NS}"/>'.encode())) == (0.0, 0.0)
+
+
+@needs_libreoffice
+def test_the_chart_and_the_diagram_are_figure_blocks_boxed_on_the_rendering(tmp_path):
+    """Each drawing is a `figure` block with the box of its vector paths on the rendering: the
+    SmartArt's three shapes grown into one box the diagram's width, the chart its own frame."""
+    from api_util import docproc_writer
+
+    path = tmp_path / "objects.docx"
+    path.write_bytes(mf.objects_docx())
+    document, _dev = d2j.prepare(str(path))
+    docproc = docproc_writer.build_docproc(document)
+    figures = [b for b in docproc["pages"][0]["blocks"] if b["type"] == "figure"]
+    assert len(figures) == 2 and docproc_writer.figures_without_box(docproc) == 0
+    (smartart, chart) = sorted(figures, key=lambda b: b["bbox"][1])
+    width = smartart["bbox"][2] - smartart["bbox"][0]
+    assert abs(width - 432.0) <= 30, "the three node shapes, as one diagram"
+    assert abs((chart["bbox"][2] - chart["bbox"][0]) - 396.0) <= 30
+    assert abs((chart["bbox"][3] - chart["bbox"][1]) - 216.0) <= 30

@@ -254,24 +254,71 @@ def test_a_few_uncovered_words_do_not_send_a_page_to_the_atr():
     assert not placed.pages[0].needs_ocr, "one list letter is not text the page lacks"
 
 
-def test_a_page_of_one_picture_goes_to_no_atr_and_shows_a_graphic():
-    """A pasted scan: the page has no text of its own, so it is routed `empty`, and its picture
-    makes it a page for page-classification (`graphics`), not for the ATR (v2.0.0-beta)."""
+def test_a_page_of_one_picture_goes_to_the_atr_and_shows_a_graphic():
+    """A pasted scan: the page has no text of its own and shows a picture, so it goes to the ATR,
+    and the whole document with it, as a PDF page without text does (atrium-project#84 decision
+    3); its picture is a figure block (decision 6). The text pages keep their own text."""
     from api_util import docproc_writer
-    from api_util.digital_ir import page_graphics
+    from api_util.digital_ir import graphics_pages, page_graphics
 
     native = _native([("Před plánem.", "p0"), ("Po plánu.", "p1")])
     rendered = _rendered([["Před plánem."], [], ["Po plánu."]], images=[0, 1, 0])
     rendered.pages[1].text_layer = "none"
     rendered.pages[1].image_boxes = [[40.0, 40.0, 555.0, 800.0]]
     placed = d2j.normalize(place(native, rendered))
-    assert [page.needs_ocr for page in placed.pages] == [False, False, False]
+    assert [page.needs_ocr for page in placed.pages] == [False, True, False]
+    assert "no text of its own" in placed.pages[1].needs_ocr_reason
     assert [docproc_writer.route(page) for page in placed.pages] == [
         "text-layer",
-        "empty",
+        "atr",
         "text-layer",
     ]
     assert page_graphics(placed) == [0, 1, 0]
+    assert graphics_pages(placed) == [2]
+    blocks = docproc_writer.build_docproc(placed)["pages"][1]["blocks"]
+    assert [b["type"] for b in blocks] == ["figure"]
+    assert blocks[0]["bbox"] == [40.0, 40.0, 555.0, 800.0] and "imageRef" not in blocks[0]
+
+
+def test_a_page_with_its_running_header_and_a_picture_goes_to_the_atr():
+    """Header and footer lines are page furniture, not the page's text (the PDF furniture-only
+    rule): a scan under the running header goes. A footnote is the page's text: it keeps it."""
+    from api_util.digital_ir import REGION_FOOTNOTE, REGION_HEADER
+
+    for region, forced in ((REGION_HEADER, True), (REGION_FOOTNOTE, False)):
+        native = _native([("Zpráva o výzkumu", "h0"), ("Po plánu.", "p1")])
+        native.pages[0].lines[0].region = region
+        rendered = _rendered([["Zpráva o výzkumu"], ["Po plánu."]], images=[1, 0])
+        rendered.pages[0].image_boxes = [[40.0, 80.0, 555.0, 800.0]]
+        placed = d2j.normalize(place(native, rendered))
+        assert placed.pages[0].needs_ocr is forced, region
+
+
+def test_a_page_of_a_table_or_object_text_alone_keeps_its_text():
+    """Decision 3 is pictures only: a page whose only text is a table's cells or a chart's labels
+    keeps that text, whatever it shows; a drawing there is a figure block."""
+    from api_util import docproc_writer
+    from api_util.digital_ir import page_graphics
+
+    native = _native([("Objekt", "tbl0-r0c0"), ("Jáma", "tbl0-r1c0"), ("Graf nálezů", "p2")])
+    native.pages[0].lines[2].graphics = 1
+    rendered = _rendered([["Objekt", "Jáma"], ["Graf nálezů"]])
+    placed = d2j.normalize(place(native, rendered))
+    assert [page.needs_ocr for page in placed.pages] == [False, False]
+    assert page_graphics(placed) == [0, 1]
+    figure = docproc_writer.build_docproc(placed)["pages"][1]["blocks"][-1]
+    assert figure["type"] == "figure" and "bbox" not in figure, "no size, no vector paths: no box"
+
+
+def test_a_page_with_only_its_rule_and_a_small_image_stays_empty():
+    """R2: vector paths (a header's rule, a page border) and an image under `GRAPHIC_MIN_SIDE`
+    are not objects: a page with nothing else stays `empty`, and the document keeps its text."""
+    native = _native([("Před prázdnou stranou.", "p0")])
+    rendered = _rendered([["Před prázdnou stranou."], []], images=[0, 1])
+    rendered.pages[1].vector_paths = 3
+    rendered.pages[1].image_boxes = [[500.0, 20.0, 520.0, 40.0]]
+    placed = d2j.normalize(place(native, rendered))
+    assert [page.needs_ocr for page in placed.pages] == [False, False]
 
 
 def test_a_drawing_counts_once_on_the_first_visual_line_of_its_line():
@@ -343,3 +390,81 @@ def test_the_textual_workflow_never_needs_the_atr():
     d2j.normalize(document)
     assert page.lines[0].decode == "garbled", "the decode flag stays on the line for scoring"
     assert not page.needs_ocr, "nothing to render: no ATR (#9 point 4)"
+
+
+# ── boxing a drawing on the rendering (atrium-project#84 decision 6) ──────────────────────────
+
+
+def _drawing_page(index: int, vectors=(), images=(), lines=()) -> DigitalPage:
+    page = DigitalPage(page=str(index), page_index=index, width=595.0, height=842.0, unit="pt")
+    page.vector_boxes = [list(b) for b in vectors]
+    page.image_boxes = [list(b) for b in images]
+    page.lines = list(lines)
+    return page
+
+
+def _drawing_doc(*pages: DigitalPage) -> DigitalDocument:
+    return DigitalDocument(
+        doc_id="d", origin="digital-born-docx", media_type="x", pages=list(pages), kind="docx"
+    )
+
+
+def _anchor(top: float, size, graphics: int = 1) -> DigitalLine:
+    return DigitalLine(
+        page="1",
+        line=0,
+        text="Graf",
+        bbox=[56.0, top, 120.0, top + 11.0],
+        graphics=graphics,
+        graphic_sizes=[size] * graphics,
+    )
+
+
+def test_an_ole_preview_drawn_as_an_image_is_one_picture_not_two():
+    """An OLE object counts as a drawing in the DOCX and renders its preview as an image: the image
+    of its size is claimed by the drawing, so the page shows one picture with that box."""
+    from api_util.digital_ir import PICTURE_DRAWING, page_pictures
+
+    page = _drawing_page(
+        1, images=[[56.0, 100.0, 200.0, 172.0]], lines=[_anchor(180.0, (144.0, 72.0))]
+    )
+    [pictures] = page_pictures(_drawing_doc(page))
+    assert [(p.kind, p.bbox) for p in pictures] == [(PICTURE_DRAWING, [56.0, 100.0, 200.0, 172.0])]
+
+
+def test_a_diagrams_shapes_are_grown_into_one_box_and_borders_are_left_out():
+    """SmartArt is drawn as separate shapes: the nearest cluster that fits the drawing's size is
+    grown by the others while the union still fits. A full-width rule is no part of it."""
+    from api_util.digital_ir import page_pictures
+
+    shapes = [
+        [60.0, 100.0, 180.0, 160.0],
+        [200.0, 100.0, 320.0, 160.0],
+        [340.0, 100.0, 460.0, 160.0],
+    ]
+    rule = [40.0, 60.0, 555.0, 60.5]
+    page = _drawing_page(1, vectors=[*shapes, rule], lines=[_anchor(170.0, (432.0, 86.4))])
+    [pictures] = page_pictures(_drawing_doc(page))
+    assert [p.bbox for p in pictures] == [[60.0, 100.0, 460.0, 160.0]]
+
+
+def test_a_drawing_counted_on_the_next_page_is_found_on_the_page_before():
+    """A chart alone on its page counts on the next line written, on the next page: it is looked
+    for there and on the page before, and is a picture of the page it was found on."""
+    from api_util.digital_ir import page_graphics, page_pictures
+
+    chart_page = _drawing_page(1, vectors=[[57.0, 66.0, 452.0, 281.0]])
+    text_page = _drawing_page(2, lines=[_anchor(60.0, (396.0, 216.0))])
+    document = _drawing_doc(chart_page, text_page)
+    assert page_graphics(document) == [1, 0]
+    assert page_pictures(document)[0][0].bbox == [57.0, 66.0, 452.0, 281.0]
+
+
+def test_a_drawing_not_found_keeps_no_box_on_its_anchors_page():
+    from api_util.digital_ir import page_pictures
+
+    tiny = _drawing_page(
+        1, vectors=[[60.0, 100.0, 70.0, 110.0]], lines=[_anchor(120.0, (396.0, 216.0))]
+    )
+    [pictures] = page_pictures(_drawing_doc(tiny))
+    assert len(pictures) == 1 and pictures[0].bbox is None

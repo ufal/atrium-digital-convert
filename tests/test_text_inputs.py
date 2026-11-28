@@ -2,8 +2,10 @@
 
 Textual: TXT, CSV, TSV and JSON are extracted as they are — every column, every string value —
 into a docproc without geometry whose pages never go to the ATR; long lines are wrapped and the
-wrap recorded as a split (D13). Visual: an office document's pages are its rendering's, none of
-them goes to the ATR, and the rendered PDF is handed over when a page shows graphics.
+wrap recorded as a split (D13). Visual: an office document's pages are its rendering's; a page
+with no text of its own that shows a picture goes to the ATR (atrium-project#84 decision 3), each
+picture is a `figure` block (decision 6), and the rendered PDF is named, not stored, and handed
+over when the ATR or page-classification reads it (decision 5).
 """
 
 from __future__ import annotations
@@ -190,23 +192,100 @@ def test_every_kind_has_a_workflow():
 
 
 @needs_libreoffice
-def test_an_office_document_never_goes_to_the_atr(tmp_path):
-    """A pasted scan's page has no text of its own: it is routed `empty` and described by its
-    graphics, for page-classification; the ATR never reads an office document (v2.0.0-beta)."""
+def test_a_pasted_scan_sends_the_office_document_to_the_atr(tmp_path):
+    """atrium-project#84 decision 3: scan_page.docx's page 2 holds only a scan, so it goes to the
+    ATR, and the whole document with it, as a PDF page without text does; the ATR reads the
+    rendered PDF (decision 5), whose pages and boxes the docproc's are. The scan is a `figure`
+    block (decision 6)."""
     rendered = tmp_path / "scan_page.pdf"
     docproc = _docproc(tmp_path, "scan_page.docx", rendered_out=str(rendered))
     routing = docproc["metadata"]["routing"]["pages"]
     routes = [r["route"] for r in routing]
-    assert routes == ["text-layer", "empty", "text-layer"]
-    assert [r["graphics"] for r in routing] == [0, 1, 0]
-    assert not any(page.get("needsAtr") for page in docproc["pages"])
-    assert [p["pageNumber"] for p in docproc["pages"]] == [1, 3]
+    assert routes == ["text-layer", "atr", "text-layer"]
+    assert all(set(r) == {"page", "route", "text_layer"} for r in routing), "decision 6"
+    forced = [page for page in docproc["pages"] if page.get("needsAtr")]
+    assert [page["pageNumber"] for page in forced] == [2]
+    assert "no text of its own" in forced[0]["needsAtrReason"]
+    assert forced[0]["textLayer"] == "none", "the rendering's census: no text on the page"
+    assert [b["type"] for b in forced[0]["blocks"]] == ["figure"]
+    assert forced[0]["blocks"][0]["bbox"] and "imageRef" not in forced[0]["blocks"][0]
+    assert [p["pageNumber"] for p in docproc["pages"]] == [1, 2, 3]
     assert all(page["coordinateUnit"] == "pt" and page["width"] > 0 for page in docproc["pages"])
     import pypdfium2 as pdfium
 
     pdf = pdfium.PdfDocument(str(rendered))
     assert len(pdf) == len(routes), "the docproc's pages are the rendered PDF's"
     pdf.close()
+
+
+@needs_libreoffice
+def test_an_office_page_goes_to_the_atr_only_for_a_picture(tmp_path):
+    """Decision 3, the PDF rule: only a page with no text of its own that shows a picture goes to
+    the ATR (the scan under the running header). A page of a table, of a chart or of a text box
+    alone keeps its text; the rule and the repeated logo are furniture, so a page with nothing else
+    stays `empty`; running text keeps its page. The scan and the chart are `figure` blocks, the
+    chart boxed on the rendering from its size in the DOCX (decision 6)."""
+    docproc = _docproc(tmp_path, "objects_pages.docx")
+    routes = [r["route"] for r in docproc["metadata"]["routing"]["pages"]]
+    assert routes == ["atr", "text-layer", "text-layer", "text-layer", "empty", "text-layer"]
+    reasons = {p["pageNumber"]: p["needsAtrReason"] for p in docproc["pages"] if p.get("needsAtr")}
+    assert "1 picture(s)" in reasons[1], "the scan; the header's logo is furniture"
+    assert docproc_writer.figure_pages(docproc) == [1, 3], (
+        "the logo repeated on every page is no figure"
+    )
+    chart = next(
+        b
+        for p in docproc["pages"]
+        if p["pageNumber"] == 3
+        for b in p["blocks"]
+        if b["type"] == "figure"
+    )
+    width, height = chart["bbox"][2] - chart["bbox"][0], chart["bbox"][3] - chart["bbox"][1]
+    assert abs(width - 396) <= 30 and abs(height - 216) <= 30, (
+        "the chart's 5.5 x 3 in, on the rendering"
+    )
+    textbox = [
+        line["text"]
+        for p in docproc["pages"]
+        if p["pageNumber"] == 4
+        for b in p["blocks"]
+        for line in b.get("lines", [])
+    ]
+    assert textbox == [make_fixtures.TEXTBOX_TEXT]
+
+
+@needs_libreoffice
+def test_an_odt_page_goes_to_the_atr_only_with_no_line_and_a_picture(tmp_path):
+    """Decision 3 for ODT: the same rule. The shared reader does not read headers or footers, so the
+    scan page has no line and goes; the table page keeps its cells; the chart page keeps its text
+    (a chart in an ODT is drawn as vectors and read by no XML here: no figure)."""
+    import subprocess
+
+    from api_util.digital_legacy import libreoffice_binary
+
+    source = _write(tmp_path, "objects_pages.docx")
+    subprocess.run(
+        [
+            libreoffice_binary(),
+            "--headless",
+            "--convert-to",
+            "odt",
+            "--outdir",
+            str(tmp_path),
+            str(source),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=180,
+    )
+    odt = tmp_path / "objects_pages.odt"
+    out = tmp_path / "objects_pages.odt.docproc.json"
+    d2j.convert(str(odt), out_path=str(out))
+    docproc = json.loads(out.read_text(encoding="utf-8"))
+    routing = {r["page"]: r["route"] for r in docproc["metadata"]["routing"]["pages"]}
+    assert routing[1] == "atr", "a picture and no line"
+    assert routing[2] == "text-layer", "the table's cells are plain lines here"
+    assert routing[3] != "atr", "a chart page is not forced"
 
 
 @needs_libreoffice
@@ -219,7 +298,10 @@ def test_a_page_with_good_text_and_a_photo_stays_on_its_text_layer(tmp_path):
     assert {line["bboxPrecision"] for line in paragraph["lines"]} == {"measured"}
     tops = [line["bbox"][1] for line in paragraph["lines"]]
     assert tops == sorted(tops) and len(set(tops)) == len(tops)
-    assert docproc["metadata"]["routing"]["pages"][0]["graphics"] == 1, "the photo"
+    assert docproc_writer.figure_pages(docproc) == [1], (
+        "the photo: page-classification reads the page"
+    )
+    assert docproc["pages"][0]["blocks"][-1]["type"] == "figure"
 
 
 @needs_libreoffice
@@ -232,20 +314,27 @@ def test_a_docx_table_is_a_table_block_with_its_cell_grid(tmp_path):
         if block["type"] == "table"
     ]
     assert tables, "rich.docx has a table"
-    for number, block in tables:
+    for _number, block in tables:
         rows = block["cellGrid"]["rows"]
         assert rows and all(row["cells"] for row in rows)
-        entry = next(r for r in docproc["metadata"]["routing"]["pages"] if r["page"] == number)
-        assert entry["tables"] >= 1
     routing = docproc["metadata"]["routing"]["pages"]
-    assert all(r["graphics"] == 0 for r in routing), "a text box is text, not a graphic"
+    assert [r["route"] for r in routing] == ["text-layer"] * len(routing), (
+        "a table beside running text"
+    )
+    assert docproc_writer.figure_pages(docproc) == [], "a text box is text, not a picture"
 
 
 @needs_libreoffice
-def test_the_paradata_name_the_rendered_pdf_not_stored(tmp_path):
+def test_the_paradata_name_the_rendered_pdf_not_stored(tmp_path, capsys):
+    """Decision 5: the rendered PDF is named in `result` by the SHA-512 of the file written with
+    --rendered-out, `stored: false`: the docproc's pages and boxes are its. The docproc is not the
+    stored one either: page 2 needs the ATR, whose docproc is (H14)."""
     rendered = tmp_path / "r.pdf"
     _docproc(
-        tmp_path, "scan_page.docx", rendered_out=str(rendered), paradata_dir=str(tmp_path / "para")
+        tmp_path,
+        "scan_page.docx",
+        rendered_out=str(rendered),
+        paradata_dir=str(tmp_path / "para"),
     )
     paradata = json.loads(next((tmp_path / "para").glob("*.json")).read_text(encoding="utf-8"))
     outputs = {o["name"]: o for o in paradata["outputs"]}
@@ -255,14 +344,42 @@ def test_the_paradata_name_the_rendered_pdf_not_stored(tmp_path):
         "media_type": "application/pdf",
         "stored": False,
     }
-    assert outputs["atr/docproc-json"]["stored"] is True, (
-        "no page needs the ATR: this docproc is stored"
+    assert outputs["atr/docproc-json"]["stored"] is False, (
+        "page 2 needs the ATR: its docproc is stored"
     )
+    assert "graphics_pages" not in json.dumps(paradata) and "input" not in paradata["config"]
     assert paradata["parameters"]["render"].startswith("pdf:writer_pdf_Export:")
     assert paradata["parameters"]["graphic_min_side_pt"] == 24.0
     libreoffice = next(c for c in paradata["components"] if c["name"] == "libreoffice")
     assert libreoffice.get("version"), "the component with its version, as a fact"
     assert not {"license", "license_url", "license_detail"} & set(paradata)
+
+
+@needs_libreoffice
+def test_a_read_rendered_pdf_not_written_is_still_named(tmp_path, capsys):
+    """Decision 5: the docproc is built on the rendering, so the paradata name it for every office
+    document; without --rendered-out the PDF the ATR needs is not written, and the command line says
+    what to pass."""
+    _docproc(tmp_path, "scan_page.docx", paradata_dir=str(tmp_path / "para"))
+    paradata = json.loads(next((tmp_path / "para").glob("*.json")).read_text(encoding="utf-8"))
+    named = {o["name"]: o for o in paradata["outputs"]}
+    assert named[d2j.RENDERED_DISTRIBUTION]["stored"] is False
+    assert "pass --rendered-out" in capsys.readouterr().err
+
+
+@needs_libreoffice
+def test_a_rendered_pdf_nothing_reads_is_not_written_but_named(tmp_path, capsys):
+    """Decision 5: rich.docx has text on every page and no picture, so neither the ATR nor
+    page-classification reads its rendering: --rendered-out writes nothing. Its docproc is still
+    built on the rendering, so the paradata name it, not stored."""
+    rendered = tmp_path / "r.pdf"
+    _docproc(tmp_path, "rich.docx", rendered_out=str(rendered), paradata_dir=str(tmp_path / "para"))
+    assert not rendered.exists()
+    assert "nothing reads the rendered PDF" in capsys.readouterr().err
+    paradata = json.loads(next((tmp_path / "para").glob("*.json")).read_text(encoding="utf-8"))
+    named = {o["name"]: o for o in paradata["outputs"]}
+    assert named[d2j.RENDERED_DISTRIBUTION]["stored"] is False
+    assert paradata["parameters"]["render"].startswith("pdf:writer_pdf_Export:"), "still rendered"
 
 
 # ── the service ─────────────────────────────────────────────────────────────────────────────
@@ -296,7 +413,8 @@ def test_info_lists_the_inputs_of_each_workflow(client):
 def test_reformat_reads_a_csv_without_a_rendering(client):
     body = _reformat(client, "sample.csv", rendered="true")
     assert body["reader"]["workflow"] == "textual" and body["reader"]["rendering"] is None
-    assert "rendered_pdf" not in body
+    assert "rendered_pdf" not in body and "graphics_pages" not in body
+    assert d2j.RENDERED_DISTRIBUTION not in {r["name"] for r in body["paradata"]["result"]}
     assert body["docproc"]["sourceFormat"] == "csv"
 
 
@@ -308,9 +426,12 @@ def test_reformat_reports_a_wrapped_line_in_limits_applied(client):
 
 
 @needs_libreoffice
-def test_reformat_hands_over_the_rendered_pdf_when_a_page_shows_graphics(client):
+def test_reformat_hands_over_the_rendered_pdf_the_atr_reads(client):
+    """Decision 5: page 2 of scan_page.docx is forced, so the ATR reads the document as its
+    rendered PDF: handed over, and named in `result` by the same SHA-512, not stored."""
     body = _reformat(client, "scan_page.docx")
-    assert not any(p.get("needsAtr") for p in body["docproc"]["pages"])
+    assert [p["pageNumber"] for p in body["docproc"]["pages"] if p.get("needsAtr")] == [2]
+    assert docproc_writer.figure_pages(body["docproc"]) == [2] and "graphics_pages" not in body
     data = base64.b64decode(body["rendered_pdf"]["data"])
     assert data.startswith(b"%PDF") and body["rendered_pdf"]["media_type"] == "application/pdf"
     assert (
@@ -320,10 +441,20 @@ def test_reformat_hands_over_the_rendered_pdf_when_a_page_shows_graphics(client)
     )
     result = {r["name"]: r for r in body["paradata"]["result"]}
     assert result[d2j.RENDERED_DISTRIBUTION]["sha512"] == body["rendered_pdf"]["sha512"]
+    assert result[d2j.RENDERED_DISTRIBUTION]["stored"] is False, "named, not stored"
+    assert result["atr/docproc-json"]["stored"] is False, "the ATR's docproc is the stored one"
 
 
 @needs_libreoffice
-def test_reformat_returns_the_rendered_pdf_of_a_text_only_document_only_when_asked(client):
-    assert "rendered_pdf" in _reformat(client, "photo_text.docx"), "its photo is a graphic"
-    assert "rendered_pdf" not in _reformat(client, "rich.docx"), "text and a table only"
-    assert _reformat(client, "rich.docx", rendered="true")["rendered_pdf"]["data"]
+def test_reformat_hands_over_the_rendered_pdf_only_when_it_is_read(client):
+    """Decision 5: photo_text.docx keeps its text, but its photo is a `figure` block, so
+    page-classification reads its page from the rendered PDF: handed over; rich.docx shows nothing
+    for either step, so its rendering is not handed over (the `rendered` field is gone), but it is
+    named all the same, not stored: its docproc is built on it."""
+    photo = _reformat(client, "photo_text.docx")
+    assert docproc_writer.figure_pages(photo["docproc"]) == [1] and photo["rendered_pdf"]["data"]
+    assert not any(p.get("needsAtr") for p in photo["docproc"]["pages"])
+    rich = _reformat(client, "rich.docx", rendered="true")
+    assert docproc_writer.figure_pages(rich["docproc"]) == [] and "rendered_pdf" not in rich
+    named = {r["name"]: r for r in rich["paradata"]["result"]}
+    assert named[d2j.RENDERED_DISTRIBUTION]["stored"] is False

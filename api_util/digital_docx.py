@@ -41,9 +41,11 @@ what lost text on the old path. What this module fixes, against the #10 §9 meas
 * **Graphics** (`DigitalLine.graphics`). A body drawing that does not render as a picture — a
   chart, a SmartArt diagram, shapes, a drawing canvas, an OLE object — is counted on the line
   written next (its own paragraph's, else the caption after it), so the page it lands on is
-  described as showing graphics (`digital_ir.page_graphics`). A picture is counted from the
-  rendering, where it is a raster image; a text box is text; a header's or footer's logo is page
-  furniture and is not counted.
+  described as showing graphics (`digital_ir.page_pictures`). Its size goes with it
+  (`DigitalLine.graphic_sizes`: `wp:extent`, a VML shape's style, an OLE object's original size),
+  so the drawing can be found and boxed on the rendering (atrium-project#84 decision 6). A picture is
+  counted from the rendering, where it is a raster image; a text box is text; a header's or footer's
+  logo is page furniture and is not counted.
 
 No geometry: a DOCX has none until something renders it, so no `bbox` and no `canvas`.
 """
@@ -184,6 +186,65 @@ def drawing_is_graphic(el: Any) -> bool:
             continue
         return True
     return False
+
+
+#: EMU per pt (DrawingML sizes), and twips per pt (an OLE object's original size).
+EMU_PER_PT = 12700.0
+TWIPS_PER_PT = 20.0
+#: CSS length units of a VML style, in pt (a bare number is a pixel at 96 dpi).
+_CSS_PT = {
+    "pt": 1.0,
+    "in": 72.0,
+    "cm": 72.0 / 2.54,
+    "mm": 72.0 / 25.4,
+    "pc": 12.0,
+    "px": 0.75,
+    "": 0.75,
+}
+
+
+def _css_length(value: Optional[str]) -> float:
+    match = re.match(r"\s*([0-9]*\.?[0-9]+)\s*([a-z]*)", value or "")
+    if not match or match.group(2) not in _CSS_PT:
+        return 0.0
+    return float(match.group(1)) * _CSS_PT[match.group(2)]
+
+
+def _vml_size(el: Any) -> Tuple[float, float]:
+    """The size of the first VML shape under `el` that states one in its style, in pt."""
+    for node in el.iter():
+        if _local(node.tag) in _VML_SHAPES and node.get("style"):
+            parts = dict(
+                (k.strip().lower(), v.strip())
+                for k, _, v in (item.partition(":") for item in node.get("style").split(";"))
+            )
+            size = (_css_length(parts.get("width")), _css_length(parts.get("height")))
+            if size[0] > 0 and size[1] > 0:
+                return size
+    return (0.0, 0.0)
+
+
+def drawing_size(el: Any) -> Tuple[float, float]:
+    """A `w:drawing`'s size in pt (`wp:extent`, EMU), or `(0, 0)` when it states none."""
+    for node in el.iter():
+        if _local(node.tag) == "extent" and node.get("cx") and node.get("cy"):
+            try:
+                return (int(node.get("cx")) / EMU_PER_PT, int(node.get("cy")) / EMU_PER_PT)
+            except ValueError:
+                return (0.0, 0.0)
+    return (0.0, 0.0)
+
+
+def object_size(el: Any) -> Tuple[float, float]:
+    """An OLE object's size in pt: its original size (`w:dxaOrig`, `w:dyaOrig`, twips), else its
+    preview shape's style."""
+    try:
+        dxa, dya = el.get(f"{{{W_NS}}}dxaOrig"), el.get(f"{{{W_NS}}}dyaOrig")
+        if dxa and dya:
+            return (int(dxa) / TWIPS_PER_PT, int(dya) / TWIPS_PER_PT)
+    except ValueError:
+        pass
+    return _vml_size(el)
 
 
 def pict_is_graphic(el: Any) -> bool:
@@ -565,8 +626,9 @@ class _Flow:
         self.group: Optional[str] = None
         self.heading: Optional[int] = None
         self.region: Optional[str] = None
-        #: Drawings met since the last line was written (`DigitalLine.graphics`).
+        #: Drawings met since the last line was written (`DigitalLine.graphics`), and their sizes.
         self.pending_graphics = 0
+        self.pending_sizes: List[Tuple[float, float]] = []
 
     def text(self, value: str, bold: bool, italic: bool) -> None:
         if value:
@@ -589,14 +651,17 @@ class _Flow:
                 group_id=self.group,
                 region=self.region,
                 graphics=self.pending_graphics,
+                graphic_sizes=list(self.pending_sizes),
             )
         )
         self.pending_graphics = 0
+        self.pending_sizes = []
         self._any = True
 
-    def graphic(self) -> None:
+    def graphic(self, size: Tuple[float, float] = (0.0, 0.0)) -> None:
         """A drawing that does not render as a picture: it counts on the next line written."""
         self.pending_graphics += 1
+        self.pending_sizes.append((round(float(size[0]), 2), round(float(size[1]), 2)))
 
     def settle_graphics(self) -> None:
         """Drawings after the last line count on that line."""
@@ -605,8 +670,10 @@ class _Flow:
         for page in reversed(self.pages):
             if page:
                 page[-1].graphics += self.pending_graphics
+                page[-1].graphic_sizes.extend(self.pending_sizes)
                 break
         self.pending_graphics = 0
+        self.pending_sizes = []
 
     def explicit_break(self) -> None:
         self.line_break()
@@ -722,19 +789,19 @@ class _Walker:
 
     def _on_drawing(self, el: Any) -> None:
         if self.count_graphics and drawing_is_graphic(el):
-            self.flow.graphic()
+            self.flow.graphic(drawing_size(el))
         self.walk_children(el)
 
     def _on_pict(self, el: Any) -> None:
         if self.count_graphics and pict_is_graphic(el):
-            self.flow.graphic()
+            self.flow.graphic(_vml_size(el))
         self.walk_children(el)
 
     def _on_object(self, el: Any) -> None:
         # An embedded OLE object (a pasted workbook, an Equation 3.0 formula, a drawing): what it
         # shows is not in the document's XML.
         if self.count_graphics:
-            self.flow.graphic()
+            self.flow.graphic(object_size(el))
         self.walk_children(el)
 
     def _on_txbxContent(self, el: Any) -> None:

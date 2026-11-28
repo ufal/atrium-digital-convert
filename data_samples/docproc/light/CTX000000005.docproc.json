@@ -147,6 +147,18 @@
               "bboxPrecision": "measured"
             }
           ]
+        },
+        {
+          "id": "p1-b4",
+          "type": "figure",
+          "bbox": [
+            0.0,
+            0.0,
+            595.28,
+            841.89
+          ],
+          "readingOrder": 4,
+          "confidence": 1.0
         }
       ],
       "textLayer": "ocr",
@@ -263,6 +275,18 @@
               "bboxPrecision": "measured"
             }
           ]
+        },
+        {
+          "id": "p2-b3",
+          "type": "figure",
+          "bbox": [
+            0.0,
+            0.0,
+            595.28,
+            841.89
+          ],
+          "readingOrder": 3,
+          "confidence": 1.0
         }
       ],
       "textLayer": "ocr",
@@ -274,7 +298,20 @@
       "width": 595.276,
       "height": 841.89,
       "coordinateUnit": "pt",
-      "blocks": [],
+      "blocks": [
+        {
+          "id": "p3-b0",
+          "type": "figure",
+          "bbox": [
+            0.0,
+            0.0,
+            595.28,
+            841.89
+          ],
+          "readingOrder": 0,
+          "confidence": 1.0
+        }
+      ],
       "textLayer": "none",
       "needsAtr": true,
       "needsAtrReason": "no extractable text layer: the page draws 1 image(s) but carries no text — a scanned page or text drawn as curves"
@@ -309,6 +346,18 @@
               "bboxPrecision": "measured"
             }
           ]
+        },
+        {
+          "id": "p4-b1",
+          "type": "figure",
+          "bbox": [
+            0.0,
+            0.0,
+            595.28,
+            841.89
+          ],
+          "readingOrder": 1,
+          "confidence": 1.0
         }
       ],
       "textLayer": "none",
@@ -322,30 +371,22 @@
         {
           "page": 1,
           "route": "atr",
-          "text_layer": false,
-          "graphics": 1,
-          "tables": 0
+          "text_layer": false
         },
         {
           "page": 2,
           "route": "atr",
-          "text_layer": false,
-          "graphics": 1,
-          "tables": 0
+          "text_layer": false
         },
         {
           "page": 3,
           "route": "atr",
-          "text_layer": false,
-          "graphics": 1,
-          "tables": 0
+          "text_layer": false
         },
         {
           "page": 4,
           "route": "atr",
-          "text_layer": false,
-          "graphics": 1,
-          "tables": 0
+          "text_layer": false
         }
       ],
       "counts": {
