@@ -435,30 +435,22 @@
         {
           "page": 1,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": true
         },
         {
           "page": 2,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": true
         },
         {
           "page": 3,
           "route": "atr",
-          "text_layer": false,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": false
         },
         {
           "page": 4,
           "route": "atr",
-          "text_layer": false,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": false
         }
       ],
       "counts": {
