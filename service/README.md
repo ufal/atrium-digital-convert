@@ -78,17 +78,16 @@ Nothing is downloaded at start or per request: the converter has no model and ne
 
 The response:
 
-| Field            | Meaning                                                                                                                                                                                                                                                                 |
-|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `service`        | `atrium-digital-convert`                                                                                                                                                                                                                                                |
-| `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                                                                                                                                                               |
-| `docproc`        | the docproc: pages, blocks with their `lines[]`, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md))                                                                                                                                                   |
-| `reader`         | how the file was read: `kind`, `workflow` (`visual`, `textual`), `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS/XLSX; a spreadsheet's with its `locale`), `rendering` (office documents: `tool`, `version`, `from`, `to`, `pages`, `sha512`), `notes` |
-| `graphics_pages` | the pages that show graphics, by page number (empty for the textual workflow): with the pages routed `atr`, the pages page-classification reads. A run hand-over, not stored and not in the docproc                                                                     |
-| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`), when the ATR (a page routed `atr`) or page-classification (`graphics_pages`) reads it. The docproc's pages and boxes are its pages. Stored; use these bytes, never a re-render               |
-| `markdown`       | only with `markdown=true`                                                                                                                                                                                                                                               |
-| `limits_applied` | the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS` (`split`). Nothing is sampled; a limit that would cut content fails the call                                                                                                    |
-| `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                                                                                                                                                                          |
+| Field            | Meaning                                                                                                                                                                                                                                                                   |
+|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `service`        | `atrium-digital-convert`                                                                                                                                                                                                                                                  |
+| `doc_id`         | the seed's `doc_id`, else derived from the file name (`atrium_document.canonical_doc_id`)                                                                                                                                                                                 |
+| `docproc`        | the docproc: pages, blocks with their `lines[]`, a `figure` block per picture, `metadata.routing` ([schemas/docproc](../schemas/docproc/README.md))                                                                                                                       |
+| `reader`         | how the file was read: `kind`, `workflow` (`visual`, `textual`), `media_type`, `origin`, `engine`, `pages`, `conversion` (DOC/XLS/XLSX; a spreadsheet's with its `locale`), `rendering` (office documents: `tool`, `version`, `from`, `to`, `pages`, `sha512`), `notes`   |
+| `rendered_pdf`   | an office document's rendered PDF (`media_type`, `sha512`, base64 `data`), when the ATR (a page routed `atr`) or page-classification (a page with a `figure` block) reads it. The docproc's pages and boxes are its pages. Not stored; use these bytes, never a re-render |
+| `markdown`       | only with `markdown=true`                                                                                                                                                                                                                                                 |
+| `limits_applied` | the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS` (`split`). Nothing is sampled; a limit that would cut content fails the call                                                                                                      |
+| `paradata`       | the call's Process Run Crate `CreateAction` (paradata 3.0, below). No paradata file is written                                                                                                                                                                            |
 
 **The seed.** Read, never written: its `doc_id` names the result, and its `sha512` is compared with the
 uploaded bytes **before anything is read** (for a DOC/XLS, before the LibreOffice conversion). A mismatch is
@@ -97,10 +96,11 @@ refused (422 `source_digest_mismatch`), so nothing is produced for the wrong fil
 **`paradata`** (paradata schema 3.0): `object` names the upload as `original` and the seed as
 `atrium/document-json`, `result` the docproc as `atr/docproc-json`, each by SHA-512. When a page needs the ATR
 the docproc is an intermediate, `stored: false`: the ATR's docproc is the stored one. An office document's
-rendered PDF is in `result` too when it is returned (`rendered_pdf`), as the stored distribution `rendered-pdf` (a
-stand-in name until AMČR gives one); the pinned export options are among the `parameters` either way.
-`graphic_min_side_pt` is the smallest image counted as a graphic (`graphics_pages`). `paradataRecord` lists the components used, each with its own terms and LibreOffice with its
-version; no licence of the output is computed.
+rendered PDF is in `result` too, returned or not, as `rendered-pdf` with `stored: false` (a stand-in name; whether
+AMČR stores it is AMČR's to settle): the docproc's pages and boxes are its. The pinned export options are among the
+`parameters`. `graphic_min_side_pt` is the smallest image counted as a picture, and `figures_without_box` counts the
+drawings the rendering could not box, when there are any. `paradataRecord` lists the components used, each with its
+own terms and LibreOffice with its version; no licence of the output is computed.
 
 **The text layer.** Every page in `pages[]` carries the converter's verdict in `textLayer`:
 
@@ -111,18 +111,19 @@ version; no licence of the output is computed.
 
 A PDF's `garbled`, `ocr` and `none` pages also carry `needsAtr: true` with a `needsAtrReason`, and are routed `atr`
 in `metadata.routing.pages[]`; an empty page is routed `empty` and is not in `pages[]`. No document is refused for
-its pages. An office document (DOCX, DOC, ODT, RTF) keeps its own text, read in full from its XML, but a page with
-no running text that shows an object goes to the ATR too, for the text its objects may hold (a pasted scan, a photo
-of text): a picture, a chart, a SmartArt diagram, a table or a text box, with no paragraph of running text beside
-it (the running header, footer and footnotes do not count). Its `textLayer` stays the rendering's (`digital` or
-`none`). A rule, a page border or a repeated logo alone sends no page, and a page with nothing on it is `empty`. ODT
-and RTF are read as plain lines, so only a page with no text at all that shows a picture goes.
+its pages. An office document (DOCX, DOC, ODT, RTF) keeps its own text, read in full from its XML, but the PDF rule
+holds for it too: a page with no text of its own (no line outside its running header and footer) that shows a
+picture goes to the ATR, a pasted scan the usual case. A page of a table, a chart or a text box alone keeps its text.
+Its `textLayer` stays the rendering's (`digital` or `none`). A rule, a page border or a repeated logo alone sends no
+page, and a page with nothing on it is `empty`.
 
-**What a page shows.** `graphics_pages` lists the pages that show graphics: pictures (raster images of at least
-24 pt each way, not counting a logo that recurs at the same place on other pages) and, in a DOCX, the charts,
-SmartArt diagrams, shapes and embedded objects anchored on them. With the pages routed `atr`, they are the pages
-page-classification reads. They are not written into the docproc: what a page shows was proposed for its routing
-(ask 14) and withdrawn.
+**What a page shows.** Each picture is a `figure` block after the page's text and table blocks: a raster image of at
+least 24 pt each way, not counting a logo that recurs at the same place on other pages, and, in a DOCX, each chart,
+SmartArt diagram, shape and embedded object, boxed on the rendering from its size in the DOCX. A figure block has a
+`bbox` and no `lines`, `content` or `imageRef`: the docproc holds where a picture is, not the picture
+(atrium-project#84 decision 6). A drawing the rendering cannot box keeps no `bbox`. With the pages routed `atr`, the
+pages holding a figure block are the pages page-classification reads (decision 4). A chart drawn as vectors in a PDF
+is not a figure.
 
 ### `POST /describe` (parked)
 
@@ -183,7 +184,7 @@ checks this table against `tool_limits.py` and `.env.example`.
   `MAX_CONCURRENT_JOBS` slot.
 * **An office document's rendered PDF travels in the answer.** `rendered_pdf` is base64, about 4/3 of the
   PDF's size, so a DOCX full of photographs gives a large response: it comes whenever a page goes to the ATR or
-  shows graphics, and the rendering keeps the images' resolution for the ATR and page-classification.
+  holds a figure block, and the rendering keeps the images' resolution for the ATR and page-classification.
 * **Time.** `/reformat` took 3–58 s per document; `/describe` takes the same, as it calls no other tool.
 
 ## Partial results
@@ -191,11 +192,11 @@ checks this table against `tool_limits.py` and `.env.example`.
 A limit that would cut content fails the call: nothing partial is returned. Read these before using the result:
 
 - `needsAtr` pages are routed `atr`: a PDF's pages with no usable text layer, and an office document's pages with
-  no running text that show an object. The ATR's docproc is then the stored one, and this docproc is an
+  no text of their own that show a picture. The ATR's docproc is then the stored one, and this docproc is an
   intermediate (`stored: false` in the paradata).
-- An office page with running text keeps its text as the XML holds it: text inside a picture on such a page (a
-  photo of a page beside a paragraph) is not read; the page is in `graphics_pages`, for page-classification. ODT and
-  RTF send only a page with no text at all that shows a picture.
+- An office page with text keeps its text as the XML holds it: text inside a picture on such a page (a photo of a
+  page beside a paragraph, a scan with a caption) is not read; the picture is a figure block, for
+  page-classification.
 - `limits_applied` lists the splitting the result rests on: lines of a textual input wrapped at `MAX_LINE_CHARS`
   (`split`), each in full. It is `[]` when nothing was split.
 

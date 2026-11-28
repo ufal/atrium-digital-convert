@@ -18,7 +18,7 @@ letters route nothing since atrium-digital-convert#9. ``STAGE_TIMEOUT_S`` and ``
 are gone since v2.0.0-beta: ``/describe`` calls no other tool, so it waits for no stage and has no
 quality verdict to route by. ``RENDER_TEXT_COVERAGE`` is gone since v2.0.0-beta too: an office
 page is not judged by how much of its rendering the text covers; it goes to the ATR when it has no
-running text and shows an object (atrium-project#84 decision 3), which no threshold decides.
+text of its own and shows a picture (atrium-project#84 decision 3), which no threshold decides.
 
 Standard library only (``atrium_limits`` is the hub's canonical module at the repo root): the
 CLI converter imports this too.

@@ -10,16 +10,18 @@ Paradata schema 3.0. What a run read and wrote is named by AMČR distribution na
   seed, when one was sent, as `atrium/document-json`.
 * **Output** (`result`): the docproc as `atr/docproc-json`. When a page needs the ATR, the ATR's docproc is the
   stored one, so this one is `stored: false`, still named by its SHA-512. An office document's rendered PDF is an
-  output too, a stored distribution named `rendered-pdf` (a stand-in name until AMČR gives one), whenever the ATR
-  or page-classification reads it and the run hands it over: `/reformat`'s `rendered_pdf`, or the command line's
-  `--rendered-out` (atrium-project#84 decision 5). A rendering nothing reads, or one the command line did not
-  write, is not named. Its digest names the PDF this run handed over: a rerun lays the pages out the same, so the
-  docproc does not change, but the PDF's bytes may differ. The Markdown, the `/describe` report and the pages that
-  show graphics (`graphics_pages`, a run hand-over) are not named.
+  output too, for every office document: `rendered-pdf` (a stand-in name), `stored: false`, because the docproc's
+  pages and boxes refer to it (atrium-project#84 decision 5); whether AMČR stores it is AMČR's to settle. It is named
+  whether or not this run hands it over (`/reformat`'s `rendered_pdf`, the command line's `--rendered-out`, both only
+  when the ATR or page-classification reads it). Its digest names this run's rendering: a rerun lays the pages out
+  the same, so the docproc does not change, but the PDF's bytes may differ. The Markdown and the `/describe` report
+  are not named.
+* **Config**: the settings only, `engine` and on the service `endpoint`; never a file's name or path (decision 1:
+  the original is the `original` input, by SHA-512).
 * **Parameters**: the engine (`light`, `docling`), the workflow (`visual`, `textual`); for the visual workflow, the
-  smallest picture counted as a graphic (`graphic_min_side_pt`: 24); for an office document, the pinned
-  LibreOffice export options (`render`); for an XLSX or XLS, the locale LibreOffice displayed its cells in
-  (`spreadsheet_locale`: `cs-CZ`).
+  smallest picture counted (`graphic_min_side_pt`: 24) and, when a DOCX drawing could not be boxed on the
+  rendering, how many (`figures_without_box`); for an office document, the pinned LibreOffice export options
+  (`render`); for an XLSX or XLS, the locale LibreOffice displayed its cells in (`spreadsheet_locale`: `cs-CZ`).
 * **Limits**: the splits the output rests on: `max_line_chars` when lines of a textual input were wrapped.
 * **A failed conversion** writes no docproc, and its paradata say `action_status: failed` with the error. On the
   command line a failure after the docproc is written (the rendered PDF, the Markdown) leaves the docproc on disk.

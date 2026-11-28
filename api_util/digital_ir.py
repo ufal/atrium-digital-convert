@@ -17,7 +17,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 #: `lines[].style.region` values this converter writes (Issue #18, 2026-09-25).
 #:
@@ -216,13 +216,12 @@ class DigitalLine:
     words: List[Tuple[str, List[float]]] = field(default_factory=list)
     #: The drawings anchored in the native text just before this line that do not render as a
     #: picture: a chart, a SmartArt diagram, a shape or a group of shapes, an OLE object (DOCX,
-    #: `digital_docx`). Internal: counted in the page's graphics (`page_graphics`).
+    #: `digital_docx`). Internal: each is one of the page's pictures (`page_pictures`).
     graphics: int = 0
-    #: The line is the text of an object, not running text: a chart's or a SmartArt diagram's
-    #: text, or a text box's (DOCX, `digital_docx`). Internal: a rendered office page whose only
-    #: text is object text, table cells or page furniture holds no running text (`running_text`),
-    #: and goes to the ATR when it shows an object (atrium-project#84 decision 3).
-    object_text: bool = False
+    #: The size of each of those drawings, `(width, height)` in pt, as the DOCX gives it
+    #: (`wp:extent`, a VML shape's style, an OLE object's original size); `(0, 0)` when it gives
+    #: none. Internal: `page_pictures` finds the drawing on the rendering by it.
+    graphic_sizes: List[Tuple[float, float]] = field(default_factory=list)
 
 
 #: `group_id` prefix of the lines that are table cells (`tbl{n}-r{r}c{c}`), in every adapter.
@@ -345,8 +344,13 @@ class DigitalPage:
     user_unit: Optional[float] = None
     #: The boxes of the raster images drawn on the page, `[x0, top, x1, bottom]` in the reader's
     #: frame (the PDF light engine; a rendered office page's are its rendering's). Internal:
-    #: `page_graphics` counts them.
+    #: `page_pictures` reads them.
     image_boxes: List[List[float]] = field(default_factory=list)
+    #: The boxes of the vector paths (curves, lines, rectangles) of a rendered office page, in the
+    #: reader's frame (kept only for an office document's rendering, `extract_pdf(...,
+    #: keep_vectors=True)`). Internal: a chart, a SmartArt diagram or a shape is drawn with them, and
+    #: `page_pictures` boxes it from them.
+    vector_boxes: List[List[float]] = field(default_factory=list)
 
     @property
     def has_geometry(self) -> bool:
@@ -386,68 +390,284 @@ GRAPHIC_MIN_SIDE = 24.0
 FURNITURE_GRAPHIC_MAX_SHARE = 0.5
 
 
-def page_graphics(document: DigitalDocument) -> List[int]:
-    """The graphics on each page, in page order: what a page shows besides its text.
+#: What a picture is: a raster image drawn on the page (a photo, a scan, a plan saved as a picture),
+#: or a drawing from an office document's own XML that renders as vector paths (a chart, a SmartArt
+#: diagram, shapes, an OLE object).
+PICTURE_IMAGE = "image"
+PICTURE_DRAWING = "drawing"
 
-    A raster image drawn on the page (a photo, a scan, a map or plan saved as a picture) counts
-    once, unless it is smaller than `GRAPHIC_MIN_SIDE` or it recurs at the same place on another
-    page while covering less than `FURNITURE_GRAPHIC_MAX_SHARE` of it (a logo in the running header
-    or footer; a scan on every page still counts on every page). A drawing that does not render as a picture
-    (a chart, a SmartArt diagram, shapes, an OLE object) counts on the page of the line it is
-    anchored before (`DigitalLine.graphics`, read from a DOCX's own XML). A page with none holds
-    text only.
-    """
+#: A drawing's box is found on the rendering when a cluster of vector paths (or a raster image)
+#: matches its size within this many pt, or this share of the size, whichever is larger.
+DRAWING_SIZE_TOLERANCE_PT = 8.0
+DRAWING_SIZE_TOLERANCE_SHARE = 0.15
 
-    def big(box: List[float]) -> bool:
-        return (
-            float(box[2]) - float(box[0]) >= GRAPHIC_MIN_SIDE
-            and float(box[3]) - float(box[1]) >= GRAPHIC_MIN_SIDE
-        )
+#: Vector paths closer than this (pt) belong to one drawing.
+VECTOR_CLUSTER_GAP = 4.0
 
-    def place(box: List[float]) -> Tuple[int, ...]:
+#: A vector path thinner than this (pt) is a rule or a border when it runs across most of the page
+#: (`RULE_MIN_SHARE`) or lies on a table: not part of a drawing.
+RULE_MAX_THICKNESS = 1.5
+RULE_MIN_SHARE = 0.5
+
+
+@dataclass
+class PagePicture:
+    """One picture a page shows (`page_pictures`): what it is, and its box in the reader's frame of
+    the page it is on, when known (a drawing not found on the rendering has none)."""
+
+    kind: str
+    bbox: Optional[List[float]] = None
+
+
+def _big(box: Sequence[float]) -> bool:
+    return (
+        float(box[2]) - float(box[0]) >= GRAPHIC_MIN_SIDE
+        and float(box[3]) - float(box[1]) >= GRAPHIC_MIN_SIDE
+    )
+
+
+def _raster_pictures(document: DigitalDocument) -> List[List[List[float]]]:
+    """Each page's raster images that are its own: at least `GRAPHIC_MIN_SIDE`, and not furniture
+    (an image at the same place on several pages covering less than `FURNITURE_GRAPHIC_MAX_SHARE`
+    of its page: a logo in the running header or footer)."""
+
+    def place(box: Sequence[float]) -> Tuple[int, ...]:
         return tuple(int(round(float(v) / 4.0)) for v in box)
 
-    def small(box: List[float], page: DigitalPage) -> bool:
+    def small(box: Sequence[float], page: DigitalPage) -> bool:
         area = float(page.width) * float(page.height)
         covered = (float(box[2]) - float(box[0])) * (float(box[3]) - float(box[1]))
         return area <= 0 or covered < FURNITURE_GRAPHIC_MAX_SHARE * area
 
-    shown = [[box for box in page.image_boxes if big(box)] for page in document.pages]
+    shown = [[list(box) for box in page.image_boxes if _big(box)] for page in document.pages]
     pages_at: Dict[Tuple[int, ...], int] = {}
     for page, boxes in zip(document.pages, shown, strict=True):
         for key in {place(box) for box in boxes if small(box, page)}:
             pages_at[key] = pages_at.get(key, 0) + 1
     furniture = {key for key, n in pages_at.items() if n > 1}
+    return [[box for box in boxes if place(box) not in furniture] for boxes in shown]
+
+
+def _union_box(boxes: Sequence[Sequence[float]]) -> List[float]:
     return [
-        sum(1 for box in boxes if place(box) not in furniture)
-        + sum(line.graphics for line in page.lines)
-        for page, boxes in zip(document.pages, shown, strict=True)
+        round(min(float(b[0]) for b in boxes), 2),
+        round(min(float(b[1]) for b in boxes), 2),
+        round(max(float(b[2]) for b in boxes), 2),
+        round(max(float(b[3]) for b in boxes), 2),
     ]
 
 
+def _table_areas(page: DigitalPage) -> List[List[float]]:
+    """The areas of the page's tables, from their cells' line boxes, widened to reach the borders."""
+    cells: Dict[str, List[List[float]]] = {}
+    for line in page.lines:
+        if in_table(line.group_id) and line.bbox:
+            cells.setdefault(str(line.group_id).split("-", 1)[0], []).append(line.bbox)
+    areas = []
+    for boxes in cells.values():
+        x0, top, x1, bottom = _union_box(boxes)
+        areas.append([x0 - 18.0, top - 6.0, x1 + 18.0, bottom + 6.0])
+    return areas
+
+
+def _vector_clusters(page: DigitalPage) -> List[List[float]]:
+    """The page's vector paths grouped into drawings: paths within `VECTOR_CLUSTER_GAP` of each other
+    are one drawing, its box their union. Rules and borders are left out: a thin path across most of
+    the page (a header's rule, a page border), a path on a table (its cell borders), a path covering
+    most of the page (a background)."""
+    width, height = float(page.width or 0.0), float(page.height or 0.0)
+    tables = _table_areas(page)
+    kept: List[List[float]] = []
+    for box in page.vector_boxes:
+        x0, top, x1, bottom = (float(v) for v in box)
+        w, h = x1 - x0, bottom - top
+        if width and height and w * h >= 0.9 * width * height:
+            continue
+        if min(w, h) < RULE_MAX_THICKNESS:
+            if (width and w >= RULE_MIN_SHARE * width) or (height and h >= RULE_MIN_SHARE * height):
+                continue
+            cx, cy = (x0 + x1) / 2, (top + bottom) / 2
+            if any(a[0] <= cx <= a[2] and a[1] <= cy <= a[3] for a in tables):
+                continue
+        kept.append([x0, top, x1, bottom])
+    if not kept:
+        return []
+    # Union-find over a grid, so a page of many paths is not compared pairwise.
+    parent = list(range(len(kept)))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    cell = 32.0
+    grid: Dict[Tuple[int, int], List[int]] = {}
+    gap = VECTOR_CLUSTER_GAP
+    for i, (x0, top, x1, bottom) in enumerate(kept):
+        for gx in range(int((x0 - gap) // cell), int((x1 + gap) // cell) + 1):
+            for gy in range(int((top - gap) // cell), int((bottom + gap) // cell) + 1):
+                for j in grid.setdefault((gx, gy), []):
+                    a, b = kept[i], kept[j]
+                    if (
+                        a[0] - gap <= b[2]
+                        and b[0] - gap <= a[2]
+                        and a[1] - gap <= b[3]
+                        and b[1] - gap <= a[3]
+                    ):
+                        parent[find(i)] = find(j)
+                grid[(gx, gy)].append(i)
+    groups: Dict[int, List[List[float]]] = {}
+    for i, box in enumerate(kept):
+        groups.setdefault(find(i), []).append(box)
+    return [_union_box(boxes) for _, boxes in sorted(groups.items())]
+
+
+def _fits(box: Sequence[float], size: Tuple[float, float]) -> bool:
+    """Whether a box found on the rendering is a drawing of `size`: no larger than the size (with the
+    tolerance) and filling at least half of it one way (a chart's frame, a diagram's shapes)."""
+    w, h = float(box[2]) - float(box[0]), float(box[3]) - float(box[1])
+    sw, sh = size
+    tw = max(DRAWING_SIZE_TOLERANCE_PT, DRAWING_SIZE_TOLERANCE_SHARE * sw)
+    th = max(DRAWING_SIZE_TOLERANCE_PT, DRAWING_SIZE_TOLERANCE_SHARE * sh)
+    return w <= sw + tw and h <= sh + th and (w >= 0.5 * sw or h >= 0.5 * sh)
+
+
+def _same_size(box: Sequence[float], size: Tuple[float, float]) -> bool:
+    w, h = float(box[2]) - float(box[0]), float(box[3]) - float(box[1])
+    sw, sh = size
+    tw = max(DRAWING_SIZE_TOLERANCE_PT, DRAWING_SIZE_TOLERANCE_SHARE * sw)
+    th = max(DRAWING_SIZE_TOLERANCE_PT, DRAWING_SIZE_TOLERANCE_SHARE * sh)
+    return abs(w - sw) <= tw and abs(h - sh) <= th
+
+
+def _distance(box: Sequence[float], anchor: Optional[Sequence[float]]) -> float:
+    """How far a candidate box is from the drawing's anchor line (vertically); 0 without an anchor."""
+    if anchor is None:
+        return 0.0
+    return max(0.0, float(anchor[1]) - float(box[3]), float(box[1]) - float(anchor[3]))
+
+
+def _grow(
+    box: Sequence[float],
+    size: Tuple[float, float],
+    where: int,
+    clusters: List[List[float]],
+    used: set,
+) -> List[float]:
+    """A drawing drawn as several clusters (a SmartArt diagram's shapes, a chart's legend apart from
+    its plot): the matched cluster grown by the unclaimed clusters of its page, nearest first, while
+    the union still fits the drawing's size. The clusters taken are claimed."""
+    sw, sh = size
+    tw = max(DRAWING_SIZE_TOLERANCE_PT, DRAWING_SIZE_TOLERANCE_SHARE * sw)
+    th = max(DRAWING_SIZE_TOLERANCE_PT, DRAWING_SIZE_TOLERANCE_SHARE * sh)
+    grown = list(box)
+    order = sorted(
+        (c for c in range(len(clusters)) if (where, c) not in used),
+        key=lambda c: (
+            _distance(clusters[c], grown) + abs(float(clusters[c][0]) - float(grown[0])) / 1000.0
+        ),
+    )
+    for c in order:
+        union = _union_box([grown, clusters[c]])
+        if union[2] - union[0] <= sw + tw and union[3] - union[1] <= sh + th:
+            grown = union
+            used.add((where, c))
+    return grown
+
+
+def page_pictures(document: DigitalDocument) -> List[List[PagePicture]]:
+    """The pictures on each page, in page order: what a page shows besides its text
+    (atrium-project#84 decisions 3, 6).
+
+    A raster image drawn on the page (a photo, a scan, a map or plan saved as a picture) is one
+    picture, unless it is smaller than `GRAPHIC_MIN_SIDE` or it recurs at the same place on another
+    page while covering less than `FURNITURE_GRAPHIC_MAX_SHARE` of it (a logo in the running header
+    or footer; a scan on every page still counts on every page). A drawing of an office document that
+    does not render as a picture (a chart, a SmartArt diagram, shapes, an OLE object; read from the
+    DOCX's own XML, `DigitalLine.graphics`) is one picture too. It is anchored before a line, and
+    counted on the next line written, so it is looked for on that line's page and the page before:
+    first a raster image of its size not claimed yet (an OLE object's preview renders as an image, so
+    one object never makes two pictures), else the cluster of vector paths nearest the line that its
+    size fits (`_fits`), grown by the clusters around it while the union still fits (`_grow`: a
+    diagram's shapes). Found, it is a picture of the page it was found on, with that box; not found,
+    a picture of the line's page without a box. Pictures are in reading order: by their top edge,
+    those without a box last. A page with none holds text only.
+    """
+    rasters = _raster_pictures(document)
+    claimed: set = set()
+    pictures: List[List[PagePicture]] = [[] for _ in document.pages]
+    clusters: Dict[int, List[List[float]]] = {}
+    used_clusters: set = set()
+    for index, page in enumerate(document.pages):
+        for line in page.lines:
+            for k in range(int(line.graphics or 0)):
+                size = line.graphic_sizes[k] if k < len(line.graphic_sizes) else (0.0, 0.0)
+                known = bool(size[0] > 0 and size[1] > 0)
+                found = None
+                candidates = [index] + ([index - 1] if index > 0 else [])
+                if known:
+                    best = None
+                    for where in candidates:
+                        anchor = line.bbox if where == index else None
+                        for r, box in enumerate(rasters[where]):
+                            if (where, r) in claimed or not _same_size(box, size):
+                                continue
+                            key = (where != index, _distance(box, anchor))
+                            if best is None or key < best[0]:
+                                best = (key, where, ("raster", r), box)
+                    if best is None:
+                        for where in candidates:
+                            anchor = line.bbox if where == index else None
+                            if where not in clusters:
+                                clusters[where] = _vector_clusters(document.pages[where])
+                            for c, box in enumerate(clusters[where]):
+                                if (where, c) in used_clusters or not _fits(box, size):
+                                    continue
+                                key = (where != index, _distance(box, anchor))
+                                if best is None or key < best[0]:
+                                    best = (key, where, ("vector", c), box)
+                    if best is not None:
+                        _, where, (source, n), box = best
+                        (claimed if source == "raster" else used_clusters).add((where, n))
+                        if source == "vector":
+                            box = _grow(box, size, where, clusters[where], used_clusters)
+                        found = (where, list(box))
+                if found is None:
+                    pictures[index].append(PagePicture(PICTURE_DRAWING))
+                else:
+                    pictures[found[0]].append(PagePicture(PICTURE_DRAWING, found[1]))
+    for index, boxes in enumerate(rasters):
+        for r, box in enumerate(boxes):
+            if (index, r) not in claimed:
+                pictures[index].append(PagePicture(PICTURE_IMAGE, list(box)))
+    for page_pictures_ in pictures:
+        page_pictures_.sort(
+            key=lambda p: (
+                p.bbox is None,
+                float(p.bbox[1]) if p.bbox else 0.0,
+                float(p.bbox[0]) if p.bbox else 0.0,
+            )
+        )
+    return pictures
+
+
+def page_graphics(document: DigitalDocument) -> List[int]:
+    """How many pictures each page shows (`page_pictures`), in page order."""
+    return [len(found) for found in page_pictures(document)]
+
+
 def graphics_pages(document: DigitalDocument) -> List[int]:
-    """The pages that show graphics (`page_graphics` > 0), by page index, in page order: with the
-    pages forced to the ATR, the pages page-classification reads (atrium-project#84 decision 4).
-    A run hand-over (`/reformat`'s `graphics_pages`, `--graphics-pages-out`), never written into
-    docproc (decision 6). Empty for the textual workflow, which has no pages to show anything."""
+    """The pages that show a picture, by page index, in page order: each holds a `figure` block in
+    the docproc (atrium-project#84 decision 6), and with the pages forced to the ATR they are the
+    pages page-classification reads (decision 4). Empty for the textual workflow, which has no pages
+    to show anything."""
     if getattr(document, "workflow", "visual") != "visual":
         return []
     return [
         page.page_index
-        for page, graphics in zip(document.pages, page_graphics(document), strict=True)
-        if graphics > 0
-    ]
-
-
-def running_text(page: DigitalPage) -> List[DigitalLine]:
-    """The page's running text: its lines outside the page furniture and the footnotes
-    (`region`), outside a table (`in_table`) and outside an object (`object_text`: a chart's,
-    a SmartArt diagram's or a text box's text). What a rendered office page needs to keep its
-    own text instead of going to the ATR (atrium-project#84 decision 3)."""
-    return [
-        line
-        for line in page.lines
-        if line.region is None and not in_table(line.group_id) and not line.object_text
+        for page, found in zip(document.pages, page_pictures(document), strict=True)
+        if found
     ]
 
 

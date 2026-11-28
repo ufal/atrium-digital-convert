@@ -16,7 +16,7 @@ AMČR upload ──► seed (doc_id, source.sha512, filename, media_type)
                    │        textual: sheets, TXT,        ├─ pages routed `atr` ──► the ATR (whole document: the PDF or
                    │        CSV, TSV, JSON (never ATR)   │                         the rendered PDF, those pages forced;
                    │                                     │                         its docproc stored)
-                   no (an image)                         └─ forced pages + `graphics_pages` ──► page-classification
+                   no (an image)                         └─ forced pages + figure pages ────► page-classification
                    ▼                                                    (those pages of the PDF or the rendered PDF)
                   ATR
 ```
@@ -26,13 +26,14 @@ AMČR upload ──► seed (doc_id, source.sha512, filename, media_type)
 * **Visual.** A PDF is read on its own pages. An office document (DOCX, DOC, ODT, RTF) keeps its native text and
   takes its pages from a LibreOffice rendering: each native line is matched word by word to the rendered PDF, cut
   where the rendering breaks it and given the box of its rendered words (`api_util/render_place.py`). Its text is
-  what its XML holds, read in full. A page with no running text that shows an object (a pasted scan, a photo of a
-  page, a chart, a table or a text box alone) goes to the ATR, and the whole document with it, for the text its
-  objects may hold (atrium-project#84 decision 3); the record keeps the page's own lines beside the ATR's. The page
-  furniture, a rule or a repeated logo sends no page. ODT and RTF are read as plain lines, so only a page with no
-  text at all that shows a picture goes. The rendered PDF is the page source of the ATR and page-classification for
-  an office document, so its page numbers and boxes are the docproc's. It is handed over and stored when one of
-  them reads it (decision 5), and the paradata then name it by SHA-512.
+  what its XML holds, read in full. The PDF rule holds for it too: a page with no text of its own (no line outside
+  its running header and footer) that shows a picture, a pasted scan the usual case, goes to the ATR, and the whole
+  document with it (atrium-project#84 decision 3). A page of a table, a chart or a text box alone keeps its text, and
+  a rule or a repeated logo sends no page. Each picture is a `figure` block with its box (decision 6): an image of
+  24 pt or more that is not a repeated logo, or a DOCX's chart, SmartArt diagram, shape or OLE object, boxed on the
+  rendering from its size in the DOCX. The rendered PDF is the page source of the ATR and page-classification for an
+  office document, so its page numbers and boxes are the docproc's. The paradata name it for every office document
+  by SHA-512, not stored, and it is handed over when one of them reads it (decision 5).
 * **Textual.** A spreadsheet or a text-only file (TXT, CSV, TSV, JSON) has no pages to render. Its text is
   extracted as it is, it carries no geometry, and it goes straight to scoring. Its pages are never routed `atr`.
   A sheet keeps every non-empty cell, numbers and dates in the form the sheet displays them: an ODS stores

@@ -1154,6 +1154,18 @@
               "bboxPrecision": "measured"
             }
           ]
+        },
+        {
+          "id": "p6-b3",
+          "type": "figure",
+          "bbox": [
+            70.0,
+            185.61,
+            525.28,
+            511.89
+          ],
+          "readingOrder": 3,
+          "confidence": 1.0
         }
       ],
       "textLayer": "digital"
@@ -1213,6 +1225,18 @@
               "bboxPrecision": "measured"
             }
           ]
+        },
+        {
+          "id": "p7-b2",
+          "type": "figure",
+          "bbox": [
+            15.0,
+            47.0,
+            580.28,
+            826.89
+          ],
+          "readingOrder": 2,
+          "confidence": 1.0
         }
       ],
       "textLayer": "none",
@@ -1626,6 +1650,18 @@
               "bboxPrecision": "measured"
             }
           ]
+        },
+        {
+          "id": "p9-b4",
+          "type": "figure",
+          "bbox": [
+            70.0,
+            215.61,
+            525.28,
+            541.89
+          ],
+          "readingOrder": 4,
+          "confidence": 1.0
         }
       ],
       "textLayer": "digital"
@@ -1637,65 +1673,47 @@
         {
           "page": 1,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": true
         },
         {
           "page": 2,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": true
         },
         {
           "page": 3,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": true
         },
         {
           "page": 4,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": true
         },
         {
           "page": 5,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 0,
-          "tables": 1
+          "text_layer": true
         },
         {
           "page": 6,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 1,
-          "tables": 0
+          "text_layer": true
         },
         {
           "page": 7,
           "route": "atr",
-          "text_layer": false,
-          "graphics": 1,
-          "tables": 0
+          "text_layer": false
         },
         {
           "page": 8,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 0,
-          "tables": 0
+          "text_layer": true
         },
         {
           "page": 9,
           "route": "text-layer",
-          "text_layer": true,
-          "graphics": 1,
-          "tables": 0
+          "text_layer": true
         }
       ],
       "counts": {

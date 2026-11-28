@@ -138,7 +138,7 @@
     "/reformat": {
       "post": {
         "summary": "Reformat",
-        "description": "Convert a born-digital document into docproc (§4.2; atrium-project#84).\n\nCalls no other service. A PDF page whose text layer cannot be used (it does not decode, it is\na prior OCR run, there is none) carries `needsAtr` with its reason and is routed `atr`; no\ndocument is refused for its pages. An office document keeps its own text, but a page of it\nwith no running text that shows an object is routed `atr` too (atrium-project#84 decision 3).\n`graphics_pages` names the pages that show graphics (decision 4: with the forced pages, those\npage-classification reads). An office document's rendered PDF comes with it, stored, when\nthe ATR or page-classification reads it (decision 5). A textual input is never routed `atr`.\nNo record is written: ocr-postprocess builds it from the docproc.",
+        "description": "Convert a born-digital document into docproc (§4.2; atrium-project#84).\n\nCalls no other service. A PDF page whose text layer cannot be used (it does not decode, it is\na prior OCR run, there is none) carries `needsAtr` with its reason and is routed `atr`; no\ndocument is refused for its pages. An office document keeps its own text, but a page of it\nwith no line outside its running header and footer that shows a picture is routed `atr` too\n(atrium-project#84 decision 3). Each picture is a `figure` block (decision 6); with the forced\npages, the pages holding one are those page-classification reads (decision 4). An office\ndocument's rendered PDF comes with it when the ATR or page-classification reads it, and the\nparadata name it, not stored, either way (decision 5). A textual input is never routed `atr`.\nNo record is written: ocr-postprocess builds it from the docproc.",
         "operationId": "reformat",
         "requestBody": {
           "content": {
@@ -620,7 +620,7 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Docproc",
-            "description": "The document's layout as docproc (`atr/docproc-json`, atrium-project#84): pages with the text-layer verdict (`textLayer`) and, where the text cannot be used, `needsAtr` with its reason; blocks with their `lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`). An office document's page with no running text that shows an object (a picture, a chart, a table, a text box) is routed `atr` (atrium-project#84 decision 3). Valid against `schemas/docproc/document.atrium-proposal.schema.json` (the ATR's schema with asks 3, 5, 10 and 13). No record is written: ocr-postprocess builds it from this."
+            "description": "The document's layout as docproc (`atr/docproc-json`, atrium-project#84): pages with the text-layer verdict (`textLayer`) and, where the text cannot be used, `needsAtr` with its reason; blocks with their `lines[]`; each picture a page shows a `figure` block with its `bbox` and no `imageRef` (atrium-project#84 decision 6); `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`). An office document's page with no line outside its running header and footer that shows a picture is routed `atr` (decision 3). The forced pages and the pages with `figure` blocks are the pages page-classification reads (decision 4). Valid against `schemas/docproc/document.atrium-proposal.schema.json` (the ATR's schema with asks 3, 5, 10 and 13 and answer 12). No record is written: ocr-postprocess builds it from this."
           },
           "reader": {
             "$ref": "#/components/schemas/ReaderInfo"
@@ -637,21 +637,6 @@
             "title": "Markdown",
             "description": "Only with `markdown=true`: the document rendered as annotated Markdown (json_to_md)."
           },
-          "graphics_pages": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Graphics Pages",
-            "description": "Not returned by `/describe`, which is parked and not extended: `/reformat` hands it over."
-          },
           "rendered_pdf": {
             "anyOf": [
               {
@@ -661,7 +646,7 @@
                 "type": "null"
               }
             ],
-            "description": "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes refer to. Returned when it is read downstream: by the ATR when a page is routed `atr` (the whole document goes there as this PDF), by page-classification when a page shows graphics (`graphics_pages`). Then a stored distribution, named in the paradata `result` (atrium-project#84 decision 5); otherwise absent and not named. Absent for a PDF and the textual workflow. A later step uses these bytes, never a re-render: LibreOffice's output differs per run."
+            "description": "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes refer to. Returned when it is read downstream: by the ATR when a page is routed `atr` (the whole document goes there as this PDF), by page-classification when a page holds a `figure` block. The paradata name it in `result` for every office document (`rendered-pdf`, `stored: false`; atrium-project#84 decision 5), returned or not. Absent for a PDF and the textual workflow. A later step uses these bytes, never a re-render: LibreOffice's output differs per run."
           },
           "limits_applied": {
             "items": {
@@ -673,7 +658,7 @@
           },
           "paradata": {
             "$ref": "#/components/schemas/CreateAction",
-            "description": "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc (`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). An office document's rendered PDF is in `result` too, stored, when it is returned (`rendered_pdf`)."
+            "description": "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc (`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). An office document's rendered PDF is in `result` too, as `rendered-pdf` with `stored: false`."
           },
           "document": {
             "additionalProperties": true,
@@ -1527,7 +1512,7 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Docproc",
-            "description": "The document's layout as docproc (`atr/docproc-json`, atrium-project#84): pages with the text-layer verdict (`textLayer`) and, where the text cannot be used, `needsAtr` with its reason; blocks with their `lines[]`; `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`). An office document's page with no running text that shows an object (a picture, a chart, a table, a text box) is routed `atr` (atrium-project#84 decision 3). Valid against `schemas/docproc/document.atrium-proposal.schema.json` (the ATR's schema with asks 3, 5, 10 and 13). No record is written: ocr-postprocess builds it from this."
+            "description": "The document's layout as docproc (`atr/docproc-json`, atrium-project#84): pages with the text-layer verdict (`textLayer`) and, where the text cannot be used, `needsAtr` with its reason; blocks with their `lines[]`; each picture a page shows a `figure` block with its `bbox` and no `imageRef` (atrium-project#84 decision 6); `metadata.routing.pages[]` routing every page (`text-layer`, `atr`, `empty`). An office document's page with no line outside its running header and footer that shows a picture is routed `atr` (decision 3). The forced pages and the pages with `figure` blocks are the pages page-classification reads (decision 4). Valid against `schemas/docproc/document.atrium-proposal.schema.json` (the ATR's schema with asks 3, 5, 10 and 13 and answer 12). No record is written: ocr-postprocess builds it from this."
           },
           "reader": {
             "$ref": "#/components/schemas/ReaderInfo"
@@ -1544,14 +1529,6 @@
             "title": "Markdown",
             "description": "Only with `markdown=true`: the document rendered as annotated Markdown (json_to_md)."
           },
-          "graphics_pages": {
-            "items": {
-              "type": "integer"
-            },
-            "type": "array",
-            "title": "Graphics Pages",
-            "description": "The pages that show graphics (pictures of at least 24 pt, charts, diagrams, shapes; a logo repeated in the running header or footer is not counted), by page number: with the pages the docproc routes `atr`, the pages page-classification reads (atrium-project#84 decision 4). A run hand-over, not written into the docproc (decision 6) and not stored. Empty for the textual workflow."
-          },
           "rendered_pdf": {
             "anyOf": [
               {
@@ -1561,7 +1538,7 @@
                 "type": "null"
               }
             ],
-            "description": "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes refer to. Returned when it is read downstream: by the ATR when a page is routed `atr` (the whole document goes there as this PDF), by page-classification when a page shows graphics (`graphics_pages`). Then a stored distribution, named in the paradata `result` (atrium-project#84 decision 5); otherwise absent and not named. Absent for a PDF and the textual workflow. A later step uses these bytes, never a re-render: LibreOffice's output differs per run."
+            "description": "An office document's rendered PDF (DOCX, DOC, ODT, RTF): the pages the docproc's `pageNumber` and boxes refer to. Returned when it is read downstream: by the ATR when a page is routed `atr` (the whole document goes there as this PDF), by page-classification when a page holds a `figure` block. The paradata name it in `result` for every office document (`rendered-pdf`, `stored: false`; atrium-project#84 decision 5), returned or not. Absent for a PDF and the textual workflow. A later step uses these bytes, never a re-render: LibreOffice's output differs per run."
           },
           "limits_applied": {
             "items": {
@@ -1573,7 +1550,7 @@
           },
           "paradata": {
             "$ref": "#/components/schemas/CreateAction",
-            "description": "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc (`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). An office document's rendered PDF is in `result` too, stored, when it is returned (`rendered_pdf`)."
+            "description": "The call's provenance (paradata 3.0, atrium-project#84): its Process Run Crate `CreateAction`. `object` is the upload as `original` (and the seed, `atrium/document-json`), `result` the docproc (`atr/docproc-json`), each by SHA-512; the docproc is `stored: false` when a page needs the ATR (H14). An office document's rendered PDF is in `result` too, as `rendered-pdf` with `stored: false`."
           }
         },
         "additionalProperties": true,
@@ -1583,7 +1560,6 @@
           "doc_id",
           "docproc",
           "reader",
-          "graphics_pages",
           "limits_applied",
           "paradata"
         ],
@@ -1600,7 +1576,7 @@
           "sha512": {
             "type": "string",
             "title": "Sha512",
-            "description": "Its SHA-512, as the paradata name it: a stored distribution (atrium-project#84 decision 5)."
+            "description": "Its SHA-512, as the paradata name it: `rendered-pdf`, not stored (atrium-project#84 decision 5)."
           },
           "data": {
             "type": "string",

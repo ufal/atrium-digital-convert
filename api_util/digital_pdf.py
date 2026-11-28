@@ -1041,8 +1041,11 @@ def _open_error(exc: Exception) -> DigitalInputError:
     return DigitalInputError("corrupt", f"PDF could not be read ({text})")
 
 
-def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
-    """Layer A for PDF. Returns pages in reading order, lines not yet normalised (Layer B)."""
+def extract_pdf(path: str, doc_id: str, origin: str, keep_vectors: bool = False) -> DigitalDocument:
+    """Layer A for PDF. Returns pages in reading order, lines not yet normalised (Layer B).
+
+    With `keep_vectors` (an office document's rendering) each page also keeps the boxes of its vector
+    paths (`DigitalPage.vector_boxes`), from which its drawings are boxed (`digital_ir.page_pictures`)."""
     try:
         import pdfplumber  # noqa: PLC0415  (optional dependency, imported on use)
     except ImportError as exc:
@@ -1094,6 +1097,11 @@ def extract_pdf(path: str, doc_id: str, origin: str) -> DigitalDocument:
                     for im in page.images
                 ]
                 current.vector_paths = len(page.curves) + len(page.lines) + len(page.rects)
+                if keep_vectors:
+                    current.vector_boxes = [
+                        [round(float(obj[k]), 2) for k in ("x0", "top", "x1", "bottom")]
+                        for obj in (*page.curves, *page.lines, *page.rects)
+                    ]
             except Exception as exc:
                 raise _open_error(exc) from exc
             words = [w for w in words if str(w.get("text", "")).strip()]

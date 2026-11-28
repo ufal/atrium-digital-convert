@@ -13,9 +13,9 @@ Each type takes one of two workflows:
 
 * **visual**: a document with pages. Every page gets a text-layer verdict, and a PDF page whose text cannot be
   used is `needsAtr`, so the whole document goes to the ATR with that page forced. An office document keeps its
-  native text and takes its pages from a LibreOffice rendering (see below); a page of it with no running text that
-  shows an object is `needsAtr` too. The pages that show graphics are handed over with the run
-  (`graphics_pages`): with the forced pages, they are the ones for page-classification.
+  native text and takes its pages from a LibreOffice rendering (see below); a page of it with no text of its own
+  that shows a picture is `needsAtr` too, as a PDF page without text is. Each picture is a `figure` block: with the
+  forced pages, the pages holding one are the ones for page-classification.
 * **textual**: text with nothing to render, extracted as it is. It has no page geometry and never goes to the
   ATR, only straight to scoring.
 
@@ -62,29 +62,30 @@ Each type takes one of two workflows:
   * A native line the rendering does not show, such as hidden text or a text box with no size, keeps its text on
     the page of the line before it, with `bboxPrecision: absent`. It is never dropped.
   * Each page then gets the PDF page's decode verdicts as flags, but its text is what the XML holds: a layer that
-    does not decode never sends an office page to the ATR. What does is a page with **no running text that shows
-    an object** (atrium-project#84 decision 3): no line outside the running header and footer, the footnotes, the
-    tables and the objects' own text (a chart's, a SmartArt diagram's, a text box's), and at least one picture
-    (24 pt or more, not a repeated logo), drawing, table or object text. Such a page is `needsAtr`, routed `atr`,
-    and the whole document goes to the ATR, as the rendered PDF, for the text its objects may hold (a scan pasted
-    into a report, a photo of a page). Its `textLayer` stays the rendering's. The record keeps the page's own lines
-    beside the ATR's (ocr-postprocess). A rule, a page border or a repeated logo sends no page; a page with
-    nothing on it is `empty`.
-  * ODT and RTF come from the shared reader as plain lines, without table, furniture or object marks, and their
-    headers and footers are not read. So only a page with no line at all that shows a picture goes to the ATR; a
-    page of a table alone or a text box alone keeps its text, and a chart (vector drawing there) is not counted.
-  * Text inside a picture on a page with running text (a photo of a page beside a paragraph, a caption paragraph
-    under a scan) is not read: the page keeps its text, and its picture puts it among the pages for
+    does not decode never sends an office page to the ATR. What does is the PDF rule (atrium-project#84 decision
+    3): a page with **no text of its own that shows a picture**, that is no line outside its running header and
+    footer, and at least one picture (24 pt or more, not a repeated logo, or a drawing). Such a page is `needsAtr`,
+    routed `atr`, and the whole document goes to the ATR, as the rendered PDF: a scan pasted into a report is the
+    usual case. Its `textLayer` stays the rendering's. A page of a table, a chart or a text box alone keeps its
+    text (they are the page's own text); a rule, a page border or a repeated logo sends no page; a page with nothing
+    on it is `empty`. ODT and RTF follow the same rule; their headers and footers are not read.
+  * Each picture a page shows is a `figure` block after its text and table blocks (decision 6): a raster image of
+    the rendering, or a DOCX's chart, SmartArt diagram, shape or OLE object. A drawing is boxed on the rendering:
+    its size comes from the DOCX (`wp:extent`, a VML shape's style, an OLE object's original size), and the box is
+    the rendering's image of that size (an OLE preview) or the vector paths of that size nearest its anchor, on the
+    anchor's page or the page before. A drawing not found keeps no box, and the paradata count it
+    (`figures_without_box`). A figure block has no `lines`, `content` or `imageRef`.
+  * Text inside a picture on a page with text (a photo of a page beside a paragraph, a caption paragraph under a
+    scan) is not read: the page keeps its text, and its figure block puts it among the pages for
     page-classification.
   * The rendered PDF is what the ATR and page-classification read for an office document: page-classification
     takes PDFs only, and the page numbers of both must be the docproc's. It comes back as `rendered_pdf` from
-    `/reformat` whenever one of them reads it: a page is forced to the ATR or shows graphics. The command line
-    writes it then with `--rendered-out`.
-  * The PDF is then stored, as a distribution (`rendered-pdf`, a stand-in name until AMČR gives one; decision 5),
-    and the paradata name it by SHA-512 in `result`: on the command line only when `--rendered-out` wrote it. A
-    rerun lays the pages out the same, so the docproc does not change, but the PDF's own bytes may differ: a later
-    step uses the bytes handed over, never a re-render. A rendering nothing reads is neither handed over nor
-    named.
+    `/reformat` whenever one of them reads it: a page is forced to the ATR or holds a figure block. The command
+    line writes it then with `--rendered-out`.
+  * The paradata name it for every office document by SHA-512 in `result`, as `rendered-pdf` with `stored: false`
+    (a stand-in name; decision 5): the docproc is built on it, whether or not anything reads it. A rerun lays the
+    pages out the same, so the docproc does not change, but the PDF's own bytes may differ: a later step uses the
+    bytes handed over, never a re-render.
 * **The textual workflow: extracted as it is.**
   * A TXT keeps its physical lines; a blank line ends a paragraph (one block).
   * A CSV or TSV row is one line of its non-empty cells joined by a tab, the header row and every column included
@@ -140,9 +141,9 @@ Each type takes one of two workflows:
 | Footnotes                 | — (Docling engine: yes)                                | footnotes and endnotes                                             | —                        | —                | —                                          | `type: footnote` (`style.region = footnote`)                             |
 | Tables                    | ruled tables (Docling engine: any)                     | tables, merged cells, one per page they reach                      | cells as lines           | — (follow-up)    | — (rows as lines)                          | `type: table`, `cellGrid` (`tables[]` + `cells[].group_id`)              |
 | Bounding boxes, page size | exact, points, top-left origin                         | measured on the rendering, points                                  | the same                 | none             | none                                       | block and line `bbox`, `bboxPrecision`, page `width`/`height` (`canvas`) |
-| Graphics                  | pictures 24 pt or more, but not a repeated logo        | the rendering's pictures; charts, SmartArt, drawings, OLE objects  | the rendering's pictures | —                | —                                          | not in docproc: `graphics_pages`, a run hand-over (ask 14 withdrawn)     |
+| Graphics                  | pictures 24 pt or more, not a repeated logo            | pictures; charts, SmartArt, shapes, OLE, boxed                     | the rendering's pictures | —                | —                                          | `figure` blocks with their `bbox`, no `imageRef` (decision 6)            |
 | Untrustworthy text        | mojibake, unmapped glyphs, no text layer, prior OCR    | decode flag only (never `needsAtr`)                                | the same                 | decode flag only | decode flag only                           | line `flags: [decode:garbled]`, page `textLayer`, `needsAtr`             |
-| A page for the ATR        | no usable text layer                                   | no running text, and a picture, drawing, table or object text      | no line, and a picture   | never            | never                                      | page `needsAtr`, `needsAtrReason`; routing `atr`                         |
+| A page for the ATR        | no usable text layer                                   | no text of its own, and a picture                                  | the same                 | never            | never                                      | page `needsAtr`, `needsAtrReason`; routing `atr`                         |
 
 * **Engines.**
   * `--engine light` (default) uses `requirements_digital.txt`: permissive licences, no models, no

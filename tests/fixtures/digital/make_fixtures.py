@@ -103,8 +103,9 @@ Added 2026-11-14 for atrium-digital-convert#9 (visual and textual inputs); every
 keeps its bytes:
 
     scan_page.docx    a text page, a page that is only a picture (a scan pasted into a report)
-                      and a text page: rendered; since v2.0.0-beta no page goes to the ATR, and
-                      the picture page is routed `empty` with one graphic.
+                      and a text page: rendered; the picture page goes to the ATR, as a PDF
+                      page without text does (atrium-project#84 decision 3), its picture a
+                      `figure` block (decision 6).
     photo_text.docx   a long paragraph, a photo and a short paragraph on one page: the paragraph
                       becomes visual lines on the rendering, and a page with good text and a
                       photo does not go to the ATR (motyc's point 5 on #9).
@@ -468,8 +469,8 @@ def image_only_pdf() -> bytes:
 def scan_page_pdf() -> bytes:
     """The mixed PDF (atrium-project#84, H4, H6): a text page, a page that is one scanned picture,
     and a text page. The picture page has no text layer, so it needs the ATR; the text pages keep
-    their text layer, and the merge keeps their lines. It is the mixed case of the hub's E2E lane:
-    since v2.0.0-beta an office document never goes to the ATR, so `scan_page.docx` is none."""
+    their text layer, and the merge keeps their lines. It is the mixed PDF of the hub's E2E lane;
+    `scan_page.docx` is its office twin (atrium-project#84 decision 3)."""
     first = _text_at(
         72, 720, [b"Nalezova zprava. Na nasledujici strane je naskenovany plan sondy."]
     )
@@ -1207,13 +1208,10 @@ _PICTURE_DOC_RELS = DOC_RELS.replace(
 )
 
 
-def _picture_docx(body: str, png: bytes, shapes: bool = False) -> bytes:
-    """A DOCX of `body` with one picture part (`rId9`). `shapes` also declares the namespaces a
-    text box needs (`_textbox_run`)."""
-    extra = f' xmlns:mc="{MC_NS}" xmlns:wps="{WPS_NS}" xmlns:v="{V_NS}"' if shapes else ""
+def _picture_docx(body: str, png: bytes) -> bytes:
     document = XML_DECL + (
         f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" '
-        f'xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"{extra}><w:body>{body}'
+        f'xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"><w:body>{body}'
         '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
         '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" '
         'w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>'
@@ -1273,28 +1271,24 @@ def _textbox_run(
     )
 
 
-#: The caption of scan_page.docx's scan, in a text box over the page: object text.
-SCAN_CAPTION = "Obr. 2: Plán sondy II, sken z terénního deníku."
+#: The text of objects_pages.docx's text box, alone on its page.
+TEXTBOX_TEXT = "Poznámka v rámečku: fotografie budou doplněny později."
 
 
 def scan_page_docx() -> bytes:
-    """A report with a scanned page pasted in as a picture: page 2 holds the picture (6.5 x 9.5
-    in on A4) and its caption in a text box floating over it, no running text; pages 1 and 3
-    have text. Page 2 goes
-    to the ATR, and the whole document with it (atrium-project#84 decision 3): the caption is
-    object text, so the record keeps it beside the ATR's reading of the scan (keep-native, R8)."""
+    """A report with a scanned page pasted in as a picture: page 2 has no text, only the
+    picture (6.5 x 9.5 in on A4); pages 1 and 3 have text. Page 2 goes to the ATR, and the whole
+    document with it, as a PDF page without text does (atrium-project#84 decision 3); the picture
+    is a `figure` block (decision 6)."""
     body = (
         _p("Nálezová zpráva", style="Heading1")
         + _p("Na následující straně je naskenovaný plán sondy.")
         + _PAGE_BREAK
-        # The scan, and its caption floating over the scan's lower part.
-        + _picture("rId9", "plan.png", 6.5, 9.5, 1).replace(
-            "</w:r></w:p>", "</w:r>" + _textbox_run(SCAN_CAPTION, 1.5, 9.4, 5.0, 0.5, 7) + "</w:p>"
-        )
+        + _picture("rId9", "plan.png", 6.5, 9.5, 1)
         + _PAGE_BREAK
         + _p("Závěr: sonda byla zasypána.")
     )
-    return _picture_docx(body, _png(32, 48, 96), shapes=True)
+    return _picture_docx(body, _png(32, 48, 96))
 
 
 #: A paragraph long enough to wrap onto several lines of an A4 page.
@@ -1519,14 +1513,16 @@ _RULED_HEADER = (
 
 
 def objects_pages_docx() -> bytes:
-    """Five A4 pages under a ruled running header with a small logo on every page: what an office
-    page holds decides whether it goes to the ATR (atrium-project#84 decision 3, R2):
+    """Six A4 pages under a ruled running header with a small logo on every page: what an office
+    page holds decides whether it goes to the ATR (atrium-project#84 decision 3, the PDF rule: a
+    page with no text of its own that shows a picture):
 
-    1. a picture only (a pasted scan), under the header → the ATR;
-    2. a table only → the ATR;
-    3. a chart only (its titles and series are its text) → the ATR;
-    4. nothing: the header's rule and logo alone → `empty`;
-    5. running text → its own text.
+    1. a picture only (a pasted scan), under the header → the ATR, a `figure` block;
+    2. a table only → its own text;
+    3. a chart only (its titles and series are its text) → its own text, a `figure` block;
+    4. a text box only → its own text;
+    5. nothing: the header's rule and logo alone → `empty`;
+    6. running text → its own text.
     """
     logo = _picture("rId11", "logo.png", 0.6, 0.3, 50)
     header = XML_DECL + (
@@ -1553,8 +1549,12 @@ def objects_pages_docx() -> bytes:
         + _PAGE_BREAK
         + f"<w:p>{chart}</w:p>"
         + _PAGE_BREAK
+        + "<w:p>"
+        + _textbox_run(TEXTBOX_TEXT, 1.5, 3.0, 5.0, 0.6, 7)
+        + "</w:p>"
         + _PAGE_BREAK
-        + _p("Závěrečné shrnutí výzkumu na páté straně.")
+        + _PAGE_BREAK
+        + _p("Závěrečné shrnutí výzkumu na šesté straně.")
         + '<w:sectPr><w:headerReference w:type="default" r:id="rId10"/>'
         '<w:pgSz w:w="11906" w:h="16838"/>'
         '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" '
@@ -1562,7 +1562,8 @@ def objects_pages_docx() -> bytes:
     )
     document = XML_DECL + (
         f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}" xmlns:wp="{WP_NS}" '
-        f'xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}"><w:body>{body}</w:body></w:document>'
+        f'xmlns:a="{A_NS}" xmlns:pic="{PIC_NS}" xmlns:mc="{MC_NS}" xmlns:wps="{WPS_NS}" '
+        f'xmlns:v="{V_NS}"><w:body>{body}</w:body></w:document>'
     )
     content_types = _PICTURE_CONTENT_TYPES.replace(
         "</Types>",
@@ -1804,16 +1805,16 @@ NOTES = {
     "small_caps.pdf": "capitals then smaller capitals in one word; real spaces; a Ts capital (#5)",
     "rotated.pdf": "vertical table headers (ttb with a second subset, btt); a btt caption (#5)",
     "bold_titles.pdf": "bold section titles at the body size; bold lines that are not titles (#5)",
-    "scan_page.docx": "text page, a page of one picture (a pasted scan) with its caption in a text box, text page — the mixed DOCX: the picture page goes to the ATR, its caption kept (#84 decision 3, R8)",
+    "scan_page.docx": "text page, a page of one picture (a pasted scan), text page — the mixed DOCX: the picture page goes to the ATR, as a PDF page without text does (#84 decision 3); its picture a figure block (decision 6)",
     "scan_page.pdf": "text page, a page of one scanned picture, text page — the mixed PDF: only the picture page needs the ATR (#84 H4, H6)",
-    "photo_text.docx": "a long paragraph, a photo, a caption on one page — visual lines; the photo is the page's graphics (#9)",
+    "photo_text.docx": "a long paragraph, a photo, a caption on one page — visual lines; the page keeps its text, the photo a figure block (#9, #84 decision 6)",
     "sample.txt": "two paragraphs, a form feed, a second page — the textual workflow (#9)",
     "sample.csv": "a header row and rows with a text column among others — every column kept (#9)",
     "sample.tsv": "the CSV's rows as tab-separated values (#9)",
     "sample.json": "string values in objects and lists, with keys and numbers — every string kept (#9)",
     "sample.xlsx": "find records: counts, decimals, an area, a share, two dates, a time, a boolean, a formula, a hidden sheet — every cell as displayed (#9)",
     "objects.docx": "an inline and a display equation, a SmartArt of three nodes, a bar chart with titles, series and categories — read from the XML (v2.0.0-beta)",
-    "objects_pages.docx": "a ruled header with a logo over five pages: a picture, a table, a chart, nothing, running text — the first three to the ATR, the fourth `empty` (#84 decision 3, R2)",
+    "objects_pages.docx": "a ruled header with a logo over six pages: a picture, a table, a chart, a text box, nothing, running text — only the picture page to the ATR, the fifth `empty`; figure blocks on the picture and chart pages (#84 decisions 3, 6)",
 }
 
 

@@ -33,10 +33,11 @@ which gives the physical pages, their sizes in pt, the words' boxes and the page
 5. **Coverage.** Each rendered page counts its body words (not its running header or footer, and
    only words with a letter) and how many of them the native text matched
    (`DigitalPage.render_words`, `render_matched`). This measures the placement; it sends no page
-   to the ATR: what does is a page with no running text that shows an object
+   to the ATR: what does is a page with no text of its own that shows a picture
    (`digital_to_json.assess_page`, atrium-project#84 decision 3). What a page shows besides its
-   text — its images, and the drawings anchored on it (`DigitalLine.graphics`, kept on a line's
-   first visual line) — is its graphics (`digital_ir.page_graphics`).
+   text — its images, and the drawings anchored on it (`DigitalLine.graphics` and their sizes, kept
+   on a line's first visual line), boxed from the rendering's images and vector paths
+   (`DigitalPage.vector_boxes`) — is its pictures (`digital_ir.page_pictures`).
 """
 
 from __future__ import annotations
@@ -396,6 +397,7 @@ def _segments(natives: List[_Native], words: List[_Word]) -> List[_Segment]:
                         group_id=group_of(nat),
                         # a drawing anchored before the line counts once, on its first visual line
                         graphics=nat.line.graphics if n == 0 else 0,
+                        graphic_sizes=list(nat.line.graphic_sizes) if n == 0 else [],
                     ),
                 )
             )
@@ -489,6 +491,7 @@ def place(native: DigitalDocument, rendered: DigitalDocument) -> DigitalDocument
                 text_layer=rp.text_layer,
                 images=rp.images,
                 image_boxes=[list(box) for box in rp.image_boxes],
+                vector_boxes=[list(box) for box in rp.vector_boxes],
                 vector_paths=rp.vector_paths,
                 text_objects=rp.text_objects,
                 invisible_text_objects=rp.invisible_text_objects,

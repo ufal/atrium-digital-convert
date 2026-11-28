@@ -13,9 +13,9 @@ validates against; a new version from ARÚP is copied here.
 
 The second file is generated, never edited by hand: `python tools/docproc_proposal.py` writes it from the first, and
 `tests/test_docproc_writer.py` pins that the two differ only by these changes. The generator names them by the
-numbers of the requests sent to ARÚP (3, 5, 10 and 13). Request 14, what a page shows besides its text (`graphics`,
-`tables` in routing), is withdrawn (atrium-project#84 decision 6): digital-convert hands the pages that show graphics
-over with the run (`graphics_pages`), outside docproc.
+numbers of the requests sent to ARÚP (3, 5, 10 and 13) and of Ronald's answer 12. Request 14, what a page shows
+besides its text (`graphics`, `tables` in routing), is withdrawn (atrium-project#84 decision 6): what a page shows is
+its blocks, `table` blocks for its tables and `figure` blocks for its pictures.
 
 **No run data required** (request 3): `processedAt` and `pipeline` are not required; the run, the original and its
 digest are the paradata's. digital-convert writes neither, nor `sourceFile` or `sourceHash` (a SHA-256).
@@ -38,6 +38,12 @@ the pages the caller forced the ATR to read and why. ocr-postprocess checks them
 **One coordinate space** (request 10): every box is on the displayed page, origin top-left of the CropBox, after
 `/Rotate`, in 1/72 inch × `userUnit`. A page may carry `pixelRatio`: for an image docproc wraps into a PDF, the
 image's pixels per unit. digital-convert writes `userUnit` when a PDF page's `/UserUnit` is not 1.
+
+**Pictures without the picture** (answer 12 on aiscr-docs-pipeline#17, ARÚP's decision 6 on atrium-project#84):
+an image-class block (`image`, `figure`, `chart`, `seal`) no longer requires `imageRef`; the stored docproc holds
+where a picture is, not the picture. ARÚP relaxes the rule in its own version; this proposal applies it until then.
+digital-convert writes each picture a page shows as a `figure` block with its `bbox`, no `lines`, no `content` and no
+`imageRef`; a drawing it cannot box on the rendering has no `bbox`.
 
 Everything else is the ATR's: block ids `p{page}-b{n}`, dense `readingOrder`, `cellGrid` tables,
 `metadata.routing`. digital-convert routes every page in `metadata.routing.pages[]` (`text-layer`, `atr`, `empty`)

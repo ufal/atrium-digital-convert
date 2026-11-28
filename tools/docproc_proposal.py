@@ -16,11 +16,15 @@ same schema with the asks on #84 that concern the docproc's shape applied, and n
 * **ask 5**: a routing entry may echo a page the ATR was forced to read (``forced``, ``forced_reason``;
   D27), so the record builder can check them against digital-convert's ``needsAtr`` pages;
 * **ask 10**: a page of an image that docproc wraps into a PDF may carry ``pixelRatio``, the image's
-  pixels per unit (D28), so a box can be put back on the image's pixels.
+  pixels per unit (D28), so a box can be put back on the image's pixels;
+* **answer 12** (Ronald's on aiscr-docs-pipeline#17; ARÚP's decision 6 on #84, 11-27): the stored
+  docproc holds where a picture is, not the picture, so an image-class block (``image``, ``figure``,
+  ``chart``, ``seal``) no longer requires ``imageRef``. ARÚP relaxes the rule in its own version; this
+  proposal applies it until that version exists. digital-convert writes each picture a page shows as
+  a ``figure`` block with its ``bbox`` and no ``imageRef``.
 
 Ask 14 (proposed 2026-11-25: ``graphics`` and ``tables`` counts in a routing entry) is withdrawn
-(atrium-project#84 decision 6): what a page shows besides its text is handed over with the run
-(digital-convert's ``graphics_pages``), not written into docproc.
+(atrium-project#84 decision 6): what a page shows is its blocks (``figure``, ``table``).
 
 The proposal is a file, not a branch of code: it is what ARÚ/B and the ATR are asked to adopt
 (#84 §7). ``apply_asks()`` builds it from the actual schema; ``tests/test_docproc_writer.py``
@@ -56,13 +60,14 @@ def apply_asks(actual: Dict[str, Any]) -> Dict[str, Any]:
     schema = copy.deepcopy(actual)
     schema["$id"] = PROPOSAL_ID
     schema["title"] = (
-        "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3, 5, 10 and 13)"
+        "docproc document v1.1 — ATRIUM proposal (atrium-project#84, asks 3, 5, 10 and 13, answer 12)"
     )
     schema["description"] = (
         actual["description"]
         + " ATRIUM proposal: the actual schema of 2026-11-10 with asks 3 (no run data required), 5 (the"
         " forced pages echoed in routing), 10 (the image pixel ratio) and 13 (other producers, formats,"
-        " the page verdict, block lines, flow documents) applied."
+        " the page verdict, block lines, flow documents) applied, and answer 12 (no imageRef required on"
+        " an image-class block)."
     )
     props = schema["properties"]
 
@@ -127,6 +132,18 @@ def apply_asks(actual: Dict[str, Any]) -> Dict[str, Any]:
     block = defs["Block"]
     # ask 13: a block of a flow document has no box.
     block["required"] = [name for name in block["required"] if name != "bbox"]
+    # answer 12 (decision 6): the docproc holds where a picture is, not the picture.
+    block["allOf"] = [
+        rule
+        for rule in block.get("allOf", [])
+        if not str(rule.get("$comment", "")).startswith("Image-class blocks require imageRef")
+    ]
+    block["properties"]["imageRef"] = dict(block["properties"]["imageRef"])
+    block["properties"]["imageRef"]["description"] = (
+        str(block["properties"]["imageRef"].get("description", "")).rstrip()
+        + " ATRIUM proposal (answer 12): optional on an image-class block; the stored docproc holds where a"
+        " picture is (its bbox), not the picture."
+    ).strip()
     block["properties"]["lines"] = {
         "description": (
             "ATRIUM proposal (asks 7, 13): the block's lines in reading order, so a consumer keeps the line "

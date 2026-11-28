@@ -17,18 +17,23 @@ builds the record from it (#84 §1). ``build_docproc()`` maps the converter's in
   dense from 0. The type follows the line style: ``heading`` with ``level``, ``header``,
   ``footer``, ``footnote``, else ``paragraph``. A table is one ``table`` block with its
   ``cellGrid`` and its plain text (rows by line, cells by tab). A block's ``content`` is its
-  lines joined by line breaks, its ``bbox`` the union of its line boxes.
+  lines joined by line breaks, its ``bbox`` the union of its line boxes. Each picture the page
+  shows (``digital_ir.page_pictures``: a raster image of at least 24 pt that is not a repeated logo,
+  or a chart, a SmartArt diagram, shapes or an OLE object of an office document) is a ``figure``
+  block after the text and table blocks: its ``bbox`` where it is drawn, no ``lines``, no
+  ``content`` and no ``imageRef`` (the docproc holds where a picture is, not the picture;
+  atrium-project#84 decision 6, Ronald's answer 12 on aiscr-docs-pipeline#17). A drawing the
+  rendering could not box is a ``figure`` without a ``bbox``.
 * **lines** -- every text block carries its ``lines[]``: the text, the measured box, its
   ``bboxPrecision`` (``measured`` or ``absent``), and the decode verdict as ``flags``
   (``decode:garbled``, ``decode:inverted``: ``atrium_vocab.DECODE_FLAGS``; D18 rule 2).
 * **routing** -- ``metadata.routing.pages[]`` lists every page: ``page``, ``route``
   (``text-layer``, ``atr``, ``empty``) and ``text_layer`` (whether the page's text layer is
   used), and nothing else (atrium-project#84 decision 6: the ``graphics`` and ``tables`` counts of
-  ask 14 are withdrawn). What a page shows besides its text is a run hand-over, not docproc: the
-  pages that show graphics (``digital_ir.graphics_pages``) go with the forced pages to
-  page-classification (decision 4), through ``/reformat``'s ``graphics_pages`` and the command
-  line's ``--graphics-pages-out``. A rendered office page with no running text that shows an
-  object (a picture, a chart, a table, a text box) is routed ``atr`` with ``needsAtr`` (decision 3).
+  ask 14 are withdrawn; what a page shows is its ``figure`` and ``table`` blocks). The pages
+  with ``figure`` blocks go with the forced pages to page-classification (decision 4; the hub's
+  ``atrium_page_selection``). A rendered office page with no line outside its running header and
+  footer that shows a picture is routed ``atr`` with ``needsAtr`` (decision 3).
 
 No run data: no ``processedAt``, ``pipeline``, ``sourceFile`` or ``sourceHash`` (the run, the
 original and its SHA-512 are the paradata's; ask 3). The output validates against
@@ -58,6 +63,8 @@ from api_util.digital_ir import (
     DigitalLine,
     DigitalPage,
     DigitalTable,
+    PagePicture,
+    page_pictures,
     text_layer_of,
 )
 
@@ -226,7 +233,7 @@ def _groups(page: DigitalPage) -> List[Tuple[str, List[DigitalLine]]]:
     return groups
 
 
-def _page(page: DigitalPage) -> Dict[str, Any]:
+def _page(page: DigitalPage, pictures: Sequence[PagePicture] = ()) -> Dict[str, Any]:
     place = _placer(page)
     tables = {str(t.group_id or t.table_id): t for t in page.tables}
     blocks: List[Dict[str, Any]] = []
@@ -248,6 +255,14 @@ def _page(page: DigitalPage) -> Dict[str, Any]:
         ordered["confidence"] = 1.0  # native text extraction (the schema's own convention)
         ordered.update({k: v for k, v in block.items() if k != "type"})
         blocks.append(ordered)
+    for picture in pictures:
+        n = len(blocks)
+        figure: Dict[str, Any] = {"id": f"p{page.page_index}-b{n}", "type": "figure"}
+        if picture.bbox:
+            figure["bbox"] = [round(float(v), 3) for v in place(picture.bbox)]
+        figure["readingOrder"] = n
+        figure["confidence"] = 1.0
+        blocks.append(figure)
 
     out: Dict[str, Any] = {"pageNumber": page.page_index}
     width, height = page.frame.size if page.frame is not None else (page.width, page.height)
@@ -275,7 +290,16 @@ def _language(document: DigitalDocument) -> Optional[str]:
 
 def build_docproc(document: DigitalDocument) -> Dict[str, Any]:
     """The document as docproc (see the module docstring); validated, else `DocprocError`."""
-    pages = [_page(page) for page in document.pages if route(page) != ROUTE_EMPTY]
+    shown = (
+        page_pictures(document)
+        if getattr(document, "workflow", "visual") == "visual"
+        else [[] for _ in document.pages]
+    )
+    pages = [
+        _page(page, pictures)
+        for page, pictures in zip(document.pages, shown, strict=True)
+        if route(page) != ROUTE_EMPTY
+    ]
     routing = [
         {
             "page": page.page_index,
@@ -296,6 +320,25 @@ def build_docproc(document: DigitalDocument) -> Dict[str, Any]:
     out["metadata"] = {"routing": {"pages": routing, "counts": {"by_route": by_route}}}
     validate(out)
     return out
+
+
+def figure_pages(docproc: Dict[str, Any]) -> List[int]:
+    """The pages holding a `figure` block, by page number (atrium-project#84 decisions 4, 6)."""
+    return sorted(
+        int(page["pageNumber"])
+        for page in docproc.get("pages") or []
+        if any(block.get("type") == "figure" for block in page.get("blocks") or [])
+    )
+
+
+def figures_without_box(docproc: Dict[str, Any]) -> int:
+    """How many `figure` blocks have no `bbox`: drawings the rendering could not box."""
+    return sum(
+        1
+        for page in docproc.get("pages") or []
+        for block in page.get("blocks") or []
+        if block.get("type") == "figure" and not block.get("bbox")
+    )
 
 
 def needs_atr(docproc: Dict[str, Any]) -> bool:
@@ -336,6 +379,8 @@ __all__ = [
     "ROUTE_TEXT_LAYER",
     "DocprocError",
     "build_docproc",
+    "figure_pages",
+    "figures_without_box",
     "needs_atr",
     "problems",
     "route",
