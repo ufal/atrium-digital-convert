@@ -1,5 +1,6 @@
 # Strategy — [atrium-project#84](https://github.com/ufal/atrium-project/issues/84) (doc-schema-v2): digital-convert's part
 
+> _**Refreshed 2026-11-28**: Status — 11-28 (merged and released as `v2.0.0-beta`; the hub's lanes, the chain sample at the tags and `doc-schema-v2` next)._
 > _**Refreshed 2026-11-27 (evening)**: Status — 11-27 (evening) (ARÚP's answers on atrium-project#84, comment 7; the PR adjusted)._
 > _**Refreshed 2026-11-27**: Status — 11-27 (the non-A options of atrium-project#84 prepared, not pushed)._
 > _**Refreshed 2026-11-25**: Status — 11-25 (the v2.0.0-beta release prep)._
@@ -17,17 +18,19 @@
 > issue existed), in which digital-convert wrote the born-digital record, read images and CSV, and kept the
 > `ocr_text_layer` refusal — all superseded below._
 
-**Status (2026-11-27, evening)**: 🟡 **ARÚP answered atrium-project#84 (comment 7). #18 is adjusted: an office page with no line outside its header and footer that shows a picture goes to the ATR, every office format alike (decision 3); each picture or drawing is a `figure` block with a `bbox` and no `imageRef`, and the `graphics_pages` hand-over goes (decision 6); `rendered-pdf` is named for every office document, `stored: false` (decision 5); no file names in `config` (decision 1). See the DEVLOG entry of 11-27 (evening).**
+**Status (2026-11-28)**: 🟢 **Released as `v2.0.0-beta` (`27f94a5`, 11-28): #18 squash-merged (`ff556fa`, atrium-project#84's decisions 1, 3, 5, 6) after the re-pin to the hub's `ff0a8ea` (`v1`), with the Docling docprocs from the cluster; the release run is green and the images are certified. Next, in the hub: both E2E lanes on the `2.0.0-beta` images, and `doc-schema-v2`'s tag (motyc is asked on atrium-project#84). #9's points 2 and 5 are settled as released; the comment there is drafted, then the close. See the DEVLOG entry of 11-28.**
 
-**Status (2026-11-27)**: 🟡 **The non-A options of atrium-project#84 prepared (not pushed; ARÚP has not answered): an office page with no running text that shows an object goes to the ATR (decision 3); the pages that show graphics are handed over with the run (`graphics_pages`), `graphics`/`tables` leave the docproc and ask 14 is withdrawn (decisions 4, 6); the rendered PDF is stored when the ATR or page-classification reads it (decision 5). One PR, after the hub's. See the DEVLOG entry of 11-27.**
+**Status (2026-11-27, evening)**: 🟡 **ARÚP answered atrium-project#84 (comment 7). #18 is adjusted: an office page with no line outside its header and footer that shows a picture goes to the ATR, every office format alike (decision 3); each picture or drawing is a `figure` block with a `bbox` and no `imageRef`, and the `graphics_pages` hand-over goes (decision 6); `rendered-pdf` is named for every office document, `stored: false` (decision 5); no file names in `config` (decision 1). See the DEVLOG entry of 11-27 (evening).** _(superseded 11-28: merged and released)_
 
-**Status (2026-11-25)**: 🟡 **v2.0.0-beta release prep in #17 (`v2-beta-prep` → `test`): office documents never go to the ATR, every page says what it shows (`graphics`, `tables`), `/describe` calls no other tool, the samples are this version's. Tag 26 November after the merge; the route question (pages with graphics to page-classification, the rendered PDF stored or not) is ARÚP's on atrium-project#84. See the DEVLOG entry of 11-25.**
+**Status (2026-11-27)**: 🟡 **The non-A options of atrium-project#84 prepared (not pushed; ARÚP has not answered): an office page with no running text that shows an object goes to the ATR (decision 3); the pages that show graphics are handed over with the run (`graphics_pages`), `graphics`/`tables` leave the docproc and ask 14 is withdrawn (decisions 4, 6); the rendered PDF is stored when the ATR or page-classification reads it (decision 5). One PR, after the hub's. See the DEVLOG entry of 11-27.** _(superseded 11-27 evening: ARÚP answered)_
+
+**Status (2026-11-25)**: 🟡 **v2.0.0-beta release prep in #17 (`v2-beta-prep` → `test`): office documents never go to the ATR, every page says what it shows (`graphics`, `tables`), `/describe` calls no other tool, the samples are this version's. Tag 26 November after the merge; the route question (pages with graphics to page-classification, the rendered PDF stored or not) is ARÚP's on atrium-project#84. See the DEVLOG entry of 11-25.** _(superseded 11-28: tagged `v2.0.0-beta` on 11-28, after ARÚP's answers)_
 
 **Status (2026-11-19)**: 🟡 **Everything of this repository's part is on `test` (#10–#14), pinned to the hub's
 `02cbd01`. Kate's and Ronald's answers are in. Ronald's ask 10 leaves one risk on the ATR's side (a rotated or
 cropped mixed document fails until the open variant); nothing to change here. The record-2.0 release
 (`v2.0.0-beta`) waits for the release batch (atrium-project#77); doc-schema-v2's tag for the pilot run on the cluster.
-See "Status — 11-19".**
+See "Status — 11-19".** _(superseded 11-25: the release prep)_
 
 **Status (2026-11-14, afternoon)**: 🟡 **The hub's PR is merged and this repository is pinned to it: drift is green.
 Round 6 completes this repository's part where no answer is pending; see "Status — round 6". The release (v2.0.0-beta)
@@ -107,7 +110,9 @@ The record is ocr-postprocess's; the Markdown view stays a development output (c
     so their pages and lines get boxes in pt as a PDF's do; only the pages that need the ATR go to page-classification
     and the ATR, not every page with an embedded image. Ask 13's "flow document without a page size" then concerns
     the text-only inputs alone. Detail: [`9.plan.md`](9.plan.md). _(11-14: implemented, native text placed on the
-    rendered pages; the rendered PDF named `stored: false`.)_
+    rendered pages; the rendered PDF named `stored: false`.)_ _(11-27: decision 4 —
+    page-classification also reads the pages with `figure` blocks; decision 5 — the rendered PDF named for
+    every office document, not stored; released 11-28 in v2.0.0-beta.)_
 
 ## Paradata (H14; #84 §4)
 
@@ -265,5 +270,6 @@ Marked in place in open issues' files (` _(superseded 11-12: …)_`); closed iss
 ## Not in scope
 
 - `/describe` in the pipeline (H11); the decision models of #8 (parked).
-- The route and the ATR (the pipeline's and ARÚP's); page classification (beside the ATR, on `needs_atr` pages).
+- The route and the ATR (the pipeline's and ARÚP's); page classification (beside the ATR, on the forced and `figure` pages,
+  decision 4).
 - Chunking and page rendering (the cluster side, D3, H1); `forms` (D19); full-text translation.

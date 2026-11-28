@@ -1,7 +1,7 @@
 # 📓 atrium-digital-convert — agent_dev_logs/DEVLOG.md (timeline index)
 > _**Since 2026-10-01 this is `ufal/atrium-digital-convert`, the born-digital stage** (file → `atrium_document`
 > record; `POST /reformat`, `POST /describe`). The repository started as `atrium-llm-enrich`; its keyword/LLM stage
-> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; the samples synthetic since #15, 11-19; motyc 11-10: OK to close after the meeting) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11) and **#9** (inputs and the first-pass page check, opened 2026-11-12; done on `test` with #10–#12 and #14, answered 11-19; closing is motyc's: `digests/9.digest.md`). This repository's part of doc-schema-v2 (atrium-project#84, opened 2026-11-12): `plans/doc-schema-v2.plan.md` — a docproc producer from 12 November. **#4** (PDF/DOCX
+> moved to atrium-keyword-extract (#1, closed 2026-10-07). Open issues: **#5** (Dana's 15 AMČR PDFs; the samples synthetic since #15, 11-19; motyc 11-10: OK to close after the meeting) and **#8** (a document type per page from AMČR's `dokument_typ`, opened 2026-11-06; a sub-issue of atrium-project#83; parked during the pilot phase since 2026-11-11) and **#9** (inputs and the first-pass page check, opened 2026-11-12; done on `test` with #10–#12 and #14, answered 11-19; points 2 and 5 settled by atrium-project#84's answers and released in v2.0.0-beta; the decisions comment, then the close: `digests/9.digest.md`). This repository's part of doc-schema-v2 (atrium-project#84, opened 2026-11-12): `plans/doc-schema-v2.plan.md` — a docproc producer from 12 November. **#4** (PDF/DOCX
 > inputs, W1–W6) is closed; #1 and #2 closed on 2026-10-07, #3 and #6 on 2026-10-15 (the pairs of #2, #3, #4 and #6 removed 2026-11-19; #1's stays, cited by README.md, CONTRIBUTING.md and production-image.json). Entries up to
 > 2026-09-30 use the old llm-enrich numbers.
 > Releases: **v1.0.0-beta** (2026-10-01, the transitional llm-enrich snapshot) · **v1.1.0-beta** and
@@ -9,10 +9,10 @@
 > escaping) · **v1.2.0-beta** (#5's G, F, H) to **v1.2.2-beta** (images certified, atrium-project#81) ·
 > **v1.3.0-beta** (2026-10-26, the CLI gives what the service gives) · **v1.4.0-beta** to **v1.4.2-beta** (10-29 to
 > 11-03) · **Starting set of the pilot phase: v1.4.4-beta** (`fac54b1`, 2026-11-04; immutable, with `images.json`; atrium-project#77);
-> **v1.4.5-beta** (11-06, the Galaxy entry point) · **v1.4.7-beta** (11-08, atrium-project#10's fixes); v1.4.3-beta and
-> v1.4.6-beta were tagged, not released. `test` (= `main`, `88137dd`) is 13 commits past v1.4.7-beta and declares the
-> unreleased v2.0.0-beta (record 2.0, docproc). Hub workflows pinned to `02cbd01` (`v1`). Latest entry: 2026-11-25 (v2.0.0-beta release prep)
-> (log round)._
+> **v1.4.5-beta** (11-06, the Galaxy entry point) · **v1.4.7-beta** (11-08, atrium-project#10's fixes) · **v2.0.0-beta** (2026-11-28, `27f94a5`: record 2.0,
+> docproc, atrium-project#84's decisions; immutable, with `images.json`); v1.4.3-beta and v1.4.6-beta were
+> tagged, not released. `test` = `main` = the tag. Hub workflows pinned to `ff0a8ea` (`v1`). Latest entry:
+> 2026-11-28 (v2.0.0-beta released)._
 >
 > _The header below is the llm-enrich timeline's, kept as it was on 2026-09-26:_
 
@@ -1735,3 +1735,21 @@ Documentation only; no code, test or configuration change.
   plan and scan pages, no `graphics`/`tables` in the routing, `config` without the file name; the Markdown
   unchanged); the hub lane's fixtures through the CLI and `/reformat`.
 * Not pushed.
+
+## 2026-11-28 — atrium-project#84: merged, v2.0.0-beta released
+
+* **Merged:** #17 (release prep, `0d090be`, 11-25) and #18 (`ff556fa`, 11-28: ARÚP's answers, decisions 1, 3, 5, 6),
+  squash. Before the merge #18 was re-pinned to the hub's `ff0a8ea` (`v1`, atrium-project#95's merge; 10 references)
+  and got its samples.
+* **Released:** `v2.0.0-beta` on `27f94a5` (#18 plus `CITATION.cff` `date-released: 2026-11-28`), published 11:52 UTC,
+  immutable, "Record Schema 2.0 update of `atrium_document`", the curated notes above the generated part. Release run
+  46141418199 green: tests, smoke, build and push with Trivy, the CVE gate and the promotion to the scanned digest,
+  the OpenAPI checks, the assets (`images.json`, `openapi.json`). `main` = `test` = the tag; `CITATION.cff`,
+  `service/openapi.json` and `para_config.txt` say 2.0.0-beta.
+* **Samples:** the Docling docprocs of `CTX000000004`–`6` made again on the cluster (3, 4 and 0 `figure` blocks, no
+  routing keys); the light docprocs and the service reports are those of 11-27 (made here, same code).
+* **#9:** points 2 and 5 are settled by ARÚP's answers and released; the comment promised on 11-25 is drafted (posted
+  by K4TEL), then the close (`digests/9.digest.md`).
+* **Not yet, in the hub:** both E2E lanes on the `2.0.0-beta` images; `doc-schema-v2`'s tag, asked of motyc on
+  atrium-project#84.
+* Logs only; not pushed.
